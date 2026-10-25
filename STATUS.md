@@ -128,9 +128,8 @@
 - Scheduler treats malformed Windows drive/UNC paths, parent escapes,
   wildcards, unknown zone types and case differences as overlapping.
   Runtime-only controller lock and __pycache__ are ignored by new projects.
-- Feature branch `feat/controller-safe-step-20261025` (main was clean at
-  creation). Do not call this an unattended, multi-agent runtime. Confirm
-  final Windows/Linux CI, then merge to main and update STATUS checkpoint.
+- **Merged** by [PR #3](https://github.com/mrAibo/Autopilot/pull/3) into `main` on 2026-10-25, squash commit `541c0549db5a548fb2c7f74cda2260466bbc9870`. Feature commit `3741bd2e9d7c69a2bc88670a19e199449f7773cd` passed [CI #40208179320](https://github.com/mrAibo/Autopilot/actions/runs/40208179320): **4/4** Windows/Linux Python 3.11/3.13 jobs green, **185 Python tests**, JS syntax and Chrome wide/narrow smoke. This STATUS-only commit starts another main CI; confirm its result separately.
+- This is an explicitly invoked host-transition controller, **NOT** an unattended multi-agent execution daemon. Never say autonomous agent dispatch or GUI/Claude E2E is verified.
 
 ## Prioritized next steps
 
