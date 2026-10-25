@@ -787,6 +787,7 @@ def ensure_gitignore():
     except OSError:
         text = ""
     entries = [".autopilot/serve.*", ".autopilot/state.lock",
+               ".autopilot/dispatch-*.lock",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
                ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
     existing = {line.strip() for line in text.splitlines()}
