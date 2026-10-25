@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Added a strict isolated host controller with read-only plan and one-step audited prepare/start/verify/finalize/land/accept/release, fail-closed concurrency, and no implicit model calls. Real two-ticket synthetic Git lifecycle verified, including test failure and recovery. Strengthened cross-platform scheduler zone checking.
+
 - Guarded native Codex custom-agent routing against model-V2 spawn metadata omission and unverified child execution; do not interpret GUI skill discovery or agent prose as model pinning.
 
 **Dashboard 3.1 command center and copied-dashboard upgrade (2026-10-25)**

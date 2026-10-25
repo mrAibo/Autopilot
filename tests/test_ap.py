@@ -23,6 +23,7 @@ PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
 WORKTREES = os.path.join(SKILL, "tools", "worktrees.py")
 RETRY_POLICY = os.path.join(SKILL, "tools", "retry_policy.py")
 SCHEDULER = os.path.join(SKILL, "tools", "scheduler.py")
+CONTROLLER = os.path.join(SKILL, "tools", "controller.py")
 TEST_EVIDENCE = os.path.join(SKILL, "tools", "test_evidence.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
@@ -62,6 +63,7 @@ class Run(unittest.TestCase):
         shutil.copy(WORKTREES, os.path.join(self.a, "worktrees.py"))
         shutil.copy(RETRY_POLICY, os.path.join(self.a, "retry_policy.py"))
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
+        shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
 
     def tearDown(self):
@@ -636,6 +638,88 @@ class Run(unittest.TestCase):
         self.assertEqual(plan["selected"][0]["action"], "start")
         self.assertEqual(plan["blocked"][0]["reason"], "dependencies")
         self.assertFalse(plan["automaticLaunch"])
+
+    def test_controller_two_ticket_real_host_lifecycle_and_failed_test(self):
+        """Two actual Git worktrees, trusted tests and one recoverable red."""
+        self.plan(strict=True, isolated=True)
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, out)
+        for tid in ("01", "02"):
+            code, msg = self.ap("ticket", tid, "route", "--provider", "anthropic",
+                                "--model", "haiku", "--effort", "low",
+                                "--reason", "synthetic", "--capabilities", caps)
+            self.assertEqual(code, 0, msg)
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Autopilot Controller Test")
+        os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
+        os.makedirs(os.path.join(self.root, "src", "bot"), exist_ok=True)
+        with open(os.path.join(self.root, "src", "core", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def add(a,b): return a-b\n")
+        with open(os.path.join(self.root, "src", "bot", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def mul(a,b): return a+b\n")
+        with open(os.path.join(self.root, "test_core.py"), "w", encoding="utf-8") as f:
+            f.write("import unittest\nfrom src.core.calc import add\n"
+                    "class Tests(unittest.TestCase):\n"
+                    " def test_add(self): self.assertEqual(add(2,3),5)\n")
+        with open(os.path.join(self.root, "test_bot.py"), "w", encoding="utf-8") as f:
+            f.write("import unittest\nfrom src.bot.calc import mul\n"
+                    "class Tests(unittest.TestCase):\n"
+                    " def test_mul(self): self.assertEqual(mul(2,3),6)\n")
+        self.git("add", "-A")
+        self.commit("controller verified fixture")
+        def drive(suite=None):
+            cmd = [sys.executable, os.path.join(self.a, "controller.py")]
+            if suite:
+                cmd += ["--suite", suite]
+            p = subprocess.run(cmd + ["--advance", "--root", self.root], cwd=self.root,
+                               capture_output=True, text=True, encoding="utf-8",
+                               errors="replace", timeout=60)
+            try:
+                obj = json.loads(p.stdout)
+            except ValueError:
+                self.fail("Controller invalid JSON: " + p.stdout + p.stderr)
+            return p.returncode, obj
+        code, first = drive()
+        self.assertEqual((code, first["completed"]["action"]), (0, "prepare"), first)
+        code, second = drive()
+        self.assertEqual((code, second["completed"]["action"]), (0, "start"), second)
+        code, blocked = drive()
+        self.assertEqual(blocked["status"], "blocked", blocked)
+        self.assertEqual(blocked["next"]["reason"], "await-separately-approved-pinned-worker")
+        wt1 = self.state()["tickets"][0]["worktree"]["cwd"]
+        with open(os.path.join(wt1, "src", "core", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def add(a,b): return a+b\n")
+        for expected in ("verify", "finalize", "land", "accept", "release"):
+            code, result = drive("test_core.py")
+            self.assertEqual(code, 0, result)
+            self.assertEqual(result["completed"]["action"], expected, result)
+            self.assertFalse(result["model_invoked"])
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "released")
+        for expected in ("prepare", "start"):
+            code, obj = drive()
+            self.assertEqual(code, 0, obj)
+            self.assertEqual(obj["completed"]["action"], expected)
+        wt2 = self.state()["tickets"][1]["worktree"]["cwd"]
+        with open(os.path.join(wt2, "src", "bot", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def mul(a,b): return a-b\n")
+        code, failed = drive("test_bot.py")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(failed["status"], "blocked")
+        self.assertEqual(self.state()["tickets"][1]["status"], "in-progress")
+        self.assertFalse(self.state()["tickets"][1].get("testEvidence"))
+        with open(os.path.join(wt2, "src", "bot", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def mul(a,b): return a*b\n")
+        for expected in ("verify", "finalize", "land", "accept", "release"):
+            code, result = drive("test_bot.py")
+            self.assertEqual(code, 0, result)
+            self.assertEqual(result["completed"]["action"], expected, result)
+        self.assertTrue(all(t["status"] == "done" for t in self.state()["tickets"]))
+        self.assertFalse(self.git("status", "--porcelain", "--", "src").stdout.strip())
+        self.assertEqual((drive()[1])["status"], "blocked")
 
     def test_schedule_isolated_preparation_and_reservation(self):
         self.plan(isolated=True)

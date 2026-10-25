@@ -28,6 +28,14 @@ It works on its own: nothing else to install.
 
 **Already-running projects:** Dashboard 3.1 has a new navigation rail and sectioned mission-control layout. Existing .autopilot/dashboard.html files are copied pages and are NOT automatically replaced by updating the skill. Use skills/autopilot/tools/dashboard_upgrade.py --project PATH to back up the old page, preserve the current state.js snapshot, then reload the browser tab.
 
+**Strict isolated ticket controller (2.3-dev preview):**
+`.autopilot/controller.py --root .` plans one safe action read-only;
+`--advance` applies one host/Git/test transition without calling any model.
+Example: `python .autopilot/controller.py --root . --suite test_calc.py --advance`.
+After externally approved worker execution, it verifies the immutable baseline
+test module, finalizes, lands, accepts and releases in distinct audited steps.
+No paid agent auto-launch yet. See [Host controller](docs/autopilot/controller.md).
+
 ## Installation
 
 > **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.

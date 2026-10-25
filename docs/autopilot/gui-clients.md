@@ -78,6 +78,16 @@ The standalone upgrader requires a valid existing .autopilot/state.js, refuses m
 5. Native named subagents must be discovered in the host session with the approved model/effort. If not, use single-agent sequential mode; **never silently inherit a costly parent model**.
 6. At acceptance, check actual tests, Git commits, requirements and G1–G4 gates. Persist `STATUS.md` and `PROGRESS.md`.
 
+## Host-side lifecycle controller (not GUI agent dispatch)
+
+`controller.py` implements a safe, bounded, operator-invoked transition loop
+for a strict isolated Autopilot run. Read-only default; `--advance` applies
+one Git/state/test step, never calls a model or accepts unverified evidence.
+This gives both GUI hosts a shared file-driven workflow, but is not native
+GUI child-agent dispatch. It is tested on two actual disposable Git worktrees,
+including a red test followed by an independently verified correction.
+See [controller.md](controller.md).
+
 ## Known blockers
 
 - No completed end-to-end GUI test with Codex Desktop or Claude Code Desktop.
