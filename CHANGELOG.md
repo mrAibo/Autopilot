@@ -8,6 +8,13 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Added bounded `host_loop.py` on top of controller: side-effect-free preview;
+  explicit `--advance` drives up to 32 trusted host/Git/test transitions with
+  per-ticket baseline unittest suites, fail-closed pauses for separately approved
+  AI workers, stop on failures/concurrent state changes, and distinct
+  `tickets-settled` (not final acceptance) status. Real offline two-ticket
+  worktrees with failed unittest and successful repair tested without model calls.
+
 - Added read-only Codex CLI runtime doctor: current model/Effort catalog, version and required flags, verified on native Windows CLI without paid calls.
 
 - Added two actual OS-process offline GUI bridge end-to-end tests: pinned route, real worktree commit, usage, host tests, Git landing/acceptance, anti-replay and failure. An incomplete/failed CLI process now reports unknown provider invocation status.

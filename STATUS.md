@@ -275,6 +275,16 @@
 - **Merged:** [PR #6](https://github.com/mrAibo/Autopilot/pull/6) as squash commit `ae8e2471332a6f0e72079c4ceba4a5020e8166bb` on 2026-10-25. Final PR [CI #40228772621](https://github.com/mrAibo/Autopilot/actions/runs/40228772621) passed **4/4** Ubuntu/Windows Python 3.11/3.13 checks with **205 Python tests** and Dashboard JS/browser smoke. Initial Linux 3.11 red test was due to Python executable symlink-string comparison in the synthetic fixture; canonical path test now passes everywhere.
 - This STATUS.md update creates its own main commit and corresponding CI; check it independently.
 
+## P0 host-only bounded orchestration loop (2026-10-25)
+
+- Working branch: `feat/p0-host-orchestration-loop-20261025` based on clean `main` HEAD `fe0911ffcbab3a1f54b509cc9098ac9d47d5e3d4`. Not merged at initial checkpoint. Owner requested continued P0 work and persistent session handoff; no paid model execution was authorized.
+- Added `skills/autopilot/tools/host_loop.py`: default read-only; `--advance` makes at most 1–32 controller-managed trusted host transitions, with exact per-ticket `--suite 01=test_core.py` mapping; every transition uses existing controller OS lock, Git and test revalidation. No direct AI launch or provider call from the loop (`model_invoked=false`); trusted host-test modules can themselves have side effects and require independent offline review.
+- Safe pauses at the independently approved worker boundary; test failures, ambiguous state and unexpected concurrent plan changes stop the loop without replay. `tickets-settled` indicates only accepted tickets and released worktrees; it does NOT mean `ap.py finish`, independent blind acceptance or G1–G4 completed.
+- Added `tests/test_host_loop.py` with seven cases, including a **real temporary two-ticket Git worktree integration**: trusted source baseline, intentional offline source fixes, genuine host-run unittest, finalize/cherry-pick/accept/release, an intentional red test on ticket 02, hard stop, repair and restart. Targeted Windows Python 3.13 **7/7 passed** (prior to full suite).
+- Phase 0 installer copies new instrument; bilingual README, CHANGELOG and `docs/autopilot/host-loop.md` explain approval boundaries, supported statuses and limitations. This is host lifecycle automation only; **there is no model worker auto-dispatch or true multi-agent parallelism**.
+- QA and release checkpoint: **full Windows regression / GitHub CI / merge must be recorded after actually observed**; do not assert green before results. Status and documented resume checkpoint must be updated on merge.
+- Next step: explicit model-call authorisation for one disposable Codex CLI GUI→bridge smoke if wanted, or continue offline P0 with cancellation and bounded dispatch tests. Do not reuse the owner's paid smoke fixture or infer permission from the general continuation instruction. The existing Codex GUI named-agent negative result remains valid for the tested session.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge

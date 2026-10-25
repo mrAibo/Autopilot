@@ -36,6 +36,12 @@ After externally approved worker execution, it verifies the immutable baseline
 test module, finalizes, lands, accepts and releases in distinct audited steps.
 No paid agent auto-launch yet. See [Host controller](docs/autopilot/controller.md).
 
+**Bounded host-only loop:** `.autopilot/host_loop.py --root .` previews the next
+safe transition; `--advance --max-steps 8 --suite 01=test_core.py` chains only
+explicitly authorized Git/test/state steps, stops for separate AI worker
+approval and never calls a model itself. A status of `tickets-settled` is NOT
+final G1–G4 acceptance. See [host loop](docs/autopilot/host-loop.md).
+
 **GUI-to-CLI fallback for Codex:** When named native GUI subagents are
 unavailable, a GUI host with terminal tools can invoke the
 [single-attempt bridge](docs/autopilot/gui-cli-bridge.md). The preview
