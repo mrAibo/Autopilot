@@ -212,6 +212,7 @@ def fresh_state(a):
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
         "tier": None, "strictRouting": bool(a.get("strict-routing")),
+        "isolateTickets": bool(a.get("isolated-tickets")),
         "briefFile": a.get("brief-file"),
         "memoryFile": a.get("memory-file") or "AGENTS.md",
         "memoryOwner": a.get("memory-owner") or "autopilot",
@@ -784,7 +785,8 @@ def ensure_gitignore():
     except OSError:
         text = ""
     entries = [".autopilot/serve.*", ".autopilot/state.lock",
-               ".autopilot/worktrees/", ".autopilot/model-capabilities.json"]
+               ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
+               ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
     existing = {line.strip() for line in text.splitlines()}
     missing = [entry for entry in entries if entry not in existing]
     if not missing:
@@ -965,6 +967,27 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if act == "start" and (state.get("isolateTickets") or tk.get("worktree")):
+            wt = tk.get("worktree") or {}
+            if wt.get("status") != "prepared":
+                die("таск %s: подготовь worktree командой worktree %s prepare" % (i, i))
+            try:
+                import worktrees
+                actual = worktrees.status(ROOT, i)
+                if (actual.get("status") != "present" or actual.get("dirty") or
+                        actual.get("commit") != wt.get("baseCommit")):
+                    die("таск %s: worktree изменён до старта или отсутствует" % i)
+            except (OSError, ValueError, ImportError, worktrees.WorktreeError) as exc:
+                die("таск %s: не удалось проверить worktree: %s" % (i, exc))
+        if act == "done" and tk.get("worktree"):
+            wt = tk["worktree"]
+            if wt.get("status") != "landed" or not wt.get("landedCommit"):
+                die("таск %s: сначала интегрируй worktree командой worktree %s land" % (i, i))
+            candidate = opt.get("commit") or tk.get("commit")
+            if not isinstance(candidate, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", candidate):
+                die("таск %s: укажи интегрированный коммит" % i)
+            if not wt["landedCommit"].lower().startswith(candidate.lower()):
+                die("таск %s: коммит не совпадает с интегрированным worktree" % i)
         if act == "start" and state.get("budgetTokens") is not None:
             consumed = sum(x["input"] + x["output"]
                            for x in state.get("usageEvents") or [])
@@ -1057,6 +1080,53 @@ def cmd_ticket(state, pos, opt):
             tk["commit"] = opt["commit"][:12]
     log(state, "ticket", ids=ids, act=act, tests=tests_pair(opt["tests"]) if opt.get("tests") else None,
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
+
+
+def cmd_worktree(state, pos, opt):
+    """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land"):
+        die("worktree <ticket-id> prepare|status|land [--tests N/0]")
+    ident, action = pos
+    known = {t["id"]: t for t in state.get("tickets") or []}
+    tk = known.get(ident)
+    if not tk:
+        die("worktree: неизвестный таск " + ident)
+    try:
+        import worktrees
+        if action == "status":
+            info = worktrees.status(ROOT, ident)
+            return "worktree %s: %s%s" % (ident, info.get("status"),
+                    " · dirty" if info.get("dirty") else "")
+        if action == "prepare":
+            if tk.get("status") != "pending":
+                die("worktree: сначала переведи таск %s в pending" % ident)
+            if any(known.get(dep, {}).get("status") != "done" for dep in tk.get("blockedBy", [])):
+                die("worktree: зависимости таска %s не закрыты" % ident)
+            if state.get("strictRouting") and not profile_ok(tk):
+                die("worktree: сначала подтверди модель таска %s" % ident)
+            if tk.get("worktree"):
+                die("worktree: для %s уже существует запись, проверь status" % ident)
+            result = worktrees.create(ROOT, ident)
+            tk["worktree"] = {"status": "prepared", "baseCommit": result["baseCommit"],
+                              "cwd": result["cwd"]}
+            log(state, "worktree", act="prepare", ticket=ident)
+            return "worktree %s подготовлен: %s" % (ident, result["cwd"])
+        record = tk.get("worktree") or {}
+        if record.get("status") != "prepared" or tk.get("status") not in ("in-progress", "review", "repair"):
+            die("worktree: %s не запущен в подготовленной рабочей копии" % ident)
+        check = tests_pair(opt.get("tests") or "")
+        if check["passed"] < 1 or check["failed"] != 0:
+            die("worktree: для интеграции нужны пройденные тесты N/0")
+        result = worktrees.land(ROOT, ident, record["baseCommit"])
+        record.update(status="landed", sourceCommit=result["sourceCommit"],
+                      landedCommit=result["landedCommit"])
+        tk["commit"] = result["landedCommit"][:12]
+        tk["tests"] = check
+        state["tests"] = check
+        log(state, "worktree", act="land", ticket=ident)
+        return "worktree %s интегрирован: %s" % (ident, tk["commit"])
+    except (worktrees.WorktreeError, OSError, ImportError, ValueError) as exc:
+        die("worktree %s: %s" % (ident, exc))
 
 
 def positive_int_option(opt, name, default=None):
@@ -1289,6 +1359,8 @@ def main():
             problems = check_plan(state)
             notes += ["! " + p for p in problems] or ["G3: трасса сходится"]
             set_gate(state, "G3", not problems, problems=len(problems))
+        elif cmd == "worktree":
+            notes.append(cmd_worktree(state, rest, opt))
         elif cmd == "usage":
             cmd_usage(state, rest, opt)
         elif cmd == "budget":
