@@ -156,9 +156,46 @@
   **Claude Code still needs independent runtime verification**. Version
   stays `2.3.0-dev`, no stable release claim.
 
+## New P0 checkpoint — GUI to pinned CLI one-shot bridge (2026-10-25)
+
+- Feature branch `feat/gui-cli-approved-dispatch-20261025` adds
+  `skills/autopilot/tools/gui_bridge.py` and
+  `docs/autopilot/gui-cli-bridge.md`, copied by Phase 0. This is an
+  **explicit local terminal tool invocation from a GUI workflow**,
+  not a Codex GUI-native subagent. Claude Code as a GUI host is still
+  unverified. Existing pinned Codex CLI worker is reused unchanged.
+- Default preview runs trusted controller and Codex dispatcher
+  preflights with **no writes, subprocess model call or receipt**.
+  Confirms strict isolated ticket, only one in-progress worker,
+  known verified OpenAI model/Effort, SHA-pinned profile and brief,
+  clean actual worktree and positive recorded token threshold.
+- Explicit per-ticket `--execute --approve-ticket NN` creates a
+  **persistent exclusive receipt before any provider call**. Later
+  executions of the same ticket refuse even after timeout, crash,
+  partial record, missing usage or failed/incomplete turn. There is
+  NO force/reset/retry bypass. A controller OS lock serializes with
+  other host transitions. The receipt contains only route/cwd/usage
+  summary, digest, timestamps and status, never the full prompt.
+- Existing `codex_dispatch.run_once` invokes pinned Codex CLI under
+  sandbox with bounded wall-clock timeout and accounts JSONL usage
+  when available. Recorded token threshold is NOT a hard provider
+  cost cap, and user-supplied flag is NOT cryptographic human consent.
+  The bridge never finalizes/lands/accepts automatically; trusted
+  host tests remain mandatory. Do not infer paid execution from
+  dry-run tests.
+- New negative tests prove read-only default, explicit approval,
+  duplicate/orphaned/partial receipt blocking, crash ambiguity,
+  locked/invalid budget, dirty worker refusal and no silent test
+  acceptance. Tests use mock model calls on synthetic Git fixtures.
+- Validate complete Windows/Linux CI and GUI terminal access before
+  claiming end-to-end success. No paid GUI live call has been made
+  at this milestone. Remain `2.3.0-dev`, no release tag.
+
 ## Prioritized next steps
 
-**P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. Develop the supported pinned CLI worker fallback for GUI-originated tickets; re-test genuine native GUI child model/effort/cwd only after a concrete capability change. Test actual **Claude Code** separately (not general Claude chat). If child identity and model cannot be confirmed, block strict custom-agent dispatch.
+**P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge
+(without a paid GUI end-to-end test); extend its acceptance and host launch
+proof before describing it as production-ready; re-test genuine native GUI child model/effort/cwd only after a concrete capability change. Test actual **Claude Code** separately (not general Claude chat). If child identity and model cannot be confirmed, block strict custom-agent dispatch.
 
 **P0 — orchestrated lifecycle:** Implement a host-side execution/controller loop that consumes `ap.py schedule` plan, validates approval, launches bounded workers, handles cancellation/crash, independently verifies trusted test suites, finalizes/lands exactly once and records results. Keep fail-closed budget/sandbox boundaries. Validate with at least two independent tasks and a recoverable failure.
 
