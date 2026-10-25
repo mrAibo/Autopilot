@@ -42,6 +42,12 @@ explicitly authorized Git/test/state steps, stops for separate AI worker
 approval and never calls a model itself. A status of `tickets-settled` is NOT
 final G1–G4 acceptance. See [host loop](docs/autopilot/host-loop.md).
 
+**Offline P0 process qualification:** the dedicated test-only
+[offline supervisor](docs/autopilot/offline-supervisor.md) uses a real OS child,
+durable anti-replay receipt, cancellation and timeout inside disposable temporary
+Git fixtures. It **cannot call an AI model** and is not installed as a
+production dispatcher. Host acceptance still requires independently trusted tests.
+
 **GUI-to-CLI fallback for Codex:** When named native GUI subagents are
 unavailable, a GUI host with terminal tools can invoke the
 [single-attempt bridge](docs/autopilot/gui-cli-bridge.md). The preview

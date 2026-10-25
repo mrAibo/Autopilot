@@ -143,6 +143,8 @@ class Run(unittest.TestCase):
         self.assertIn(".autopilot/serve.*", read(os.path.join(self.root, ".gitignore")))
         self.assertIn(".autopilot/worktrees/", read(os.path.join(self.root, ".gitignore")))
         self.assertIn(".autopilot/model-capabilities.json", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/offline-worker/", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/offline-test-consent", read(os.path.join(self.root, ".gitignore")))
         self.assertIn("window.STATE={", read(os.path.join(self.a, "dashboard.html")))
 
     def test_init_refuses_on_live_run(self):
