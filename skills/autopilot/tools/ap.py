@@ -1429,6 +1429,27 @@ def main():
         if state is None:
             die("state.js ещё нет — начни с `ap.py init`")
         rest = pos[1:]
+        if cmd == "schedule":
+            if rest:
+                die("schedule: лишние аргументы")
+            raw_limit = str(opt.get("max-parallel", "2"))
+            if not re.fullmatch(r"[1-3]", raw_limit):
+                die("schedule: --max-parallel допускает 1, 2 или 3")
+            try:
+                from scheduler import schedule
+                budget = state.get("budgetTokens")
+                spent = sum(e.get("input", 0) + e.get("output", 0)
+                            for e in state.get("usageEvents") or [])
+                checked = {t["id"]: profile_ok(t) for t in state.get("tickets") or []}
+                payload = schedule(state.get("tickets") or [], int(raw_limit),
+                                   strict=bool(state.get("strictRouting")),
+                                   isolated=bool(state.get("isolateTickets")),
+                                   budget_blocked=(budget is not None and spent >= budget),
+                                   verified=checked)
+            except (ValueError, OSError, ImportError) as exc:
+                die("schedule: %s" % exc)
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return
         if cmd not in ("", "sync", "commits"):
             # Время события ставится до команды: ей самой и ленте нужна одна метка.
             state["updatedAt"] = now()
