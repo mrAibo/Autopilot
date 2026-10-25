@@ -44,6 +44,11 @@ class WorktreeTests(unittest.TestCase):
         with self.assertRaises(worktrees.WorktreeError):
             worktrees.create(self.root, "01", base="--malicious")
 
+    def test_refuses_creation_without_gitignore(self):
+        (self.root / ".gitignore").write_text("*.log\n", encoding="utf-8")
+        with self.assertRaises(worktrees.WorktreeError):
+            worktrees.create(self.root, "99")
+
     def test_dirty_worktree_cannot_be_deleted(self):
         path = Path(worktrees.create(self.root, "02")["cwd"])
         (path / "dirty.txt").write_text("uncommitted", encoding="utf-8")
