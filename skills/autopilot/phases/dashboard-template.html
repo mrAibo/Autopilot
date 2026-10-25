@@ -415,6 +415,17 @@
     .live,.stripes,.iconbtn.busy svg{animation:none!important}
     .iconbtn,.tabs button{transition:none!important}
   }
+
+  .resource-meters{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:14px}
+  .resource-usage{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .resource-usage>div{padding:12px 14px;border-radius:12px;background:var(--inset);display:flex;flex-direction:column;gap:4px;min-width:0}
+  .resource-usage b{font-size:20px;font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .resource-usage span{font-size:11px;color:var(--mut)}
+  .resource-budget-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--mut);margin-bottom:8px}
+  .resource-budget-head b{color:var(--tx);font-variant-numeric:tabular-nums}
+  .resource-budget-track{height:8px;background:var(--inset);border-radius:8px;overflow:hidden}
+  .resource-budget-track i{display:block;height:100%;background:var(--rev);border-radius:8px}
+  @media(max-width:600px){.resource-usage{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -1297,15 +1308,46 @@ function render(lang){
       + '<span class="resource-chip">' + (langRu ? 'Сложность ' : 'Score ') + esc(info.score ?? '—') + '/100</span>'
       + '</div><div class="resource-reason">' + esc(info.reason || '—') + '</div></div>';
   }).join('');
+  const usageEvents = Array.isArray(S.usageEvents) ? S.usageEvents.filter(e =>
+    e && Number.isSafeInteger(e.input) && Number.isSafeInteger(e.output) &&
+    e.input >= 0 && e.output >= 0) : [];
+  const tokensInput = usageEvents.reduce((n,e) => n + e.input,0);
+  const tokensOutput = usageEvents.reduce((n,e) => n + e.output,0);
+  const cacheRead = usageEvents.reduce((n,e) => n + (Number.isSafeInteger(e.cacheRead) ? e.cacheRead : 0),0);
+  const cacheWrite = usageEvents.reduce((n,e) => n + (Number.isSafeInteger(e.cacheWrite) ? e.cacheWrite : 0),0);
+  const budget = Number.isSafeInteger(S.budgetTokens) && S.budgetTokens > 0 ? S.budgetTokens : null;
+  const countedTokens = tokensInput + tokensOutput;
+  const budgetPercent = budget && usageEvents.length ? Math.min(100,Math.round(100*countedTokens/budget)) : null;
+  const numberFormat = n => new Intl.NumberFormat(langRu?'ru-RU':'en-US').format(n);
+  const tokenSummary = usageEvents.length
+    ? '<div class="resource-usage" aria-label="' + (langRu ? 'Учтённые токены' : 'Reported tokens') + '">'
+      + '<div><b>' + numberFormat(tokensInput) + '</b><span>' + (langRu ? 'Входные' : 'Input') + '</span></div>'
+      + '<div><b>' + numberFormat(tokensOutput) + '</b><span>' + (langRu ? 'Выходные' : 'Output') + '</span></div>'
+      + '<div><b>' + numberFormat(cacheRead) + '</b><span>' + (langRu ? 'Кэш чтения' : 'Cache read') + '</span></div>'
+      + '<div><b>' + numberFormat(cacheWrite) + '</b><span>' + (langRu ? 'Кэш записи' : 'Cache write') + '</span></div>'
+      + '</div>'
+    : '<p class="muted">' + (langRu ? 'Учёт токенов: данных пока нет.' : 'Token telemetry: no data yet.') + '</p>';
+  const budgetLine = budget
+    ? '<div class="resource-budget"><div class="resource-budget-head"><span>'
+      + (langRu ? 'Лимит учтённых токенов' : 'Recorded token threshold')
+      + '</span><b>' + numberFormat(usageEvents.length?countedTokens:0)
+      + ' / ' + numberFormat(budget) + '</b></div>'
+      + '<div class="resource-budget-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + budget
+      + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
+      + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
+    : '';
   const resourceBlock = '<section class="card w resource-card"><div class="whead">'
     + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
     + '<span>' + (langRu ? 'Назначено: ' : 'Assigned: ') + routed.length + '/' + T.length + '</span></div>'
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
       '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
       'No per-task model assignments recorded yet.') + '</p>')
+    + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
     + '<div class="resource-footer">' + (langRu ?
-      'Стоимость и токены: нет данных. Показываются только фактически записанные назначения; список не подтверждает исполнение в harness.' :
-      'Cost and tokens: unavailable. Assignments are recorded selections, not proof of host execution.')
+      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
+      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
+      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
+      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
     + '</div></section>';
 
   // ——— раскладка ———
