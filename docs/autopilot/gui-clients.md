@@ -22,7 +22,7 @@ subagents or authenticated human consent from a CLI flag alone.
 
 | Host | Skill workflow | Model-aware dispatch | Validation status |
 |---|---|---|---|
-| Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native Codex subagent definitions (`.codex/agents/*.toml`) and host UI model picker. CLI adapter **not required** | **GUI end-to-end not yet validated** |
+| Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native named subagents **not available in the user-tested GUI session**; safe fallback: separate approved pinned CLI worker or sequential execution | **GUI test performed 2026-10-25: fail-closed, no named child**; full GUI end-to-end still unverified |
 | Codex CLI | Same skill instructions and project files | Explicit `codex exec` model/effort process via `codex_dispatch.py`, with isolated worktree and JSON usage | CLI 0.165.0-alpha.1 login, real Luna Low inference and a disposable code-edit / host-tested / accepted worktree E2E verified on Windows; GUI host remains unverified |
 | Claude Code (terminal or supported graphical host) | Same skill instructions loaded from `.claude/skills/` | Native pinned `.claude/agents/*.md` with optional `PreToolUse` guard | Synthetic tests only; **actual GUI/CLI behavior unverified** |
 | Claude general chat app without code execution / filesystem tools | Can read project docs if attached, but cannot run the local workflow | No supported local dispatch guarantee | **Not equivalent to Claude Code** |
@@ -40,6 +40,34 @@ The `mrAibo/Autopilot` repository has two tracked Git symlinks:
 When Git is checked out on Windows with `core.symlinks=false`, the two tracked **repository-local** skill links can be plain-text placeholders rather than loadable skill directories. The separately verified **global Junctions** above bypass that issue without any copied skill files; the disposable GUI test workspace also uses Junctions to the same source.
 
 For this development checkout, first check the repository is clean, then use `git -C C:\Users\crown\Downloads\Projects\Autopilot pull --ff-only` to update the working branch. The global Junctions expose changes immediately to new host sessions. Do **not** run `npx skills update autopilot -g` on this developer-linked preview: it may replace it with the published main-branch release. After 2.3 is merged and released, use the supported `npx skills add mrAibo/Autopilot` workflow if preferred.
+
+## Owner's actual graphical Codex named-agent test (2026-10-25)
+
+The owner opened the disposable Codex project and issued the exact read-only
+`autopilot-explorer-smoke` request from a new **graphical Codex session**.
+Screenshot evidence shows the GUI responding (in Russian) that its subagent
+creation interface cannot select the named profile from `.codex/agents/`.
+The on-screen verification table confirms: child agent **No**, profile
+assigned **No**, model confirmed **No**, reasoning effort confirmed **No**,
+`EXPECTED_PROBE_WORD` **not obtained**. Codex said it did not use a
+substitute agent and did not change files. The visible turn duration was
+approximately 23 seconds.
+
+**Interpretation:** This is a genuine GUI *negative capability test*, not
+just a CLI probe. It confirms strict named-agent dispatch is unavailable
+in this particular session. It does **not** establish that future Codex
+versions, different session capability flags or all users lack custom agent
+selection. The upstream native tool schemas expose `agent_type`, model and
+reasoning effort conditionally; investigate runtime flags/permissions and
+version differences before retrying. Autopilot must continue to fail closed
+and must not silently substitute a generic inheriting parent-model child.
+
+**Safe operational option:** Use Codex GUI as the interface, then explicitly
+delegate ticket execution through the separately validated `codex_dispatch.py`
+CLI worker with approved model/Effort, sandboxed worktree, host-side test
+evidence, Git integration and budget ledger; or execute tasks sequentially.
+Do not call this verified native GUI subagent mode. Claude Code remains a
+separate unverified host and needs its own authenticated runtime test.
 
 ## Actual Windows Codex native-runtime probe
 
