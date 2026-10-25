@@ -134,6 +134,11 @@ def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write", o
            "--ephemeral", "--ignore-user-config",
            "--model", route["model"], "-c",
            'model_reasoning_effort="' + route["effort"] + '"', "--json"]
+    # Windows Codex 0.152+ requires an explicit Windows sandbox backend when
+    # --ignore-user-config is set. Keep the read-only/workspace-write boundary.
+    # This is the OS sandbox backend selector, NOT --danger-full-access.
+    if os.name == "nt":
+        cmd.extend(["-c", 'windows.sandbox="elevated"'])
     prompt = (data.get("developer_instructions", "") + policy_prompt +
               "\nExecute the single task described below. Stay inside your declared file zone. "
               "Do not launch nested agents, change model settings, deploy or publish. "
