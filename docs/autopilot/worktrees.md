@@ -2,6 +2,44 @@
 
 `skills/autopilot/tools/worktrees.py` provides **opt-in** isolated Git checkouts per executor ticket. It never reads secrets, makes network requests or force-removes dirty files.
 
+## Host-side finalization for constrained Windows sandboxes
+
+Windows Codex may safely edit files within a worktree while refusing to create Git
+index locks under the main repository's `.git/worktrees` metadata directory,
+outside its workspace-write boundary. Test runners may also be unavailable
+inside a sandbox. **Do not disable the sandbox or use danger-full-access.**
+
+When Codex has finished editing but produced no commit, the **trusted host**
+can run project tests independently from the worktree, then call:
+
+```powershell
+# From the main project root, after verifying the worker has stopped:
+# Run your actual independent test suite from the worker cwd, not from main.
+# Prevent Python tests from creating unwanted __pycache__/ artifacts.
+$env:PYTHONDONTWRITEBYTECODE = "1"
+py -3.13 -m unittest -q test_calc.py   # EXAMPLE; run inside worker cwd
+py -3.13 .autopilot/ap.py worktree 01 finalize --tests 2/0
+py -3.13 .autopilot/ap.py worktree 01 land --tests 2/0
+py -3.13 .autopilot/ap.py ticket 01 done --commit <landedSHA>
+py -3.13 .autopilot/ap.py worktree 01 release
+```
+
+`finalize` creates a single host-side Git commit **only** when test totals are
+declared N/0, the executor HEAD still matches its base, the main source
+checkout is clean, all changed files are confined to exact ticket zones
+(no wildcard, unsafe path, redirected symlink or extra untracked file), and
+`git diff --check` passes. It stages only approved paths, does not delete
+untracked files and does not run arbitrary test commands. The user/host must
+actually run and inspect tests first; **the reported N/0 is not a cryptographic
+proof of test execution**. If the host has no configured Git author, configure
+local user.name/email before finalization.
+
+This is optional: on hosts where an isolated executor can safely create one
+Git commit on its own, continue directly to `land` after independent review.
+Only the host may finalize; an LLM must not silently claim a commit occurred.
+A completed Codex model turn without a clean worker commit now returns
+`incomplete`, never accepted.
+
 ## Recovery after an interrupted run
 
 The Python CLI records a source Git SHA and uses `git cherry-pick -x` to preserve
