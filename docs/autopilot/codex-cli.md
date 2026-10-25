@@ -26,6 +26,22 @@ python .autopilot/codex_dispatch.py 01 --root .
 
 Without `--execute` the script outputs the verified command, model, effort and checkout path. It does not print the ticket brief, secret environment values or initiate a model call.
 
+## Current safety stop (2026-10-25)
+
+**Execution is intentionally disabled in `2.3.0-dev`** until a
+verifiable provider-enforced per-call token or spending limit exists.
+Both `codex_dispatch.py --execute` and `gui_bridge.py --execute`
+fail closed before an external model call or a new attempt receipt.
+No configuration or command-line bypass is provided. The example below
+documents the intended future interface, not a currently usable call.
+A user approving paid calls does not create a provider hard cap.
+
+One authorized synthetic Git fixture real Codex CLI call reported
+53,187 input (46,464 cached) and 341 output tokens, against a
+recorded soft threshold of 2,000, and produced no worker Git commit
+(`incomplete`). The receipt is non-replayable. See the
+[spend guard and audit](spend-guard.md).
+
 ## Execute one task
 
 ```powershell

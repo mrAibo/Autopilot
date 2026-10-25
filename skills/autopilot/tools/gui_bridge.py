@@ -20,6 +20,7 @@ import tempfile
 
 import codex_dispatch
 import codex_capabilities
+import spend_guard
 import controller
 import worktrees
 
@@ -172,7 +173,9 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
                 "reason": "previous-attempt-requires-reconciliation" if prior else "",
                 "approved_invocation": False, "model_invoked": False,
                 "ticket": ticket, "preview": summary,
-                "next_action": ("run --execute --approve-ticket " + ticket
+                "execution_permitted": False,
+                "budget_block_reason": spend_guard.CAP_REASON,
+                "next_action": ("provider-enforced hard cap required"
                                 if prior is None else "inspect existing receipt")}
     with controller.controller_lock(root):
         # Re-check all invariants under the host lock, including receipt.
@@ -183,6 +186,9 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
                     "model_invoked": False}
         config, summary = consent_preflight(root, ticket, executable, sandbox,
                                             optimization, timeout)
+        # A recorded positive threshold is merely a SOFT ledger limit.
+        # Do not claim a billable attempt when provider hard-cap proof is absent.
+        spend_guard.assert_enforced_cap(config)
         path, record = claim_attempt(root, ticket, config, summary)
         try:
             result = codex_dispatch.run_once(config, root, timeout=timeout)
@@ -279,6 +285,8 @@ def runtime_doctor(root, ticket, *, executable=None, sandbox="workspace-write",
             "verified_provider_execution": False,
             "model_invoked": False,
             "provider_budget_hard_cap": False,
+            "execution_permitted": False,
+            "budget_block_reason": spend_guard.CAP_REASON,
             "preview": preflight}
 
 def main(argv=None):
@@ -309,7 +317,8 @@ def main(argv=None):
                             timeout=args.timeout)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] in ("dry-run", "ready", "ready-for-review") else 2
-    except (BridgeError, controller.ControllerError, codex_dispatch.DispatchError,
+    except (BridgeError, spend_guard.CapUnavailable,
+            controller.ControllerError, codex_dispatch.DispatchError,
             worktrees.WorktreeError, OSError, TypeError, ValueError) as exc:
         print(json.dumps({"status": "blocked", "error": str(exc)[:500],
                           "model_invoked": False}, ensure_ascii=False))

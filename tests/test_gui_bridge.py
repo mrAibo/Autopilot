@@ -29,8 +29,11 @@ class BridgeTests(unittest.TestCase):
                                  timeout=60)
 
     def execute(self, **extra):
-        return gui_bridge.bridge(self.root, "01", execute=True, approval="01",
-                                 executable=Path(sys.executable), timeout=60, **extra)
+        # Synthetic-only test permits mock run_once: production guard remains
+        # unconditional, with no user/environment bypass.
+        with patch.object(gui_bridge.spend_guard, "assert_enforced_cap"):
+            return gui_bridge.bridge(self.root, "01", execute=True, approval="01",
+                                     executable=Path(sys.executable), timeout=60, **extra)
 
     def test_dry_run_does_not_create_receipts_or_pay(self):
         with patch.object(codex_dispatch, "run_once") as paid:
