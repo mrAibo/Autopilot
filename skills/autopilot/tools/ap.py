@@ -80,7 +80,8 @@ ORDER = ["preflight", "manifest", "briefing", "spec", "plan", "build", "review",
 # Этап, чей результат лежит на диске, пройден — даже если его забыли отметить.
 ARTIFACT = {"manifest": "manifest.md", "spec": "spec.md", "plan": "tickets/*.md"}
 TICKET_STATUSES = {"start": "in-progress", "review": "review", "repair": "repair",
-                   "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending"}
+                   "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending",
+                   "route": "pending"}
 LISTS = {"concerns", "additions", "report", "debt.placeholders", "debt.assumptions", "debt.emptyEnv"}
 
 
@@ -330,7 +331,7 @@ def publish_tickets(state):
         if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
-                  "tests", "commit", "concerns", "placeholders"):
+                  "tests", "commit", "concerns", "placeholders", "routing"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -906,6 +907,22 @@ def cmd_ticket(state, pos, opt):
             rev = opt.get("commit") or tk.get("commit")
             if not verified_commit(rev):
                 die("таск %s: требуется существующий коммит в HEAD" % i)
+        if act == "route":
+            provider = opt.get("provider")
+            model = opt.get("model")
+            effort = opt.get("effort")
+            reason = opt.get("reason")
+            score = opt.get("score")
+            if (provider not in ("openai", "anthropic")
+                    or not all(isinstance(x, str) and x.strip()
+                               for x in (model, effort, reason))
+                    or not isinstance(score, str) or not score.isdigit()
+                    or int(score) > 100):
+                die("route требует --provider --model --effort --score --reason")
+            tk["routing"] = {"provider": provider, "model": model,
+                             "effort": effort, "score": int(score),
+                             "reason": reason}
+            continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
             tk.setdefault("startedAt", t)
