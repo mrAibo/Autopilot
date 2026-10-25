@@ -22,6 +22,7 @@ ROUTER = os.path.join(SKILL, "tools", "model_router.py")
 PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
 WORKTREES = os.path.join(SKILL, "tools", "worktrees.py")
 RETRY_POLICY = os.path.join(SKILL, "tools", "retry_policy.py")
+SCHEDULER = os.path.join(SKILL, "tools", "scheduler.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
@@ -59,6 +60,7 @@ class Run(unittest.TestCase):
         shutil.copy(PROFILES, os.path.join(self.a, "agent_profiles.py"))
         shutil.copy(WORKTREES, os.path.join(self.a, "worktrees.py"))
         shutil.copy(RETRY_POLICY, os.path.join(self.a, "retry_policy.py"))
+        shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -580,6 +582,45 @@ class Run(unittest.TestCase):
         code, out = self.ap("ticket", "01", "reset")
         self.assertNotEqual(code, 0)
         self.assertIn("освободи worktree", out)
+
+    def test_schedule_machine_readable_dependency_order(self):
+        self.plan()
+        self.ap("tickets")
+        code, payload = self.ap("schedule", "--max-parallel", "2")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual([x["ticket"] for x in plan["selected"]], ["01"])
+        self.assertEqual(plan["selected"][0]["action"], "start")
+        self.assertEqual(plan["blocked"][0]["reason"], "dependencies")
+        self.assertFalse(plan["automaticLaunch"])
+
+    def test_schedule_isolated_preparation_and_reservation(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("bootstrap")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["selected"][0]["action"], "prepare")
+        self.ap("worktree", "01", "prepare")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["selected"][0]["action"], "start")
+        self.assertEqual(plan["reserved"], 1)
+        self.assertEqual(plan["selected"][0]["cwd"], self.state()["tickets"][0]["worktree"]["cwd"])
+
+    def test_schedule_blocks_launch_after_recorded_token_threshold(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("budget", "--tokens", "12")
+        self.ap("usage", "01", "--call-id", "test-call-123",
+                "--input", "10", "--output", "2", "--source", "manual")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        self.assertFalse(json.loads(payload)["selected"])
+        self.assertIn("recorded-token-budget", [b["reason"] for b in json.loads(payload)["blocked"]])
 
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)
