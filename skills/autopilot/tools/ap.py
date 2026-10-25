@@ -981,6 +981,10 @@ def cmd_ticket(state, pos, opt):
                     die("таск %s: worktree изменён до старта или отсутствует" % i)
             except (OSError, ValueError, ImportError, worktrees.WorktreeError) as exc:
                 die("таск %s: не удалось проверить worktree: %s" % (i, exc))
+        if act == "reset" and tk.get("worktree"):
+            if tk["worktree"].get("status") != "released":
+                die("таск %s: сначала закончи и освободи worktree; сброс не удаляет изменения" % i)
+            tk.pop("worktree", None)
         if act == "done" and state.get("isolateTickets") and not tk.get("worktree"):
             die("таск %s: изолированный режим требует интеграции worktree" % i)
         if act == "done" and tk.get("worktree"):
@@ -1113,8 +1117,8 @@ def cmd_ticket(state, pos, opt):
 
 def cmd_worktree(state, pos, opt):
     """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
-    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land", "release"):
-        die("worktree <ticket-id> prepare|status|land|release [--tests N/0]")
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land", "release", "recover"):
+        die("worktree <ticket-id> prepare|status|land|release|recover [--tests N/0]")
     ident, action = pos
     known = {t["id"]: t for t in state.get("tickets") or []}
     tk = known.get(ident)
@@ -1126,6 +1130,48 @@ def cmd_worktree(state, pos, opt):
             info = worktrees.status(ROOT, ident)
             return "worktree %s: %s%s" % (ident, info.get("status"),
                     " · dirty" if info.get("dirty") else "")
+        if action == "recover":
+            record = tk.get("worktree") or {}
+            actual = worktrees.status(ROOT, ident)
+            if not record:
+                # Crash after git worktree add but before ap.py persisted state.
+                if (tk.get("status") != "pending" or actual.get("status") != "present"
+                        or actual.get("dirty")):
+                    die("worktree: нельзя безопасно восстановить неподтверждённую подготовку")
+                head = worktrees.git(ROOT, "rev-parse", "HEAD").stdout.strip()
+                if actual.get("commit") != head:
+                    die("worktree: базовый коммит расходится; ручная проверка обязательна")
+                tk["worktree"] = {"status": "prepared", "baseCommit": head,
+                                  "cwd": actual["cwd"]}
+                log(state, "worktree", act="recover-prepare", ticket=ident)
+                return "worktree %s: восстановлено состояние prepared" % ident
+            if record.get("status") == "landed":
+                if verified_commit(record.get("landedCommit")):
+                    return "worktree %s: интеграция уже зарегистрирована" % ident
+                die("worktree: сохранённый коммит недоступен в текущей истории")
+            if record.get("status") == "released":
+                return "worktree %s: уже освобождён" % ident
+            if record.get("status") != "prepared":
+                die("worktree: неизвестный этап восстановления")
+            if actual.get("status") != "present":
+                die("worktree: рабочая копия пропала; проверить вручную")
+            if actual.get("dirty"):
+                die("worktree: незакоммиченные изменения; восстановление не изменяет их")
+            if actual.get("commit") == record.get("baseCommit"):
+                return "worktree %s: подготовлен, исполнитель ещё не создал коммит" % ident
+            recovered = worktrees.recover(ROOT, ident, record["baseCommit"])
+            if recovered["status"] == "not-landed":
+                return "worktree %s: коммит исполнителя есть, ещё не интегрирован" % ident
+            check = tests_pair(opt.get("tests") or "")
+            if check["passed"] < 1 or check["failed"] != 0:
+                die("worktree: подтверждение интеграции требует пройденных тестов N/0")
+            record.update(status="landed", sourceCommit=recovered["sourceCommit"],
+                          landedCommit=recovered["landedCommit"])
+            tk["commit"] = recovered["landedCommit"][:12]
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="recover-land", ticket=ident)
+            return "worktree %s: восстановлена уже выполненная интеграция" % ident
         if action == "release":
             record = tk.get("worktree") or {}
             if (record.get("status") != "landed" or tk.get("status") != "done"
@@ -1328,6 +1374,9 @@ def cmd_finish(state, opt):
 
 def cmd_reopen(state):
     """Второй бриф в сданном прогоне: фазы 1–8 идут заново, прежние таски остаются."""
+    if any(t.get("worktree") and t["worktree"].get("status") != "released"
+           for t in state.get("tickets") or []):
+        die("reopen заблокирован: незавершённые или неосвобождённые worktrees")
     d = state.get("dir") or ""
     if not d.endswith("--wip") and git_mv(d, d + "--wip"):
         state["dir"] = d + "--wip"
