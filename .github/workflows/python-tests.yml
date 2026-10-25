@@ -23,5 +23,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Syntax check
         run: python -m compileall -q skills/autopilot/tools tests
+      - name: Dashboard JavaScript syntax (Node.js)
+        run: python tools/check-dashboard.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
