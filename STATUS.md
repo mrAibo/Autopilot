@@ -218,9 +218,17 @@
   --cd, --sandbox, --model, --ephemeral, --ignore-user-config, --json.
   No real paid provider calls, GUI-host terminal interaction or Claude
   Code execution were run during this qualification.
-- Run full Windows/Linux CI and merge only if green; synchronize the
-  Windows Junction installation and update this checkpoint with final
-  commit/CI. This is not evidence of native GUI named agents.
+- **Merged into `main`:** [PR #5](https://github.com/mrAibo/Autopilot/pull/5)
+  squash commit `4e53182e27d247cb0ddcd13a519dbcdf231855c7`.
+  [CI #40224575703](https://github.com/mrAibo/Autopilot/actions/runs/40224575703)
+  passed **4/4** Linux/Windows Python 3.11/3.13 checks, including
+  **201 Python tests**, JS syntax, and Dashboard browser smoke. The
+  original Windows 3.13 fail was fixed by explicit UTF-8 stdin decoding
+  in the **synthetic CLI test**. Current branch main contains the fix.
+  This STATUS-only update advances main and requires its own CI check.
+- No real paid provider invocation, graphical Codex terminal bridge E2E
+  or Claude Code execution has yet been attested. Do not call native
+  GUI subagents or billing hard limits verified.
 
 ## Prioritized next steps
 
