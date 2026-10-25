@@ -5,6 +5,8 @@ Explicit --execute performs one model call in the verified ticket worktree.
 Default is dry-run. Does not create a task, choose a model, or merge code.
 """
 import argparse
+from contextlib import contextmanager
+import datetime as dt
 import hashlib
 import json
 import os
@@ -152,13 +154,34 @@ def parse_usage(lines):
     return thread_id, counts, completed
 
 
+@contextmanager
+def single_flight(root, ticket):
+    """OS-atomic create: no concurrent double-billing for the same ticket."""
+    path = Path(root) / ".autopilot" / ("dispatch-" + ticket + ".lock")
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise DispatchError("Existing dispatch lock; inspect old process before retry")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump({"pid": os.getpid(), "createdAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+                       "ticket": ticket}, f)
+        yield
+    finally:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def run_once(config, root, *, timeout=900):
     if not 20 <= timeout <= 1800:
         raise DispatchError("Timeout must be between 20 and 1800 seconds")
-    result = subprocess.run(config["command"] + ["-"],
-                            input=config["prompt"], text=True, encoding="utf-8",
-                            errors="replace", capture_output=True, timeout=timeout)
-    thread_id, usage, completed = parse_usage(result.stdout)
+    with single_flight(root, config["ticket"]):
+        result = subprocess.run(config["command"] + ["-"],
+                                input=config["prompt"], text=True, encoding="utf-8",
+                                errors="replace", capture_output=True, timeout=timeout)
+        thread_id, usage, completed = parse_usage(result.stdout)
     recorded = False
     if usage and thread_id and (usage["input_tokens"] or usage["output_tokens"]):
         ap = Path(root) / ".autopilot" / "ap.py"
