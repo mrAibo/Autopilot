@@ -552,6 +552,8 @@ class Run(unittest.TestCase):
              "commit", "-qm", "T01: worker edit"],
             capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
         code, out = self.ap("worktree", "01", "land", "--tests", "3/0")
         self.assertEqual(code, 0, out)
         wt = self.state()["tickets"][0]["worktree"]
