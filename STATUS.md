@@ -4,14 +4,14 @@
 **Repository:** https://github.com/mrAibo/Autopilot
 **Branch:** `feat/autopilot-2.3-adaptive-router-dashboard`
 **PR:** https://github.com/mrAibo/Autopilot/pull/1 — **Draft, NOT merged**
-**Working branch HEAD before this STATUS-only update:** `1af3633e750d2b53db2d84e8229ef87e0715056d`; the STATUS commit itself advances HEAD, check GitHub branch before resuming.
+**Feature branch implementation/documentation checkpoint before this STATUS refresh:** `5eacb482e3695c5418a792804edb104b125ec707`. Updating STATUS.md advances HEAD; verify the latest SHA on resume.
 **Baseline main:** `25b5fbada50742f1b6a900a5a92800759e5c74d4` (2.2.0)
 **Release:** 2.3.0 UNDER DEVELOPMENT; no final tag, no merge to main without review.
 **Specification:** `бриф.md`. State handoff is this file; update after each implementation milestone.
 
 ## Latest verified CI and local Windows validation
 
-- **Latest completed full-branch CI [#40196940398](https://github.com/mrAibo/Autopilot/actions/runs/40196940398):** all **4/4** Ubuntu/Windows Python 3.11/3.13 jobs green, **144 Python tests** on Ubuntu 3.13, JavaScript syntax and headless Chrome wide/narrow dashboard smoke green. This includes the README/status updates following independent host test evidence. This STATUS-only commit itself advances HEAD and requires its own new CI; check its status when resuming.
+- **Latest validated documentation/installation milestone [CI #40198876614](https://github.com/mrAibo/Autopilot/actions/runs/40198876614):** **4/4** Ubuntu/Windows × Python 3.11/3.13 jobs passed, **144 Python tests** on Ubuntu 3.13, Dashboard JS syntax + headless Chrome desktop/narrow smoke. The code/docs/assets checkpoint is `5eacb482e3695c5418a792804edb104b125ec707`. This STATUS-only update advances HEAD and launches its own CI.
 - On the connected Windows computer (`Aibo`), local clone `C:\Users\crown\Downloads\Projects\Autopilot` is on the development branch; last synced source `9a5250b`, clean. **13/13 `test_worktrees.py` and 13/13 `test_codex_dispatch.py`** passed under Python 3.13. Use `git pull --ff-only` after future GitHub commits.
 - Codex CLI **0.165.0-alpha.1** is installed from official NPM under `%APPDATA%\npm`; `codex login status` succeeded using ChatGPT. Existing graphical Codex app `OpenAI.Codex` 26.1021.3705.0 and Claude desktop AppX are installed. Native Codex CLI `codex.exe` is under `%APPDATA%\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe`. The desktop-managed binary was not replaced.
 - User disabled VPN: `codex doctor` reached **21 ok / 0 fail**; WebSocket and required provider HTTP endpoints reachable. `codex debug models` resolves account-visible GPT-6 Luna, GPT-6 Sol, GPT-6.1 Sol etc. `codex_capabilities.py` imported live catalog and routed a trivial task to `gpt-6-luna/low`.
