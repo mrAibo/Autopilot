@@ -1,6 +1,6 @@
 # What's new in Autopilot
 
-The skill's version is the `metadata.version` field in `skills/autopilot/SKILL.md`. At the start of every build, Autopilot checks it against this repository and tells you in one line if a newer version is out. To update:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current development build is `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
@@ -24,6 +24,8 @@ npx skills update autopilot -g
 - Opt-in Codex CLI external worker adapter with strict ticket/route/sha/worktree/budget preflight, named model and effort flags, isolated `codex exec --json`, and token usage recording; dry-run by default.
 - Deterministic JSON `ap.py schedule` planner: dependency, zone, capacity, prepared checkout and budget gating. This is a planner, **not** an external agent launcher.
 - Deterministic retry triage (`retry_policy.py`), explicit causes, hard attempt limits, no escalation for environment/dependency failures.
+- Replaced all outdated 2.2 dashboard captures in English/Russian READMEs with genuine Chrome screenshots of Dashboard 3.0 using labeled synthetic fixture data; retired 14 old screenshot assets.
+- Removed inherited upstream installer lock from the repository, replaced promotional author text with a short `Inspired by` credit and preserved the MIT copyright notice in `LICENSE`. Local development uses one shared skill checkout via Windows Junctions.
 - Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
 - Pending: verified in-harness dispatch adapters, worktree isolation, actual billing telemetry, visual/browser regression, real-run benchmark.
 
@@ -49,7 +51,7 @@ npx skills update autopilot -g
 - It now recognises tasks named `T03 …` as executors and judges them against the new size: under 150K — should have been merged, over 450K — should have been split.
 
 **Docs**
-- README, this changelog and `docs/` are now in English; the Russian README lives on as [README.ru.md](README.ru.md). Screenshots show the English dashboard, each one a different part of it: the header, build progress, a finished build's report, waiting for you, your words.
+- README, this changelog and `docs/` are now in English; the Russian README lives on as [README.ru.md](README.ru.md). At the time of 2.2, screenshots documented its English-language dashboard. Those captures were retired from the 2.3 README and replaced by current Dashboard 3.0 synthetic demo captures.
 - Dashboard: in English, ticket titles in the header are quoted “like this” instead of «like this».
 
 ## 2.1.0 — 2026-10-10

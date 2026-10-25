@@ -46,13 +46,13 @@ A disposable *synthetic only* Git repository was created at `%TEMP%\autopilot-23
 - Explicit approved provider/model/effort routing; deny premium subagent families by default; native pinned `.codex/agents/*.toml` and `.claude/agents/*.md` SHA-verified profiles. Optional Claude Code `PreToolUse` guard; actual graphical agent model inheritance remains unverified.
 - Opt-in isolated per-task worktrees with safe cherry-pick/recovery/release, deterministic model-aware read-only scheduler, manually reported per-call token/budget events.
 - Dashboard 3.0 responsive activity, gates, token/cached reports, worktree status, retry advice and wide/narrow browser CI.
-- OpenAI NPM CLI binary and all project scripts are separate from global stable Autopilot 2.2. **Existing** `%USERPROFILE%\.agents\skills\autopilot` is global 2.2; Claude global skill junction points to it. Do not overwrite it with draft 2.3. Under Windows Git `core.symlinks=false`, checked-in `.agents/skills/autopilot` and `.claude/skills/autopilot` are plain text placeholders, not functioning skill links. See `docs/autopilot/gui-clients.md`.
+- The **global development installation is now Autopilot 2.3.0-dev**, at `%USERPROFILE%\.agents\skills\autopilot`, `%USERPROFILE%\.claude\skills\autopilot` and `%USERPROFILE%\.codex\skills\autopilot`. All are real Windows **Junctions** to the single checkout `C:\Users\crown\Downloads\Projects\Autopilot\skills\autopilot`. The old standalone 2.2 directory was deleted on request after verifying the new links and version. The global installer lock's old upstream entry was removed; other skills were preserved. Windows Git-local symlinks can still appear as text placeholders with `core.symlinks=false`.
 
 ## NEW: GUI skill smoke workspace (links, not copies)
 
 - Isolated Windows workspace `%TEMP%\\autopilot-gui-skill-smoke-20261025` was created. It has **three real Junction directories**, each pointing to the SAME source folder `C:\\Users\\crown\\Downloads\\Projects\\Autopilot\\skills\\autopilot`: `.agents\\skills\\autopilot`, `.claude\\skills\\autopilot`, and `.codex\\skills\\autopilot`. All three paths passed `Test-Path SKILL.md=True` and are reported as `Junction`, not text placeholders.
-- The existing global stable `%USERPROFILE%\\.agents\\skills\\autopilot` version 2.2 and its Claude Junction are untouched. This disposable workspace is prepared for **GUI discovery tests**, but neither Codex GUI nor Claude Code GUI has yet confirmed loading the skill or executing a model. The connected Desktop Commander provides filesystem/terminal access but no verified graphical GUI click integration.
-- Next: open this exact disposable folder as a project in the graphical Codex app, reload skill discovery and inspect whether `/autopilot` is available. Do likewise only in actual Claude Code desktop integration, not generic Claude chat. Do not edit the global 2.2 install.
+- The owner-authorized **global Autopilot 2.3.0-dev Junction replacement is completed** for common agents, Claude and Codex; the 2.2 directory and its stale global upstream lock entry were removed. This confirms file access to `SKILL.md`, **not** actual graphical skill discovery.
+- Next: start fresh Codex/Claude Code graphical sessions and verify they actually discover the globally linked `autopilot` skill as version `2.3.0-dev`. The earlier disposable folder remains available for a separate project-level test. GUI agent model/cwd enforcement is still unverified.
 
 ## NEW: independently measured host test evidence (2026-10-25)
 
@@ -62,13 +62,22 @@ A disposable *synthetic only* Git repository was created at `%TEMP%\autopilot-23
 - The verifier is **not cryptographic attestation** against an attacker editing `state.js`, ignored files or test process environment. Tests are executable Python code, so only run suites that the operator trusts. Pytest and arbitrary test commands are not yet supported; keep failing closed for unsupported suites. See `docs/autopilot/worktrees.md`.
 - The GUI Codex/Claude Code skills share the same project files and can use this host-side verifier. **No native GUI session model/effort/cwd selection has yet been demonstrated**, so do not infer full GUI support from this CI.
 
+## NEW: installed 2.3-dev and cleaned project presentation (2026-10-25)
+
+- The Windows global `autopilot` 2.2 installation from `nick-vels/skills` was explicitly authorized for deletion; verified its `metadata.version=2.2.0`, removed its old Claude Junction and directory, and replaced with three direct Junctions from common agent skills, Codex and Claude skill paths to the **same live Git branch**. Post-install checks of all three returned `metadata.version=2.3.0-dev`. No second skill copy was created.
+- Removed only the stale `autopilot` entry from the **user's global installer lock**; other installed skills untouched. A temporary backup of that lock exists under the user Temp directory for recovery.
+- In the **GitHub feature branch**, old imported `skills-lock.json` was removed to avoid pointing users back to the former upstream on update. The original MIT copyright notice stays in `LICENSE` (license compliance), while EN/RU README footers now contain only a concise 'Inspired by' credit.
+- Old 2.2 screenshot references and all 14 obsolete dashboard PNG files were retired. Four new **actual Chrome screenshots** of the current Dashboard 3.0 template were generated from synthetic CI sample state: `assets/dashboard-3-desktop.png`, `assets/dashboard-3-narrow.png` and their `assets/ru/` equivalents. Both README galleries now show them and explicitly label them as demonstration data. Generic Autopilot logos remain.
+- No external Telegram-channel promotion links were found in current Markdown content; Telegram **bot** examples remain as product examples, not marketing. License and relevant git history are deliberately not erased.
+- **Release remains pending**. Local installation has a `-dev` version; do not run `npx skills update -g` on this Junction-linked checkout because that would follow the installer channel rather than the development branch. Actual GUI discovery is not yet proven.
+
 ## Remaining blockers and next steps
 
 1. **P0** Actual graphical Codex app and Claude Code GUI integration: verify the shared skill is discovered using supported registration or an isolated test workspace Junction, model picker/effort and native custom agents, cwd and approval controls. Do **not** confuse the generic Claude app with Claude Code and do not claim GUI E2E yet.
 2. **P0** On disposable Windows fixture, independently run tests and invoke the **new** `worktree finalize --tests N/0` with actual modified files, then land/accept/release; this complements the earlier successful manual host-commit E2E. Keep sandbox enabled.
 3. **P0 partially completed:** Python unittest host evidence with source fingerprint is now mandatory for strict isolated finalize/land/acceptance. Still needed: trusted test-suite policy beyond single unchanged unittest module, evidence resistant to direct state tampering, broader source-zone enforcement across external tools, and multi-ticket recovery. Scheduler currently plans only; it does not autonomously launch/monitor native agents.
 4. **P1** Optional upstream Ponytail Claude Code plugin evaluation in isolated workspace (not global) and controlled A/B lean/off with accepted-task quality and real tokens; no unmeasured cost claims.
-5. **P1/P2** Actual model/billing identity, usage ingestion and comparable 2.2 vs 2.3 metrics, installer and provenance audit (`skills-lock.json`), release documentation. Keep PR Draft and `main` unchanged.
+5. **P1/P2** Actual model/billing identity, usage ingestion and comparable 2.2 vs 2.3 metrics; final released installer packaging. The inherited repository `skills-lock.json` was removed because it pointed to upstream 2.2. Keep PR Draft and `main` unchanged.
 
 ## Resume in a new ChatGPT session (copy)
 

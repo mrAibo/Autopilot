@@ -7,7 +7,7 @@ Autopilot is a **skill and project-state protocol**, not a command-line-only app
 | Host | Skill workflow | Model-aware dispatch | Validation status |
 |---|---|---|---|
 | Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native Codex subagent definitions (`.codex/agents/*.toml`) and host UI model picker. CLI adapter **not required** | **GUI end-to-end not yet validated** |
-| Codex CLI | Same skill instructions and project files | Explicit `codex exec` model/effort process via `codex_dispatch.py`, with isolated worktree and JSON usage | CLI 0.165.0-alpha.1 login, resolved catalog and read-only Luna Low smoke verified on Windows, 2026-10-25; full ticket dispatch still pending |
+| Codex CLI | Same skill instructions and project files | Explicit `codex exec` model/effort process via `codex_dispatch.py`, with isolated worktree and JSON usage | CLI 0.165.0-alpha.1 login, real Luna Low inference and a disposable code-edit / host-tested / accepted worktree E2E verified on Windows; GUI host remains unverified |
 | Claude Code (terminal or supported graphical host) | Same skill instructions loaded from `.claude/skills/` | Native pinned `.claude/agents/*.md` with optional `PreToolUse` guard | Synthetic tests only; **actual GUI/CLI behavior unverified** |
 | Claude general chat app without code execution / filesystem tools | Can read project docs if attached, but cannot run the local workflow | No supported local dispatch guarantee | **Not equivalent to Claude Code** |
 
@@ -15,15 +15,15 @@ Autopilot is a **skill and project-state protocol**, not a command-line-only app
 
 ## Existing installations: no second copies
 
-On the owner's Windows machine, `C:\Users\crown\.agents\skills\autopilot` is the **existing global stable 2.2 installation** and `C:\Users\crown\.claude\skills\autopilot` points to it using a Junction. Do not overwrite it with this unfinished branch.
+As approved by the owner on 2026-10-25, the old global Autopilot 2.2 directory was removed. Three global skill discovery paths now point by Windows Junction **directly to the one development checkout** `C:\Users\crown\Downloads\Projects\Autopilot\skills\autopilot`: `C:\Users\crown\.agents\skills\autopilot`, `C:\Users\crown\.claude\skills\autopilot`, and `C:\Users\crown\.codex\skills\autopilot`. Each Junction exposes a real `SKILL.md` with `metadata.version: "2.3.0-dev"`. The obsolete global installer lock entry for `nick-vels/skills` was removed without altering the other skills. This proves working filesystem links, **not** live GUI discovery; restart a host session and verify.
 
 The `mrAibo/Autopilot` repository has two tracked Git symlinks:
 - `.agents/skills/autopilot` → `../../skills/autopilot`
 - `.claude/skills/autopilot` → `../../.agents/skills/autopilot`
 
-When Git is checked out on Windows **with `core.symlinks=false`**, the links are represented as tiny plain-text files containing their link targets. Those **are not loadable skills**. Windows Developer Mode or authorized directory Junctions can resolve this for a disposable test workspace, but do not mutate tracked link files or change the global 2.2 installation as a side effect.
+When Git is checked out on Windows with `core.symlinks=false`, the two tracked **repository-local** skill links can be plain-text placeholders rather than loadable skill directories. The separately verified **global Junctions** above bypass that issue without any copied skill files; the disposable GUI test workspace also uses Junctions to the same source.
 
-The best portable production path is to use the existing `npx skills add` workflow to register a released Autopilot skill with the GUI host, then start a fresh host session. Test branch access can instead be obtained through an isolated test workspace and an explicitly opted-in project-level link to the repository's `skills/autopilot` folder; this is not a second installation/copy.
+For this development checkout, first check the repository is clean, then use `git -C C:\Users\crown\Downloads\Projects\Autopilot pull --ff-only` to update the working branch. The global Junctions expose changes immediately to new host sessions. Do **not** run `npx skills update autopilot -g` on this developer-linked preview: it may replace it with the published main-branch release. After 2.3 is merged and released, use the supported `npx skills add mrAibo/Autopilot` workflow if preferred.
 
 ## Capability discovery
 
@@ -48,7 +48,7 @@ Only after `ap.py init` created `.autopilot`. This writes `.autopilot/model-capa
 
 - No completed end-to-end GUI test with Codex Desktop or Claude Code Desktop.
 - No proven GUI enforcement of the exact pinned model/effort, native custom subagent creation or isolated `cwd` yet. The CLI adapter is a separate optional execution path, not the implementation of graphical integration.
-- Need Windows symlink/Junction setup or installer release verification in a disposable test workspace to ensure the *same* skill activates in both GUI and CLI.
+- Global and disposable Windows Junction directories now point to the same 2.3-dev source and expose a real `SKILL.md`; still verify that *each graphical host actually discovers and loads* the new version after session restart.
 - Need real Claude Code installation/tooling discovery and authenticated execution before marking Claude GUI support verified.
 
 After release, a single supported installation/update path should make the skill discoverable to all installed compatible hosts, but the provider's GUI mechanisms and permissions remain the final authority.
