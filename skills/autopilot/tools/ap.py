@@ -372,7 +372,7 @@ def publish_tickets(state):
         if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
-                  "tests", "commit", "concerns", "placeholders", "routing"):
+                  "tests", "commit", "concerns", "placeholders", "routing", "worktree", "retryAdvice"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -999,7 +999,7 @@ def cmd_ticket(state, pos, opt):
                        if known.get(dep, {}).get("status") != "done"]
             if pending:
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
-        if act in ("start", "done") and state.get("strictRouting") and not profile_ok(tk):
+        if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
         if act == "done":
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
@@ -1008,6 +1008,29 @@ def cmd_ticket(state, pos, opt):
             rev = opt.get("commit") or tk.get("commit")
             if not verified_commit(rev):
                 die("таск %s: требуется существующий коммит в HEAD" % i)
+        if act in ("retry", "repair"):
+            attempts = tk.get("retries", 0)
+            repairs = tk.get("repairs", 0)
+            if (act == "retry" and attempts >= 2) or (act == "repair" and repairs >= 2):
+                die("таск %s: предел повторов/ремонтов достигнут; нужна диагностика" % i)
+            if act == "retry":
+                kind = opt.get("cause") or "unknown"
+                if state.get("strictRouting") and not opt.get("cause"):
+                    die("таск %s: --cause обязателен для безопасного повтора" % i)
+                try:
+                    from retry_policy import decide
+                    advice = decide(kind, attempts, repairs)
+                except (ValueError, ImportError) as exc:
+                    die("retry: %s" % exc)
+                if advice["action"] not in ("repair", "investigate"):
+                    die("таск %s: повтор не разрешён (%s): %s" %
+                        (i, advice["action"], advice["why"]))
+                if tk.get("worktree"):
+                    import worktrees
+                    actual = worktrees.status(ROOT, i)
+                    if actual.get("status") != "present" or tk["worktree"].get("status") != "prepared":
+                        die("таск %s: рабочая копия не готова к повтору" % i)
+                tk["retryAdvice"] = advice
         if act == "route":
             provider = opt.get("provider")
             model = opt.get("model")
