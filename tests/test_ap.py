@@ -23,6 +23,7 @@ PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
 WORKTREES = os.path.join(SKILL, "tools", "worktrees.py")
 RETRY_POLICY = os.path.join(SKILL, "tools", "retry_policy.py")
 SCHEDULER = os.path.join(SKILL, "tools", "scheduler.py")
+TEST_EVIDENCE = os.path.join(SKILL, "tools", "test_evidence.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
