@@ -969,6 +969,8 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if act == "start" and tk.get("status") != "pending":
+            die("таск %s: start разрешён только из pending (уже запущен или завершён)" % i)
         if act == "start" and (state.get("isolateTickets") or tk.get("worktree")):
             wt = tk.get("worktree") or {}
             if wt.get("status") != "prepared":
@@ -1146,9 +1148,14 @@ def cmd_worktree(state, pos, opt):
                 log(state, "worktree", act="recover-prepare", ticket=ident)
                 return "worktree %s: восстановлено состояние prepared" % ident
             if record.get("status") == "landed":
-                if verified_commit(record.get("landedCommit")):
-                    return "worktree %s: интеграция уже зарегистрирована" % ident
-                die("worktree: сохранённый коммит недоступен в текущей истории")
+                if not verified_commit(record.get("landedCommit")):
+                    die("worktree: сохранённый коммит недоступен в текущей истории")
+                if actual.get("status") == "missing" and tk.get("status") == "done":
+                    # Crash after Git worktree remove but before the state write.
+                    record["status"] = "released"
+                    log(state, "worktree", act="recover-release", ticket=ident)
+                    return "worktree %s: восстановлено состояние released" % ident
+                return "worktree %s: интеграция уже зарегистрирована"
             if record.get("status") == "released":
                 return "worktree %s: уже освобождён" % ident
             if record.get("status") != "prepared":
@@ -1174,6 +1181,8 @@ def cmd_worktree(state, pos, opt):
             return "worktree %s: восстановлена уже выполненная интеграция" % ident
         if action == "release":
             record = tk.get("worktree") or {}
+            if record.get("status") == "released":
+                return "worktree %s: уже освобождён" % ident
             if (record.get("status") != "landed" or tk.get("status") != "done"
                     or not verified_commit(record.get("landedCommit"))):
                 die("worktree: освобождение требует принятого таска и интегрированного коммита")
