@@ -24,7 +24,9 @@ Never two tickets in one context — accumulated context is what makes long sess
 
 A subagent has a filesystem; pasting what it can read writes the same words twice into the bill, and the second copy stays in your context for the rest of the run. Every rule the executor must follow travels in its prompt or in `prompts/executor.md` — a rule that lives only in a phase file does not exist for the one writing the code.
 
-**The model.** A ticket marked `Модель: сильная` runs on the session's model. `обычная` runs on a cheaper one — in Claude Code, `model: "sonnet"` on the Agent call; a harness without a model choice ignores this silently. A ticket that already failed once is relaunched on the strong model.
+**Provider-neutral model routing (mandatory).** Before EVERY executor spawn, run `python3 .autopilot/model_router.py <ticket-path> --provider openai|anthropic --capabilities .autopilot/model-capabilities.json`. The capabilities file must represent the actual running harness (supported models, effort and enforceable selection). A non-zero exit or `status=blocked` means **do not spawn**. Pass the exact verified model and effort in the host's Agent call and record the choice with `ap.py ticket NN route --provider ... --model ... --effort ... --score ... --reason ...`. See `docs/autopilot/model-routing.md` in the skill repository. Legacy `Модель: сильная/обычная` is only a hint, not a dispatch instruction.
+
+OpenAI default: Luna for cheap/balanced, Sol for strong; Anthropic default: Haiku for cheap, Sonnet for balanced/strong. Restricted Astra/Fable never spawn automatically; the main session's model must not leak into subagents. If this host cannot independently choose the model or cannot provide verified capabilities, **stop delegation and report the blocker** rather than ignoring it. A retry on a stronger model must get a new approved route; missing dependencies, access or ambiguous requirements are not model-strength failures.
 
 **Dependencies.** Ticket 01 installs everything the spec's «Решения по реализации» names. A later ticket that needs something else returns `BLOCKED` with its name; if it fits a decision already made, add it to «Решения», relaunch that ticket with permission to install exactly that — the manifest and lock files join its commit — and fly nothing else that installs at the same time.
 
@@ -32,7 +34,7 @@ A subagent has a filesystem; pasting what it can read writes the same words twic
 
 Phase 4 gave every ticket a wave and a zone. **Launch a whole wave in one message, one subagent call per ticket, in the background** — two calls in two messages run one after the other, and the parallelism computed in the plan is thrown away in the delivery.
 
-- **At most three in flight.** A wave of five goes out as three, then two. A point reviewer reads a commit and writes nothing — it does not count against the three.
+- **At most two in flight by default** (up to three only if explicitly permitted by the verified policy and truly independent). A wave of five normally goes out as two, two, one. A point reviewer reads a commit and writes nothing — it does not count against the three.
 - **Zones disjoint** — checked again at launch; same files → serialise. When in doubt, serialise.
 - **A wave is not a barrier.** When a ticket returns, first launch the next ticket whose dependencies are all committed, then process the one that landed.
 - **A dependent never launches on an uncommitted parent.**
