@@ -924,6 +924,29 @@ def verified_commit(rev):
         return False
 
 
+def profile_ok(tk):
+    """Refuse stale/edited native agent definitions before strict dispatch."""
+    route = tk.get("routing") or {}
+    if not route.get("verified") or not route.get("agentFile") or not route.get("profileSha"):
+        return False
+    relative = route["agentFile"]
+    if not isinstance(relative, str) or os.path.isabs(relative):
+        return False
+    expected_prefix = (".claude/agents/" if route.get("provider") == "anthropic"
+                       else ".codex/agents/")
+    if not relative.replace("\\", "/").startswith(expected_prefix):
+        return False
+    path = os.path.realpath(os.path.join(ROOT, relative))
+    root = os.path.realpath(ROOT)
+    if os.path.commonpath((path, root)) != root:
+        return False
+    try:
+        with open(path, "rb") as stream:
+            return hashlib.sha256(stream.read()).hexdigest() == route["profileSha"]
+    except OSError:
+        return False
+
+
 def cmd_ticket(state, pos, opt):
     acts = [p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
@@ -941,7 +964,7 @@ def cmd_ticket(state, pos, opt):
                        if known.get(dep, {}).get("status") != "done"]
             if pending:
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
-        if act in ("start", "done") and state.get("strictRouting") and not (tk.get("routing") or {}).get("verified"):
+        if act in ("start", "done") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
         if act == "done":
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
@@ -978,9 +1001,21 @@ def cmd_ticket(state, pos, opt):
             if (route["status"] != "ready" or route["model"] != model
                     or route["effort"] != effort):
                 die("route: заданная модель или effort не одобрены: %s" % route.get("error", "несовпадение"))
+            try:
+                import agent_profiles
+                profile = agent_profiles.prepare(
+                    ROOT, candidates[0], provider, cap, "executor",
+                    scores=scores, install=True)
+                filename = profile["agent_file"]
+                with open(os.path.join(ROOT, filename), "rb") as stream:
+                    digest = hashlib.sha256(stream.read()).hexdigest()
+            except (ValueError, OSError, ImportError, TypeError) as err:
+                die("route: не удалось создать нативный профиль субагента: %s" % err)
             tk["routing"] = {"provider": provider, "model": model,
                              "effort": effort, "score": route["score"],
-                             "reason": reason, "verified": True}
+                             "reason": reason, "verified": True,
+                             "agentType": profile["agent_type"],
+                             "agentFile": filename, "profileSha": digest}
             continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
