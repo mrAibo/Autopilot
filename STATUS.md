@@ -131,6 +131,41 @@
 - **Merged** by [PR #3](https://github.com/mrAibo/Autopilot/pull/3) into `main` on 2026-10-25, squash commit `541c0549db5a548fb2c7f74cda2260466bbc9870`. Feature commit `3741bd2e9d7c69a2bc88670a19e199449f7773cd` passed [CI #40208179320](https://github.com/mrAibo/Autopilot/actions/runs/40208179320): **4/4** Windows/Linux Python 3.11/3.13 jobs green, **185 Python tests**, JS syntax and Chrome wide/narrow smoke. This STATUS-only commit starts another main CI; confirm its result separately.
 - This is an explicitly invoked host-transition controller, **NOT** an unattended multi-agent execution daemon. Never say autonomous agent dispatch or GUI/Claude E2E is verified.
 
+## New P0 checkpoint — GUI to pinned CLI one-shot bridge (2026-10-25)
+
+- Feature branch `feat/gui-cli-approved-dispatch-20261025` adds
+  `skills/autopilot/tools/gui_bridge.py` and
+  `docs/autopilot/gui-cli-bridge.md`, copied by Phase 0. This is an
+  **explicit local terminal tool invocation from a GUI workflow**,
+  not a Codex GUI-native subagent. Claude Code as a GUI host is still
+  unverified. Existing pinned Codex CLI worker is reused unchanged.
+- Default preview runs trusted controller and Codex dispatcher
+  preflights with **no writes, subprocess model call or receipt**.
+  Confirms strict isolated ticket, only one in-progress worker,
+  known verified OpenAI model/Effort, SHA-pinned profile and brief,
+  clean actual worktree and positive recorded token threshold.
+- Explicit per-ticket `--execute --approve-ticket NN` creates a
+  **persistent exclusive receipt before any provider call**. Later
+  executions of the same ticket refuse even after timeout, crash,
+  partial record, missing usage or failed/incomplete turn. There is
+  NO force/reset/retry bypass. A controller OS lock serializes with
+  other host transitions. The receipt contains only route/cwd/usage
+  summary, digest, timestamps and status, never the full prompt.
+- Existing `codex_dispatch.run_once` invokes pinned Codex CLI under
+  sandbox with bounded wall-clock timeout and accounts JSONL usage
+  when available. Recorded token threshold is NOT a hard provider
+  cost cap, and user-supplied flag is NOT cryptographic human consent.
+  The bridge never finalizes/lands/accepts automatically; trusted
+  host tests remain mandatory. Do not infer paid execution from
+  dry-run tests.
+- New negative tests prove read-only default, explicit approval,
+  duplicate/orphaned/partial receipt blocking, crash ambiguity,
+  locked/invalid budget, dirty worker refusal and no silent test
+  acceptance. Tests use mock model calls on synthetic Git fixtures.
+- Validate complete Windows/Linux CI and GUI terminal access before
+  claiming end-to-end success. No paid GUI live call has been made
+  at this milestone. Remain `2.3.0-dev`, no release tag.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** In *Codex graphical application* run a disposable strict isolated ticket with approved model/effort and verify actual child-agent identity, effective cwd, tool approvals and commit/test evidence. Repeat separately for an actual **Claude Code** host (not a generic Claude chat). Host GUI success cannot be inferred from a CLI smoke; if model/effort cannot be confirmed, fall back to sequential single-agent or block the strict spawn.

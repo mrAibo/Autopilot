@@ -788,6 +788,7 @@ def ensure_gitignore():
         text = ""
     entries = [".autopilot/serve.*", ".autopilot/state.lock",
                ".autopilot/dispatch-*.lock", ".autopilot/controller.lock",
+               ".autopilot/gui-dispatch/",
                ".autopilot/__pycache__/",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
                ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]

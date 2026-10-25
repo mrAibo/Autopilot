@@ -36,6 +36,16 @@ After externally approved worker execution, it verifies the immutable baseline
 test module, finalizes, lands, accepts and releases in distinct audited steps.
 No paid agent auto-launch yet. See [Host controller](docs/autopilot/controller.md).
 
+**GUI-to-CLI fallback for Codex:** When named native GUI subagents are
+unavailable, a GUI host with terminal tools can invoke the
+[single-attempt bridge](docs/autopilot/gui-cli-bridge.md). The preview
+`.autopilot/gui_bridge.py --root . --ticket 01` performs no model call.
+Paid execution needs explicit per-ticket consent via
+`--execute --approve-ticket 01` and a durable non-replayable receipt.
+The selected model/Effort remains pinned by the existing CLI dispatcher;
+independent trusted tests and acceptance remain separate. This is **not**
+native GUI child-agent support.
+
 ## Installation
 
 > **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.

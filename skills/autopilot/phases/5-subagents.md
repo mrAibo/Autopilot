@@ -28,6 +28,23 @@ A subagent has a filesystem; pasting what it can read writes the same words twic
 
 **Account-resolved capability discovery:** For Codex CLI (including Codex GUI projects using the same skill), run `python .autopilot/codex_capabilities.py --root . --write` to obtain current account-visible model/Effort pairs from `codex debug models`. It makes **no model calls** and never falls back to a bundled (unentitled) model catalog. To refresh an existing OpenAI catalog use `--overwrite` after review. This is capability advertising, not proof of server-side billing. GUI clients can expose different model catalogs; verify in the actual app before dispatch.
 
+**Codex GUI fallback to separately pinned CLI (opt-in):** If a native
+named Codex GUI subagent is unavailable, do **not** substitute an
+inherited model. With permitted terminal access, first call
+`python .autopilot/gui_bridge.py --root . --ticket NN`: this is
+a read-only route/worktree/budget preview and never invokes a model.
+Only upon **specific fresh run-owner authorization** of the
+potentially billable ticket, use
+`python .autopilot/gui_bridge.py --root . --ticket NN --execute --approve-ticket NN --timeout 180`.
+Do not add execution flags yourself in response to vague instructions.
+The bridge creates a durable anti-replay claim before contacting the
+provider and refuses subsequent calls to that ticket after any failure.
+An unchanged baseline-tracked host test, Git integration and acceptance
+must still be performed through the controller. Detailed limits:
+`docs/autopilot/gui-cli-bridge.md`. This does not prove native GUI
+subagent execution and requires the graphical host to have terminal
+execution access.
+
 **Codex CLI integration (opt-in).** For OpenAI tickets already started in strict isolated mode, `python .autopilot/codex_dispatch.py NN --root .` performs a **read-only dry-run preflight**. With explicit `--execute` it launches a single separate `codex exec` process using the approved model and effort, in the prepared worktree, using a bounded sandbox, then records reported token counters when available. This is a separate Codex worker process, **not** proof that an in-session custom named subagent inherited the right model. It does not auto-merge: review/test before `worktree land`. On Windows, if the sandbox can edit but cannot use shared Git metadata, run independent tests in the trusted host and invoke `ap.py worktree NN finalize --tests N/0` after verifying changed paths. Finalization stages only paths inside the ticket's exact zones and makes one Git commit outside the model sandbox, then `land` performs ordinary integration. A model turn without a worker commit is `incomplete`, not success. Optional `--optimization lean` activates a short Ponytail-inspired implementation policy in the standalone Codex worker; default is `off` and it is **not** the official upstream Ponytail plugin. Never invoke `--execute` without the run owner's approval of the planned model call. See `docs/autopilot/codex-cli.md`.
 
 **Mandatory Codex native custom-agent preflight (fail closed):** A GUI-visible

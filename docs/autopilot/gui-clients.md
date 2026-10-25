@@ -2,6 +2,22 @@
 
 Autopilot is a **skill and project-state protocol**, not a command-line-only application. The same `SKILL.md`, phase files, `ap.py` state, dashboard and verification gates should be usable by both the desktop/GUI host and command-line host.
 
+## Supported GUI-to-CLI alternative (owner-approved direction)
+
+When the tested GUI cannot select its native named agent, an authorized
+Codex GUI workflow may use local terminal tools to invoke
+`.autopilot/gui_bridge.py --root . --ticket NN` for a **read-only**
+preview, followed by a separate user-approved
+`--execute --approve-ticket NN` invocation. This uses the existing
+sandboxed Codex CLI worker with explicitly pinned model/Effort and a
+persistent anti-replay receipt. It never accepts results without trusted
+host tests. See [gui-cli-bridge.md](gui-cli-bridge.md).
+
+The terminal tool, explicit invocation and local filesystem access
+must be available to the GUI host; they have not yet been independently
+verified together in a real GUI session. Never claim native GUI
+subagents or authenticated human consent from a CLI flag alone.
+
 ## Support matrix
 
 | Host | Skill workflow | Model-aware dispatch | Validation status |
