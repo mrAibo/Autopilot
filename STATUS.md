@@ -230,6 +230,30 @@
   or Claude Code execution has yet been attested. Do not call native
   GUI subagents or billing hard limits verified.
 
+## Disposable real-Codex smoke ticket prepared (2026-10-25)
+
+- An isolated synthetic test repository is ready on Windows at
+  `%TEMP%\autopilot-gui-cli-live-smoke-20261025`. It is separate from
+  the Autopilot development checkout and all user application projects.
+- Strict isolated ticket `01` has status **in-progress** with one clean
+  prepared Git worktree. Approved route `gpt-6-luna / low`, pinned
+  profile and host-resolved account capability advertisement passed
+  `gui_bridge.py --root ROOT --ticket 01 --timeout 90` dry-run.
+  Recorded token threshold is **2,000**, used **0**. Baseline source:
+  `src/core/calc.py` intentionally subtracts instead of adding;
+  trusted host test: `test_core.py`.
+- **No paid model execution occurred**, no dispatch receipt was created,
+  and no GUI terminal interaction was performed. Only an explicitly
+  approved *specific ticket-01* potentially billable invocation can
+  proceed. This threshold is recorded-accounting protection, NOT a
+  hard cap on provider spend; timeout does not prevent all token use.
+- Do not touch/reuse the fixture for another task or execute
+  `--execute --approve-ticket 01` without the owner's specific informed
+  consent. If approved, call once, inspect receipt + actual usage, run
+  independent host test and controller land/accept/release as applicable.
+  On a crash do NOT retry the paid call automatically. Do not mistake
+  this CLI route for native GUI named subagents or a Claude Code test.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge
