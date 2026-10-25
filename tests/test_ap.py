@@ -18,6 +18,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(os.path.dirname(HERE), "skills", "autopilot")
 AP = os.path.join(SKILL, "tools", "ap.py")
+ROUTER = os.path.join(SKILL, "tools", "model_router.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
@@ -51,6 +52,7 @@ class Run(unittest.TestCase):
         os.makedirs(self.a)
         shutil.copy(TEMPLATE, os.path.join(self.a, "dashboard.html"))
         shutil.copy(AP, os.path.join(self.a, "ap.py"))
+        shutil.copy(ROUTER, os.path.join(self.a, "model_router.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -397,6 +399,38 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["rev"], r + 1)
 
     # ── finish ─────────────────────────────────────────────────────────────
+    def test_strict_routing_blocks_unverified_dispatch(self):
+        self.plan()
+        self.ap("set", "strictRouting=true")
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low", "--reason", "simple",
+                            "--capabilities", caps)
+        self.assertEqual(code, 0, out)
+        self.assertTrue(self.state()["tickets"][0]["routing"]["verified"])
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+
+    def test_route_rejects_unapproved_model_even_with_host_advertisement(self):
+        self.plan()
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"fable": ["high"], "haiku": ["low"]}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "fable", "--effort", "high", "--reason", "default",
+                            "--capabilities", caps)
+        self.assertNotEqual(code, 0)
+        self.assertIn("не одобрены", out)
+
     def test_finish_rejects_incomplete_work(self):
         self.plan()
         self.ap("tickets")
