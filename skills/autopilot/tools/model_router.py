@@ -119,7 +119,11 @@ def choose_route(provider, scores, policy=None, capabilities=None):
     if not isinstance(effort, str) or not effort.strip():
         raise PolicyError("profile effort is empty")
     denied = [str(m).lower() for m in policy.get("restricted", {}).get(provider, [])]
-    if model.lower() in denied:
+    costly_prefixes = {"openai": ("gpt-6-astra",),
+                       "anthropic": ("fable", "claude-fable", "opus", "claude-opus")}
+    restricted = (model.lower() in denied or
+                  model.lower().startswith(costly_prefixes[provider]))
+    if restricted and policy.get("allow_restricted_subagents") is not True:
         raise PolicyError("restricted model %s may not run as a subagent" % model)
     parallel = policy.get("max_parallel", 2)
     if type(parallel) is not int or not 1 <= parallel <= 3:
