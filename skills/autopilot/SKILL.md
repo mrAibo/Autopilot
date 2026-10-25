@@ -112,6 +112,10 @@ CONTEXT.md                             at T2+: the project's words — or the us
 
 `.autopilot/` is committed — it is the user's record of what was promised and delivered. The memory file is the project as it stands for whoever opens it next; `docs/adr/` is why it stands that way; `CONTEXT.md` is what its words mean; `PROGRESS.md` is what is still open and what the user settled — the one file a session without Autopilot updates; `spec.md` is throwaway once the work ships.
 
+## Model routing (2.3 development)
+
+Before dispatch, the executor model and reasoning effort are determined by `tools/model_router.py`, using the verified host capabilities and a fail-closed provider policy. OpenAI/Codex and Anthropic/Claude Code have separate profiles. Astra/Fable are not eligible subagent defaults. A main orchestrator on an expensive model does not imply expensive workers. The route is logged per task and displayed on Dashboard 3.0. See `docs/autopilot/model-routing.md` in the repository; the skill alone cannot force an external harness to honor its selection.
+
 ## Judgement
 
 Numbers in this skill — tiers, question counts, wave widths — are **calibration for a first guess, never targets.** The rules are arguments, each paid for, and arguments can lose: where following one would make the result worse for the user, break it deliberately, say so in one line, and carry on. Never quietly, and never keep one only because it is written down.
