@@ -45,9 +45,17 @@ def safe_target(root, ticket):
     return target
 
 
+def source_dirty(root):
+    """Track user source modifications, excluding only the Autopilot runtime ledger."""
+    return bool(git(root, "status", "--porcelain", "--untracked-files=all",
+                    "--", ".", ":(exclude).autopilot").stdout.strip())
+
+
 def create(root, ticket, base="HEAD"):
     root = repository(root)
     target = safe_target(root, ticket)
+    if source_dirty(root):
+        raise WorktreeError("Commit or restore source changes (including .gitignore) before preparing an isolated ticket")
     if target.exists():
         raise WorktreeError("Worktree already exists: " + str(target))
     if git(root, "check-ignore", "-q", str(target), check=False).returncode != 0:
@@ -85,8 +93,7 @@ def land(root, ticket, base):
         raise WorktreeError("Executor worktree has uncommitted changes")
     # Autopilot's own ledger is updated during every ticket. Never cherry-pick it;
     # check all user source paths while ignoring only that internal directory.
-    if git(root, "status", "--porcelain", "--untracked-files=all", "--", ".",
-           ":(exclude).autopilot").stdout.strip():
+    if source_dirty(root):
         raise WorktreeError("Main source checkout must be clean before landing")
     count = git(root, "rev-list", "--count", base_sha + ".." + head).stdout.strip()
     if count != "1" or git(target, "rev-parse", head + "^").stdout.strip() != base_sha:
