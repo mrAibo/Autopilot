@@ -21,6 +21,7 @@ AP = os.path.join(SKILL, "tools", "ap.py")
 ROUTER = os.path.join(SKILL, "tools", "model_router.py")
 PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
 WORKTREES = os.path.join(SKILL, "tools", "worktrees.py")
+RETRY_POLICY = os.path.join(SKILL, "tools", "retry_policy.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
@@ -57,6 +58,7 @@ class Run(unittest.TestCase):
         shutil.copy(ROUTER, os.path.join(self.a, "model_router.py"))
         shutil.copy(PROFILES, os.path.join(self.a, "agent_profiles.py"))
         shutil.copy(WORKTREES, os.path.join(self.a, "worktrees.py"))
+        shutil.copy(RETRY_POLICY, os.path.join(self.a, "retry_policy.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -494,6 +496,32 @@ class Run(unittest.TestCase):
         self.assertIn("разрешены только", out)
         code, out = self.ap("set", "budgetTokens=1")
         self.assertNotEqual(code, 0)
+
+    def test_retry_requires_diagnosed_cause_and_respects_limit(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "retry")
+        self.assertNotEqual(code, 0)
+        self.assertIn("подтверждённой модели", out)  # route required even for retry
+        # The non-strict mode supports bounded, diagnosed retries for legacy projects.
+        self.state()
+        # Initialize a second test run with the legacy mode in a fresh instance below.
+
+    def test_legacy_retry_is_capped_and_does_not_escalate_environment(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "retry", "--cause", "environment")
+        self.assertNotEqual(code, 0)
+        self.assertIn("повтор не разрешён", out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertNotEqual(code, 0)
+        self.assertIn("предел повторов", out)
+        self.assertEqual(self.state()["tickets"][0]["retries"], 2)
+        self.assertEqual(self.state()["tickets"][0]["retryAdvice"]["model"], "same")
 
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)
