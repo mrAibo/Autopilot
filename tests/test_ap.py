@@ -75,8 +75,11 @@ class Run(unittest.TestCase):
     def stage(self, sid):
         return next(s for s in self.state()["stages"] if s["id"] == sid)
 
-    def init(self):
-        code, out = self.ap("init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", SKILL)
+    def init(self, strict=False):
+        args = ["init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", SKILL]
+        if strict:
+            args.append("--strict-routing")
+        code, out = self.ap(*args)
         self.assertEqual(code, 0, out)
         self.dir = os.path.join(self.a, self.state()["dir"])
         return out
@@ -172,8 +175,8 @@ class Run(unittest.TestCase):
         self.assertEqual(self.stage("briefing")["status"], "skipped")
 
     # ── tickets and the manifest ───────────────────────────────────────────
-    def plan(self):
-        self.init()
+    def plan(self, strict=False):
+        self.init(strict=strict)
         self.write("manifest.md", MANIFEST)
         self.write("tickets/01-karkas.md", ticket("01", "Каркас", "R01, R05", "—", ["src/core/"], 1, "да — фундамент", "сильная"))
         self.write("tickets/02-priem.md", ticket("02", "Приём", "R01.1, R02, A01", "01", ["src/bot/"], 2))
@@ -402,8 +405,7 @@ class Run(unittest.TestCase):
 
     # ── finish ─────────────────────────────────────────────────────────────
     def test_strict_routing_blocks_unverified_dispatch(self):
-        self.plan()
-        self.ap("set", "strictRouting=true")
+        self.plan(strict=True)
         self.ap("tickets")
         code, out = self.ap("ticket", "01", "start")
         self.assertNotEqual(code, 0)
