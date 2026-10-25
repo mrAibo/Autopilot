@@ -3,6 +3,7 @@
 **Updated:** 2026-10-25 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
 **Active branch:** `main`
+**P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).
 **Version:** `metadata.version = 2.3.0-dev`. This is a **main-branch development snapshot**, NOT a final 2.3.0 release. No stable release tag. Do not confuse publishing to main with feature-complete GUI runtime support.
@@ -100,8 +101,7 @@
   Codex CLI worker with trusted host tests, no forced inheritance.
 - Claude Desktop installed but no claude executable located; no
   authenticated Claude Code GUI/CLI proof yet. Version remains 2.3.0-dev.
-- Work branch: feat/gui-native-agent-verification, after main
-  fc135ea/aed107c; merge only after CI. Read docs/autopilot/gui-clients.md.
+- **Merged** via [PR #2](https://github.com/mrAibo/Autopilot/pull/2) on 2026-10-25: `262387adc9bbbd79c4c611967ed573e9abf85374` (squash) into `main`, preserving feature branch history. [CI #40205859815](https://github.com/mrAibo/Autopilot/actions/runs/40205859815) on the feature commit passed all four Windows/Linux, Python 3.11/3.13 jobs, **161 Python tests**, JS syntax and Chrome desktop/narrow smoke. This `STATUS.md` update advances `main`, so check its own CI when resuming. Read docs/autopilot/gui-clients.md.
 
 ## Prioritized next steps
 
