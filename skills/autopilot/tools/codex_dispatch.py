@@ -182,22 +182,23 @@ def run_once(config, root, *, timeout=900):
                                 input=config["prompt"], text=True, encoding="utf-8",
                                 errors="replace", capture_output=True, timeout=timeout)
         thread_id, usage, completed = parse_usage(result.stdout)
-    recorded = False
-    if usage and thread_id and (usage["input_tokens"] or usage["output_tokens"]):
-        ap = Path(root) / ".autopilot" / "ap.py"
-        subprocess.run([sys.executable, str(ap), "usage", config["ticket"],
-                        "--call-id", "codex:" + thread_id,
-                        "--input", str(usage["input_tokens"]),
-                        "--output", str(usage["output_tokens"]),
-                        "--cache-read", str(usage["cached_input_tokens"]),
-                        "--source", "codex-jsonl", "--no-serve"],
-                       cwd=root, capture_output=True, text=True, timeout=30,
-                       check=True)
-        recorded = True
-    return {"status": "completed" if result.returncode == 0 and completed else "failed",
-            "exit_code": result.returncode, "thread_id": thread_id,
-            "usage_recorded": recorded, "usage": usage,
-            "stderr_excerpt": result.stderr[-500:] if result.returncode else ""}
+        recorded = False
+        if usage and thread_id and (usage["input_tokens"] or usage["output_tokens"]):
+            ap = Path(root) / ".autopilot" / "ap.py"
+            subprocess.run([sys.executable, str(ap), "usage", config["ticket"],
+                            "--call-id", "codex:" + thread_id,
+                            "--input", str(usage["input_tokens"]),
+                            "--output", str(usage["output_tokens"]),
+                            "--cache-read", str(usage["cached_input_tokens"]),
+                            "--source", "codex-jsonl", "--no-serve"],
+                           cwd=root, capture_output=True, text=True, timeout=30,
+                           check=True)
+            recorded = True
+        return {"status": "completed" if result.returncode == 0 and completed else "failed",
+                "exit_code": result.returncode, "thread_id": thread_id,
+                "usage_recorded": recorded, "usage": usage,
+                "diagnostic": "" if result.returncode == 0 else
+                    "Codex CLI exited nonzero; inspect sanitized local host logs"}
 
 
 def main(argv=None):
