@@ -65,6 +65,26 @@ The bridge never invokes finalize, land, done or release. Those require
 unchanged baseline-tracked tests run by the trusted host; a successful
 model turn or source commit alone is NOT task acceptance.
 
+## Actual OS-process offline integration test
+
+Two integration tests initialize a real strict-isolated temporary Autopilot
+project, route GPT-6 Luna / Low to a SHA-pinned profile, set a positive
+recorded token threshold, and prepare/start a real Git worktree.
+
+**Only the external Codex executable is replaced with an offline Python
+process**. The bridge still performs real pinned routing/profile/brief
+checks, writes its durable claim and launches a separate process. The
+offline process writes and commits an approved code change, emits
+synthetic Codex JSONL, and the real ap.py usage command records counts.
+The real controller then insists on independent baseline-tracked host
+tests before it lands, accepts and releases the worktree.
+
+The second test uses an actual CLI process exiting nonzero; the bridge
+persists its receipt, records provider execution as **unknown**, and
+blocks any attempt to repeat the same ticket. No paid model was contacted.
+The tests establish process orchestration, not effective provider model
+identity or direct GUI terminal access.
+
 ## Limits and tests
 
 GUI must have terminal/tool access to use this method; otherwise it reports

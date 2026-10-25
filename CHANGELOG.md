@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Added two actual OS-process offline GUI bridge end-to-end tests: pinned route, real worktree commit, usage, host tests, Git landing/acceptance, anti-replay and failure. An incomplete/failed CLI process now reports unknown provider invocation status.
+
 - Added a separately approved GUI-to-CLI bridge for strict isolated OpenAI tickets. Read-only preflight, one-shot explicit per-ticket consent, durable non-replayable attempt receipt, host-controller serialization, native sandboxed Codex dispatcher and independent test acceptance. Not a GUI-native subagent and no production live-billing E2E yet.
 
 - Added a strict isolated host controller with read-only plan and one-step audited prepare/start/verify/finalize/land/accept/release, fail-closed concurrency, and no implicit model calls. Real two-ticket synthetic Git lifecycle verified, including test failure and recovery. Strengthened cross-platform scheduler zone checking.
