@@ -43,7 +43,7 @@ Once, before Phase 1, together with the dashboard and the memory file. **A hint,
 Режим: полуавтомат · глубина: обычная — спрошу только то, что в задаче не определено, дальше соберу сам.
 Дашборд открыл — обновляется сам: http://localhost:PORT/dashboard.html
 Память проекта — AGENTS.md (+ CLAUDE.md со ссылкой).
-↑ Вышла версия Autopilot 2.2.0 (у тебя 2.1.0): npx skills update autopilot -g   ← только если init её напечатал
+↑ Доступна новая стабильная версия Autopilot: npx skills update autopilot -g   ← показывать только для установки через npx; для 2.3-dev через Junction обновлять Git checkout, не npx
 
 Можно переключить в любой момент, просто скажи:
 • «полный автомат» — не спрашиваю вообще ничего

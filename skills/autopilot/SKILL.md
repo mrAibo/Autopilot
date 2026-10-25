@@ -4,7 +4,7 @@ description: Builds an app, site, bot, or feature end-to-end from a dictated ide
 disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md"
 metadata:
-  version: "2.2.0"
+  version: "2.3.0-dev"
 ---
 
 # Autopilot
@@ -111,6 +111,10 @@ CONTEXT.md                             at T2+: the project's words — or the us
 ```
 
 `.autopilot/` is committed — it is the user's record of what was promised and delivered. The memory file is the project as it stands for whoever opens it next; `docs/adr/` is why it stands that way; `CONTEXT.md` is what its words mean; `PROGRESS.md` is what is still open and what the user settled — the one file a session without Autopilot updates; `spec.md` is throwaway once the work ships.
+
+## Model routing (2.3 development)
+
+Before dispatch, **every subagent's** model and reasoning effort (executors, reviewers, exploration, memory, ADR, acceptance) are determined by `tools/model_router.py`, using the verified host capabilities and a fail-closed provider policy. OpenAI/Codex and Anthropic/Claude Code have separate profiles. Astra/Fable are not eligible subagent defaults. A main orchestrator on an expensive model does not imply expensive workers. The route is logged per task and displayed on Dashboard 3.0. See `docs/autopilot/model-routing.md` in the repository; the skill alone cannot force an external harness to honor its selection.
 
 ## Judgement
 

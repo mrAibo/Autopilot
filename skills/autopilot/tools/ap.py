@@ -39,6 +39,9 @@
 """
 
 import datetime as dt
+import hashlib
+import importlib.util
+import contextlib
 import glob
 import json
 import os
@@ -63,9 +66,10 @@ PAGE = os.path.join(A, "dashboard.html")
 README = os.path.join(A, "README.md")
 PIDF = os.path.join(A, "serve.pid")
 LOG = os.path.join(A, "serve.log")
+LOCK = os.path.join(A, "state.lock")
 BEGIN, END = "/*STATE-BEGIN*/", "/*STATE-END*/"
 WIN = os.name == "nt"
-REPO = "nick-vels/skills"
+REPO = "mrAibo/Autopilot"
 REMOTE_SKILL = "https://raw.githubusercontent.com/%s/main/skills/autopilot/SKILL.md" % REPO
 STOP_DELAY = 12
 BEATS_KEPT = 2000
@@ -79,7 +83,8 @@ ORDER = ["preflight", "manifest", "briefing", "spec", "plan", "build", "review",
 # Этап, чей результат лежит на диске, пройден — даже если его забыли отметить.
 ARTIFACT = {"manifest": "manifest.md", "spec": "spec.md", "plan": "tickets/*.md"}
 TICKET_STATUSES = {"start": "in-progress", "review": "review", "repair": "repair",
-                   "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending"}
+                   "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending",
+                   "route": "pending"}
 LISTS = {"concerns", "additions", "report", "debt.placeholders", "debt.assumptions", "debt.emptyEnv"}
 
 
@@ -93,6 +98,42 @@ def die(msg):
 
 
 # ── состояние ───────────────────────────────────────────────────────────────
+
+@contextlib.contextmanager
+def locked_state(timeout=10):
+    """Cross-platform exclusive process lock. Never delete the lock file."""
+    with open(LOCK, "a+b") as f:
+        f.seek(0)
+        if not f.read(1):
+            f.seek(0)
+            f.write(b"1")
+            f.flush()
+        f.seek(0)
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                if WIN:
+                    import msvcrt
+                    msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except (OSError, BlockingIOError):
+                if time.monotonic() >= deadline:
+                    die("state.lock занят другой сессией; повтори команду позднее")
+                time.sleep(.08)
+        try:
+            yield
+        finally:
+            if WIN:
+                import msvcrt
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
 
 def read_state():
     try:
@@ -157,7 +198,10 @@ def close_wait(state):
 
 
 def run_dir(state):
-    return os.path.join(A, state.get("dir") or "")
+    name = state.get("dir") or ""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*(?:--wip)?", name):
+        die("недопустимое имя папки прогона: %r" % name)
+    return os.path.join(A, name)
 
 
 def fresh_state(a):
@@ -167,7 +211,9 @@ def fresh_state(a):
         "slug": a["slug"], "dir": "%s-%s--wip" % (t[:10], a["slug"]),
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
-        "tier": None, "briefFile": a.get("brief-file"),
+        "tier": None, "strictRouting": bool(a.get("strict-routing")),
+        "isolateTickets": bool(a.get("isolated-tickets")),
+        "briefFile": a.get("brief-file"),
         "memoryFile": a.get("memory-file") or "AGENTS.md",
         "memoryOwner": a.get("memory-owner") or "autopilot",
         "skillDir": a.get("skill-dir"), "baseCommit": None,
@@ -176,7 +222,7 @@ def fresh_state(a):
                   + [{"id": s, "status": "pending"} for s in ORDER[1:]],
         "requirements": {"total": 0, "done": 0, "inTicket": 0, "inSpec": 0,
                          "placeholder": 0, "deferred": 0, "dropped": 0},
-        "tickets": [], "tests": None,
+        "tickets": [], "tests": None, "usageEvents": [], "budgetTokens": None,
         "debt": {"placeholders": [], "assumptions": [], "emptyEnv": []},
         "additions": [], "coverage": None, "concerns": [], "blind": None, "beats": [t],
         "rev": 0, "waiting": None, "waits": [], "log": [], "reqList": [], "gates": {}, "result": None,
@@ -321,9 +367,14 @@ def publish_tickets(state):
     out = []
     for p in files:
         t = parse_ticket(p)
+        t["fingerprint"] = hashlib.sha256(open(p, "rb").read()).hexdigest()
         prev = old.get(t["id"], {})
+        if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
+            if prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
+                die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
+            prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
-                  "tests", "commit", "concerns"):
+                  "tests", "commit", "concerns", "placeholders", "routing", "worktree", "retryAdvice"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -345,9 +396,16 @@ def check_plan(state):
     """G3 механически: каждое живое требование — в таске, каждый таск — от требования,
     у каждого таска зона и волна, в одной волне зоны не пересекаются."""
     problems = []
-    rows = manifest_rows(state) or []
+    rows = manifest_rows(state)
+    if not rows:
+        problems.append("манифест отсутствует или пуст")
     publish_tickets(state)
     tickets = state.get("tickets") or []
+    if not tickets:
+        problems.append("план пуст: нет ни одного таска")
+    rows = rows or []
+    if len({t["id"] for t in tickets}) != len(tickets):
+        problems.append("повторяются номера тасков")
     named = {r for t in tickets for r in t["requirements"]}
     base = {r.split(".")[0] for r in named}
     for rid, st in rows:
@@ -364,8 +422,8 @@ def check_plan(state):
                 problems.append("таск %s ссылается на %s, которого нет в манифесте" % (t["id"], r))
         if not t["zone"]:
             problems.append("у таска %s нет зоны" % t["id"])
-        if t["wave"] is None:
-            problems.append("у таска %s нет волны" % t["id"])
+        if t["wave"] is None or t["wave"] < 1:
+            problems.append("у таска %s нет допустимой волны" % t["id"])
         for b in t["blockedBy"]:
             if b not in ids:
                 problems.append("таск %s зависит от несуществующего %s" % (t["id"], b))
@@ -607,23 +665,27 @@ def serve(state):
     return "сервер не ответил — дашборд открывается файлом: %s" % PAGE
 
 
-def stop_now():
+def stop_now(expected_pid, expected_port):
     time.sleep(STOP_DELAY)
     port, pid = recorded()
-    if pid and is_ours(cmdline(pid)):
+    state = read_state()
+    if (state and state.get("finishedAt") and pid == expected_pid
+            and port == expected_port and is_ours(cmdline(pid))):
         kill(pid)
-    kill_orphans()
-    for f in (PIDF, LOG):
-        try:
-            os.remove(f)
-        except OSError:
-            pass
+        for f in (PIDF, LOG):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
 
 def stop_later():
     """Гасит сервер через STOP_DELAY секунд из отдельного процесса: страница
     опрашивает state.js раз в 10 секунд и должна успеть забрать финал."""
-    subprocess.Popen([sys.executable, os.path.abspath(__file__), "--stop-now"],
+    port, pid = recorded()
+    if not port or not pid:
+        return "сервер уже остановлен"
+    subprocess.Popen([sys.executable, os.path.abspath(__file__), "--stop-now", str(pid), str(port)],
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, **_detached())
     return "сервер погаснет через %d с" % STOP_DELAY
@@ -724,11 +786,17 @@ def ensure_gitignore():
         text = open(g, encoding="utf-8").read()
     except OSError:
         text = ""
-    if re.search(r"^\.autopilot/serve\.\*", text, re.M):
+    entries = [".autopilot/serve.*", ".autopilot/state.lock",
+               ".autopilot/dispatch-*.lock",
+               ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
+               ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
+    existing = {line.strip() for line in text.splitlines()}
+    missing = [entry for entry in entries if entry not in existing]
+    if not missing:
         return
     with open(g, "a", encoding="utf-8") as f:
-        f.write(("" if not text or text.endswith("\n") else "\n") + ".autopilot/serve.*\n")
-
+        f.write(("" if not text or text.endswith("\n") else "\n")
+                + "\n".join(missing) + "\n")
 
 # ── команды ─────────────────────────────────────────────────────────────────
 
@@ -761,6 +829,8 @@ def tests_pair(v):
 def cmd_init(opt):
     if not opt.get("slug"):
         die("init требует --slug")
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(opt["slug"])):
+        die("slug: разрешены только a-z, 0-9 и одиночные дефисы")
     old = read_state()
     notes = []
     if old and not old.get("finishedAt") and not opt.get("force"):
@@ -819,6 +889,8 @@ def close_requirements(state, tk, opt, t):
     """Требование закрыто, когда закрыты все таски, где оно названо. --placeholder R05
     помечает его заглушкой вместо done: там стоит видимая метка вместо данных пользователя."""
     ph = set(re.findall(r"[RGD]\d+[a-z]?", str(opt.get("placeholder") or "")))
+    ph |= set(tk.get("placeholders") or [])
+    tk["placeholders"] = sorted(ph)
     rows = dict(manifest_rows(state) or [])
     tickets = state.get("tickets") or []
     changes = {}
@@ -830,6 +902,60 @@ def close_requirements(state, tk, opt, t):
             changes[r] = ("placeholder" if r in ph else "done",
                           (opt.get("commit")[:7] if isinstance(opt.get("commit"), str) else None))
     manifest_update(state, changes)
+
+
+def reconcile_requirements(state):
+    """Требование не может быть done, когда хотя бы один его таск снова открыт."""
+    rows = dict(manifest_rows(state) or [])
+    groups = {}
+    for ticket in state.get("tickets") or []:
+        for req in ticket.get("requirements", []):
+            groups.setdefault(req.split(".")[0], []).append(ticket)
+    changes = {}
+    for req, holders in groups.items():
+        if rows.get(req) in ("done", "placeholder") and any(
+                t.get("status") != "done" for t in holders):
+            changes[req] = ("in-ticket", "")
+    if changes:
+        manifest_update(state, changes)
+
+
+def verified_commit(rev):
+    if not isinstance(rev, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", rev):
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "-C", ROOT, "merge-base", "--is-ancestor", rev, "HEAD"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def profile_ok(tk):
+    """Refuse stale/edited native agent definitions before strict dispatch."""
+    route = tk.get("routing") or {}
+    if not route.get("verified") or not route.get("agentFile") or not route.get("profileSha"):
+        return False
+    relative = route["agentFile"]
+    if not isinstance(relative, str) or os.path.isabs(relative):
+        return False
+    expected_prefix = (".claude/agents/" if route.get("provider") == "anthropic"
+                       else ".codex/agents/")
+    if not relative.replace("\\", "/").startswith(expected_prefix):
+        return False
+    path = os.path.realpath(os.path.join(ROOT, relative))
+    root = os.path.realpath(ROOT)
+    try:
+        if os.path.commonpath((path, root)) != root:
+            return False
+    except ValueError:
+        return False
+    try:
+        with open(path, "rb") as stream:
+            return hashlib.sha256(stream.read()).hexdigest() == route["profileSha"]
+    except OSError:
+        return False
 
 
 def cmd_ticket(state, pos, opt):
@@ -844,6 +970,132 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if act == "start" and tk.get("status") != "pending":
+            die("таск %s: start разрешён только из pending (уже запущен или завершён)" % i)
+        if act == "start" and (state.get("isolateTickets") or tk.get("worktree")):
+            wt = tk.get("worktree") or {}
+            if wt.get("status") != "prepared":
+                die("таск %s: подготовь worktree командой worktree %s prepare" % (i, i))
+            try:
+                import worktrees
+                actual = worktrees.status(ROOT, i)
+                if (actual.get("status") != "present" or actual.get("dirty") or
+                        actual.get("commit") != wt.get("baseCommit")):
+                    die("таск %s: worktree изменён до старта или отсутствует" % i)
+            except (OSError, ValueError, ImportError, worktrees.WorktreeError) as exc:
+                die("таск %s: не удалось проверить worktree: %s" % (i, exc))
+        if act == "reset" and tk.get("worktree"):
+            if tk["worktree"].get("status") != "released":
+                die("таск %s: сначала закончи и освободи worktree; сброс не удаляет изменения" % i)
+            tk.pop("worktree", None)
+        if act == "done" and state.get("isolateTickets") and not tk.get("worktree"):
+            die("таск %s: изолированный режим требует интеграции worktree" % i)
+        if act == "done" and tk.get("worktree"):
+            wt = tk["worktree"]
+            if wt.get("status") != "landed" or not wt.get("landedCommit"):
+                die("таск %s: сначала интегрируй worktree командой worktree %s land" % (i, i))
+            candidate = opt.get("commit") or tk.get("commit")
+            if not isinstance(candidate, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", candidate):
+                die("таск %s: укажи интегрированный коммит" % i)
+            if not wt["landedCommit"].lower().startswith(candidate.lower()):
+                die("таск %s: коммит не совпадает с интегрированным worktree" % i)
+        if act == "start" and state.get("budgetTokens") is not None:
+            consumed = sum(x["input"] + x["output"]
+                           for x in state.get("usageEvents") or [])
+            if consumed >= state["budgetTokens"]:
+                die("таск %s: лимит известных токенов достигнут (%d/%d)" %
+                    (i, consumed, state["budgetTokens"]))
+        if act in ("start", "done"):
+            pending = [dep for dep in tk.get("blockedBy", [])
+                       if known.get(dep, {}).get("status") != "done"]
+            if pending:
+                die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
+        if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
+            die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
+        if act == "done" and state.get("strictRouting") and state.get("isolateTickets"):
+            recorded = tk.get("tests")
+            evidence = tk.get("testEvidence")
+            if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
+                    or recorded != {"passed": evidence.get("passed"), "failed": 0}):
+                die("таск %s: строгий режим требует результатов тестов, проверенных на хосте" % i)
+            if opt.get("tests") and tests_pair(opt["tests"]) != recorded:
+                die("таск %s: переданные тесты не совпадают с проверенными" % i)
+        if act == "done":
+            validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
+            if not validation or validation["passed"] < 1 or validation["failed"] != 0:
+                die("таск %s: нельзя принять без успешных тестов" % i)
+            rev = opt.get("commit") or tk.get("commit")
+            if not verified_commit(rev):
+                die("таск %s: требуется существующий коммит в HEAD" % i)
+        if act == "retry" and state.get("isolateTickets") and not tk.get("worktree"):
+            die("таск %s: сначала подготовь worktree для повтора" % i)
+        if act in ("retry", "repair"):
+            attempts = tk.get("retries", 0)
+            repairs = tk.get("repairs", 0)
+            if (act == "retry" and attempts >= 2) or (act == "repair" and repairs >= 2):
+                die("таск %s: предел повторов/ремонтов достигнут; нужна диагностика" % i)
+            if act == "retry":
+                kind = opt.get("cause") or "unknown"
+                if state.get("strictRouting") and not opt.get("cause"):
+                    die("таск %s: --cause обязателен для безопасного повтора" % i)
+                try:
+                    from retry_policy import decide
+                    advice = decide(kind, attempts, repairs)
+                except (ValueError, ImportError) as exc:
+                    die("retry: %s" % exc)
+                if advice["action"] not in ("repair", "investigate"):
+                    die("таск %s: повтор не разрешён (%s): %s" %
+                        (i, advice["action"], advice["why"]))
+                if tk.get("worktree"):
+                    import worktrees
+                    actual = worktrees.status(ROOT, i)
+                    if actual.get("status") != "present" or tk["worktree"].get("status") != "prepared":
+                        die("таск %s: рабочая копия не готова к повтору" % i)
+                tk["retryAdvice"] = advice
+        if act == "route":
+            provider = opt.get("provider")
+            model = opt.get("model")
+            effort = opt.get("effort")
+            reason = opt.get("reason")
+            cap = opt.get("capabilities") or os.path.join(A, "model-capabilities.json")
+            if provider not in ("openai", "anthropic") or not all(
+                    isinstance(x, str) and x.strip() for x in (model, effort, reason)):
+                die("route требует --provider --model --effort --reason")
+            module_path = os.path.join(A, "model_router.py")
+            if not os.path.isfile(module_path) or not os.path.isfile(cap):
+                die("route: требуется model_router.py и проверенный файл возможностей harness")
+            try:
+                spec = importlib.util.spec_from_file_location("model_router", module_path)
+                router = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(router)
+                candidates = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % i))
+                if len(candidates) != 1:
+                    die("route: не удалось однозначно найти файл таска %s" % i)
+                source = open(candidates[0], encoding="utf-8").read()
+                scores = json.loads(opt["scores"]) if opt.get("scores") else router.assess_ticket(source)
+                route = router.choose_route(
+                    provider, scores, capabilities=router.load_json(cap))
+            except (ValueError, OSError, TypeError) as err:
+                die("route: %s" % err)
+            if (route["status"] != "ready" or route["model"] != model
+                    or route["effort"] != effort):
+                die("route: заданная модель или effort не одобрены: %s" % route.get("error", "несовпадение"))
+            try:
+                import agent_profiles
+                profile = agent_profiles.prepare(
+                    ROOT, candidates[0], provider, cap, "executor",
+                    scores=scores, install=True)
+                filename = profile["agent_file"]
+                with open(os.path.join(ROOT, filename), "rb") as stream:
+                    digest = hashlib.sha256(stream.read()).hexdigest()
+            except (ValueError, OSError, ImportError, TypeError) as err:
+                die("route: не удалось создать нативный профиль субагента: %s" % err)
+            tk["routing"] = {"provider": provider, "model": model,
+                             "effort": effort, "score": route["score"],
+                             "reason": reason, "verified": True,
+                             "agentType": profile["agent_type"],
+                             "agentFile": filename, "profileSha": digest}
+            continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
             tk.setdefault("startedAt", t)
@@ -874,11 +1126,241 @@ def cmd_ticket(state, pos, opt):
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
 
 
+def cmd_worktree(state, pos, opt):
+    """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "verify", "finalize", "land", "release", "recover"):
+        die("worktree <ticket-id> prepare|status|verify|finalize|land|release|recover [--tests N/0]")
+    ident, action = pos
+    known = {t["id"]: t for t in state.get("tickets") or []}
+    tk = known.get(ident)
+    if not tk:
+        die("worktree: неизвестный таск " + ident)
+    try:
+        import worktrees
+        if action == "status":
+            info = worktrees.status(ROOT, ident)
+            return "worktree %s: %s%s" % (ident, info.get("status"),
+                    " · dirty" if info.get("dirty") else "")
+        if action == "recover":
+            record = tk.get("worktree") or {}
+            actual = worktrees.status(ROOT, ident)
+            if not record:
+                # Crash after git worktree add but before ap.py persisted state.
+                if (tk.get("status") != "pending" or actual.get("status") != "present"
+                        or actual.get("dirty")):
+                    die("worktree: нельзя безопасно восстановить неподтверждённую подготовку")
+                head = worktrees.git(ROOT, "rev-parse", "HEAD").stdout.strip()
+                if actual.get("commit") != head:
+                    die("worktree: базовый коммит расходится; ручная проверка обязательна")
+                tk["worktree"] = {"status": "prepared", "baseCommit": head,
+                                  "cwd": actual["cwd"]}
+                log(state, "worktree", act="recover-prepare", ticket=ident)
+                return "worktree %s: восстановлено состояние prepared" % ident
+            if record.get("status") == "landed":
+                if not verified_commit(record.get("landedCommit")):
+                    die("worktree: сохранённый коммит недоступен в текущей истории")
+                if actual.get("status") == "missing" and tk.get("status") == "done":
+                    # Crash after Git worktree remove but before the state write.
+                    record["status"] = "released"
+                    log(state, "worktree", act="recover-release", ticket=ident)
+                    return "worktree %s: восстановлено состояние released" % ident
+                return "worktree %s: интеграция уже зарегистрирована"
+            if record.get("status") == "released":
+                return "worktree %s: уже освобождён" % ident
+            if record.get("status") != "prepared":
+                die("worktree: неизвестный этап восстановления")
+            if actual.get("status") != "present":
+                die("worktree: рабочая копия пропала; проверить вручную")
+            if actual.get("dirty"):
+                die("worktree: незакоммиченные изменения; восстановление не изменяет их")
+            if actual.get("commit") == record.get("baseCommit"):
+                return "worktree %s: подготовлен, исполнитель ещё не создал коммит" % ident
+            recovered = worktrees.recover(ROOT, ident, record["baseCommit"])
+            if recovered["status"] == "not-landed":
+                return "worktree %s: коммит исполнителя есть, ещё не интегрирован" % ident
+            if state.get("strictRouting") and state.get("isolateTickets"):
+                import test_evidence
+                evidence = tk.get("testEvidence")
+                if record.get("sourceCommit") == recovered["sourceCommit"]:
+                    if not evidence or evidence.get("status") != "verified":
+                        die("worktree: отсутствует подтверждение тестов после финализации")
+                    check = {"passed": evidence["passed"], "failed": evidence["failed"]}
+                else:
+                    check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+                if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                    die("worktree: числа тестов не совпадают с результатом хоста")
+            else:
+                check = tests_pair(opt.get("tests") or "")
+            if check["passed"] < 1 or check["failed"] != 0:
+                die("worktree: подтверждение интеграции требует пройденных тестов N/0")
+            record.update(status="landed", sourceCommit=recovered["sourceCommit"],
+                          landedCommit=recovered["landedCommit"])
+            tk["commit"] = recovered["landedCommit"][:12]
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="recover-land", ticket=ident)
+            return "worktree %s: восстановлена уже выполненная интеграция" % ident
+        if action == "release":
+            record = tk.get("worktree") or {}
+            if record.get("status") == "released":
+                return "worktree %s: уже освобождён" % ident
+            if (record.get("status") != "landed" or tk.get("status") != "done"
+                    or not verified_commit(record.get("landedCommit"))):
+                die("worktree: освобождение требует принятого таска и интегрированного коммита")
+            result = worktrees.remove(ROOT, ident, acknowledge_loss=True)
+            record["status"] = "released"
+            log(state, "worktree", act="release", ticket=ident)
+            return "worktree %s освобождён" % ident
+        if action == "prepare":
+            if tk.get("status") != "pending":
+                die("worktree: сначала переведи таск %s в pending" % ident)
+            if any(known.get(dep, {}).get("status") != "done" for dep in tk.get("blockedBy", [])):
+                die("worktree: зависимости таска %s не закрыты" % ident)
+            if state.get("strictRouting") and not profile_ok(tk):
+                die("worktree: сначала подтверди модель таска %s" % ident)
+            if tk.get("worktree"):
+                die("worktree: для %s уже существует запись, проверь status" % ident)
+            result = worktrees.create(ROOT, ident)
+            tk["worktree"] = {"status": "prepared", "baseCommit": result["baseCommit"],
+                              "cwd": result["cwd"]}
+            log(state, "worktree", act="prepare", ticket=ident)
+            return "worktree %s подготовлен: %s" % (ident, result["cwd"])
+        if action == "verify":
+            record = tk.get("worktree") or {}
+            if (record.get("status") != "prepared" or
+                    tk.get("status") not in ("in-progress", "review", "repair")):
+                die("worktree: тесты требуют работающую задачу и prepared checkout")
+            suite = opt.get("suite")
+            timeout = opt.get("timeout") or "90"
+            if not isinstance(timeout, str) or not re.fullmatch(r"\d{1,3}", timeout):
+                die("worktree: --timeout должен быть целым числом секунд")
+            import test_evidence
+            result = test_evidence.verify(ROOT, ident, record["baseCommit"], suite,
+                                          int(timeout))
+            tk["testEvidence"] = result
+            check = {"passed": result["passed"], "failed": 0}
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="verify", ticket=ident,
+                tests=result["passed"], suite=result["suite"])
+            return "worktree %s: %d/%d тестов подтверждено на хосте" % (
+                ident, result["passed"], result["failed"])
+        if action == "finalize":
+            record = tk.get("worktree") or {}
+            if (record.get("status") != "prepared" or
+                    tk.get("status") not in ("in-progress", "review", "repair")):
+                die("worktree: для финализации требуется запущенная задача и prepared checkout")
+            if state.get("strictRouting") and state.get("isolateTickets"):
+                import test_evidence
+                check = test_evidence.check(ROOT, ident, record["baseCommit"],
+                                            tk.get("testEvidence"))
+                if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                    die("worktree: указанные тесты не совпадают с проверенными на хосте")
+            else:
+                check = tests_pair(opt.get("tests") or "")
+            if check["passed"] < 1 or check["failed"] != 0:
+                die("worktree: сначала независимо проверь тесты N/0")
+            result = worktrees.finalize(ROOT, ident, record["baseCommit"],
+                                        tk.get("zone") or [], check["passed"], check["failed"])
+            record["sourceCommit"] = result["sourceCommit"]
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="finalize", ticket=ident)
+            return "worktree %s: подготовлен проверенный коммит %s" % (
+                ident, result["sourceCommit"][:12])
+        record = tk.get("worktree") or {}
+        if record.get("status") != "prepared" or tk.get("status") not in ("in-progress", "review", "repair"):
+            die("worktree: %s не запущен в подготовленной рабочей копии" % ident)
+        if state.get("strictRouting") and state.get("isolateTickets"):
+            import test_evidence
+            evidence = tk.get("testEvidence")
+            if record.get("sourceCommit"):
+                # Host finalize consumed and committed the exact verified edit.
+                if not evidence or evidence.get("status") != "verified":
+                    die("worktree: нет подтверждения тестов на хосте")
+                if worktrees.source_commit(ROOT, ident, record["baseCommit"]) != record["sourceCommit"]:
+                    die("worktree: коммит изменился после финализации")
+                check = {"passed": evidence["passed"], "failed": evidence["failed"]}
+            else:
+                check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+            if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                die("worktree: указанные тесты не совпадают с проверенными на хосте")
+        else:
+            check = tests_pair(opt.get("tests") or "")
+        if check["passed"] < 1 or check["failed"] != 0:
+            die("worktree: для интеграции нужны пройденные тесты N/0")
+        result = worktrees.land(ROOT, ident, record["baseCommit"])
+        record.update(status="landed", sourceCommit=result["sourceCommit"],
+                      landedCommit=result["landedCommit"])
+        tk["commit"] = result["landedCommit"][:12]
+        tk["tests"] = check
+        state["tests"] = check
+        log(state, "worktree", act="land", ticket=ident)
+        return "worktree %s интегрирован: %s" % (ident, tk["commit"])
+    except (worktrees.WorktreeError, OSError, ImportError, ValueError) as exc:
+        die("worktree %s: %s" % (ident, exc))
+
+
+def positive_int_option(opt, name, default=None):
+    v = opt.get(name, default)
+    if isinstance(v, int):
+        value = v
+    elif isinstance(v, str) and re.fullmatch(r"\d{1,15}", v):
+        value = int(v)
+    else:
+        die("usage: --%s должен быть целым неотрицательным числом" % name)
+    if value < 0 or value > 10**12:
+        die("usage: --%s вне допустимого диапазона" % name)
+    return value
+
+
+def cmd_usage(state, pos, opt):
+    """Append an attributed, de-duplicated token report; never invent pricing."""
+    if len(pos) != 1 or pos[0] not in {t["id"] for t in state.get("tickets") or []}:
+        die("usage <known-ticket-id> --call-id ID --input N --output N --source SOURCE")
+    call_id = opt.get("call-id")
+    source = opt.get("source")
+    if (not isinstance(call_id, str) or not re.fullmatch(r"[a-zA-Z0-9._:-]{4,128}", call_id)
+            or source not in ("claude-jsonl", "codex-jsonl", "host-reported", "manual")):
+        die("usage требует допустимые --call-id и --source")
+    counts = {k: positive_int_option(opt, k, "0") for k in
+              ("input", "output", "cache-read", "cache-write")}
+    if not counts["input"] and not counts["output"] and not counts["cache-read"] and not counts["cache-write"]:
+        die("usage: нельзя записать все нулевые счётчики")
+    events = state.setdefault("usageEvents", [])
+    existing = next((e for e in events if e["callId"] == call_id), None)
+    event = {"callId": call_id, "ticket": pos[0], "source": source,
+             "input": counts["input"], "output": counts["output"],
+             "cacheRead": counts["cache-read"], "cacheWrite": counts["cache-write"]}
+    if existing:
+        match = {k: existing.get(k) for k in event} == event
+        if not match:
+            die("usage: call-id уже существует с другими параметрами")
+        return
+    if len(events) >= 2000:
+        die("usage: журнал достиг лимита 2000 событий; нужен экспорт/архивирование")
+    event["at"] = state["updatedAt"]
+    events.append(event)
+    log(state, "usage", ticket=pos[0])
+
+
+def cmd_budget(state, pos, opt):
+    if not opt.get("tokens") or pos:
+        die("budget --tokens N")
+    limit = positive_int_option(opt, "tokens")
+    if not limit:
+        die("budget: лимит должен быть больше нуля")
+    state["budgetTokens"] = limit
+    log(state, "budget", tokens=limit)
+
+
 def cmd_set(state, pos):
     for p in pos:
         k, _, v = p.partition("=")
-        if not _ or k in ("stages", "tickets", "requirements"):
-            die("set key=value (скалярные поля верхнего уровня)")
+        allowed = {"tier", "baseCommit", "briefFile", "memoryFile",
+                   "memoryOwner", "skillDir", "mode", "depth"}
+        if not _ or k not in allowed:
+            die("set: разрешены только " + ", ".join(sorted(allowed)))
         state[k] = None if v in ("", "null") else v
 
 
@@ -904,12 +1386,19 @@ def cmd_numbers(state, name, pos, multi):
     if name == "blind":
         d["mismatches"] = multi.get("mismatch", [])
         state[name] = d
-        set_gate(state, "G4", not d["mismatches"], checked=d.get("checked"), matched=d.get("matched"))
+        valid = (isinstance(d.get("checked"), int) and d["checked"] > 0
+                 and isinstance(d.get("matched"), int)
+                 and 0 <= d["matched"] <= d["checked"]
+                 and d["checked"] - d["matched"] == len(d["mismatches"]))
+        set_gate(state, "G4", valid and not d["mismatches"],
+                 checked=d.get("checked"), matched=d.get("matched"))
     else:
         d["items"] = multi.get("item", [])
         state[name] = d
         num = lambda k: d.get(k) if isinstance(d.get(k), int) else 0
-        set_gate(state, "G2", num("found") <= num("fixed") + num("deferred"),
+        set_gate(state, "G2", all(isinstance(d.get(k), int) and d[k] >= 0
+                                  for k in ("found", "fixed", "deferred"))
+                 and num("found") == num("fixed") + num("deferred"),
                  found=num("found"), fixed=num("fixed"), deferred=num("deferred"))
 
 
@@ -938,9 +1427,22 @@ def cmd_finish(state, opt):
             s["status"], s["finishedAt"] = "done", t
         elif s.get("status") == "pending":
             s["status"], s["note"], s["finishedAt"] = "skipped", s.get("note") or "не понадобился", t
-    for tk in state.get("tickets") or []:
-        if tk.get("status") in ("in-progress", "review", "repair", "pending"):
-            notes.append("! таск %s закрыт незавершённым (%s)" % (tk["id"], tk["status"]))
+    incomplete = [tk["id"] for tk in state.get("tickets") or []
+                  if tk.get("status") != "done"]
+    if incomplete or not state.get("tickets"):
+        die("finish заблокирован: незавершённые таски: %s" %
+            (", ".join(incomplete) if incomplete else "нет опубликованных тасков"))
+    test = state.get("tests") or {}
+    if test.get("passed", 0) < 1 or test.get("failed") != 0:
+        die("finish заблокирован: нет успешного полного прогона тестов")
+    missing = [g for g in ("G1", "G2", "G3", "G4")
+               if not state.get("gates", {}).get(g, {}).get("ok")]
+    if missing:
+        die("finish заблокирован: проверки %s не пройдены" % ", ".join(missing))
+    open_rows = [rid for rid, st in manifest_rows(state) or []
+                 if not rid.startswith("D") and st in ("open", "in-spec", "in-ticket")]
+    if open_rows:
+        die("finish заблокирован: требования не закрыты: %s" % ", ".join(open_rows))
     d = state.get("dir") or ""
     if d.endswith("--wip"):
         new = d[: -len("--wip")]
@@ -960,6 +1462,9 @@ def cmd_finish(state, opt):
 
 def cmd_reopen(state):
     """Второй бриф в сданном прогоне: фазы 1–8 идут заново, прежние таски остаются."""
+    if any(t.get("worktree") and t["worktree"].get("status") != "released"
+           for t in state.get("tickets") or []):
+        die("reopen заблокирован: незавершённые или неосвобождённые worktrees")
     d = state.get("dir") or ""
     if not d.endswith("--wip") and git_mv(d, d + "--wip"):
         state["dir"] = d + "--wip"
@@ -997,7 +1502,10 @@ def cmd_commits(state):
 def main():
     argv = sys.argv[1:]
     if "--stop-now" in argv:
-        stop_now()
+        i = argv.index("--stop-now")
+        if len(argv) <= i + 2:
+            die("stop-now требует ожидаемые PID и порт")
+        stop_now(int(argv[i + 1]), int(argv[i + 2]))
         return
     pos, opt, multi = parse_args(argv)
     cmd = pos[0] if pos else ""
@@ -1009,6 +1517,27 @@ def main():
         if state is None:
             die("state.js ещё нет — начни с `ap.py init`")
         rest = pos[1:]
+        if cmd == "schedule":
+            if rest:
+                die("schedule: лишние аргументы")
+            raw_limit = str(opt.get("max-parallel", "2"))
+            if not re.fullmatch(r"[1-3]", raw_limit):
+                die("schedule: --max-parallel допускает 1, 2 или 3")
+            try:
+                from scheduler import schedule
+                budget = state.get("budgetTokens")
+                spent = sum(e.get("input", 0) + e.get("output", 0)
+                            for e in state.get("usageEvents") or [])
+                checked = {t["id"]: profile_ok(t) for t in state.get("tickets") or []}
+                payload = schedule(state.get("tickets") or [], int(raw_limit),
+                                   strict=bool(state.get("strictRouting")),
+                                   isolated=bool(state.get("isolateTickets")),
+                                   budget_blocked=(budget is not None and spent >= budget),
+                                   verified=checked)
+            except (ValueError, OSError, ImportError) as exc:
+                die("schedule: %s" % exc)
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return
         if cmd not in ("", "sync", "commits"):
             # Время события ставится до команды: ей самой и ленте нужна одна метка.
             state["updatedAt"] = now()
@@ -1026,6 +1555,12 @@ def main():
             problems = check_plan(state)
             notes += ["! " + p for p in problems] or ["G3: трасса сходится"]
             set_gate(state, "G3", not problems, problems=len(problems))
+        elif cmd == "worktree":
+            notes.append(cmd_worktree(state, rest, opt))
+        elif cmd == "usage":
+            cmd_usage(state, rest, opt)
+        elif cmd == "budget":
+            cmd_budget(state, rest, opt)
         elif cmd == "set":
             cmd_set(state, rest)
             if any(p.startswith("tier=") for p in rest):
@@ -1049,6 +1584,7 @@ def main():
             notes = cmd_commits(state)
         elif cmd not in ("", "sync"):
             die("неизвестная команда %s — список в начале ap.py" % cmd)
+    reconcile_requirements(state)
     recount(state)
     notes = close_passed(state) + notes
     save(state)
@@ -1065,6 +1601,8 @@ def main():
         print("  " + (line if line.startswith("!") else "· " + line))
     for line in audit(state)[:5]:
         print("  ! " + line)
+    if cmd == "check-plan" and problems:
+        sys.exit(2)
     if opt.get("check-update"):
         note = check_update(state)
         if note:
@@ -1072,4 +1610,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--stop-now" in sys.argv:
+        main()
+    else:
+        with locked_state():
+            main()

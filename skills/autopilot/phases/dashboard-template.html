@@ -324,6 +324,114 @@
     .req{grid-template-columns:minmax(0,1fr)}
     .req .pill{justify-self:start}
   }
+
+  /* Dashboard 3.0: editorial, low-noise cockpit with explicit next action. */
+  :root{
+    --bg:#F4F7FC; --card:#FFFFFF; --inset:#F1F5FA; --soft:#E8EEF6;
+    --line:rgba(33,54,84,.085); --line2:rgba(33,54,84,.15);
+    --tx:#16243B; --tx2:#34465F; --mut:#66768E; --quiet:#8391A4;
+    --hero:#254991; --hero-shadow:rgba(25,63,128,.34);
+    --now:#F59455; --now-on:#231308; --now-soft:#FFF1E7; --now-tx:#92502B;
+    --sh:0 1px 2px rgba(20,38,73,.025),0 10px 32px -24px rgba(22,42,78,.28);
+    --sh-raised:0 8px 26px -18px rgba(22,42,78,.3);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0C1424; --card:#172337; --inset:#202E45; --soft:#263750;
+    --line:rgba(209,225,249,.09); --line2:rgba(209,225,249,.15);
+    --tx:#F0F5FE; --tx2:#CBDAF1; --mut:#9FAFC8; --quiet:#8093AE;
+    --hero:#244579; --hero-shadow:rgba(0,0,0,.55);
+    --sh:0 14px 35px -20px rgba(0,0,0,.5);
+    --sh-raised:0 12px 30px -20px rgba(0,0,0,.65);
+  }
+  @media(prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --bg:#0C1424; --card:#172337; --inset:#202E45; --soft:#263750;
+      --line:rgba(209,225,249,.09); --line2:rgba(209,225,249,.15);
+      --tx:#F0F5FE; --tx2:#CBDAF1; --mut:#9FAFC8; --quiet:#8093AE;
+      --hero:#244579; --hero-shadow:rgba(0,0,0,.55);
+      --sh:0 14px 35px -20px rgba(0,0,0,.5);
+      --sh-raised:0 12px 30px -20px rgba(0,0,0,.65);
+    }
+  }
+  body{letter-spacing:.002em;background:var(--bg)}
+  .wrap{max-width:1400px;gap:18px;padding-top:24px}
+  .card{border-radius:20px;padding:22px 24px}
+  .hero{border-radius:24px;position:relative;overflow:hidden;
+    background:linear-gradient(116deg,#1B3471 0%,#28539B 62%,#3477A3 100%);
+    box-shadow:0 20px 50px -28px var(--hero-shadow)}
+  .hero:before{content:"";position:absolute;inset:-130px -200px auto auto;
+    width:490px;height:490px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.11),transparent 66%);pointer-events:none}
+  .hero.ask{background:linear-gradient(110deg,#C46A37,#F3A066)}
+  .hero.won{background:linear-gradient(110deg,#116843,#238B5C)}
+  .hero.bad{background:linear-gradient(110deg,#9E2432,#C93E45)}
+  .title h1{font-size:clamp(26px,3vw,38px);letter-spacing:-.035em}
+  .wt{font-size:16px;font-weight:720;letter-spacing:-.015em}
+  .tag{background:var(--inset);color:var(--tx2);border-color:var(--line)}
+  .tiles{gap:14px}
+  .tile{padding:20px 22px;gap:11px}
+  .tv{font-size:36px}
+  .tile .tk{letter-spacing:.015em;font-size:13px}
+  .bar{border-radius:12px}
+  .wave{color:var(--mut);margin-top:24px}
+  .tl{padding:4px 0}
+  .top .tabs,.top .iconbtn{border-radius:13px}
+  .top .tabs button{border-radius:10px}
+  .top .tabs{gap:2px}
+  .ops{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(190px,.7fr);
+    gap:18px;padding:20px 24px;border-radius:20px;
+    border:1px solid var(--line);background:var(--card);box-shadow:var(--sh)}
+  .ops-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:750;color:var(--mut)}
+  .ops-head{font-size:18px;line-height:1.3;font-weight:750;margin:6px 0}
+  .ops-detail{font-size:13px;color:var(--mut);line-height:1.55}
+  .ops-meta{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+    border-left:1px solid var(--line);padding-left:22px}
+  .ops-metric{display:flex;flex-direction:column;gap:3px}
+  .ops-metric b{font-size:23px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .ops-metric span{font-size:12px;color:var(--mut)}
+  .resource-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+  .resource-item{padding:14px 16px;border-radius:14px;background:var(--inset);border:1px solid var(--line);
+    display:flex;flex-direction:column;gap:7px;min-width:0}
+  .resource-title{font-size:13px;font-weight:720;min-width:0;overflow-wrap:anywhere}
+  .resource-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .resource-chip{font-size:11px;padding:3px 8px;border-radius:8px;background:var(--card);
+    border:1px solid var(--line2);color:var(--tx2);font-weight:600}
+  .resource-reason{font-size:11px;color:var(--mut);overflow-wrap:anywhere}
+  .resource-footer{font-size:12px;color:var(--mut);border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+  @media(max-width:900px){
+    .ops{grid-template-columns:1fr}
+    .ops-meta{border-left:0;border-top:1px solid var(--line);padding:12px 0 0}
+    .resource-list{grid-template-columns:1fr}
+  }
+  @media(max-width:500px){
+    .wrap{padding:12px;gap:13px}
+    .hero{padding:22px 20px;border-radius:19px}
+    .card{padding:18px 16px;border-radius:17px}
+    .ops{padding:18px 16px;border-radius:17px}
+    .ops-head{font-size:16px}
+    .resource-item{padding:12px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .live,.stripes,.iconbtn.busy svg{animation:none!important}
+    .iconbtn,.tabs button{transition:none!important}
+  }
+
+  .resource-meters{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:14px}
+  .resource-usage{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .resource-usage>div{padding:12px 14px;border-radius:12px;background:var(--inset);display:flex;flex-direction:column;gap:4px;min-width:0}
+  .resource-usage b{font-size:20px;font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .resource-usage span{font-size:11px;color:var(--mut)}
+  .resource-budget-head{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--mut);margin-bottom:8px}
+  .resource-budget-head b{color:var(--tx);font-variant-numeric:tabular-nums}
+  .resource-budget-track{height:8px;background:var(--inset);border-radius:8px;overflow:hidden}
+  .resource-budget-track i{display:block;height:100%;background:var(--rev);border-radius:8px}
+  @media(max-width:600px){.resource-usage{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+  @media(max-width:560px){
+    .track{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+    .s-name{font-size:12.5px;line-height:1.35}
+    .s-time{font-size:11.5px}
+  }
 </style>
 </head>
 <body>
@@ -1162,6 +1270,121 @@ function render(lang){
   const feedCard = feedRows ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3>${fin ? '' :
     `<span data-ago="${esc(S.updatedAt || '')}">${S.updatedAt ? agoText(S.updatedAt) : ''}</span>`}</div>${feedRows}</section>` : '';
 
+  // ——— Mission control + provider/model transparency ———
+  const langRu = L.lang === 'ru';
+  const activeWorkers = T.filter(t => ['in-progress','review','repair'].includes(t.status));
+  const failedWorkers = T.filter(t => t.status === 'failed');
+  const readyWorkers = T.filter(t => t.status === 'pending' && (t.blockedBy || []).every(id => byId[id]?.status === 'done'));
+  const nextTitle = waiting
+    ? (langRu ? 'Нужен ваш ответ' : 'Your input is needed')
+    : failedWorkers.length ? (langRu ? 'Есть заблокированные задачи' : 'Some tasks are blocked')
+    : activeWorkers.length ? (langRu ? 'Сейчас идёт работа' : 'Work in progress')
+    : fin ? (langRu ? 'Сборка завершена' : 'Build completed')
+    : readyWorkers.length ? (langRu ? 'Следующая задача готова' : 'Next task is ready')
+    : (langRu ? 'Подготовка следующего шага' : 'Preparing next step');
+  const nextDetail = waiting
+    ? (waiting.note || (langRu ? 'Для продолжения требуется решение пользователя.' : 'A decision is required to continue.'))
+    : failedWorkers.length ? failedWorkers.map(t => t.id + ': ' + t.title).join(' · ')
+    : activeWorkers.length ? activeWorkers.map(t => t.id + ': ' + t.title).join(' · ')
+    : fin ? (S.result || (langRu ? 'Сводка и подтверждения ниже.' : 'See acceptance and checks below.'))
+    : readyWorkers.length ? readyWorkers.slice(0,2).map(t => t.id + ': ' + t.title).join(' · ')
+    : (langRu ? 'Проверьте этапы и требования ниже.' : 'Review stages and requirements below.');
+  const completedCount = done.length;
+  const percent = T.length ? Math.round(100 * completedCount / T.length) : null;
+  const opsBlock = '<section class="ops" aria-label="' + (langRu ? 'Операционный центр' : 'Mission control') + '">'
+    + '<div><div class="ops-eyebrow">' + (langRu ? 'ОПЕРАЦИОННЫЙ ЦЕНТР · СЛЕДУЮЩИЙ ШАГ' : 'MISSION CONTROL · NEXT ACTION')
+    + '</div><div class="ops-head">' + esc(nextTitle)
+    + '</div><div class="ops-detail">' + esc(nextDetail)
+    + '</div></div><div class="ops-meta">'
+    + '<div class="ops-metric"><b>' + (percent === null ? '—' : String(percent) + '%')
+    + '</b><span>' + (langRu ? 'готовность задач' : 'tasks complete') + '</span></div>'
+    + '<div class="ops-metric"><b>' + activeWorkers.length
+    + '</b><span>' + (langRu ? 'активных' : 'active') + '</span></div>'
+    + '<div class="ops-metric"><b>' + okGates + '/4</b><span>'
+    + (langRu ? 'проверок пройдено' : 'quality gates passed') + '</span></div>'
+    + '</div></section>';
+  const routed = T.filter(t => t.routing && t.routing.model);
+  const resourceItems = routed.map(t => {
+    const info = t.routing;
+    return '<div class="resource-item"><div class="resource-title">' + esc(t.id + ' · ' + t.title)
+      + '</div><div class="resource-tags">'
+      + '<span class="resource-chip">' + esc(info.provider || '—') + '</span>'
+      + '<span class="resource-chip">' + esc(info.model) + '</span>'
+      + '<span class="resource-chip">Effort: ' + esc(info.effort || '—') + '</span>'
+      + '<span class="resource-chip">' + (langRu ? 'Сложность ' : 'Score ') + esc(info.score ?? '—') + '/100</span>'
+      + '</div><div class="resource-reason">' + esc(info.reason || '—') + '</div></div>';
+  }).join('');
+  const usageEvents = Array.isArray(S.usageEvents) ? S.usageEvents.filter(e =>
+    e && Number.isSafeInteger(e.input) && Number.isSafeInteger(e.output) &&
+    e.input >= 0 && e.output >= 0) : [];
+  const tokensInput = usageEvents.reduce((n,e) => n + e.input,0);
+  const tokensOutput = usageEvents.reduce((n,e) => n + e.output,0);
+  const cacheRead = usageEvents.reduce((n,e) => n + (Number.isSafeInteger(e.cacheRead) ? e.cacheRead : 0),0);
+  const cacheWrite = usageEvents.reduce((n,e) => n + (Number.isSafeInteger(e.cacheWrite) ? e.cacheWrite : 0),0);
+  const budget = Number.isSafeInteger(S.budgetTokens) && S.budgetTokens > 0 ? S.budgetTokens : null;
+  const countedTokens = tokensInput + tokensOutput;
+  const budgetPercent = budget && usageEvents.length ? Math.min(100,Math.round(100*countedTokens/budget)) : null;
+  const numberFormat = n => new Intl.NumberFormat(langRu?'ru-RU':'en-US').format(n);
+  const tokenSummary = usageEvents.length
+    ? '<div class="resource-usage" aria-label="' + (langRu ? 'Учтённые токены' : 'Reported tokens') + '">'
+      + '<div><b>' + numberFormat(tokensInput) + '</b><span>' + (langRu ? 'Входные' : 'Input') + '</span></div>'
+      + '<div><b>' + numberFormat(tokensOutput) + '</b><span>' + (langRu ? 'Выходные' : 'Output') + '</span></div>'
+      + '<div><b>' + numberFormat(cacheRead) + '</b><span>' + (langRu ? 'Кэш чтения' : 'Cache read') + '</span></div>'
+      + '<div><b>' + numberFormat(cacheWrite) + '</b><span>' + (langRu ? 'Кэш записи' : 'Cache write') + '</span></div>'
+      + '</div>'
+    : '<p class="muted">' + (langRu ? 'Учёт токенов: данных пока нет.' : 'Token telemetry: no data yet.') + '</p>';
+  const budgetLine = budget
+    ? '<div class="resource-budget"><div class="resource-budget-head"><span>'
+      + (langRu ? 'Лимит учтённых токенов' : 'Recorded token threshold')
+      + '</span><b>' + numberFormat(usageEvents.length?countedTokens:0)
+      + ' / ' + numberFormat(budget) + '</b></div>'
+      + '<div class="resource-budget-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + budget
+      + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
+      + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
+    : '';
+  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
+    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
+    + '<span>' + (langRu ? 'Назначено: ' : 'Assigned: ') + routed.length + '/' + T.length + '</span></div>'
+    + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
+      '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
+      'No per-task model assignments recorded yet.') + '</p>')
+    + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
+    + '<div class="resource-footer">' + (langRu ?
+      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
+      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
+      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
+      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
+    + '</div></section>';
+
+  // ——— Isolation & recovery; read-only health indicators ———
+  const isolated = T.filter(t => t.worktree || t.retries || t.repairs);
+  const isolationRows = isolated.map(t => {
+    const wt = t.worktree;
+    const status = wt && wt.status ? wt.status : (langRu ? 'не настроен' : 'not configured');
+    const attempts = Number(t.retries) || 0;
+    const repairs = Number(t.repairs) || 0;
+    const advice = t.retryAdvice;
+    const parts = wt
+      ? '<span class="resource-chip">' + (langRu ? 'Рабочая копия' : 'Worktree') + ': ' + esc(status) + '</span>'
+      : '';
+    return '<div class="resource-item"><div class="resource-title">' + esc(t.id + ' · ' + t.title)
+      + '</div><div class="resource-tags">' + parts
+      + '<span class="resource-chip">' + (langRu ? 'Повторы' : 'Retries') + ': ' + attempts + '</span>'
+      + '<span class="resource-chip">' + (langRu ? 'Исправления' : 'Repairs') + ': ' + repairs + '</span>'
+      + '</div>'
+      + (advice && advice.why ? '<div class="resource-reason">' + esc(advice.category || '') + ': ' + esc(advice.why) + '</div>' : '')
+      + '</div>';
+  }).join('');
+  const isolationBlock = isolated.length
+    ? '<section class="card w resource-card"><div class="whead"><h3 class="wt">'
+      + (langRu ? 'Изоляция и восстановление' : 'Isolation & recovery')
+      + '</h3><span>' + isolated.length + '</span></div><div class="resource-list">'
+      + isolationRows + '</div><div class="resource-footer">'
+      + (langRu
+        ? 'Статусы отражают журнал Autopilot, не проверяют фактическую работу внешнего агента. Для диагностики используйте worktree status.'
+        : 'Statuses reflect the Autopilot ledger, not an independent check of external agent execution. Use worktree status to inspect checkout health.')
+      + '</div></section>' : '';
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
@@ -1197,8 +1420,11 @@ function render(lang){
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
   ${hero}
+  ${opsBlock}
   <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
   ${fin ? '' : buildCard}
+  ${resourceBlock}
+  ${isolationBlock}
   <div class="cols"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>

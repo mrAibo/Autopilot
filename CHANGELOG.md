@@ -1,10 +1,33 @@
 # What's new in Autopilot
 
-The skill's version is the `metadata.version` field in `skills/autopilot/SKILL.md`. At the start of every build, Autopilot checks it against this repository and tells you in one line if a newer version is out. To update:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current development build is `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
+
+## 2.3.0 — IN DEVELOPMENT (not released)
+
+- Added a project brief (`бриф.md`) and a dedicated development branch.
+- Hard-stop acceptance gates in `ap.py`: incomplete tickets, unverified commits, failing tests, missing gates block `finish`. Reopen/review paths reconcile requirement statuses. Empty manifest/plan fail G3.
+- Introduced OS-level locking for `state.js` writes, validated run identifiers, and protected the dashboard server against stale delayed-stop requests.
+- Added a provider-neutral model router with OpenAI Luna/Sol and Anthropic Haiku/Sonnet defaults. Restricted high-cost subagents do not launch. Selection requires actual host capabilities.
+- Dashboard 3.0 visual refresh, next-action and quality overview, per-task model decisions and explicit unknown-cost state. Separate attributed input/output/cache token counters and recorded-token threshold.
+- Project-scoped native Claude Code `.md` and Codex `.toml` subagent profiles; strict start validates their hash, optional Claude Code `PreToolUse` hook denies unapproved spawns.
+- Conservative Git worktree helper for per-task isolation and safe, clean single-commit cherry-pick landing. Opt-in `--isolated-tickets` now integrates prepare, start, land, done and release with validated Git SHA and negative tests.
+- Crash-safe Git integration via source-annotated `cherry-pick -x`, independent patch checks and explicit `worktree recover` for interrupted ledger writes.
+- Real Codex CLI account-visible catalog importer (`codex_capabilities.py`) validates model/Effort pairs via `codex debug models`; no bundled catalog fallback.
+- Strict isolated `worktree NN verify --suite test_file.py` runs baseline-tracked Python unittest in the actual worktree and records source fingerprint, test count and result; `finalize/land/done/recover` reject unverified or conflicting N/0. Legacy non-strict mode remains compatible.
+- Host-side `worktree finalize --tests N/0` safely stages only declared-zone changes and commits after independently reported passing tests; permits Windows Codex sandboxed editing without shared Git index access.
+- Corrected Codex success semantics: a model turn alone is not task completion; missing clean worker commit is `incomplete`. Explicit Windows sandbox backend preserves workspace-write/read-only boundaries.
+- Opt-in `--optimization lean` rules are Ponytail-inspired but are **not** a bundled upstream plugin; requires real A/B acceptance and token benchmarks before claims.
+- Opt-in Codex CLI external worker adapter with strict ticket/route/sha/worktree/budget preflight, named model and effort flags, isolated `codex exec --json`, and token usage recording; dry-run by default.
+- Deterministic JSON `ap.py schedule` planner: dependency, zone, capacity, prepared checkout and budget gating. This is a planner, **not** an external agent launcher.
+- Deterministic retry triage (`retry_policy.py`), explicit causes, hard attempt limits, no escalation for environment/dependency failures.
+- Replaced all outdated 2.2 dashboard captures in English/Russian READMEs with genuine Chrome screenshots of Dashboard 3.0 using labeled synthetic fixture data; retired 14 old screenshot assets.
+- Removed inherited upstream installer lock from the repository, replaced promotional author text with a short `Inspired by` credit and preserved the MIT copyright notice in `LICENSE`. Local development uses one shared skill checkout via Windows Junctions.
+- Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
+- Pending: verified in-harness dispatch adapters, worktree isolation, actual billing telemetry, visual/browser regression, real-run benchmark.
 
 ## 2.2.0 — 2026-10-21
 
@@ -28,7 +51,7 @@ npx skills update autopilot -g
 - It now recognises tasks named `T03 …` as executors and judges them against the new size: under 150K — should have been merged, over 450K — should have been split.
 
 **Docs**
-- README, this changelog and `docs/` are now in English; the Russian README lives on as [README.ru.md](README.ru.md). Screenshots show the English dashboard, each one a different part of it: the header, build progress, a finished build's report, waiting for you, your words.
+- README, this changelog and `docs/` are now in English; the Russian README lives on as [README.ru.md](README.ru.md). At the time of 2.2, screenshots documented its English-language dashboard. Those captures were retired from the 2.3 README and replaced by current Dashboard 3.0 synthetic demo captures.
 - Dashboard: in English, ticket titles in the header are quoted “like this” instead of «like this».
 
 ## 2.1.0 — 2026-10-10

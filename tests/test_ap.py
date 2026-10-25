@@ -18,6 +18,12 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(os.path.dirname(HERE), "skills", "autopilot")
 AP = os.path.join(SKILL, "tools", "ap.py")
+ROUTER = os.path.join(SKILL, "tools", "model_router.py")
+PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
+WORKTREES = os.path.join(SKILL, "tools", "worktrees.py")
+RETRY_POLICY = os.path.join(SKILL, "tools", "retry_policy.py")
+SCHEDULER = os.path.join(SKILL, "tools", "scheduler.py")
+TEST_EVIDENCE = os.path.join(SKILL, "tools", "test_evidence.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
@@ -51,6 +57,12 @@ class Run(unittest.TestCase):
         os.makedirs(self.a)
         shutil.copy(TEMPLATE, os.path.join(self.a, "dashboard.html"))
         shutil.copy(AP, os.path.join(self.a, "ap.py"))
+        shutil.copy(ROUTER, os.path.join(self.a, "model_router.py"))
+        shutil.copy(PROFILES, os.path.join(self.a, "agent_profiles.py"))
+        shutil.copy(WORKTREES, os.path.join(self.a, "worktrees.py"))
+        shutil.copy(RETRY_POLICY, os.path.join(self.a, "retry_policy.py"))
+        shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
+        shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -61,8 +73,8 @@ class Run(unittest.TestCase):
     def ap(self, *args):
         env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1")
         r = subprocess.run([sys.executable, os.path.join(self.a, "ap.py")] + list(args) + ["--no-serve"],
-                           capture_output=True, text=True, env=env, cwd=self.root)
-        return r.returncode, r.stdout
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=self.root)
+        return r.returncode, r.stdout + ("\n[stderr] " + r.stderr[-2000:] if r.returncode and r.stderr else "")
 
     def state(self):
         raw = read(os.path.join(self.a, "state.js"))
@@ -71,8 +83,13 @@ class Run(unittest.TestCase):
     def stage(self, sid):
         return next(s for s in self.state()["stages"] if s["id"] == sid)
 
-    def init(self):
-        code, out = self.ap("init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", SKILL)
+    def init(self, strict=False, isolated=False):
+        args = ["init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", SKILL]
+        if strict:
+            args.append("--strict-routing")
+        if isolated:
+            args.append("--isolated-tickets")
+        code, out = self.ap(*args)
         self.assertEqual(code, 0, out)
         self.dir = os.path.join(self.a, self.state()["dir"])
         return out
@@ -86,6 +103,32 @@ class Run(unittest.TestCase):
     def manifest(self):
         return read(os.path.join(self.dir, "manifest.md"))
 
+    def commit(self, name):
+        result = self.git("-c", "user.email=t@t", "-c", "user.name=t",
+                          "commit", "-q", "--allow-empty", "-m", name)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return self.git("rev-parse", "--short", "HEAD").stdout.strip()
+
+    def ready_to_finish(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("stage", "spec")
+        self.ap("coverage", "found=0", "fixed=0", "deferred=0")
+        self.ap("check-plan")
+        self.ap("ticket", "01", "start")
+        sha1 = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0",
+                            "--commit", sha1, "--placeholder", "R05")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "02", "start")
+        sha2 = self.commit("T02")
+        code, out = self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", sha2)
+        self.assertEqual(code, 0, out)
+        self.ap("tests", "5/0")
+        self.ap("blind", "checked=4", "matched=4")
+        self.git("add", "-A")
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
+
     # ── init ───────────────────────────────────────────────────────────────
     def test_init_creates_run(self):
         self.init()
@@ -96,6 +139,8 @@ class Run(unittest.TestCase):
         self.assertRegex(s["startedAt"], r"T\d\d:\d\d:\d\d[+-]\d\d:\d\d$")
         self.assertIn("в работе", read(os.path.join(self.a, "README.md")))
         self.assertIn(".autopilot/serve.*", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/worktrees/", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/model-capabilities.json", read(os.path.join(self.root, ".gitignore")))
         self.assertIn("window.STATE={", read(os.path.join(self.a, "dashboard.html")))
 
     def test_init_refuses_on_live_run(self):
@@ -105,7 +150,7 @@ class Run(unittest.TestCase):
         self.assertIn("продолжение", out)
 
     def test_init_archives_finished_run(self):
-        self.init()
+        self.ready_to_finish()
         first = self.state()["dir"]
         self.ap("finish", "--result", "готово")
         code, out = self.ap("init", "--slug", "second")
@@ -142,8 +187,8 @@ class Run(unittest.TestCase):
         self.assertEqual(self.stage("briefing")["status"], "skipped")
 
     # ── tickets and the manifest ───────────────────────────────────────────
-    def plan(self):
-        self.init()
+    def plan(self, strict=False, isolated=False):
+        self.init(strict=strict, isolated=isolated)
         self.write("manifest.md", MANIFEST)
         self.write("tickets/01-karkas.md", ticket("01", "Каркас", "R01, R05", "—", ["src/core/"], 1, "да — фундамент", "сильная"))
         self.write("tickets/02-priem.md", ticket("02", "Приём", "R01.1, R02, A01", "01", ["src/bot/"], 2))
@@ -187,12 +232,14 @@ class Run(unittest.TestCase):
         self.plan()
         self.ap("tickets")
         self.ap("ticket", "01", "start")
-        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", "1111111aaaa", "--placeholder", "R05")
+        sha1 = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha1, "--placeholder", "R05")
         m = self.manifest()
         self.assertRegex(m, r"\| R01 \|[^\n]*\| in-ticket \|")     # ещё и в таске 02
-        self.assertRegex(m, r"\| R05 \|[^\n]*\| placeholder \|[^\n]*1111111")
+        self.assertIn("placeholder", m)
         self.ap("ticket", "02", "start")
-        self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", "2222222bbbb")
+        sha2 = self.commit("T02")
+        self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", sha2)
         m = self.manifest()
         self.assertRegex(m, r"\| R01 \|[^\n]*\| done \|")
         self.assertRegex(m, r"\| R02 \|[^\n]*\| done \|")
@@ -204,7 +251,7 @@ class Run(unittest.TestCase):
     def test_ticket_lifecycle_counters(self):
         self.plan()
         self.ap("tickets")
-        self.ap("ticket", "01", "02", "start")
+        self.ap("ticket", "01", "start")
         self.ap("ticket", "01", "review")
         self.ap("ticket", "01", "repair", "--note", "ключ схемы — R01")
         self.ap("ticket", "02", "retry")
@@ -322,7 +369,8 @@ class Run(unittest.TestCase):
         self.ap("tickets")
         self.ap("ticket", "01", "start")
         self.ap("ticket", "01", "repair", "--note", "пустой адрес")
-        self.ap("ticket", "01", "done", "--tests", "7/0", "--commit", "abc")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "7/0", "--commit", sha)
         self.ap()
         kinds = [(e["k"], e.get("act")) for e in self.state()["log"]]
         self.assertEqual(kinds, [("init", None), ("tickets", None), ("ticket", "start"),
@@ -368,10 +416,485 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["rev"], r + 1)
 
     # ── finish ─────────────────────────────────────────────────────────────
-    def test_finish_lands_the_run(self):
+    def test_strict_routing_blocks_unverified_dispatch(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
+        sha = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", sha)
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low", "--reason", "simple",
+                            "--capabilities", caps)
+        self.assertEqual(code, 0, out)
+        route = self.state()["tickets"][0]["routing"]
+        self.assertTrue(route["verified"])
+        self.assertIn("autopilot-executor-01-karkas", route["agentType"])
+        self.assertTrue(os.path.isfile(os.path.join(self.root, route["agentFile"])))
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        with open(os.path.join(self.root, route["agentFile"]), "a", encoding="utf-8") as profile_file:
+            profile_file.write("\n# modified")
+        self.ap("ticket", "01", "reset")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
+
+    def test_route_rejects_unapproved_model_even_with_host_advertisement(self):
         self.plan()
-        self.git("add", "-A")
-        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"fable": ["high"], "haiku": ["low"]}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "fable", "--effort", "high", "--reason", "default",
+                            "--capabilities", caps)
+        self.assertNotEqual(code, 0)
+        self.assertIn("не одобрены", out)
+
+    def test_usage_is_deduplicated_and_budget_blocks_new_work(self):
+        self.plan()
+        self.ap("tickets")
+        params = ("usage", "01", "--call-id", "host:001",
+                  "--input", "150", "--output", "20", "--source", "host-reported")
+        code, out = self.ap(*params)
+        self.assertEqual(code, 0, out)
+        code, out = self.ap(*params)
+        self.assertEqual(code, 0, out)
+        events = self.state()["usageEvents"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual((events[0]["input"], events[0]["output"]), (150, 20))
+        code, out = self.ap("budget", "--tokens", "160")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("лимит известных токенов достигнут", out)
+
+    def test_usage_rejects_conflicting_id_and_invalid_counts(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("usage", "01", "--call-id", "call-001",
+                            "--input", "13", "--output", "2", "--source", "manual")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("usage", "01", "--call-id", "call-001",
+                            "--input", "20", "--output", "2", "--source", "manual")
+        self.assertNotEqual(code, 0)
+        self.assertIn("уже существует", out)
+        code, out = self.ap("usage", "01", "--call-id", "call-002",
+                            "--input", "-2", "--output", "3", "--source", "manual")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(len(self.state()["usageEvents"]), 1)
+
+    def test_set_cannot_override_protected_accounting_state(self):
+        self.init()
+        code, out = self.ap("set", "strictRouting=null")
+        self.assertNotEqual(code, 0)
+        self.assertIn("разрешены только", out)
+        code, out = self.ap("set", "budgetTokens=1")
+        self.assertNotEqual(code, 0)
+
+    def test_retry_requires_diagnosed_cause_and_respects_limit(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "retry")
+        self.assertNotEqual(code, 0)
+        self.assertIn("подтверждённой модели", out)  # route required even for retry
+        # The non-strict mode supports bounded, diagnosed retries for legacy projects.
+        self.state()
+        # Initialize a second test run with the legacy mode in a fresh instance below.
+
+    def test_legacy_retry_is_capped_and_does_not_escalate_environment(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "retry", "--cause", "environment")
+        self.assertNotEqual(code, 0)
+        self.assertIn("повтор не разрешён", out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.assertNotEqual(code, 0)
+        self.assertIn("предел повторов", out)
+        self.assertEqual(self.state()["tickets"][0]["retries"], 2)
+        self.assertEqual(self.state()["tickets"][0]["retryAdvice"]["model"], "same")
+
+    def test_recover_crash_after_git_worktree_add_before_state_save(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        result = subprocess.run(
+            [sys.executable, os.path.join(self.a, "worktrees.py"), "create", "01",
+             "--root", self.root], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.state()["tickets"][0].get("worktree"))
+        code, out = self.ap("worktree", "01", "recover")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+
+    def test_recover_crash_after_cherry_pick_before_state_save(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        wt = self.state()["tickets"][0]["worktree"]
+        (os.makedirs(os.path.join(wt["cwd"], "feature"), exist_ok=True))
+        with open(os.path.join(wt["cwd"], "feature", "recover.txt"), "w", encoding="utf-8") as f:
+            f.write("safe after restart\n")
+        self.git("-C", wt["cwd"], "add", "feature/recover.txt")
+        self.git("-C", wt["cwd"], "commit", "-qm", "T01 recover")
+        # Simulate power loss: Git cherry-pick completed but ap.py state write did not.
+        result = subprocess.run(
+            [sys.executable, os.path.join(self.a, "worktrees.py"), "land", "01",
+             "--root", self.root, "--base", wt["baseCommit"]],
+            text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+        code, out = self.ap("worktree", "01", "recover", "--tests", "4/0")
+        self.assertEqual(code, 0, out)
+        landed = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "landed")
+        code, out = self.ap("ticket", "01", "done", "--commit", landed[:12])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
+
+    def test_reset_refuses_unreleased_worktree(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.ap("worktree", "01", "prepare")
+        code, out = self.ap("ticket", "01", "reset")
+        self.assertNotEqual(code, 0)
+        self.assertIn("освободи worktree", out)
+
+    def test_ticket_cannot_be_started_twice(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("только из pending", out)
+
+    def test_recover_deleted_worktree_after_cleanup_crash(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        with open(os.path.join(wt["cwd"], "cleanup-proof.txt"), "w", encoding="utf-8") as f:
+            f.write("proof\n")
+        self.git("-C", wt["cwd"], "add", "cleanup-proof.txt")
+        self.git("-C", wt["cwd"], "commit", "-qm", "T01 cleanup")
+        code, out = self.ap("worktree", "01", "land", "--tests", "3/0")
+        self.assertEqual(code, 0, out)
+        landed = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", landed[:12])
+        self.assertEqual(code, 0, out)
+        # Simulate crash after deletion of Git worktree, before saving status.
+        clean = subprocess.run([sys.executable, os.path.join(self.a, "worktrees.py"),
+                                "remove", "01", "--root", self.root,
+                                "--acknowledge-loss"], capture_output=True, text=True)
+        self.assertEqual(clean.returncode, 0, clean.stdout + clean.stderr)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "landed")
+        code, out = self.ap("worktree", "01", "recover")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "released")
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+
+    def test_schedule_machine_readable_dependency_order(self):
+        self.plan()
+        self.ap("tickets")
+        code, payload = self.ap("schedule", "--max-parallel", "2")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual([x["ticket"] for x in plan["selected"]], ["01"])
+        self.assertEqual(plan["selected"][0]["action"], "start")
+        self.assertEqual(plan["blocked"][0]["reason"], "dependencies")
+        self.assertFalse(plan["automaticLaunch"])
+
+    def test_schedule_isolated_preparation_and_reservation(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("bootstrap")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["selected"][0]["action"], "prepare")
+        self.ap("worktree", "01", "prepare")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["selected"][0]["action"], "start")
+        self.assertEqual(plan["reserved"], 1)
+        self.assertEqual(plan["selected"][0]["cwd"], self.state()["tickets"][0]["worktree"]["cwd"])
+
+    def test_schedule_blocks_launch_after_recorded_token_threshold(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("budget", "--tokens", "12")
+        self.ap("usage", "01", "--call-id", "test-call-123",
+                "--input", "10", "--output", "2", "--source", "manual")
+        code, payload = self.ap("schedule")
+        self.assertEqual(code, 0, payload)
+        self.assertFalse(json.loads(payload)["selected"])
+        self.assertIn("recorded-token-budget", [b["reason"] for b in json.loads(payload)["blocked"]])
+
+    def test_strict_isolated_host_evidence_proves_unittest_and_unchanged_code(self):
+        self.plan(strict=True, isolated=True)
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, out)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low",
+                            "--reason", "synthetic", "--capabilities", caps)
+        self.assertEqual(code, 0, out)
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Autopilot Test")
+        os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
+        with open(os.path.join(self.root, "src", "core", "calc.py"), "w", encoding="utf-8") as out:
+            out.write("def add(a, b):\n    return a - b\n")
+        with open(os.path.join(self.root, "test_calc.py"), "w", encoding="utf-8") as out:
+            out.write("import unittest\nfrom src.core.calc import add\n"
+                      "class CalcTest(unittest.TestCase):\n"
+                      "    def test_add(self): self.assertEqual(add(2,3),5)\n")
+        self.git("add", ".gitignore", "src/core/calc.py", "test_calc.py")
+        self.commit("test baseline")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        dest = os.path.join(wt["cwd"], "src", "core", "calc.py")
+        with open(dest, "w", encoding="utf-8") as out:
+            out.write("def add(a, b):\n    return a + b\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "1/0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("host test evidence", out)
+        code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
+        self.assertEqual(code, 0, out)
+        proof = self.state()["tickets"][0]["testEvidence"]
+        self.assertEqual((proof["passed"], proof["failed"]), (1, 0))
+        with open(dest, "a", encoding="utf-8") as out_file:
+            out_file.write("# changed since independent testing\n")
+        code, out = self.ap("worktree", "01", "finalize")
+        self.assertNotEqual(code, 0)
+        self.assertIn("Source changed after tests", out)
+        with open(dest, "w", encoding="utf-8") as out_file:
+            out_file.write("def add(a, b):\n    return a + b\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "99/0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("не совпадают", out)
+        code, out = self.ap("worktree", "01", "finalize")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "land", "--tests", "99/0")
+        self.assertNotEqual(code, 0)
+        code, out = self.ap("worktree", "01", "land")
+        self.assertEqual(code, 0, out)
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+
+    def test_host_side_finalize_then_land_and_done(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("config", "user.name", "Autopilot Test")
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("add", ".gitignore")
+        self.commit("bootstrap")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        src = os.path.join(wt["cwd"], "src", "core")
+        os.makedirs(src, exist_ok=True)
+        with open(os.path.join(src, "change.txt"), "w", encoding="utf-8") as stream:
+            stream.write("sandboxed code edit\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "2/0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["tests"]["passed"], 2)
+        code, out = self.ap("worktree", "01", "land", "--tests", "2/0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(read(os.path.join(self.root, "src", "core", "change.txt")),
+                         "sandboxed code edit\n")
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+
+    def test_isolated_ticket_full_lifecycle(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: before executor")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("подготовь worktree", out)
+        code, out = self.ap("worktree", "02", "prepare")
+        self.assertNotEqual(code, 0)
+        self.assertIn("зависимости", out)
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        wt = self.state()["tickets"][0]["worktree"]
+        self.assertTrue(os.path.isdir(wt["cwd"]))
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0",
+                            "--commit", wt["baseCommit"][:12])
+        self.assertNotEqual(code, 0)
+        self.assertIn("сначала интегрируй worktree", out)
+        with open(os.path.join(wt["cwd"], "worker.txt"), "w", encoding="utf-8") as stream:
+            stream.write("executor edit\n")
+        self.git("-C", wt["cwd"], "add", "worker.txt")
+        result = subprocess.run(
+            ["git", "-C", wt["cwd"], "-c", "user.email=t@t", "-c", "user.name=t",
+             "commit", "-qm", "T01: worker edit"],
+            capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+        code, out = self.ap("worktree", "01", "land", "--tests", "3/0")
+        self.assertEqual(code, 0, out)
+        wt = self.state()["tickets"][0]["worktree"]
+        self.assertEqual(wt["status"], "landed")
+        self.assertEqual(read(os.path.join(self.root, "worker.txt")), "executor edit\n")
+        code, out = self.ap("ticket", "01", "done", "--commit", wt["landedCommit"][:12])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.isdir(wt["cwd"]))
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "released")
+
+    def test_isolated_done_never_bypasses_preparation(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        sha = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
+        self.assertNotEqual(code, 0)
+        self.assertIn("требует интеграции worktree", out)
+
+    def test_ticket_source_change_cannot_invalidate_live_worktree(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: worktree baseline")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.write("tickets/01-karkas.md",
+                   ticket("01", "Other requirements", "R01, R05", "—", ["src/core/"], 1))
+        code, out = self.ap("tickets")
+        self.assertNotEqual(code, 0)
+        self.assertIn("существующем worktree", out)
+
+    def test_isolated_ticket_rejects_failed_tests_before_landing(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: before executor")
+        self.ap("worktree", "01", "prepare")
+        self.ap("ticket", "01", "start")
+        code, out = self.ap("worktree", "01", "land", "--tests", "0/1")
+        self.assertNotEqual(code, 0)
+        self.assertIn("пройденные тесты", out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+
+    def test_finish_rejects_incomplete_work(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("finish", "--result", "ложный успех")
+        self.assertNotEqual(code, 0)
+        self.assertIn("finish заблокирован", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_requires_all_gates(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha1 = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "2/0", "--commit", sha1)
+        self.ap("ticket", "02", "start")
+        sha2 = self.commit("T02")
+        self.ap("ticket", "02", "done", "--tests", "2/0", "--commit", sha2)
+        code, out = self.ap("finish", "--result", "ложный успех")
+        self.assertNotEqual(code, 0)
+        self.assertIn("проверки G1, G2, G3, G4", out)
+
+    def test_ticket_done_rejects_failed_tests_and_invalid_commit(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        c, out = self.ap("ticket", "01", "done", "--tests", "0/1", "--commit", "badc0de")
+        self.assertNotEqual(c, 0)
+        self.assertIn("без успешных тестов", out)
+        c, out = self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", "badc0de")
+        self.assertNotEqual(c, 0)
+        self.assertIn("существующий коммит", out)
+
+    def test_review_rolls_back_requirement_status(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0",
+                "--commit", sha, "--placeholder", "R05")
+        self.assertIn("placeholder", self.manifest())
+        self.ap("ticket", "01", "review")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| in-ticket \|")
+        self.ap("ticket", "01", "done")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| placeholder \|")
+
+    def test_plan_requires_rows_and_tickets(self):
+        self.init()
+        code, out = self.ap("check-plan")
+        self.assertNotEqual(code, 0)
+        self.assertIn("манифест отсутствует или пуст", out)
+        self.assertIn("план пуст", out)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+
+    def test_changed_ticket_resets_previous_acceptance(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
+        self.write("tickets/01-karkas.md", ticket("01", "Новая версия", "R01, R05", "—", ["src/core/"], 1))
+        self.ap("tickets")
+        t = {t["id"]: t for t in self.state()["tickets"]}["01"]
+        self.assertEqual(t["status"], "pending")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| in-ticket \|")
+
+    def test_finish_lands_the_run(self):
+        self.ready_to_finish()
         code, out = self.ap("finish", "--result", "Бот принимает заявки")
         s = self.state()
         self.assertTrue(s["finishedAt"])
@@ -383,7 +906,7 @@ class Run(unittest.TestCase):
         self.assertIn("R", self.git("status", "--short").stdout)    # переименование через git mv
 
     def test_reopen_puts_wip_back(self):
-        self.init()
+        self.ready_to_finish()
         self.ap("finish", "--result", "готово")
         self.ap("reopen")
         s = self.state()
@@ -401,8 +924,8 @@ class Run(unittest.TestCase):
         kept = self.git("rev-parse", "--short", "HEAD").stdout.strip()
         commit("T02")
         lost = self.git("rev-parse", "--short", "HEAD").stdout.strip()
-        self.ap("ticket", "01", "done", "--commit", kept)
-        self.ap("ticket", "02", "done", "--commit", lost)
+        self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", kept)
+        self.ap("ticket", "02", "done", "--tests", "1/0", "--commit", lost)
         events = len(self.state()["log"])
         code, out = self.ap("commits")
         self.assertIn("коммиты сданных тасков на месте", out)

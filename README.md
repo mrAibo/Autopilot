@@ -6,9 +6,7 @@
   </picture>
 </p>
 
-<p align="center">
-  <a href="https://skills.sh/nick-vels/skills"><img src="https://skills.sh/b/nick-vels/skills" alt="skills.sh"></a>
-</p>
+<p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
 <p align="center"><strong>Describe what you want built — get a finished project.</strong></p>
 
@@ -18,19 +16,24 @@ Autopilot is a development framework packaged as a skill. It takes your idea, as
 
 It works on its own: nothing else to install.
 
+> **Development status and handoff:** [STATUS.md](STATUS.md) records the active PR, validated checkpoints, unresolved blockers and resume instructions.
+
+> **Autopilot 2.3.0-dev** — active development branch, not a release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.0 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
+
 <p align="center">
-  <a href="assets/autopilot-dashboard.png"><img src="assets/dash-now.png" width="380" alt="The header: what is happening now, how much is left, the eight stages"></a>
-  <a href="assets/autopilot-dashboard.png"><img src="assets/dash-tasks.png" width="380" alt="Build progress: every task as a coloured bar, grouped into waves"></a>
-  <a href="assets/autopilot-dashboard.png"><img src="assets/dash-done.png" width="380" alt="A finished build: keys and placeholders needed from you, blind acceptance, checks"></a>
+  <a href="assets/dashboard-3-desktop.png"><img src="assets/dashboard-3-desktop.png" width="650" alt="Dashboard 3.0, desktop layout using synthetic data"></a>
+  <a href="assets/dashboard-3-narrow.png"><img src="assets/dashboard-3-narrow.png" width="230" alt="Dashboard 3.0, narrow layout using synthetic data"></a>
 </p>
 
-<p align="center"><sub>Header · build progress · the report of a finished build — <a href="assets/autopilot-dashboard.png">open the full dashboard</a></sub></p>
+<p align="center"><sub>Dashboard 3.0 · current 2.3 template · synthetic demonstration data</sub></p>
 
 **And you can always see what's going on.** At the start of a build the agent opens the dashboard itself — a single HTML file you never have to find or launch. The header colour tells you the state at a glance: blue — the build is running, orange — it's waiting for your answer, green — done. Below: what is happening right now, how much is left, every task as a coloured bar and every one of your requirements in your own words. Timers tick live, the page refreshes itself, no internet needed.
 
 ---
 
 ## Installation
+
+> **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.
 
 ### If you'd rather not open a terminal
 
@@ -39,7 +42,7 @@ Open your AI agent — Claude Code, Cursor, Codex — and paste this:
 ```
 Install the Autopilot skill for me. Run in the terminal:
 
-npx skills add nick-vels/skills --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
+npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
 
 If npx is not found, give me a link to download Node.js and wait.
 Don't install anything else.
@@ -55,7 +58,7 @@ This command is for the **first** install. Updating later is [a different comman
 Copy this line:
 
 ```bash
-npx skills add nick-vels/skills
+npx skills add mrAibo/Autopilot
 ```
 
 The installer asks which skills to install and for which agents — just confirm.
@@ -64,7 +67,7 @@ The installer asks which skills to install and for which agents — just confirm
 <summary>One-line install, no questions</summary>
 
 ```bash
-npx skills add nick-vels/skills --skill autopilot -a claude-code -g -y
+npx skills add mrAibo/Autopilot --skill autopilot -a claude-code -g -y
 ```
 
 | Flag | What it does |
@@ -206,8 +209,6 @@ At maximum depth one requirement from the brief unfolds into several worked-out 
 
 ## Progress is always visible
 
-<img src="assets/dash-pane.png" width="260" align="right" alt="The dashboard in a narrow pane next to the chat">
-
 `.autopilot/dashboard.html` **opens by itself** at the very start of the build — nothing to find or launch. If the agent can show a page inside its own window (for example, the side pane in the Claude app), the dashboard opens there and everything stays in one window; otherwise in your browser. In a narrow pane next to the chat it gets denser: the same blocks, without the giant numbers. Works offline. While the build runs, the page pulls fresh numbers every ten seconds — without reloading, so your scroll position and selected text stay put; the ⟳ arrow at the top refreshes at once. Next to it are the theme (light / dark) and language (RU / EN) switches; until you touch the theme, the dashboard follows your system.
 
 **The header — what's happening, in one sentence.** Blue: the build is running — "2 of 6 tickets done, 3 more in progress", which tickets are being written, which are in review, and how long until done including review and acceptance. Orange: **the build is waiting for you** — briefing questions, your "ok" on the spec in manual mode, a decision before an irreversible step; the browser tab says "● Waiting for you", and the build clock is stopped meanwhile. Green: done — what you now have and what you need to do to run it for real. Under the sentence — eight stages from preflight to acceptance: passed, current, skipped.
@@ -215,11 +216,6 @@ At maximum depth one requirement from the brief unfolds into several worked-out 
 **Build progress — every state has its own colour.** Green — task done, striped orange — being written, teal — in review, purple — back from review for repair, red — failed, dashed — waiting its turn. Under a repair or review bar it says why. Tasks are grouped into waves: you can see what runs in parallel and what the next wave is waiting for.
 
 **Your words.** Every requirement from the brief — as your quote, with what became of it: done, in progress, needs your data, deferred, dropped by you. Deferred items and placeholders show the reason. This is Autopilot's main promise — nothing disappears quietly — and here you can check it with your own eyes.
-
-<p align="center">
-  <img src="assets/dash-waiting.png" width="380" alt="The build is waiting for you: questions in the chat, the build clock is stopped">
-  <img src="assets/dash-words.png" width="380" alt="Your words: every requirement quoted from the brief, with its status">
-</p>
 
 
 | Block | What it shows |
@@ -362,7 +358,7 @@ Update the Autopilot skill to the latest version. Run in the terminal:
 npx skills update autopilot -g
 
 If it says everything is up to date but the version is still old, reinstall:
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
 
 When you're done, tell me in one line what was updated and remind me to restart the session.
 ```
@@ -380,7 +376,7 @@ npx skills remove autopilot -g
 **If the skill behaves like an old version.** `update` compares the source version, not the files on disk: if the local copy was edited or got corrupted, it says "everything is up to date" and does nothing. The fix is a reinstall:
 
 ```bash
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a claude-code
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a claude-code
 ```
 
 For the agent to see the new version, **restart the session** — skills are loaded at startup.
@@ -435,4 +431,4 @@ It's all plain markdown. You can open it and read it: [skills/autopilot/SKILL.md
 
 ## License
 
-[MIT](LICENSE) © Nick Vels — you may use, modify and distribute it, including in commercial projects.
+Inspired by the [original Autopilot project](https://github.com/nick-vels/skills); this fork is developed independently. The original copyright notice is retained in [MIT LICENSE](LICENSE) as required by its terms.

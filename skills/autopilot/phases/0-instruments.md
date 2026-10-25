@@ -15,6 +15,15 @@ command -v cygpath >/dev/null && TPL=$(cygpath -m "$TPL")   # Windows: C:/…, �
 echo "skillDir = ${TPL%/phases/*}"
 mkdir -p "$A" && cp "$TPL" "$A/dashboard.html" && ln -sfn dashboard.html "$A/index.html"
 cp "${TPL%/phases/*}/tools/ap.py" "$A/ap.py"
+cp "${TPL%/phases/*}/tools/model_router.py" "$A/model_router.py"
+cp "${TPL%/phases/*}/tools/agent_profiles.py" "$A/agent_profiles.py"
+cp "${TPL%/phases/*}/tools/claude_agent_guard.py" "$A/claude_agent_guard.py"
+cp "${TPL%/phases/*}/tools/worktrees.py" "$A/worktrees.py"
+cp "${TPL%/phases/*}/tools/retry_policy.py" "$A/retry_policy.py"
+cp "${TPL%/phases/*}/tools/scheduler.py" "$A/scheduler.py"
+cp "${TPL%/phases/*}/tools/codex_dispatch.py" "$A/codex_dispatch.py"
+cp "${TPL%/phases/*}/tools/codex_capabilities.py" "$A/codex_capabilities.py"
+cp "${TPL%/phases/*}/tools/test_evidence.py" "$A/test_evidence.py"
 ```
 
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
@@ -28,10 +37,10 @@ cp "${TPL%/phases/*}/tools/ap.py" "$A/ap.py"
 ```bash
 python3 .autopilot/ap.py init --slug telegram-repair-bot --title "Телеграм-бот для заявок на ремонт" \
   --mode semi --depth normal --memory-file AGENTS.md --memory-owner autopilot \
-  --skill-dir "<skillDir>" --check-update
+  --skill-dir "<skillDir>" --strict-routing --check-update
 ```
 
-It creates the run directory `<YYYY-MM-DD>-<slug>--wip/` with `tickets/` inside, writes `state.js` with all eight stages (`preflight` active), adds the run's row to `.autopilot/README.md` (writing the file on a new repo), puts `.autopilot/serve.*` into `.gitignore`, raises the server and prints its address. A finished run's `state.js` is archived into that run's directory first; an unfinished one means this is a resume, and `init` refuses (`phases/0-resume.md`).
+It creates the run directory `<YYYY-MM-DD>-<slug>--wip/` with `tickets/` inside, writes `state.js` with all eight stages (`preflight` active), adds the run's row to `.autopilot/README.md` (writing the file on a new repo), puts `.autopilot/serve.*` and `.autopilot/state.lock` into `.gitignore`, raises the server and prints its address. A finished run's `state.js` is archived into that run's directory first; an unfinished one means this is a resume, and `init` refuses (`phases/0-resume.md`).
 
 A line starting with **`↑`** means a newer Autopilot is out: put it into the opening block as it is — one line, not a question, never an update mid-run.
 

@@ -54,10 +54,13 @@ Every ticket of the chain carries the same requirement. It applies when the chan
 - `да — <риск>` — a ticket whose **own code** is one of these: sign-in, passwords, sessions, 2FA; keys and secrets; money; deleting or migrating user data. A ticket that only checks permissions inside an ordinary feature is not a risk ticket — the whole-branch review covers it. Most tickets in a product with access rights touch them; marking them all is how a run reviews 12 tickets of 15.
 - `нет` — the rest. Most tickets. **At T0 the one ticket is `нет` too**: the whole-branch review is its review, and a point review would read the same diff twice.
 
-**Model** — who builds it.
+**Model** — decide per ticket with the provider-neutral adaptive router, not just the number of changed lines. The legacy `сильная`/`обычная` label is descriptive only: it must never override the real model/effort authorization.
 
-- `сильная` — every ticket with review `да`, and any ticket whose core is a genuinely hard algorithm or an unfamiliar integration.
-- `обычная` — the rest: a well-specified slice over decided boundaries. It runs on a cheaper model (`phases/5-subagents.md`).
+- Determine complexity from algorithm, coupling, uncertainty, context, testing, risk. Run `.autopilot/model_router.py` on each ticket, supply the current harness' verified capabilities. See [model routing](../../../docs/autopilot/model-routing.md) in the repository.
+- Assign low effort and cheaper permitted models to routine copy/docs; use stronger permitted models for substantial coding; risk overrides total score, requires focused review and prevents cheap-model default.
+- Record the approved decision (model, effort, score, reason) in `ap.py ticket NN route` before spawning. If model selection is unsupported or verification is missing, **do not dispatch a subagent**. Ask for capability setup or stop; never silently inherit the orchestrator's model.
+- High-price Astra/Fable are prohibited for subagents in the default policy; never escalate on a missing file or ambiguous specification.
+- Rebalance independent ticket sizes to avoid cold-start costs; one ticket does not imply several reviewers.
 
 ## The ticket file
 
