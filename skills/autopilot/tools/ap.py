@@ -40,6 +40,7 @@
 
 import datetime as dt
 import hashlib
+import importlib.util
 import contextlib
 import glob
 import json
@@ -68,7 +69,7 @@ LOG = os.path.join(A, "serve.log")
 LOCK = os.path.join(A, "state.lock")
 BEGIN, END = "/*STATE-BEGIN*/", "/*STATE-END*/"
 WIN = os.name == "nt"
-REPO = "nick-vels/skills"
+REPO = "mrAibo/Autopilot"
 REMOTE_SKILL = "https://raw.githubusercontent.com/%s/main/skills/autopilot/SKILL.md" % REPO
 STOP_DELAY = 12
 BEATS_KEPT = 2000
@@ -210,7 +211,8 @@ def fresh_state(a):
         "slug": a["slug"], "dir": "%s-%s--wip" % (t[:10], a["slug"]),
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
-        "tier": None, "briefFile": a.get("brief-file"),
+        "tier": None, "strictRouting": bool(a.get("strict-routing")),
+        "briefFile": a.get("brief-file"),
         "memoryFile": a.get("memory-file") or "AGENTS.md",
         "memoryOwner": a.get("memory-owner") or "autopilot",
         "skillDir": a.get("skill-dir"), "baseCommit": None,
@@ -939,6 +941,8 @@ def cmd_ticket(state, pos, opt):
                        if known.get(dep, {}).get("status") != "done"]
             if pending:
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
+        if act == "start" and state.get("strictRouting") and not (tk.get("routing") or {}).get("verified"):
+            die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
         if act == "done":
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
             if not validation or validation["passed"] < 1 or validation["failed"] != 0:
@@ -951,16 +955,32 @@ def cmd_ticket(state, pos, opt):
             model = opt.get("model")
             effort = opt.get("effort")
             reason = opt.get("reason")
-            score = opt.get("score")
-            if (provider not in ("openai", "anthropic")
-                    or not all(isinstance(x, str) and x.strip()
-                               for x in (model, effort, reason))
-                    or not isinstance(score, str) or not score.isdigit()
-                    or int(score) > 100):
-                die("route требует --provider --model --effort --score --reason")
+            cap = opt.get("capabilities") or os.path.join(A, "model-capabilities.json")
+            if provider not in ("openai", "anthropic") or not all(
+                    isinstance(x, str) and x.strip() for x in (model, effort, reason)):
+                die("route требует --provider --model --effort --reason")
+            module_path = os.path.join(A, "model_router.py")
+            if not os.path.isfile(module_path) or not os.path.isfile(cap):
+                die("route: требуется model_router.py и проверенный файл возможностей harness")
+            try:
+                spec = importlib.util.spec_from_file_location("model_router", module_path)
+                router = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(router)
+                candidates = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % i))
+                if len(candidates) != 1:
+                    die("route: не удалось однозначно найти файл таска %s" % i)
+                source = open(candidates[0], encoding="utf-8").read()
+                scores = json.loads(opt["scores"]) if opt.get("scores") else router.assess_ticket(source)
+                route = router.choose_route(
+                    provider, scores, capabilities=router.load_json(cap))
+            except (ValueError, OSError, TypeError) as err:
+                die("route: %s" % err)
+            if (route["status"] != "ready" or route["model"] != model
+                    or route["effort"] != effort):
+                die("route: заданная модель или effort не одобрены: %s" % route.get("error", "несовпадение"))
             tk["routing"] = {"provider": provider, "model": model,
-                             "effort": effort, "score": int(score),
-                             "reason": reason}
+                             "effort": effort, "score": route["score"],
+                             "reason": reason, "verified": True}
             continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
