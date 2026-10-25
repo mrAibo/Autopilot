@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import signal
 import subprocess
 import sys
@@ -21,6 +22,7 @@ import tempfile
 import time
 
 import controller
+import process_containment
 import worktrees
 
 MARKER = "AUTOPILOT_OFFLINE_TEMP_FIXTURE_V1\n"
@@ -100,6 +102,7 @@ def claim(root, ticket, summary):
         raise OfflineError("Previous attempt exists; inspect and never replay") from exc
     rec = {"ticket": ticket, "status": "invocation-uncertain",
            "claimed_at": utcnow(), "supervisor_pid": os.getpid(),
+           "claim_id": secrets.token_hex(16),
            "fixture": summary["fixture"], "model_invoked": False,
            "cwd": summary["cwd"],
            "note": "Synthetic local process only. Receipt forbids replay."}
@@ -146,11 +149,14 @@ def preflight(root, ticket, fixture, *, delay=0, fail=False, timeout=30):
     stub = Path(__file__).resolve().parent / "offline_fixture_worker.py"
     if stub.is_symlink() or not stub.is_file():
         raise OfflineError("Missing trusted offline fixture executable")
+    gate = Path(__file__).resolve().parent / "process_gate.py"
+    if gate.is_symlink() or not gate.is_file():
+        raise OfflineError("Missing trusted process start gate")
     if read_receipt(root, ticket) is not None:
         raise OfflineError("Previous attempt exists; never replay")
     return {"ticket": ticket, "fixture": fixture, "cwd": str(target),
             "timeout": timeout, "delay": delay, "fail": bool(fail),
-            "stub": str(stub), "model_invoked": False}
+            "stub": str(stub), "gate": str(gate), "model_invoked": False}
 
 
 def cancel_request(root, ticket):
@@ -164,32 +170,44 @@ def cancel_request(root, ticket):
     marker = folder(root) / (ticket + ".cancel")
     if marker.is_symlink():
         raise OfflineError("Redirected cancellation marker")
+    request = {"ticket": ticket, "claim_id": rec.get("claim_id"),
+               "requested_at": utcnow()}
+    if not isinstance(request["claim_id"], str) or len(request["claim_id"]) != 32:
+        raise OfflineError("Cannot identify worker claim for cancellation")
     try:
         fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as out:
-            out.write(utcnow() + "\n")
+            json.dump(request, out, sort_keys=True)
+            out.write("\n")
             out.flush()
             os.fsync(out.fileno())
     except FileExistsError:
-        pass
+        try:
+            existing = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise OfflineError("Malformed cancel marker; inspect manually") from exc
+        if (existing.get("ticket") != ticket or
+                existing.get("claim_id") != request["claim_id"]):
+            raise OfflineError("Cancel request targets a different claim")
     return {"status": "cancel-requested", "ticket": ticket,
-            "note": "Live supervisor must observe marker; no PID kill from this CLI",
+            "claim_id": request["claim_id"],
+            "note": "Await terminal receipt acknowledgement; never kill a saved PID",
             "model_invoked": False}
 
 
-def stop_child(process):
-    """Only supervisor kills the child it owns, never an unverified saved PID."""
+def stop_child(process, job=None):
+    """Only the owner terminates its live child; never trust persisted PIDs."""
     if process.poll() is not None:
         return
-    try:
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           timeout=5, check=False)
-        else:
+    if os.name == "nt" and job is not None:
+        job.terminate()
+    elif os.name != "nt":
+        try:
             os.killpg(process.pid, signal.SIGKILL)
-    except (OSError, subprocess.TimeoutExpired, ProcessLookupError):
-        pass
+        except ProcessLookupError:
+            pass
+    else:
+        raise OfflineError("Windows child lacks Job Object; refuse unsafe fallback")
     if process.poll() is None:
         process.kill()
 
@@ -213,21 +231,33 @@ def launch(root, ticket, fixture, *, execute=False, approval=None,
                             fail=fail, timeout=timeout)
         path, record = claim(root, ticket, summary)
         flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-        args = [sys.executable, "-B", summary["stub"],
+        # First launch a gated wrapper. It cannot start the fixture until the
+        # owner assigns it to the Windows KILL_ON_JOB_CLOSE kernel object.
+        args = [sys.executable, "-B", summary["gate"], summary["stub"],
                 "--worktree", summary["cwd"], "--fixture", fixture,
                 "--delay", str(delay)]
         if fail:
             args.append("--fail")
         child = None
+        job = None
         began = time.monotonic()
         try:
+            job = process_containment.OwnedJob()
             child = subprocess.Popen(
-                args, cwd=summary["cwd"], stdin=subprocess.DEVNULL,
+                args, cwd=summary["cwd"], stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True, encoding="utf-8", errors="replace",
                 creationflags=flags, start_new_session=(os.name != "nt"))
+            # Failed containment assignment means NO worker action: the
+            # wrapper remains blocked on stdin and is terminated on close.
+            job.assign(child)
+            record["containment"] = job.mode
             record.update({"status": "running", "child_pid": child.pid,
                            "started_at": utcnow()})
+            child.stdin.write("START\n")
+            child.stdin.flush()
+            child.stdin.close()
+            child.stdin = None
             persist(path, record)
             marker = folder(root) / (ticket + ".cancel")
             reason = None
@@ -236,7 +266,19 @@ def launch(root, ticket, fixture, *, execute=False, approval=None,
                     reason = "unsafe-cancel-marker"
                     break
                 if marker.exists():
-                    reason = "cancelled"
+                    try:
+                        request = json.loads(marker.read_text(encoding="utf-8"))
+                    except (OSError, ValueError):
+                        reason = "unsafe-cancel-marker"
+                        break
+                    if (not isinstance(request, dict) or
+                            request.get("ticket") != ticket or
+                            request.get("claim_id") != record["claim_id"]):
+                        reason = "unsafe-cancel-marker"
+                    else:
+                        reason = "cancelled"
+                        record["cancel_acknowledged_at"] = utcnow()
+                        record["cancel_requested_at"] = request["requested_at"]
                     break
                 if time.monotonic() - began >= timeout:
                     reason = "timed-out"
@@ -245,11 +287,11 @@ def launch(root, ticket, fixture, *, execute=False, approval=None,
                     break
                 time.sleep(0.05)
             if reason is not None:
-                stop_child(child)
+                stop_child(child, job)
             try:
                 out, err = child.communicate(timeout=5)
             except subprocess.TimeoutExpired:
-                stop_child(child)
+                stop_child(child, job)
                 out, err = child.communicate(timeout=5)
                 reason = reason or "timed-out"
             status = reason or ("completed" if child.returncode == 0 else "failed")
@@ -260,16 +302,37 @@ def launch(root, ticket, fixture, *, execute=False, approval=None,
                            "model_invoked": False})
         except BaseException:
             if child is not None:
-                stop_child(child)
+                stop_child(child, job)
             record.update({"status": "invocation-uncertain",
                            "model_invoked": False,
                            "diagnostic": "Supervisor interrupted; inspect Git/process"})
             persist(path, record)
             raise
+        finally:
+            if job is not None:
+                job.close()
         persist(path, record)
         return {"status": record["status"], "ticket": ticket,
                 "receipt": str(path), "model_invoked": False,
                 "exit_code": record.get("exit_code")}
+
+
+def inspect(root, ticket):
+    """Read-only receipt report; never infer liveness from a PID on disk."""
+    receipt = read_receipt(Path(root).resolve(), ticket)
+    if receipt is None:
+        return {"status": "no-attempt", "ticket": ticket,
+                "model_invoked": False}
+    terminal = receipt.get("status") in (
+        "completed", "failed", "cancelled", "timed-out", "unsafe-cancel-marker")
+    return {"status": "recorded", "ticket": ticket,
+            "recorded_status": receipt.get("status"),
+            "claim_id": receipt.get("claim_id"),
+            "containment": receipt.get("containment"),
+            "cancel_acknowledged": bool(receipt.get("cancel_acknowledged_at")),
+            "manual_reconciliation_required": not terminal,
+            "note": "Recorded receipt does not attest a live process; no automatic retry",
+            "model_invoked": False}
 
 
 def main(argv=None):
@@ -281,12 +344,18 @@ def main(argv=None):
     parser.add_argument("--approve-offline-ticket")
     parser.add_argument("--cancel", action="store_true",
                         help="Create a cancel marker; never kill a saved PID")
+    parser.add_argument("--status", action="store_true",
+                        help="Read the durable receipt without trusting a saved PID")
     parser.add_argument("--delay", type=float, default=0)
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--fail", action="store_true")
     args = parser.parse_args(argv)
     try:
-        if args.cancel:
+        if args.status:
+            if args.cancel or args.execute or args.approve_offline_ticket or args.fixture:
+                raise OfflineError("Status is strictly read-only")
+            result = inspect(args.root, args.ticket)
+        elif args.cancel:
             if args.execute or args.approve_offline_ticket or args.fixture:
                 raise OfflineError("Cancel cannot be combined with launch flags")
             result = cancel_request(args.root, args.ticket)
@@ -300,7 +369,8 @@ def main(argv=None):
                             timeout=args.timeout)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] in ("dry-run", "completed",
-                "cancelled", "cancel-requested", "no-active-worker") else 2
+                "cancelled", "cancel-requested", "no-active-worker",
+                "recorded", "no-attempt") else 2
     except (OfflineError, controller.ControllerError, worktrees.WorktreeError,
             ValueError, TypeError, OSError, subprocess.SubprocessError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)[:300],

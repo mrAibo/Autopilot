@@ -33,6 +33,9 @@ py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --fixture calc-ad
 
 # From a second shell while the supervisor is running:
 py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --cancel
+
+# Reconcile by reading the saved receipt; never trusts a stale PID:
+py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --status
 ~~~
 
 A receipt is created with exclusive create + fsync **before** process
@@ -45,14 +48,29 @@ child process it still owns**: it does not use a persisted PID to
 kill an arbitrary possibly reused process.
 
 The supervisor holds the existing host-controller lock across the child
-lifetime to prevent competing host-side Git/test transitions. An
-unexpected parent crash may leave a process behind on some operating
-systems; the receipt deliberately remains `invocation-uncertain` or
-`running` and **no restart/retry is allowed**. A cancel marker is
-best-effort: if the supervisor has crashed, it cannot kill the child.
-True kill-on-parent-death process containment, cancellation acknowledgement,
-heartbeat/process identity attestation and production worker recovery
-are **not** established by this test harness.
+lifetime to prevent competing host-side Git/test transitions.
+
+**Windows:** `process_containment.py` creates a Windows Job Object with
+`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`. The inert `process_gate.py` cannot
+launch the fixture until the supervisor assigns the gate process to the
+Job Object. If assignment fails, the worker never starts (fail closed).
+The supervisor alone owns the kernel job handle: parent death closes it,
+causing the kernel to terminate contained child processes. An actual Windows
+integration test killed the parent and verified the gate process signalled
+termination via an open OS handle; the fixture source remained untouched.
+
+**Linux/macOS:** processes run in a separate POSIX session, but parent-death
+kill of descendants is **not** guaranteed. Production calls must not rely
+on that weak fallback; platform-specific containment remains to be built.
+
+Cancel requests contain the exact `claim_id` from the durable receipt.
+The live supervisor validates this ID, kills the owned process tree and
+writes `cancel_acknowledged_at` in the terminal receipt. A `--status`
+command exposes recorded outcomes read-only without claiming a stored PID is
+alive. If the supervisor dies, the receipt deliberately remains
+`invocation-uncertain` or `running` and **no automatic restart/retry is
+allowed**. A cancel marker alone is not evidence of termination. There is
+still no production-ready cross-platform lifecycle recovery.
 
 ## Verification and boundaries
 
