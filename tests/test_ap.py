@@ -666,6 +666,8 @@ class Run(unittest.TestCase):
     def test_host_side_finalize_then_land_and_done(self):
         self.plan(isolated=True)
         self.ap("tickets")
+        self.git("config", "user.name", "Autopilot Test")
+        self.git("config", "user.email", "test@example.invalid")
         self.git("add", ".gitignore")
         self.commit("bootstrap")
         code, out = self.ap("worktree", "01", "prepare")
