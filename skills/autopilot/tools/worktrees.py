@@ -83,6 +83,7 @@ def status(root, ticket):
 
 def source_commit(root, ticket, base):
     """Return the sole executor commit, rejecting diverged or dirty worktrees."""
+    root = repository(root)
     target = safe_target(root, ticket)
     if not target.is_dir():
         raise WorktreeError("Worktree missing")
