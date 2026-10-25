@@ -19,6 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(os.path.dirname(HERE), "skills", "autopilot")
 AP = os.path.join(SKILL, "tools", "ap.py")
 ROUTER = os.path.join(SKILL, "tools", "model_router.py")
+PROFILES = os.path.join(SKILL, "tools", "agent_profiles.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
 
 MANIFEST = """# Манифест требований
@@ -53,6 +54,7 @@ class Run(unittest.TestCase):
         shutil.copy(TEMPLATE, os.path.join(self.a, "dashboard.html"))
         shutil.copy(AP, os.path.join(self.a, "ap.py"))
         shutil.copy(ROUTER, os.path.join(self.a, "model_router.py"))
+        shutil.copy(PROFILES, os.path.join(self.a, "agent_profiles.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -418,9 +420,18 @@ class Run(unittest.TestCase):
                             "--model", "haiku", "--effort", "low", "--reason", "simple",
                             "--capabilities", caps)
         self.assertEqual(code, 0, out)
-        self.assertTrue(self.state()["tickets"][0]["routing"]["verified"])
+        route = self.state()["tickets"][0]["routing"]
+        self.assertTrue(route["verified"])
+        self.assertIn("autopilot-executor-01-karkas", route["agentType"])
+        self.assertTrue(os.path.isfile(os.path.join(self.root, route["agentFile"])))
         code, out = self.ap("ticket", "01", "start")
         self.assertEqual(code, 0, out)
+        with open(os.path.join(self.root, route["agentFile"]), "a", encoding="utf-8") as profile_file:
+            profile_file.write("\n# modified")
+        self.ap("ticket", "01", "reset")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
 
     def test_route_rejects_unapproved_model_even_with_host_advertisement(self):
         self.plan()
