@@ -8,6 +8,9 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Windows process containment qualification: gated launch after successful Job Object assignment, kernel kill-on-job-close for parent crashes, claim-bound cancellation marker and acknowledged terminal receipts, plus read-only reconciliation. Windows parent-death test verified with a held native process handle. POSIX parent-death containment and production use remain unverified.
+- One explicitly authorized real Codex CLI smoke (gpt-6-luna/low) completed a model turn but **did not produce a worker commit**: `incomplete`, not accepted, no replay. Account-reported 53,187 input (46,464 cached) and 341 output tokens exceeded the recorded 2,000-token threshold; it is not a hard per-call cap. Added sanitized CLI exit/diagnostic fields to future GUI dispatch receipts. No further paid probes until spending limits and failure diagnosis are addressed.
+
 - Added a **test-only** offline subprocess supervisor with strict temporary Git fixture gating, an exclusive fsynced single-use receipt, explicit per-ticket offline consent, live-child cancellation marker, timeout and no replay on failure/crash. Its only child is a bundled deterministic Python fixture; no Codex/Claude, paid provider or invented usage events. This is a qualification harness, **not** production AI auto-dispatch.
 
 - Added bounded `host_loop.py` on top of controller: side-effect-free preview;

@@ -54,7 +54,7 @@ class OfflineSupervisorRealGit(unittest.TestCase):
         (Path(h.a) / "offline-test-consent").write_text(
             offline_supervisor.MARKER, encoding="utf-8")
         for tool in ("offline_supervisor.py", "offline_fixture_worker.py",
-                     "host_loop.py"):
+                     "host_loop.py", "process_containment.py", "process_gate.py"):
             shutil.copy(Path(offline_supervisor.__file__).parent / tool,
                         Path(h.a) / tool)
 
@@ -153,6 +153,8 @@ class OfflineSupervisorRealGit(unittest.TestCase):
                 child.communicate(timeout=10)
         record = offline_supervisor.read_receipt(h.root, "02")
         self.assertEqual(record["status"], "cancelled")
+        self.assertTrue(record["cancel_acknowledged_at"])
+        self.assertEqual(len(record["claim_id"]), 32)
         wt = Path(h.state()["tickets"][1]["worktree"]["cwd"])
         self.assertEqual((wt / "src" / "bot" / "calc.py").read_text(encoding="utf-8"),
                          "def mul(a, b):\n    return a + b\n")
@@ -212,6 +214,82 @@ class OfflineSupervisorRealGit(unittest.TestCase):
         self.assertEqual(rc, 2, out)
         self.assertEqual(out["status"], "blocked")
         self.assertFalse((Path(self.h.a) / "offline-worker").exists())
+
+    @unittest.skipUnless(sys.platform == "win32", "Requires Windows Job Objects")
+    def test_windows_parent_kill_terminates_child_tree(self):
+        """Open the gate handle before killing parent to avoid PID reuse races."""
+        import ctypes
+        from ctypes import wintypes
+
+        self.start_first()
+        cmd = [sys.executable, str(Path(self.h.a) / "offline_supervisor.py"),
+               "--root", self.h.root, "--ticket", "01",
+               "--fixture", "calc-add", "--execute",
+               "--approve-offline-ticket", "01", "--delay", "15",
+               "--timeout", "30"]
+        supervisor = subprocess.Popen(
+            cmd, cwd=self.h.root, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace")
+        handle = None
+        try:
+            limit = time.monotonic() + 12
+            while time.monotonic() < limit:
+                rec = offline_supervisor.read_receipt(self.h.root, "01")
+                if rec and rec["status"] == "running":
+                    break
+                if supervisor.poll() is not None:
+                    self.fail("Supervisor crashed before job assignment")
+                time.sleep(0.05)
+            else:
+                self.fail("Worker gate never became contained")
+            self.assertEqual(rec["containment"], "windows-kill-on-job-close")
+            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL,
+                                          wintypes.DWORD]
+            kernel.OpenProcess.restype = wintypes.HANDLE
+            kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE,
+                                                    wintypes.DWORD]
+            kernel.WaitForSingleObject.restype = wintypes.DWORD
+            kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+            handle = kernel.OpenProcess(0x00100000, False, rec["child_pid"])
+            self.assertTrue(handle, "Must hold genuine gate process handle")
+            self.assertEqual(kernel.WaitForSingleObject(handle, 0), 0x102)
+            supervisor.kill()
+            supervisor.communicate(timeout=10)
+            self.assertEqual(kernel.WaitForSingleObject(handle, 5000), 0,
+                             "Windows kernel must kill child when parent job closes")
+            self.assertEqual(
+                (Path(rec["cwd"]) / "src" / "core" / "calc.py")
+                .read_text(encoding="utf-8"),
+                "def add(a, b):\n    return a - b\n")
+            # The receipt is intentionally not 'completed': no replay.
+            rc, denied = self.invoke("--fixture", "calc-add",
+                                     "--execute", "--approve-offline-ticket", "01")
+            self.assertEqual(rc, 2, denied)
+            self.assertEqual(denied["status"], "blocked")
+            rc, state = self.invoke("--status")
+            self.assertEqual(rc, 0, state)
+            self.assertTrue(state["manual_reconciliation_required"])
+        finally:
+            if handle is not None:
+                kernel.CloseHandle(handle)
+            if supervisor.poll() is None:
+                supervisor.kill()
+                supervisor.communicate(timeout=10)
+
+    def test_receipt_status_and_cancel_ack(self):
+        self.start_first()
+        rc, before = self.invoke("--status")
+        self.assertEqual(rc, 0, before)
+        self.assertEqual(before["status"], "no-attempt")
+        rc, result = self.invoke("--fixture", "calc-add",
+                                  "--execute", "--approve-offline-ticket", "01")
+        self.assertEqual(rc, 0, result)
+        rc, state = self.invoke("--status")
+        self.assertEqual(rc, 0, state)
+        self.assertEqual(state["recorded_status"], "completed")
+        self.assertFalse(state["manual_reconciliation_required"])
 
     def test_invalid_preflight_cannot_claim_or_launch(self):
         self.start_first()

@@ -46,7 +46,9 @@ final G1–G4 acceptance. See [host loop](docs/autopilot/host-loop.md).
 [offline supervisor](docs/autopilot/offline-supervisor.md) uses a real OS child,
 durable anti-replay receipt, cancellation and timeout inside disposable temporary
 Git fixtures. It **cannot call an AI model** and is not installed as a
-production dispatcher. Host acceptance still requires independently trusted tests.
+production dispatcher. On Windows it now uses a kernel kill-on-close Job Object
+and a gated start, with a real parent-crash test; POSIX is not parent-death safe.
+Host acceptance still requires independently trusted tests.
 
 **GUI-to-CLI fallback for Codex:** When named native GUI subagents are
 unavailable, a GUI host with terminal tools can invoke the
