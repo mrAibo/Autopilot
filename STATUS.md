@@ -1,75 +1,59 @@
 # STATUS.md — Autopilot 2.3 development handoff
 
-**Updated:** 2026-10-25 (Europe/Berlin)
-**Canonical repo:** https://github.com/mrAibo/Autopilot
+**Updated:** 2026-10-25, Europe/Berlin
+**Repository:** https://github.com/mrAibo/Autopilot
 **Working branch:** `feat/autopilot-2.3-adaptive-router-dashboard`
-**Pull request:** https://github.com/mrAibo/Autopilot/pull/1 (**Draft**, NOT merged)
-**Base main commit:** `25b5fbada50742f1b6a900a5a92800759e5c74d4`
-**Checkpoint when this file was written:** `4b31fd74378248571d9042b5eb3725f2f573fa4c` (subsequent commits on the same branch supersede this SHA)
-**Release:** 2.3.0 IN DEVELOPMENT. Do not merge/tag as final yet.
-**Latest branch HEAD before this status commit:** `b1ae9042f0ff7151fe4ca5ae83134adff8f1ce2d`. A STATUS.md-only commit itself advances HEAD. Verify its CI independently when resumed.
+**PR:** https://github.com/mrAibo/Autopilot/pull/1 — **open, Draft, NOT MERGED**
+**Current source checkpoint before this STATUS.md update:** `22649612a23920019065c57a21a395a92f6711ca`
+**Original base:** `25b5fbada50742f1b6a900a5a92800759e5c74d4` (Autopilot 2.2.0)
+**Target:** Autopilot 2.3.0, NOT RELEASED.
+**Authoritative specification:** `бриф.md`. Keep `main` untouched until release review/approval.
 
-## Mission and non-negotiables
+## Current verified checkpoint
 
-Deliver `бриф.md`: reliable CLI lifecycle; provider-neutral economical task routing for OpenAI/Codex and Anthropic/Claude Code; premium models blocked by default; native pinned agent definitions; safe per-ticket Git worktree isolation; strict acceptance gates, tests, clearer Dashboard 3.0, token reports and honest limits; complete EN/RU documentation.
+- Most recent completed **application-code** CI: [GitHub Actions run 40188502124](https://github.com/mrAibo/Autopilot/actions/runs/40188502124), at commit `b9e6b9b5987dd1688cb0d05d48ff6ed849e6a2ef`: **all four jobs green** on Ubuntu/Windows with Python 3.11 and 3.13; **115 Python tests** on Ubuntu 3.13, dashboard JavaScript syntax and headless Chrome DOM checks for wide/narrow layouts.
+- Since that code checkpoint, only documentation files were updated (`docs/autopilot/worktrees.md`, README EN/RU) before this STATUS checkpoint. Check CI for the newest HEAD after every change.
+- **No real Codex/Claude Code agent run, paid-model verification, or real monetary savings measurement has been performed.** Never claim that config verification equals host/billing verification.
 
-Do not modify `main` until reviewed and approved. Use the existing draft PR. NEVER claim external model selection or dollar cost was verified without evidence from a real Codex or Claude Code run. Preserve backwards compatibility when possible. Keep the tracked `STATUS.md` updated after every substantive implementation/test milestone.
+## Implemented and committed
 
-## Completed and already committed to PR
+1. Reliability: strict `finish` gates (G1–G4), verified Git ancestor/test counts for `ticket done`, requirement reconciliation, plan validation, safe path/slug handling, state process lock, safe dashboard stopper.
+2. Provider-aware selection: `skills/autopilot/tools/model_router.py` scores complexity and risk; OpenAI and Anthropic adapters support cheap/balanced/strong profiles, deny premium agent families by default, demand host capability advertisement.
+3. Native agent definitions: `agent_profiles.py` creates pinned `.codex/agents/*.toml` and `.claude/agents/*.md`; `ap.py ticket route` records an integrity SHA. Optional `claude_agent_guard.py` installs a project `PreToolUse` hook. Real execution proof still required.
+4. Parallel Git worktree helper: `worktrees.py` creates detached per-ticket checkouts, checks clean source, lands exactly one executor commit, refuses unsafe/dirty removals. Ledger supports `worktree NN prepare|status|land|release`, with tests ensuring `ticket done` cannot bypass landing.
+5. **New crash recovery milestone:** `git cherry-pick -x` embeds the source SHA; matching commits are independently cross-checked by stable patch ID before recognizing a previously completed Git landing. `ap.py worktree NN recover --tests N/0` reconciles an incomplete ledger after Git worktree creation, successful cherry-pick, or worktree release. Recoveries are read-only when investigating Git; no forced deletion or arbitrary reset. A detected incomplete `CHERRY_PICK_HEAD` blocks recovery and requires an explicit manual `git cherry-pick --continue` or `--abort` decision after inspection. Duplicate `ticket start` is rejected.
+6. **New deterministic dispatch planner:** `scheduler.py`, integrated as `ap.py schedule --max-parallel 2`, emits machine-readable JSON with `selected` actions (`route`, `prepare`, `start`) and `blocked` reasons. Respects dependencies, overlap/wildcard code zones, active agents, reserved prepared worktrees, strict verified model profiles and the recorded-token budget. Default 2, explicit max 3. **It does NOT invoke external agents.**
+7. Retry triage: `retry_policy.py` classifies environment, dependencies, requirements, tests, reasoning, security, unknown. Rejects unjustified model escalation; retries/repairs are capped at 2 and diagnosed causes are logged.
+8. Token observability: `ap.py usage` stores de-duplicated per-call input/output/cache events, and `ap.py budget` blocks NEW starts at a recorded-token threshold. These are not true billing amounts or spending caps.
+9. Dashboard 3.0: redesigned responsive UI, next-action summary, gates, model/effort, token counters, worktree statuses and retry advice; Chrome screenshots and tests. Docs/README EN/RU and CHANGELOG updated.
 
-1. `бриф.md` captures R01–R06, stages and definition of done.
-2. `skills/autopilot/tools/ap.py`: hard `finish` gates, ticket Git ancestor/test checks, requirement reconciliation, validation, OS process lock, safe delayed dashboard server shutdown, model route verification, protected state fields.
-3. `skills/autopilot/tools/model_router.py` & `agent_profiles.py`: complexity tiers, separate OpenAI and Anthropic profiles, no automatic Astra/Fable/Opus; fail-closed host-capability handshake; generate native pinned `.claude/agents/*.md` and `.codex/agents/*.toml`; profile SHA verified on strict ticket start/done.
-4. `skills/autopilot/tools/claude_agent_guard.py`: opt-in Claude Code PreToolUse guard + installer and tests; not a host-level sandbox.
-5. `skills/autopilot/phases/dashboard-template.html`: redesigned responsive UI, current activity, gates, task status, model/effort, token counters and threshold, isolated checkout status and diagnosed retry history; browser CI smoke for desktop/narrow and screenshot artifacts.
-6. `skills/autopilot/tools/worktrees.py`: detached per-ticket checkouts, clean-source safeguards, single-commit cherry-pick, refusal to delete dirty worktrees. `ap.py worktree ID prepare|status|land|release` now integrates worktree lifecycle with ticket state; all relevant integrated regression tests pass in latest validated CI.
-7. `skills/autopilot/tools/retry_policy.py`: deterministic failure diagnosis (environment/dependency/requirements/tests/reasoning/security/unknown). `ap.py ticket NN retry --cause tests|unknown` stops inappropriate model escalation and caps retries/repairs at two; deterministic retry tests pass in latest validated CI.
-8. `ap.py usage` accepts identified token observations; `ap.py budget` stops *new* task starts at a **recorded token** threshold; it cannot enforce monetary budget or stop a running model. Dashboard displays missing price as unavailable.
-9. Tests/CI for Linux and Windows (Python 3.11 and 3.13), Node syntax, headless Chrome DOM/screenshot. EN/RU README, CHANGELOG, routing, observability and worktree docs.
+## Resume checklist — remaining work
 
-## Current in-progress checkpoint / verification
+**Priority P0: real host execution and crash robustness**
+1. Re-read this STATUS, `бриф.md`, `docs/autopilot/model-routing.md`, `docs/autopilot/worktrees.md`, `docs/autopilot/retry-policy.md` and CI on the latest head.
+2. Test actual native subagent discovery and model/effort dispatch in an accessible Codex CLI and Claude Code environment, including the opt-in Claude hook, `cwd` for worktrees, and restricted-model guard. Do not claim this passed from synthetic tests.
+3. Integrate `schedule` with a real host-side orchestrator/action dispatcher **only if** the host supports enforceable per-agent model and cwd; otherwise use safe stepwise prompts and sequential work. `schedule` itself is read-only and intentionally does not run external commands.
+4. Add more multi-ticket wave/restart tests, strong proof of non-overlapping source zones, recovery from Git conflict cases, and stale-task/reset/reopen cases; do not auto-abort conflict sequencers.
+5. Investigate operator-friendly diagnostic messages and safe recovery of previously detached worktrees that were manually edited; never discard uncommitted work.
 
-- Last verified all-green checkpoint before latest worktree/retry changes: commit `5ef6b92e8ae6c12c67d2f43989ff046af0d052d8`, GitHub Actions run `40184704422`, all four platform/Python combinations succeeded, 80 tests on Linux, dashboard smoke.
-- New integrated worktree + retry changes are on this branch. A first end-to-end test failed because the test Git repo lacked `user.name/email` for `cherry-pick`. The test now configures the local Git committer; detailed landing failure messages added.
-- Linux checks for the subsequent commit `b214bb91f6a931ca48e96c5df8f2c3fdb2acdc9c` were green. Current HEAD includes additional integration and docs; recheck CI for **current HEAD**, do not use old green status.
-- Completed all-green integrated worktree/retry checkpoint: GitHub Actions run `40186489341` (Ubuntu and Windows, Python 3.11 / 3.13). This is distinct from the earlier green baseline.
-- Subsequent integrated milestone: run `40186842186` passed all four Windows/Linux + Python 3.11/3.13 jobs, including lifecycle release, isolation-bypass and live-ticket-change regression tests.
-- Latest **validated application-code** checkpoint: commit `1f68df43522ab72ec1080b59d05242bb04a88c3b`, GitHub Actions run `40187021454`, all four jobs succeeded, **93 unit tests** on Ubuntu 3.13, Node syntax and Chrome desktop/narrow smoke. Dashboard now displays isolation/retry details. Later commits only link to STATUS.md from README; validate newest HEAD CI before reporting all green.
-- The project README in RU/EN now links to this STATUS.md for new-session continuation.
-- No actual Anthropic or Codex session was launched; no paid-model/billing evidence, and model/cwd behavior must be validated in real harnesses.
+**P1/P2: economic measurement, packaging and release**
+6. Add opt-in import of trustworthy local Codex/Claude usage metrics and transparent pricing *only where provider data supports it*. Compare 2.2 vs 2.3 on equal tasks (quality, retries, latency, token reports).
+7. Resolve inherited `skills-lock.json` provenance/upstream installation/packaging and release docs.
+8. Keep PR Draft; complete final tests and explicit release review before merging to `main` or tagging 2.3.0.
 
-## Immediate TODO (continue in this order)
+## To resume in a fresh ChatGPT session (copy verbatim)
 
-1. **Check latest CI on current HEAD** via GitHub connector; inspect failing job logs and fix every regression on the feature branch.
-2. **DONE:** bootstrap `skills/autopilot/phases/0-instruments.md` now copies both `worktrees.py` and `retry_policy.py`; CLI integration tests copy both helpers.
-3. **DONE for this increment:** phase 5 subagent/repair docs, worktree and retry-policy docs, README EN/RU and CHANGELOG now include the new API; lifecycle includes `worktree release` after `ticket done`. Verify any remaining gaps in `бриф.md` at release.
-4. **PARTIALLY DONE:** integrated isolated task lifecycle, preparation-before-start, dependency ordering, malformed/failed tests and safe accepted release all have tests. Retry category, two-retry limit and avoidance of environment-model escalation have tests. **Remaining:** concurrent wave, multiple landed commits, restart/recovery and strict mode reroute; replay tests from a process crash; verify on both OS.
-5. **PARTIALLY DONE:** source-clean Git landing verified, dirty checkout refused, repo local Git committer required; ticket fingerprint modifications with active worktree now block; done cannot bypass isolation; helpers are bootstrapped. **Remaining:** crash recovery, reset/reopen semantics with worktrees, automatic cleanup policy and true multi-task scheduler.
-6. **Real-host verification** requires accessible local Codex CLI and Claude Code with permitted test models: verify actual agent type, effort, Claude hook, isolated cwd, usage reports. GitHub CI tests alone cannot assert external harness behavior.
-7. **Cost and benchmark:** automatic read of sanitized provider log counters, comparisons with 2.2.0 across same tasks, optional pricing; do not invent cost.
-8. Keep PR Draft, update PR description with current truthful limits. Prepare release only after all critical gates pass. The dashboard browser smoke and isolated task tests are green; this is **not** proof of an actual paid model run.
-9. Maintain this `STATUS.md` after EVERY substantial milestone, including exact latest green workflow ID, open blockers and how to resume.
+> Продолжай разработку Autopilot 2.3 в https://github.com/mrAibo/Autopilot, ветка `feat/autopilot-2.3-adaptive-router-dashboard`, черновой PR №1. Сначала прочитай `STATUS.md`, `бриф.md`, документацию в `docs/autopilot/`, затем проверь фактический HEAD и GitHub Actions CI. Продолжай по разделу Resume checklist без нового планирования, меняй только рабочую ветку и обновляй `STATUS.md` после каждого этапа. `main` не трогать. Проверки реального запуска Codex/Claude и расходов не считать пройденными без фактического доказательства.
 
-## How to resume in a NEW ChatGPT session
+**Repository code hotspots:**
+- `skills/autopilot/tools/ap.py` (main state/CLI)
+- `skills/autopilot/tools/worktrees.py` (Git isolation, recovery)
+- `skills/autopilot/tools/scheduler.py` (pure deterministic dispatch decisions)
+- `skills/autopilot/tools/model_router.py`, `agent_profiles.py`, `claude_agent_guard.py`
+- `tests/test_ap.py`, `test_worktrees.py`, `test_scheduler.py`
+- `skills/autopilot/phases/0-instruments.md`, `5-subagents.md`, `5-repair.md`
+- `.github/workflows/python-tests.yml`, `tools/check-dashboard-browser.py`
 
-Send this instruction:
+**Test commands:** `python -m unittest discover -s tests -v`; `python tools/check-dashboard.py`; `python tools/check-dashboard-browser.py` in a Linux Chrome environment. GitHub Actions additionally runs Python 3.11/3.13 on Ubuntu/Windows. Use the connected GitHub plugin in ChatGPT; local Windows directory access is not established by this GitHub integration.
 
-> Continue development of https://github.com/mrAibo/Autopilot in branch `feat/autopilot-2.3-adaptive-router-dashboard`, PR #1. Read `STATUS.md`, `бриф.md`, `docs/autopilot/model-routing.md`, `docs/autopilot/worktrees.md`, `docs/autopilot/retry-policy.md`, `docs/autopilot/observability.md` and relevant code/tests via connected GitHub. Verify latest HEAD and CI. Continue unfinished work from STATUS.md without replanning. Update STATUS.md after each milestone. Work only in branch, leave main unchanged, do not prematurely merge. Report genuine limitations and tests.
-
-Current integrated commands: `ap.py init ... --isolated-tickets`, `ap.py worktree NN prepare|status|land|release`, `ap.py ticket NN retry --cause tests|unknown`. Always checkpoint generated `.gitignore` source changes before creating an isolated worktree. The host must truly launch the executor in the returned `cwd`, which is not enforced by a GitHub-only test.
-
-The ChatGPT assistant can use the **connected GitHub plugin** tools through `functions.exec`; GitHub repository is accessible. Avoid relying on a local clone unless its availability is confirmed. Do not repeat work done in this branch. The user prefers Russian communication and a useful, informative Dashboard.
-
-## Reference files and checks
-
-- `skills/autopilot/tools/ap.py`
-- `skills/autopilot/tools/model_router.py`
-- `skills/autopilot/tools/agent_profiles.py`
-- `skills/autopilot/tools/worktrees.py`
-- `skills/autopilot/tools/retry_policy.py`
-- `skills/autopilot/tools/claude_agent_guard.py`
-- `tests/test_ap.py`, `tests/test_worktrees.py`, `tests/test_retry_policy.py`, `tests/test_agent_profiles.py`, `tests/test_model_router.py`
-- `.github/workflows/python-tests.yml`
-- Run: `python -m unittest discover -s tests -v`; `python tools/check-dashboard.py`; headless Chrome smoke `python tools/check-dashboard-browser.py` on Linux CI.
-
-**Maintain this file as an accurate handoff, not a blanket “everything completed” claim.**
+**Source of truth is this checked-in file plus actual GitHub HEAD and CI, not earlier chat guesses.**
