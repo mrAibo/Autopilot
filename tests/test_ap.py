@@ -523,6 +523,64 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["tickets"][0]["retries"], 2)
         self.assertEqual(self.state()["tickets"][0]["retryAdvice"]["model"], "same")
 
+    def test_recover_crash_after_git_worktree_add_before_state_save(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        result = subprocess.run(
+            [sys.executable, os.path.join(self.a, "worktrees.py"), "create", "01",
+             "--root", self.root], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.state()["tickets"][0].get("worktree"))
+        code, out = self.ap("worktree", "01", "recover")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+
+    def test_recover_crash_after_cherry_pick_before_state_save(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        wt = self.state()["tickets"][0]["worktree"]
+        (os.makedirs(os.path.join(wt["cwd"], "feature"), exist_ok=True))
+        with open(os.path.join(wt["cwd"], "feature", "recover.txt"), "w", encoding="utf-8") as f:
+            f.write("safe after restart\n")
+        self.git("-C", wt["cwd"], "add", "feature/recover.txt")
+        self.git("-C", wt["cwd"], "commit", "-qm", "T01 recover")
+        # Simulate power loss: Git cherry-pick completed but ap.py state write did not.
+        result = subprocess.run(
+            [sys.executable, os.path.join(self.a, "worktrees.py"), "land", "01",
+             "--root", self.root, "--base", wt["baseCommit"]],
+            text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+        code, out = self.ap("worktree", "01", "recover", "--tests", "4/0")
+        self.assertEqual(code, 0, out)
+        landed = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "landed")
+        code, out = self.ap("ticket", "01", "done", "--commit", landed[:12])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
+
+    def test_reset_refuses_unreleased_worktree(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.ap("worktree", "01", "prepare")
+        code, out = self.ap("ticket", "01", "reset")
+        self.assertNotEqual(code, 0)
+        self.assertIn("освободи worktree", out)
+
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)
         self.ap("tickets")
