@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Guarded native Codex custom-agent routing against model-V2 spawn metadata omission and unverified child execution; do not interpret GUI skill discovery or agent prose as model pinning.
+
 **Dashboard 3.1 command center and copied-dashboard upgrade (2026-10-25)**
 - Rebuilt the Dashboard as a desktop mission-control experience with a dark navigation rail, a two-panel next-action view, color-coded KPIs, task execution, model/token/worktree and quality sections. Narrow and Codex split-screen layouts retain the information without a sidebar.
 - Regenerated six real Chrome screenshots in EN and RU, with cache-busting Dashboard 3.1 filenames, and retired previous Dashboard 3.0 captures; regression tests assert the actual live layout.

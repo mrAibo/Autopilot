@@ -30,6 +30,23 @@ A subagent has a filesystem; pasting what it can read writes the same words twic
 
 **Codex CLI integration (opt-in).** For OpenAI tickets already started in strict isolated mode, `python .autopilot/codex_dispatch.py NN --root .` performs a **read-only dry-run preflight**. With explicit `--execute` it launches a single separate `codex exec` process using the approved model and effort, in the prepared worktree, using a bounded sandbox, then records reported token counters when available. This is a separate Codex worker process, **not** proof that an in-session custom named subagent inherited the right model. It does not auto-merge: review/test before `worktree land`. On Windows, if the sandbox can edit but cannot use shared Git metadata, run independent tests in the trusted host and invoke `ap.py worktree NN finalize --tests N/0` after verifying changed paths. Finalization stages only paths inside the ticket's exact zones and makes one Git commit outside the model sandbox, then `land` performs ordinary integration. A model turn without a worker commit is `incomplete`, not success. Optional `--optimization lean` activates a short Ponytail-inspired implementation policy in the standalone Codex worker; default is `off` and it is **not** the official upstream Ponytail plugin. Never invoke `--execute` without the run owner's approval of the planned model call. See `docs/autopilot/codex-cli.md`.
 
+**Mandatory Codex native custom-agent preflight (fail closed):** A GUI-visible
+TOML file is not evidence that a subagent inherited its exact model/Effort.
+GPT-6 parent models currently advertise native multi-agent V2; the runtime
+may omit named agent_type from spawn_agent even with feature flags disabled.
+Before any strict Codex named-agent spawn, run in the project root:
+
+    python3 .autopilot/codex_native_agents.py --codex-exe PATH_TO_GUI_BINARY --profile .codex/agents/AGENT.toml --name AGENT --parent-model ACTUAL_GUI_PARENT_MODEL --child-model APPROVED_MODEL --effort APPROVED_EFFORT
+
+This gate checks pinned TOML, exact resolved model/Effort and V1/V2.
+Catalog V1 is only a *candidate*, not proof of an executed child.
+A quoted model reply, process exit 0 or supplied JSONL file does not prove
+the child runtime; diagnostic JSONL is deliberately not authorization.
+If strict named GUI agents are unavailable, use the independently validated
+sandboxed pinned Codex CLI worker with trusted host tests, or do the ticket
+sequentially without claiming a named subagent. Never remove sandbox or
+silently charge the parent model. Keep actual GUI E2E as a release gate.
+
 **Provider-neutral model routing (mandatory).** Before EVERY executor spawn, run `python3 .autopilot/model_router.py <ticket-path> --provider openai|anthropic --capabilities .autopilot/model-capabilities.json`. The capabilities file must represent the actual running harness (supported models, effort and enforceable selection). A non-zero exit or `status=blocked` means **do not spawn**. Run `ap.py ticket NN route --provider ... --model ... --effort ... --reason ... --capabilities .autopilot/model-capabilities.json` to create a **pinned native project agent profile** and record its integrity hash. Pass the exact resulting `agentType` to the host's Agent/subagent call, **not** a generic `worker` or `Explore`, and do not override its model/effort. `ticket NN start` in strict routing mode checks that this profile has not changed. Existing sessions may need to reload/restart to discover new project agent files. **On Claude Code, install the optional project-level blocking hook once before strict dispatch:** `python .autopilot/claude_agent_guard.py --install-hook --root .` (inspect `.claude/settings.json`; the guard is active only while an unfinished strict run exists). `SubagentStart` hooks are too late to block a launch, so this uses `PreToolUse` on `Agent|Task`. On Codex the configuration pins a named custom agent but does not prevent an unrelated `spawn_agent` call; keep the default worker inexpensive and do not advertise this as a full security boundary. See `docs/autopilot/model-routing.md` in the skill repository. Legacy `Модель: сильная/обычная` is only a hint, not a dispatch instruction.
 
 OpenAI default: Luna for cheap/balanced, Sol for strong; Anthropic default: Haiku for cheap, Sonnet for balanced/strong. Restricted Astra/Fable never spawn automatically; the main session's model must not leak into subagents. If this host cannot independently choose the model or cannot provide verified capabilities, **stop delegation and report the blocker** rather than ignoring it. A retry on a stronger model must get a new approved route; missing dependencies, access or ambiguous requirements are not model-strength failures.

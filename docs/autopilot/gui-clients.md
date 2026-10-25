@@ -25,6 +25,32 @@ When Git is checked out on Windows with `core.symlinks=false`, the two tracked *
 
 For this development checkout, first check the repository is clean, then use `git -C C:\Users\crown\Downloads\Projects\Autopilot pull --ff-only` to update the working branch. The global Junctions expose changes immediately to new host sessions. Do **not** run `npx skills update autopilot -g` on this developer-linked preview: it may replace it with the published main-branch release. After 2.3 is merged and released, use the supported `npx skills add mrAibo/Autopilot` workflow if preferred.
 
+## Actual Windows Codex native-runtime probe
+
+The owner's Codex Desktop-bundled binary is 0.164.0-alpha.11.1; the
+separately installed CLI is 0.165.0-alpha.1. Both catalog queries advertise
+nine account-visible models. GPT-6 Sol/Luna report multi_agent_version=v2;
+GPT-5.6 Luna reports v1. These are catalog claims, not executed sessions.
+
+A clean synthetic, read-only Git fixture with one exact
+.codex/agents/autopilot-explorer-smoke.toml named profile pinned to GPT-6
+Luna / Low was tested using the GUI's **bundled executable in CLI mode**.
+Parent GPT-6 Sol / Low replied NAMED_AGENT_UNAVAILABLE without a native
+child event despite exit 0 (18,729 input, 12,928 cached, 78 output tokens;
+6.3 seconds). The GPT-5.6 Luna / Low V1 parent likewise spawned no
+child (16,838 input, 11,392 cached, 54 output tokens; 4.7 seconds).
+Neither test modified any file or used a real project. The disposable
+fixture lives under user TEMP/autopilot-native-gui-agent-smoke-20261025.
+
+The new codex_native_agents.py validates native catalog and profile pins
+and fails closed if model or effort is unavailable, V2 cannot choose a
+custom agent, or native child execution cannot be independently attested.
+Caller-supplied JSONL is only diagnostic, NOT authorization. Prefer
+sequential GUI execution or verified pinned, sandboxed CLI dispatcher.
+These read-only EXE tests **did not operate the graphical Codex window**;
+GUI native subagents remain unverified. Claude Desktop is present, but no
+Claude Code CLI command was found, so Claude Code GUI/CLI is also unverified.
+
 ## Capability discovery
 
 On the current Windows machine, resolved `codex debug models` (not `--bundled`) advertises the **actual CLI account-visible model IDs and Effort values**. The project's `codex_capabilities.py` can export these:
