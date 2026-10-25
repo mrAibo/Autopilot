@@ -66,6 +66,26 @@ class WorktreeTests(unittest.TestCase):
         # Cherry-pick may rewrite the source SHA; require an explicit cleanup acknowledgement.
         self.assertEqual(worktrees.remove(self.root, "03", acknowledge_loss=True)["status"], "removed")
 
+    def test_duplicate_landing_recovers_matching_cherry_pick(self):
+        path = Path(worktrees.create(self.root, "06")["cwd"])
+        (path / "recovery.txt").write_text("crash safe\n", encoding="utf-8")
+        self.git(path, "add", "recovery.txt")
+        self.git(path, "commit", "-qm", "T06 recovery")
+        first = worktrees.land(self.root, "06", self.base)
+        self.assertFalse(first["recovered"])
+        again = worktrees.land(self.root, "06", self.base)
+        self.assertTrue(again["recovered"])
+        self.assertEqual(first["landedCommit"], again["landedCommit"])
+        detected = worktrees.recover(self.root, "06", self.base)
+        self.assertEqual(detected["landedCommit"], first["landedCommit"])
+        self.assertEqual(self.git(self.root, "rev-list", "--count", self.base + "..HEAD").stdout.strip(), "1")
+
+    def test_recovery_refuses_uncommitted_executor_changes(self):
+        path = Path(worktrees.create(self.root, "07")["cwd"])
+        (path / "uncommitted.txt").write_text("hold", encoding="utf-8")
+        with self.assertRaises(worktrees.WorktreeError):
+            worktrees.recover(self.root, "07", self.base)
+
     def test_multiple_commits_are_not_silently_landed(self):
         path = Path(worktrees.create(self.root, "04")["cwd"])
         self.git(path, "commit", "--allow-empty", "-qm", "T04 part 1")
