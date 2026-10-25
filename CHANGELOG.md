@@ -12,7 +12,9 @@ npx skills update autopilot -g
 - Hard-stop acceptance gates in `ap.py`: incomplete tickets, unverified commits, failing tests, missing gates block `finish`. Reopen/review paths reconcile requirement statuses. Empty manifest/plan fail G3.
 - Introduced OS-level locking for `state.js` writes, validated run identifiers, and protected the dashboard server against stale delayed-stop requests.
 - Added a provider-neutral model router with OpenAI Luna/Sol and Anthropic Haiku/Sonnet defaults. Restricted high-cost subagents do not launch. Selection requires actual host capabilities.
-- Dashboard 3.0 visual refresh, next-action and quality overview, per-task model decisions and explicit unknown-cost state.
+- Dashboard 3.0 visual refresh, next-action and quality overview, per-task model decisions and explicit unknown-cost state. Separate attributed input/output/cache token counters and recorded-token threshold.
+- Project-scoped native Claude Code `.md` and Codex `.toml` subagent profiles; strict start validates their hash, optional Claude Code `PreToolUse` hook denies unapproved spawns.
+- Conservative Git worktree helper for per-task isolation and safe, clean single-commit cherry-pick landing.
 - Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
 - Pending: verified in-harness dispatch adapters, worktree isolation, actual billing telemetry, visual/browser regression, real-run benchmark.
 
