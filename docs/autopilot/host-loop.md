@@ -2,9 +2,12 @@
 
 `host_loop.py` is an **optional operator-invoked host-only coordinator** for
 strict isolated Autopilot runs. It chains already-implemented controller
-transitions across a small bounded number of steps. **It cannot launch Codex,
-Claude, an agent, a network request or a provider billing call.** Default mode
-is completely read-only. This is not the future full AI worker orchestrator.
+transitions across a small bounded number of steps. **It never directly
+launches Codex, Claude, another agent, or a paid inference call.** However,
+approved host-side Python test modules are executable code, and may themselves
+make network requests or have other side effects. Only explicitly select
+trusted, independently reviewed offline suites. Default mode is read-only.
+This is not the future full AI worker orchestrator.
 
 ## Usage in an initialized project
 
@@ -49,7 +52,7 @@ operation is exposed.
   released. **NOT** final project acceptance, G1-G4 or `ap.py finish`.
 
 `model_invoked` is always `false` for this tool, regardless of status.
-Usage/price are not measured because no provider is contacted.
+Usage/price from any separately executed worker are not measured by this loop; the loop itself does not contact a provider. Host-run test modules must be separately trusted.
 
 ## Offline validation
 

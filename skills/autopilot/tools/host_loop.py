@@ -2,7 +2,8 @@
 """Bounded host-only Autopilot lifecycle loop for strict isolated tickets.
 
 Read-only by default. --advance runs at most N controller transitions, without
-calling a model, sending network requests, or retrying a failed transition.
+direct model dispatch or retrying failed transitions. Host-run approved test
+modules can have their own side effects: use only trusted offline suites.
 Explicit per-ticket suites are never inferred from agent text.
 """
 import argparse
