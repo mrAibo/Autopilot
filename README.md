@@ -6,9 +6,7 @@
   </picture>
 </p>
 
-<p align="center">
-  <a href="https://github.com/mrAibo/Autopilot"><img src="https://github.com/mrAibo/Autopilot" alt="skills.sh"></a>
-</p>
+<p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
 <p align="center"><strong>Describe what you want built — get a finished project.</strong></p>
 
