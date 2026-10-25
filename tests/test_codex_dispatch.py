@@ -131,6 +131,22 @@ class DispatchTests(unittest.TestCase):
         self.assertTrue(ident)
         self.assertIsNone(codex_dispatch.parse_usage("not JSON")[1])
 
+    def test_single_flight_blocks_duplicate_model_invocation(self):
+        lock = self.root / ".autopilot" / "dispatch-01.lock"
+        with codex_dispatch.single_flight(self.root, "01"):
+            self.assertTrue(lock.is_file())
+            with self.assertRaisesRegex(codex_dispatch.DispatchError, "Existing dispatch lock"):
+                with codex_dispatch.single_flight(self.root, "01"):
+                    pass
+        self.assertFalse(lock.exists())
+
+    def test_single_flight_releases_after_exception(self):
+        lock = self.root / ".autopilot" / "dispatch-01.lock"
+        with self.assertRaisesRegex(RuntimeError, "simulated"):
+            with codex_dispatch.single_flight(self.root, "01"):
+                raise RuntimeError("simulated")
+        self.assertFalse(lock.exists())
+
     def test_execution_reports_usage(self):
         cfg = self.checked()
         with patch.object(codex_dispatch.subprocess, "run") as mock:
