@@ -272,7 +272,8 @@
   execution, paid model identity, true hard budget limits or native
   GUI/Claude Code session execution. Keep the actual synthetic ticket
   untouched until a separately authorized potentially billable call.
-- Await CI and merge; then update STATUS with final main SHA.
+- **Merged:** [PR #6](https://github.com/mrAibo/Autopilot/pull/6) as squash commit `ae8e2471332a6f0e72079c4ceba4a5020e8166bb` on 2026-10-25. Final PR [CI #40228772621](https://github.com/mrAibo/Autopilot/actions/runs/40228772621) passed **4/4** Ubuntu/Windows Python 3.11/3.13 checks with **205 Python tests** and Dashboard JS/browser smoke. Initial Linux 3.11 red test was due to Python executable symlink-string comparison in the synthetic fixture; canonical path test now passes everywhere.
+- This STATUS.md update creates its own main commit and corresponding CI; check it independently.
 
 ## Prioritized next steps
 
