@@ -25,5 +25,17 @@ jobs:
         run: python -m compileall -q skills/autopilot/tools tests
       - name: Dashboard JavaScript syntax (Node.js)
         run: python tools/check-dashboard.py
+      - name: Browser dashboard smoke
+        if: runner.os == 'Linux'
+        env:
+          AUTOPILOT_SCREENSHOT_DIR: ${{ runner.temp }}/autopilot-dashboard
+        run: python tools/check-dashboard-browser.py
+      - name: Upload dashboard screenshots
+        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-3-visual-smoke
+          path: ${{ runner.temp }}/autopilot-dashboard/*.png
+          if-no-files-found: error
       - name: Unit tests
         run: python -m unittest discover -s tests -v
