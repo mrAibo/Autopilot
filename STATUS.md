@@ -74,6 +74,35 @@
 - Direct Chrome --dump-dom on the upgraded WEG file confirmed new mission, models and quality sections and the existing project title. Reload existing Dashboard browser tabs to use the new DOM and CSS.
 - Added four unit tests for safe upgrading, dry-run, wrong slugs and invalid snapshots; documented the upgrade procedure in phase 0, GUI integration guide and both READMEs. Future projects should refresh their copied Dashboard explicitly, not reinitialize active runs.
 
+## P0 checkpoint: Codex native runtime incompatibility (2026-10-25)
+
+- Native Codex Desktop EXE 0.164.0-alpha.11.1, standalone CLI
+  0.165.0-alpha.1; both resolved catalogs expose 9 models. GPT-6
+  Sol/Luna models indicate multi_agent_version=v2 (even if the local
+  multi_agent_v2 feature flag reports false); GPT-5.6 Luna is V1.
+- Created disposable read-only synthetic Git probe under
+  TEMP/autopilot-native-gui-agent-smoke-20261025 with pinned
+  .codex/agents/autopilot-explorer-smoke.toml set to GPT-6 Luna / Low.
+- Native Desktop-bundled binary run via read-only codex exec with
+  GPT-6 Sol / Low returned exit 0 but NAMED_AGENT_UNAVAILABLE and no
+  child spawn event; 18,729 input / 12,928 cached / 78 output tokens;
+  6.3 seconds. A GPT-5.6 Luna / Low V1 parent also had no child event;
+  16,838 input / 11,392 cached / 54 output; 4.7 seconds.
+- This was a native executable invoked in CLI mode, NOT mouse/keyboard
+  GUI interaction. No personal project modified; full GUI E2E and
+  per-child model/Effort/cwd remain UNVERIFIED.
+- Added tools/codex_native_agents.py which validates resolved model
+  V1/V2 metadata, profile model/Effort and available native events.
+  It never authorizes execution from caller-supplied JSONL or from
+  the agent's text. Ten new negative tests added. Phase 0 copies
+  guard; Phase 5 requires it before strict named GUI OpenAI agents.
+  Fallback: sequential GUI or separately validated, sandboxed pinned
+  Codex CLI worker with trusted host tests, no forced inheritance.
+- Claude Desktop installed but no claude executable located; no
+  authenticated Claude Code GUI/CLI proof yet. Version remains 2.3.0-dev.
+- Work branch: feat/gui-native-agent-verification, after main
+  fc135ea/aed107c; merge only after CI. Read docs/autopilot/gui-clients.md.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** In *Codex graphical application* run a disposable strict isolated ticket with approved model/effort and verify actual child-agent identity, effective cwd, tool approvals and commit/test evidence. Repeat separately for an actual **Claude Code** host (not a generic Claude chat). Host GUI success cannot be inferred from a CLI smoke; if model/effort cannot be confirmed, fall back to sequential single-agent or block the strict spawn.
