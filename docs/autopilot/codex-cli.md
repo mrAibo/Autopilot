@@ -26,6 +26,37 @@ python .autopilot/codex_dispatch.py 01 --root .
 
 Without `--execute` the script outputs the verified command, model, effort and checkout path. It does not print the ticket brief, secret environment values or initiate a model call.
 
+## Host-verified handoff if Codex cannot make a Git commit (2026-10-26)
+
+The Windows sandbox may allow editing source inside the checked-out worktree
+while refusing access to shared Git metadata (e.g. `index.lock`). The executor
+prompt now explicitly allows leaving **only approved source edits** without
+committing. After a completed CLI turn with no source commit, the **read-only**
+`worker_outcome.py` checks that the worktree remains at the exact ticket
+base, the changed files are confined to its declared zone, no symlink/junction
+escape exists and Git diff passes safety checks. When eligible, the adapter
+reports `ready-for-host-verification`, with `accepted:false`,
+`tests_verified:false` and **no worker commit**. This is NOT success.
+
+A trusted host must independently run the baseline-tracked test suite
+(`controller.py --suite test_core.py --advance` or the bounded host loop),
+then the existing `worktrees.finalize` creates the commit from the verified
+exact files; `land`/ `accept` / `release` still use the existing
+strict lifecycle. Out-of-zone changes, no edits, unsafe paths, changed HEAD,
+failed CLI turns and usage/accounting uncertainty do **not** qualify.
+
+For a read-only diagnosis in an existing run (no model call or Git writes):
+
+```powershell
+py -3.13 .autopilot/worker_outcome.py --root . --ticket 01
+```
+
+Both the normal GUI bridge and direct CLI remain **blocked from new
+paid execution** by `spend_guard.py` until verified hard caps exist.
+This new handoff is proven using a synthetic offline subprocess that edits
+only `src/core/calc.py` without committing, followed by independent host
+tests, finalization, Git landing and acceptance. No new paid calls.
+
 ## Current safety stop (2026-10-25)
 
 **Execution is intentionally disabled in `2.3.0-dev`** until a

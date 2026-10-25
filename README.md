@@ -50,6 +50,13 @@ production dispatcher. On Windows it now uses a kernel kill-on-close Job Object
 and a gated start, with a real parent-crash test; POSIX is not parent-death safe.
 Host acceptance still requires independently trusted tests.
 
+**Safe Windows Git handoff:** a completed worker turn with zone-scoped
+uncommitted edits can be marked `ready-for-host-verification`, **not**
+accepted. The host alone runs trusted tests, creates a scoped commit and
+lands it; missing or out-of-zone edits stay incomplete.
+[Read-only outcome inspection](docs/autopilot/codex-cli.md).
+No new AI call is required to review an existing attempt.
+
 **Paid-call safety gate (P0):** after a real disposable Codex CLI turn
 reported 53,187 input + 341 output tokens despite a recorded threshold of
 2,000, both GUI bridge and direct Codex dispatcher now **fail closed** on

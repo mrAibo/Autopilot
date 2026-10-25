@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- P0 host-verified worker outcome: the read-only zone-scoped worktree inspector recognizes completed but **uncommitted** worker edits (Windows sandbox can deny shared Git index.lock); `ready-for-host-verification` does not mean tests passed or work accepted. Existing trusted host tests/finalize/land/accept still own the code gate. A synthetic OS-worker no-commit full lifecycle and out-of-zone failure are tested. Real paid CLI remains blocked behind spend_guard.
+
 - P0 hard-cap admission gate: real Codex paid calls are blocked from both GUI bridge and direct dispatcher pending independently verified provider-enforced per-call limits. Ledger token thresholds and timeout are explicitly soft. New `spend_guard.py` read-only audit reports input/cache/output tokens, prior attempts and budget overage without fabricating monetary billing. Strict offline mock tests cover fail-closed paths; no new paid calls.
 
 - Windows process containment qualification: gated launch after successful Job Object assignment, kernel kill-on-job-close for parent crashes, claim-bound cancellation marker and acknowledged terminal receipts, plus read-only reconciliation. Windows parent-death test verified with a held native process handle. POSIX parent-death containment and production use remain unverified.

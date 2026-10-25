@@ -83,7 +83,8 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
         self.fake = Path(h.root).parent / ("fake_codex_" + Path(h.root).name + ".py")
         self.fake.write_text(FAKE_CODEX, encoding="utf-8")
         self.addCleanup(lambda: self.fake.unlink(missing_ok=True))
-        for name in ("gui_bridge.py", "codex_dispatch.py"):
+        for name in ("gui_bridge.py", "codex_dispatch.py", "spend_guard.py",
+                     "worker_outcome.py"):
             shutil.copy(Path(gui_bridge.__file__).parent / name, Path(h.a) / name)
 
     def controller(self, *opts):
@@ -165,6 +166,94 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
         self.assertTrue(ticket["testEvidence"]["status"] == "verified")
         self.assertFalse(h.git("status", "--porcelain", "--", "src").stdout.strip())
 
+
+    def test_completed_uncommitted_scoped_worker_host_finalizes(self):
+        """Windows sandbox may edit source but cannot write shared Git metadata."""
+        h = self.harness
+        for action in ("prepare", "start"):
+            code, result = self.controller("--advance")
+            self.assertEqual(code, 0, result)
+            self.assertEqual(result["completed"]["action"], action)
+        self.fake.write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "assert len(sys.argv)==4 and sys.argv[1]=='--cd'\n"
+            "target=Path(sys.argv[2]); sys.stdin.read()\n"
+            "(target/'src/core/calc.py').write_text("
+            "'def add(a, b):\\n    return a + b\\n', encoding='utf-8')\n"
+            "print(json.dumps({'type':'thread.started',"
+            "'thread_id':'offline-host-finalize'}))\n"
+            "print(json.dumps({'type':'turn.completed','usage':"
+            "{'input_tokens':80,'cached_input_tokens':12,'output_tokens':8}}))\n",
+            encoding="utf-8")
+        real_checked = codex_dispatch.checked_dispatch
+        def checked(*args, **kwargs):
+            config = real_checked(*args, **kwargs)
+            config["command"] = [sys.executable, str(self.fake),
+                                 "--cd", config["cwd"]]
+            return config
+
+        with patch.object(codex_dispatch, "checked_dispatch", checked), \
+                patch.object(gui_bridge.spend_guard, "assert_enforced_cap"):
+            response = gui_bridge.bridge(
+                h.root, "01", execute=True, approval="01",
+                executable=sys.executable, timeout=45)
+            self.assertEqual(response["status"], "ready-for-host-verification")
+            self.assertIsNone(response["worker_commit"])
+            self.assertFalse(response["accepted"])
+            self.assertTrue(response["handoff"]["eligible"])
+            self.assertEqual(response["handoff"]["changed_files"], 1)
+            self.assertEqual(response["handoff"]["next_gate"],
+                             "independent-host-tests-before-finalize")
+            denied = gui_bridge.bridge(
+                h.root, "01", execute=True, approval="01",
+                executable=sys.executable, timeout=45)
+            self.assertEqual(denied["status"], "blocked")
+
+        record = gui_bridge.receipt_status(h.root, "01")
+        self.assertFalse(record["tests_verified"])
+        self.assertFalse(record["accepted"])
+        self.assertEqual(record["diagnostic"], "host-tests-and-finalize-required")
+        # Independent host suite, then deliberate scoped host commit and landing.
+        for action in ("verify", "finalize", "land", "accept", "release"):
+            code, result = self.controller("--suite", "test_core.py", "--advance")
+            self.assertEqual(code, 0, (action, result))
+            self.assertEqual(result["completed"]["action"], action)
+        self.assertEqual(h.state()["tickets"][0]["status"], "done")
+        self.assertEqual(
+            (Path(h.root) / "src/core/calc.py").read_text(encoding="utf-8"),
+            "def add(a, b):\n    return a + b\n")
+
+    def test_out_of_zone_uncommitted_worker_does_not_pass_handoff(self):
+        h = self.harness
+        for _ in range(2):
+            self.assertEqual(self.controller("--advance")[0], 0)
+        self.fake.write_text(
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "target=Path(sys.argv[2]); sys.stdin.read()\n"
+            "(target/'test_core.py').write_text('tampered test\\n',encoding='utf-8')\n"
+            "print(json.dumps({'type':'thread.started',"
+            "'thread_id':'offline-bad-zone'}))\n"
+            "print(json.dumps({'type':'turn.completed','usage':"
+            "{'input_tokens':80,'cached_input_tokens':0,'output_tokens':8}}))\n",
+            encoding="utf-8")
+        checked_real = codex_dispatch.checked_dispatch
+        def checked(*args, **kwargs):
+            conf = checked_real(*args, **kwargs)
+            conf["command"] = [sys.executable, str(self.fake),
+                               "--cd", conf["cwd"]]
+            return conf
+        with patch.object(codex_dispatch, "checked_dispatch", checked), \
+                patch.object(gui_bridge.spend_guard, "assert_enforced_cap"):
+            response = gui_bridge.bridge(h.root, "01", execute=True,
+                                         approval="01",
+                                         executable=sys.executable, timeout=45)
+        self.assertEqual(response["status"], "incomplete")
+        self.assertFalse(response["accepted"])
+        self.assertFalse(response["handoff"]["eligible"])
+        self.assertEqual(response["handoff"]["reason"], "change-outside-zone")
+        self.assertEqual(h.state()["tickets"][0]["status"], "in-progress")
 
     def test_actual_os_process_error_preserves_non_replayable_receipt(self):
         h = self.harness
