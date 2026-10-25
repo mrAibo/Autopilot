@@ -129,6 +129,8 @@ class Run(unittest.TestCase):
         self.assertRegex(s["startedAt"], r"T\d\d:\d\d:\d\d[+-]\d\d:\d\d$")
         self.assertIn("в работе", read(os.path.join(self.a, "README.md")))
         self.assertIn(".autopilot/serve.*", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/worktrees/", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/model-capabilities.json", read(os.path.join(self.root, ".gitignore")))
         self.assertIn("window.STATE={", read(os.path.join(self.a, "dashboard.html")))
 
     def test_init_refuses_on_live_run(self):
