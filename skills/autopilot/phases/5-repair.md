@@ -39,7 +39,7 @@ Not a failure. If the dependency fits a decision the spec already made, add it t
 
 ## When a ticket fails
 
-`ap.py ticket NN retry`, then a fresh context with the error attached, **after a new capability-checked route**; do not upgrade for missing access, tools or context. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
+`ap.py ticket NN retry --cause tests|unknown` only after diagnosing the root cause (optionally run `python .autopilot/retry_policy.py --kind tests`). In strict runs the cause is mandatory and an approved native model profile is required. Environment/dependency/requirement/security failures and reasoning replan cases **block** naive retries; remedy the actual cause first. Never automatically upgrade for missing tools or access. Retry and repair counts are capped at two per ticket. Isolated worktrees must be reused safely; do not silently discard uncommitted executor changes. See `docs/autopilot/retry-policy.md`. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
 
 After that the flight stops for this ticket: `ap.py ticket NN fail --note "что блокирует"`, the reason in its manifest rows' Основание, and a plain sentence to the user — what is blocking, what you need from them, and which tickets are now waiting on it. Never improvise around a blocker and never narrow the ticket to whatever happened to work: a quietly reduced ticket is a lost requirement. Its wave-mates are independent by construction — let them land.
 
