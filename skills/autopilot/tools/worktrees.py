@@ -103,7 +103,8 @@ def land(root, ticket, base):
     commit = git(root, "cherry-pick", head, check=False)
     if commit.returncode:
         git(root, "cherry-pick", "--abort", check=False)
-        raise WorktreeError("Landing conflicted; aborted without resetting user files")
+        details = (commit.stderr or commit.stdout or "unknown Git error").strip()[:900]
+        raise WorktreeError("Landing failed; cherry-pick aborted: " + details)
     return {"ticket": ticket, "status": "landed", "sourceCommit": head,
             "landedCommit": git(root, "rev-parse", "HEAD").stdout.strip()}
 
