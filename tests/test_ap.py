@@ -498,6 +498,8 @@ class Run(unittest.TestCase):
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)
         self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: before executor")
         code, out = self.ap("ticket", "01", "start")
         self.assertNotEqual(code, 0)
         self.assertIn("подготовь worktree", out)
@@ -534,6 +536,8 @@ class Run(unittest.TestCase):
     def test_isolated_ticket_rejects_failed_tests_before_landing(self):
         self.plan(isolated=True)
         self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: before executor")
         self.ap("worktree", "01", "prepare")
         self.ap("ticket", "01", "start")
         code, out = self.ap("worktree", "01", "land", "--tests", "0/1")
