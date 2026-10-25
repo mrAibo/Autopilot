@@ -1120,8 +1120,8 @@ def cmd_ticket(state, pos, opt):
 
 def cmd_worktree(state, pos, opt):
     """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
-    if len(pos) != 2 or pos[1] not in ("prepare", "status", "finalize", "land", "release", "recover"):
-        die("worktree <ticket-id> prepare|status|finalize|land|release|recover [--tests N/0]")
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "verify", "finalize", "land", "release", "recover"):
+        die("worktree <ticket-id> prepare|status|verify|finalize|land|release|recover [--tests N/0]")
     ident, action = pos
     known = {t["id"]: t for t in state.get("tickets") or []}
     tk = known.get(ident)
@@ -1205,12 +1205,39 @@ def cmd_worktree(state, pos, opt):
                               "cwd": result["cwd"]}
             log(state, "worktree", act="prepare", ticket=ident)
             return "worktree %s подготовлен: %s" % (ident, result["cwd"])
+        if action == "verify":
+            record = tk.get("worktree") or {}
+            if (record.get("status") != "prepared" or
+                    tk.get("status") not in ("in-progress", "review", "repair")):
+                die("worktree: тесты требуют работающую задачу и prepared checkout")
+            suite = opt.get("suite")
+            timeout = opt.get("timeout") or "90"
+            if not isinstance(timeout, str) or not re.fullmatch(r"\d{1,3}", timeout):
+                die("worktree: --timeout должен быть целым числом секунд")
+            import test_evidence
+            result = test_evidence.verify(ROOT, ident, record["baseCommit"], suite,
+                                          int(timeout))
+            tk["testEvidence"] = result
+            check = {"passed": result["passed"], "failed": 0}
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="verify", ticket=ident,
+                tests=result["passed"], suite=result["suite"])
+            return "worktree %s: %d/%d тестов подтверждено на хосте" % (
+                ident, result["passed"], result["failed"])
         if action == "finalize":
             record = tk.get("worktree") or {}
             if (record.get("status") != "prepared" or
                     tk.get("status") not in ("in-progress", "review", "repair")):
                 die("worktree: для финализации требуется запущенная задача и prepared checkout")
-            check = tests_pair(opt.get("tests") or "")
+            if state.get("strictRouting") and state.get("isolateTickets"):
+                import test_evidence
+                check = test_evidence.check(ROOT, ident, record["baseCommit"],
+                                            tk.get("testEvidence"))
+                if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                    die("worktree: указанные тесты не совпадают с проверенными на хосте")
+            else:
+                check = tests_pair(opt.get("tests") or "")
             if check["passed"] < 1 or check["failed"] != 0:
                 die("worktree: сначала независимо проверь тесты N/0")
             result = worktrees.finalize(ROOT, ident, record["baseCommit"],
@@ -1224,7 +1251,22 @@ def cmd_worktree(state, pos, opt):
         record = tk.get("worktree") or {}
         if record.get("status") != "prepared" or tk.get("status") not in ("in-progress", "review", "repair"):
             die("worktree: %s не запущен в подготовленной рабочей копии" % ident)
-        check = tests_pair(opt.get("tests") or "")
+        if state.get("strictRouting") and state.get("isolateTickets"):
+            import test_evidence
+            evidence = tk.get("testEvidence")
+            if record.get("sourceCommit"):
+                # Host finalize consumed and committed the exact verified edit.
+                if not evidence or evidence.get("status") != "verified":
+                    die("worktree: нет подтверждения тестов на хосте")
+                if worktrees.source_commit(ROOT, ident, record["baseCommit"]) != record["sourceCommit"]:
+                    die("worktree: коммит изменился после финализации")
+                check = {"passed": evidence["passed"], "failed": evidence["failed"]}
+            else:
+                check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+            if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                die("worktree: указанные тесты не совпадают с проверенными на хосте")
+        else:
+            check = tests_pair(opt.get("tests") or "")
         if check["passed"] < 1 or check["failed"] != 0:
             die("worktree: для интеграции нужны пройденные тесты N/0")
         result = worktrees.land(ROOT, ident, record["baseCommit"])
