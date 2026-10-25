@@ -62,7 +62,7 @@
   Both README galleries point at these, with SYNTHETIC demo-state disclosure.
   Old 3.0 screenshots retired. Added source-level brand/design checks and
   extended headless Chrome DOM smoke to verify the new navigation and sections.
-- Verify CI on the final main SHA and GitHub README visual layout. Fork
+- **Verified final implementation checkpoint:** GitHub Actions [#40203272189](https://github.com/mrAibo/Autopilot/actions/runs/40203272189) passed **4/4** Python 3.11/3.13 Linux/Windows jobs, 151 unit tests, and dashboard browser checks on commit `fc135ea`. The new screenshots and GitHub image paths were also checked. Fork
   relationship to nick-vels/skills is separate GitHub metadata and is left
   untouched pending explicit informed consent for potentially destructive
   fork-network detachment.
