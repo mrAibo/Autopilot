@@ -131,7 +131,7 @@ class Run(unittest.TestCase):
         self.assertIn("продолжение", out)
 
     def test_init_archives_finished_run(self):
-        self.init()
+        self.ready_to_finish()
         first = self.state()["dir"]
         self.ap("finish", "--result", "готово")
         code, out = self.ap("init", "--slug", "second")
@@ -445,7 +445,7 @@ class Run(unittest.TestCase):
     def test_plan_requires_rows_and_tickets(self):
         self.init()
         code, out = self.ap("check-plan")
-        self.assertEqual(code, 0)
+        self.assertNotEqual(code, 0)
         self.assertIn("манифест отсутствует или пуст", out)
         self.assertIn("план пуст", out)
         self.assertFalse(self.state()["gates"]["G3"]["ok"])
