@@ -663,6 +663,32 @@ class Run(unittest.TestCase):
         self.assertFalse(json.loads(payload)["selected"])
         self.assertIn("recorded-token-budget", [b["reason"] for b in json.loads(payload)["blocked"]])
 
+    def test_host_side_finalize_then_land_and_done(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("bootstrap")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        src = os.path.join(wt["cwd"], "src", "core")
+        os.makedirs(src, exist_ok=True)
+        with open(os.path.join(src, "change.txt"), "w", encoding="utf-8") as stream:
+            stream.write("sandboxed code edit\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "2/0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["tests"]["passed"], 2)
+        code, out = self.ap("worktree", "01", "land", "--tests", "2/0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(read(os.path.join(self.root, "src", "core", "change.txt")),
+                         "sandboxed code edit\n")
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)
         self.ap("tickets")
