@@ -62,6 +62,7 @@ class Run(unittest.TestCase):
         shutil.copy(WORKTREES, os.path.join(self.a, "worktrees.py"))
         shutil.copy(RETRY_POLICY, os.path.join(self.a, "retry_policy.py"))
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
+        shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -663,6 +664,57 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, payload)
         self.assertFalse(json.loads(payload)["selected"])
         self.assertIn("recorded-token-budget", [b["reason"] for b in json.loads(payload)["blocked"]])
+
+    def test_strict_isolated_host_evidence_proves_unittest_and_unchanged_code(self):
+        self.plan(strict=True, isolated=True)
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, out)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low",
+                            "--reason", "synthetic", "--capabilities", caps)
+        self.assertEqual(code, 0, out)
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Autopilot Test")
+        os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
+        with open(os.path.join(self.root, "src", "core", "calc.py"), "w", encoding="utf-8") as out:
+            out.write("def add(a, b):\n    return a - b\n")
+        with open(os.path.join(self.root, "test_calc.py"), "w", encoding="utf-8") as out:
+            out.write("import unittest\nfrom src.core.calc import add\n"
+                      "class CalcTest(unittest.TestCase):\n"
+                      "    def test_add(self): self.assertEqual(add(2,3),5)\n")
+        self.git("add", ".gitignore", "src/core/calc.py", "test_calc.py")
+        self.commit("test baseline")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        dest = os.path.join(wt["cwd"], "src", "core", "calc.py")
+        with open(dest, "w", encoding="utf-8") as out:
+            out.write("def add(a, b):\n    return a + b\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "1/0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("подтверждение", out)
+        code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
+        self.assertEqual(code, 0, out)
+        proof = self.state()["tickets"][0]["testEvidence"]
+        self.assertEqual((proof["passed"], proof["failed"]), (1, 0))
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "99/0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("не совпадают", out)
+        code, out = self.ap("worktree", "01", "finalize")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "land", "--tests", "99/0")
+        self.assertNotEqual(code, 0)
+        code, out = self.ap("worktree", "01", "land")
+        self.assertEqual(code, 0, out)
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
 
     def test_host_side_finalize_then_land_and_done(self):
         self.plan(isolated=True)
