@@ -16,6 +16,7 @@ npx skills update autopilot -g
 - Project-scoped native Claude Code `.md` and Codex `.toml` subagent profiles; strict start validates their hash, optional Claude Code `PreToolUse` hook denies unapproved spawns.
 - Conservative Git worktree helper for per-task isolation and safe, clean single-commit cherry-pick landing. Opt-in `--isolated-tickets` now integrates prepare, start, land, done and release with validated Git SHA and negative tests.
 - Crash-safe Git integration via source-annotated `cherry-pick -x`, independent patch checks and explicit `worktree recover` for interrupted ledger writes.
+- Opt-in Codex CLI external worker adapter with strict ticket/route/sha/worktree/budget preflight, named model and effort flags, isolated `codex exec --json`, and token usage recording; dry-run by default.
 - Deterministic JSON `ap.py schedule` planner: dependency, zone, capacity, prepared checkout and budget gating. This is a planner, **not** an external agent launcher.
 - Deterministic retry triage (`retry_policy.py`), explicit causes, hard attempt limits, no escalation for environment/dependency failures.
 - Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
