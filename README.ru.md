@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://skills.sh/nick-vels/skills"><img src="https://skills.sh/b/nick-vels/skills" alt="skills.sh"></a>
+  <a href="https://github.com/mrAibo/Autopilot"><img src="https://github.com/mrAibo/Autopilot" alt="skills.sh"></a>
 </p>
 
 <p align="center"><strong>Расскажи словами, что нужно построить — получи готовый проект.</strong></p>
@@ -17,6 +17,8 @@
 Autopilot — фреймворк разработки, skill, который берёт вашу идею, задаёт вопросы ровно там, где в ней есть развилки, а дальше сам пишет спецификацию, продумывает то, о чём вы не думали, разбивает работу на таски и собирает проект целиком. Вам не нужно читать спецификацию, оценивать таски или разбираться в коде.
 
 Работает сам по себе: ставить что-то ещё не нужно.
+
+> **Ветка разработки Autopilot 2.3.** Добавлены строгие проверки завершения, [маршрутизация моделей](docs/autopilot/model-routing.md) OpenAI/Codex и Anthropic/Claude Code, обновлённый информативный Dashboard 3.0. Полные требования — в [бриф.md](бриф.md). Это ещё не релиз: выбор модели должен подтверждаться возможностями конкретной среды, стоимость показывается только при наличии измерений. Скриншоты ниже относятся к предыдущему оформлению, новые пока не подготовлены.
 
 <p align="center">
   <a href="assets/ru/autopilot-dashboard.png"><img src="assets/ru/dash-now.png" width="380" alt="Шапка: что происходит сейчас, сколько осталось, восемь этапов"></a>
@@ -39,7 +41,7 @@ Autopilot — фреймворк разработки, skill, который б�
 ```
 Установи мне навык Autopilot. Выполни в терминале:
 
-npx skills add nick-vels/skills --skill autopilot -g -y -a <подставь себя: claude-code, cursor, codex>
+npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <подставь себя: claude-code, cursor, codex>
 
 Если npx не найдётся — дай мне ссылку, где скачать Node.js, и подожди.
 Больше ничего не устанавливай.
@@ -55,7 +57,7 @@ npx skills add nick-vels/skills --skill autopilot -g -y -a <подставь с�
 Скопируйте строку:
 
 ```bash
-npx skills add nick-vels/skills
+npx skills add mrAibo/Autopilot
 ```
 
 Установщик спросит, какие навыки поставить и для каких агентов — просто подтвердите.
@@ -64,7 +66,7 @@ npx skills add nick-vels/skills
 <summary>Установка одной командой, без вопросов</summary>
 
 ```bash
-npx skills add nick-vels/skills --skill autopilot -a claude-code -g -y
+npx skills add mrAibo/Autopilot --skill autopilot -a claude-code -g -y
 ```
 
 | Флаг | Что делает |
@@ -362,7 +364,7 @@ npx skills update autopilot -g
 npx skills update autopilot -g
 
 Если он ответит, что всё уже обновлено, а версия при этом старая — переустанови:
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a <подставь себя: claude-code, cursor, codex>
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <подставь себя: claude-code, cursor, codex>
 
 Когда закончишь — напиши одной строкой, что обновилось, и напомни перезапустить сессию.
 ```
@@ -380,7 +382,7 @@ npx skills remove autopilot -g
 **Если навык ведёт себя как старая версия.** `update` сверяет версию источника, а не файлы на диске: если локальную копию правили или она побилась, он ответит «всё уже обновлено» и ничего не сделает. Лечится переустановкой:
 
 ```bash
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a claude-code
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a claude-code
 ```
 
 Чтобы агент увидел новую версию, **перезапустите сессию** — навыки читаются при старте.
