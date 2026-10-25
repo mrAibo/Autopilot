@@ -85,9 +85,26 @@ def fixture():
 
 
 def chrome_browser():
-    return next((candidate for name in ("google-chrome", "google-chrome-stable",
-                                        "chromium", "chromium-browser")
-                 if (candidate := shutil.which(name))), None)
+    aliases = ("google-chrome", "google-chrome-stable", "chromium",
+               "chromium-browser", "chrome", "msedge")
+    found = next((candidate for name in aliases
+                  if (candidate := shutil.which(name))), None)
+    if found:
+        return found
+    # Official browser install paths on Windows, without changing host PATH.
+    if os.name == "nt":
+        for variable, relative in (
+            ("PROGRAMFILES", "Google/Chrome/Application/chrome.exe"),
+            ("PROGRAMFILES", "Microsoft/Edge/Application/msedge.exe"),
+            ("PROGRAMFILES(X86)", "Microsoft/Edge/Application/msedge.exe"),
+            ("LOCALAPPDATA", "Google/Chrome/Application/chrome.exe"),
+        ):
+            base = os.getenv(variable)
+            if base:
+                path = Path(base) / relative
+                if path.is_file():
+                    return str(path)
+    return None
 
 
 def main():
@@ -120,6 +137,14 @@ def main():
                                   encoding="utf-8", errors="replace", timeout=45)
             if proc.returncode:
                 print("Chrome smoke failed: " + proc.stderr[-1000:], file=sys.stderr)
+                return 1
+            needed = ('class="cockpit-rail"', 'class="cockpit-content"',
+                      'id="mission"', 'id="tasks"', 'id="models"',
+                      'id="quality"', 'href="#models"', 'class="spotlight"')
+            missing = [part for part in needed if part not in proc.stdout]
+            if missing:
+                print("Command center missing: " + label + " " +
+                      repr(missing), file=sys.stderr)
                 return 1
             parsed = RenderedDOM()
             parsed.feed(proc.stdout)

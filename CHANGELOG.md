@@ -8,6 +8,13 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+**Dashboard 3.1 command center and copied-dashboard upgrade (2026-10-25)**
+- Rebuilt the Dashboard as a desktop mission-control experience with a dark navigation rail, a two-panel next-action view, color-coded KPIs, task execution, model/token/worktree and quality sections. Narrow and Codex split-screen layouts retain the information without a sidebar.
+- Regenerated six real Chrome screenshots in EN and RU, with cache-busting Dashboard 3.1 filenames, and retired previous Dashboard 3.0 captures; regression tests assert the actual live layout.
+- Added a standalone dashboard_upgrade.py tool for existing project Dashboard copies: back up the old HTML, check project slug, embed current state.js data and atomically swap the copied page without restarting a run or changing code.
+- Validated safe upgrade against the existing WEG_HomeManager project (ledger rev 41 and two tickets); Chrome rendered the new page with preserved state.
+
+
 - Added a project brief (`бриф.md`) and a dedicated development branch.
 - Hard-stop acceptance gates in `ap.py`: incomplete tickets, unverified commits, failing tests, missing gates block `finish`. Reopen/review paths reconcile requirement statuses. Empty manifest/plan fail G3.
 - Introduced OS-level locking for `state.js` writes, validated run identifiers, and protected the dashboard server against stale delayed-stop requests.

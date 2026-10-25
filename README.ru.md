@@ -12,19 +12,21 @@ Autopilot — фреймворк разработки, skill, который б�
 
 > **Текущий статус и продолжение разработки:** [STATUS.md](STATUS.md). Здесь перечислены выполненные работы, непроверенные интеграции, актуальная ветка и инструкция для следующего чата.
 
-> **Autopilot 2.3.0-dev** — версия разработки в основной ветке main. Новые возможности: [маршрутизация моделей](docs/autopilot/model-routing.md), [изолированные worktrees](docs/autopilot/worktrees.md), [проверка тестов на хосте](docs/autopilot/worktrees.md), [Dashboard 3.0](docs/autopilot/gui-clients.md) и [режим экономии токенов](docs/autopilot/optimization.md). Приложения [Codex и Claude Code](docs/autopilot/gui-clients.md) используют общий навык; графическая интеграция ещё проверяется. Это предварительная версия, не релиз. Текущее состояние — [STATUS.md](STATUS.md), требования — [бриф.md](бриф.md).
+> **Autopilot 2.3.0-dev** — версия разработки в основной ветке main. Новые возможности: [маршрутизация моделей](docs/autopilot/model-routing.md), [изолированные worktrees](docs/autopilot/worktrees.md), [проверка тестов на хосте](docs/autopilot/worktrees.md), [Dashboard 3.1](docs/autopilot/gui-clients.md) и [режим экономии токенов](docs/autopilot/optimization.md). Приложения [Codex и Claude Code](docs/autopilot/gui-clients.md) используют общий навык; графическая интеграция ещё проверяется. Это предварительная версия, не релиз. Текущее состояние — [STATUS.md](STATUS.md), требования — [бриф.md](бриф.md).
 
 <p align="center">
-  <a href="assets/ru/dashboard-3-desktop.png"><img src="assets/ru/dashboard-3-desktop.png" width="650" alt="Dashboard 3.0 — широкий экран, демонстрационные данные"></a>
-  <a href="assets/ru/dashboard-3-narrow.png"><img src="assets/ru/dashboard-3-narrow.png" width="230" alt="Dashboard 3.0 — узкий экран, демонстрационные данные"></a>
+  <a href="assets/ru/dashboard-31-desktop.png"><img src="assets/ru/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1 — широкий экран, демонстрационные данные"></a>
+  <a href="assets/ru/dashboard-31-narrow.png"><img src="assets/ru/dashboard-31-narrow.png" width="230" alt="Dashboard 3.1 — узкий экран, демонстрационные данные"></a>
 </p>
 
-<p align="center"><sub>Dashboard 3.0 · актуальный шаблон 2.3 · синтетические демонстрационные данные</sub></p>
-<p align="center"><a href="assets/ru/dashboard-3-models.png"><img src="assets/ru/dashboard-3-models.png" width="830" alt="Autopilot 2.3 models, token usage and isolated worktrees; synthetic demo"></a></p>
+<p align="center"><sub>Dashboard 3.1 · актуальный шаблон 2.3 · синтетические демонстрационные данные</sub></p>
+<p align="center"><a href="assets/ru/dashboard-31-models.png"><img src="assets/ru/dashboard-31-models.png" width="830" alt="Autopilot 2.3 models, token usage and isolated worktrees; synthetic demo"></a></p>
 
 **И вы всё время видите, что происходит.** В начале сборки агент сам открывает дашборд — один HTML-файл, который не надо искать и запускать. Цвет шапки сразу говорит, что происходит: синяя — сборка работает, оранжевая — она ждёт вашего ответа, зелёная — сдано. Ниже — что делается прямо сейчас, сколько ещё осталось, каждый таск цветной полосой и каждое ваше требование вашими же словами. Таймеры идут вживую, страница обновляется сама, интернет не нужен.
 
 ---
+
+**Для существующих проектов:** Dashboard 3.1 теперь отличается по структуре — боковая панель управления, текущая задача, метрики, модели и токены, качество и worktrees. Если ранее создавался файл .autopilot/dashboard.html, он не обновляется вместе с навыком; используйте безопасный инструмент skills/autopilot/tools/dashboard_upgrade.py --project <папка проекта>. Он сохраняет состояние и прежний HTML, после чего нужно обновить вкладку браузера.
 
 ## Установка
 

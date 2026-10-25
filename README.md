@@ -12,19 +12,21 @@ It works on its own: nothing else to install.
 
 > **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
-> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.0 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
+> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.1 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
 
 <p align="center">
-  <a href="assets/dashboard-3-desktop.png"><img src="assets/dashboard-3-desktop.png" width="650" alt="Dashboard 3.0, desktop layout using synthetic data"></a>
-  <a href="assets/dashboard-3-narrow.png"><img src="assets/dashboard-3-narrow.png" width="230" alt="Dashboard 3.0, narrow layout using synthetic data"></a>
+  <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, desktop layout using synthetic data"></a>
+  <a href="assets/dashboard-31-narrow.png"><img src="assets/dashboard-31-narrow.png" width="230" alt="Dashboard 3.1, narrow layout using synthetic data"></a>
 </p>
 
-<p align="center"><sub>Dashboard 3.0 · current 2.3 template · synthetic demonstration data</sub></p>
-<p align="center"><a href="assets/dashboard-3-models.png"><img src="assets/dashboard-3-models.png" width="830" alt="Autopilot 2.3 models, token usage and isolated worktrees; synthetic demo"></a></p>
+<p align="center"><sub>Dashboard 3.1 · current 2.3 template · synthetic demonstration data</sub></p>
+<p align="center"><a href="assets/dashboard-31-models.png"><img src="assets/dashboard-31-models.png" width="830" alt="Autopilot 2.3 models, token usage and isolated worktrees; synthetic demo"></a></p>
 
 **And you can always see what's going on.** At the start of a build the agent opens the dashboard itself — a single HTML file you never have to find or launch. The header colour tells you the state at a glance: blue — the build is running, orange — it's waiting for your answer, green — done. Below: what is happening right now, how much is left, every task as a coloured bar and every one of your requirements in your own words. Timers tick live, the page refreshes itself, no internet needed.
 
 ---
+
+**Already-running projects:** Dashboard 3.1 has a new navigation rail and sectioned mission-control layout. Existing .autopilot/dashboard.html files are copied pages and are NOT automatically replaced by updating the skill. Use skills/autopilot/tools/dashboard_upgrade.py --project PATH to back up the old page, preserve the current state.js snapshot, then reload the browser tab.
 
 ## Installation
 

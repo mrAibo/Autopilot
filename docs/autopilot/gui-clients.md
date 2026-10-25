@@ -35,6 +35,14 @@ py -3.13 .autopilot/codex_capabilities.py --root . --write
 
 Only after `ap.py init` created `.autopilot`. This writes `.autopilot/model-capabilities.json` and blocks a conflicting existing provider unless explicitly refreshed. It makes no model calls. **This catalog is the CLI's**; desktop users should verify the selected model with their GUI host too. It does not certify actual inference model IDs or charges.
 
+## Refresh already-generated project Dashboards
+
+Project Dashboards are **copies** of the skill template, not Junctions. The installed skill can be version 2.3 while an existing project still serves 2.2 HTML until explicitly refreshed. Use:
+
+    py -3.13 C:\Users\crown\Downloads\Projects\Autopilot\skills\autopilot\tools\dashboard_upgrade.py --project C:\Users\crown\Downloads\Projects\WEG_HomeManager
+
+The standalone upgrader requires a valid existing .autopilot/state.js, refuses mismatched project identity, backs up the old Dashboard under the user's temporary directory, and atomically replaces only the HTML while embedding the current snapshot. Reload the browser tab. It never changes an active application or task ledger. This was confirmed on the synthetic test suite and the real WEG_HomeManager local Dashboard (rev 41, two tickets) with a successful headless Chrome DOM read.
+
 ## Expected GUI user journey
 
 1. Open the target project in the existing Codex/Claude Code graphical application.

@@ -436,6 +436,127 @@
     .s-name{font-size:12.5px;line-height:1.35}
     .s-time{font-size:11.5px}
   }
+
+  /* Dashboard 3.1 command-center: high-density mission view + adaptive rail. */
+  :root{--bg:#F5F7FB;--card:#fff;--inset:#EFF3F9;--soft:#E8EEF7;--tx:#17243D;
+    --tx2:#384967;--mut:#71819A;--line:rgba(30,48,83,.1);--now:#FF9566;--done:#159473;
+    --sh:0 10px 28px -25px rgba(16,32,66,.32)}
+  :root[data-theme="dark"]{--bg:#0E1729;--card:#19253C;--inset:#25334C;
+    --soft:#293A54;--tx:#F2F6FF;--tx2:#D1DEF0;--mut:#9BADC9;
+    --line:rgba(204,224,255,.1)}
+  @media(prefers-color-scheme:dark){:root:not([data-theme]){--bg:#0E1729;--card:#19253C;
+    --inset:#25334C;--soft:#293A54;--tx:#F2F6FF;--tx2:#D1DEF0;--mut:#9BADC9;
+    --line:rgba(204,224,255,.1)}}
+  html{scroll-behavior:smooth}
+  .wrap{max-width:1840px;display:block;padding:0 30px 38px 292px}
+  .cockpit-content{display:flex;flex-direction:column;gap:17px;padding:22px 0;min-width:0}
+  .cockpit-rail{position:fixed;z-index:20;top:0;bottom:0;left:0;width:260px;
+    display:flex;flex-direction:column;padding:30px 20px 22px;overflow-y:auto;
+    color:#F8FAFF;background:linear-gradient(155deg,#172544 0%,#10182E 62%,#142643 100%);
+    box-shadow:13px 0 45px -38px #09152F;border-right:1px solid rgba(194,214,255,.12)}
+  .rail-brand{display:flex;align-items:center;gap:12px;margin-bottom:50px;
+    font-size:22px;font-weight:850;letter-spacing:-.05em}
+  .rail-symbol{display:grid;place-items:center;width:42px;height:42px;
+    border-radius:13px;color:#092A2E;background:linear-gradient(135deg,#65F4DB,#B6EF9F);
+    box-shadow:0 8px 25px -14px #8AFCE8;font-size:22px}
+  .rail-brand small{display:block;font-size:10px;letter-spacing:.15em;
+    color:#80E9D2;font-weight:750;margin-top:-4px}
+  .rail-label{font-size:10px;letter-spacing:.15em;color:#8296B5;
+    font-weight:800;text-transform:uppercase;padding-left:10px;margin-bottom:14px}
+  .rail-nav{display:flex;flex-direction:column;gap:6px}
+  .rail-nav a{display:flex;align-items:center;gap:12px;color:#B6C6DD;
+    text-decoration:none;border-radius:12px;padding:13px;font-weight:640;font-size:14px}
+  .rail-nav a:hover,.rail-nav a:focus-visible{background:rgba(255,255,255,.10);color:#fff}
+  .rail-nav a:first-child{background:rgba(104,246,210,.12);color:#AFFFF0;
+    border:1px solid rgba(100,236,201,.14)}
+  .rail-nav .sym{width:22px;text-align:center;font-size:18px}
+  .rail-monitor{margin-top:auto;padding:17px;border:1px solid rgba(220,236,255,.12);
+    border-radius:18px;background:rgba(246,249,255,.05)}
+  .rail-monitor label{font-size:10px;letter-spacing:.13em;font-weight:840;color:#83EBCF}
+  .rail-monitor b{display:block;margin:14px 0;color:#fff;font-size:17px;line-height:1.25}
+  .rail-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;
+    border-top:1px solid rgba(233,243,255,.12);padding-top:13px}
+  .rail-metrics strong{display:block;font-size:21px;color:#fff}
+  .rail-metrics small{color:#9AABC5;font-size:11px}
+  .rail-foot{margin-top:16px;font-size:10px;letter-spacing:.1em;color:#7F93B3}
+  .top{padding:10px 0 14px;border-bottom:1px solid var(--line)}
+  .brand-name{font-size:19px}.brand-version{color:#138F70;background:#E4FAF0;
+    border-color:transparent;border-radius:7px}
+  .title{padding:16px 0 4px}
+  html[lang="ru"] .title:before{content:"ПРОЕКТ  /  ХОД ВЫПОЛНЕНИЯ"}
+  .title:before{content:"PROJECT OVERVIEW  /  LIVE EXECUTION";display:block;
+    font-size:10px;letter-spacing:.16em;font-weight:850;color:#12A185;margin-bottom:10px}
+  .title h1{font-size:clamp(28px,3vw,41px);font-weight:830}
+  .meta .tag{border-radius:7px}
+  .spotlight{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);
+    gap:16px;align-items:stretch;scroll-margin-top:18px}
+  .spotlight .hero{height:100%;min-height:336px;padding:30px;border-radius:20px;
+    background:linear-gradient(125deg,#162447,#2B3E6E 68%,#255568);
+    box-shadow:0 22px 47px -36px #071938}
+  .spotlight .hero:before{width:420px;height:420px;top:-130px;right:-120px;
+    background:radial-gradient(circle,rgba(71,235,194,.22),transparent 64%)}
+  .spotlight .hero.ask{background:linear-gradient(120deg,#864329,#CE814E)}
+  .spotlight .hero.won{background:linear-gradient(120deg,#145F50,#1F917A)}
+  .spotlight .hero.bad{background:linear-gradient(120deg,#702A43,#B04A5A)}
+  .hero h2{font-size:clamp(25px,2.5vw,35px)}
+  .spotlight .big b{font-size:47px}
+  .spotlight .track{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 7px}
+  .spotlight .seg{height:7px;border-radius:20px}
+  .spotlight .s-name{font-size:11px}
+  .spotlight .ops{height:100%;display:flex;flex-direction:column;
+    justify-content:space-between;border-radius:20px;padding:26px 28px}
+  .spotlight .ops-eyebrow{color:#10987D}
+  .spotlight .ops-head{font-size:clamp(21px,2.1vw,30px);line-height:1.16;margin:14px 0}
+  .spotlight .ops-detail{font-size:14px}
+  .spotlight .ops-meta{border:0;border-top:1px solid var(--line);padding:18px 0 0}
+  .section-top{display:flex;align-items:baseline;gap:12px;margin:13px 0 1px;
+    color:var(--tx);font-size:19px;font-weight:840;letter-spacing:-.025em}
+  .section-top span{font-size:12px;color:#11A68C;font-weight:850}
+  .section-top small{font-size:12px;color:var(--mut);font-weight:500;
+    letter-spacing:0;margin-left:auto;text-align:right}
+  .pipeline,.intelligence{display:flex;flex-direction:column;gap:13px;scroll-margin-top:18px}
+  .tiles{gap:12px}
+  .tile{position:relative;min-height:159px;overflow:hidden;padding:23px}
+  .tile:before{content:"";height:4px;position:absolute;top:0;left:0;right:0;background:#7DA1D9}
+  .tile:nth-child(2):before{background:#4BBEAE}
+  .tile:nth-child(3):before{background:#53BC83}
+  .tile:nth-child(4):before{background:#BEA0E8}
+  .tile .tk{font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:800}
+  .tile .tv{font-size:41px;font-weight:800}
+  .card{border-radius:18px;box-shadow:var(--sh)}
+  .card .whead{padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .card .wt{font-weight:800}
+  .bar{height:47px;border-radius:10px}
+  .resource-list{gap:12px}
+  .resource-item{border-radius:13px}
+  .cols{scroll-margin-top:18px;gap:16px}.col{gap:16px}
+  footer{border-top:1px solid var(--line);padding:17px 2px}
+  @media(max-width:1420px){
+    .spotlight{grid-template-columns:1fr}
+    .spotlight .hero{min-height:285px}
+    .spotlight .ops{min-height:160px;flex-direction:row;gap:24px;align-items:center}
+    .spotlight .ops-meta{padding:0 0 0 18px;border:0;border-left:1px solid var(--line);
+      flex:0 0 250px}
+  }
+  @media(max-width:1150px){
+    .wrap{padding:0 22px 34px;max-width:1400px}
+    .cockpit-rail{display:none}
+    .cockpit-content{padding-top:10px}
+  }
+  @media(max-width:760px){
+    .wrap{padding:0 12px 25px}.cockpit-content{gap:12px}
+    .top{padding:14px 0}.title{padding:9px 0}
+    .title:before{font-size:9px}
+    .section-top{font-size:16px;flex-wrap:wrap}
+    .section-top small{width:100%;text-align:left;margin-left:26px}
+    .spotlight .hero{min-height:0;padding:22px}
+    .spotlight .ops{display:block;min-height:0;padding:20px}
+    .spotlight .ops-meta{border:0;border-top:1px solid var(--line);padding:14px 0 0}
+    .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .tile{min-height:130px;padding:16px}.tile .tv{font-size:29px}
+    .card{padding:17px}.cols{grid-template-columns:1fr}
+  }
+
 </style>
 </head>
 <body>
@@ -1401,8 +1522,30 @@ function render(lang){
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
   document.documentElement.lang = L.lang;
+  const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
+    <div class="rail-brand"><span class="rail-symbol" aria-hidden="true">A</span>
+      <span>Autopilot<small>CONTROL CENTER / 2.3</small></span></div>
+    <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
+    <nav class="rail-nav">
+      <a href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
+      <a href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>
+      <a href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>
+      <a href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>
+    </nav>
+    <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
+      <b>${esc(nextTitle)}</b>
+      <div class="rail-metrics">
+        <div><strong>${activeWorkers.length}</strong><small>${langRu ? 'Работают' : 'Active'}</small></div>
+        <div><strong>${okGates}/4</strong><small>${langRu ? 'Проверки' : 'Gates passed'}</small></div>
+      </div></div>
+    <div class="rail-foot">AUTOPILOT ENGINE / 2.3.0-dev</div>
+  </aside>`;
+  const sectionTitle = (number, title, sub) =>
+    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
   const app = document.getElementById('app');
   app.innerHTML = `
+  ${rail}
+  <div class="cockpit-content">
   <header class="top">
     <div class="brand" aria-label="Autopilot 2.3.0 dev"><span class="brand-name">Autopilot</span><span class="brand-version">2.3 DEV</span></div>
     <div class="tools">
@@ -1422,18 +1565,26 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  ${hero}
-  ${opsBlock}
+  <div id="mission" class="spotlight">${hero}${opsBlock}</div>
+  ${sectionTitle('01',langRu ? 'Состояние работы' : 'Execution health',langRu ? 'Прогресс и проверки' : 'Progress and validation')}
   <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
-  ${fin ? '' : buildCard}
-  ${resourceBlock}
-  ${isolationBlock}
-  <div class="cols"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
+  <div id="tasks" class="pipeline">
+    ${sectionTitle('02',langRu ? 'Поток задач' : 'Task pipeline',langRu ? 'Этапы и исполнители' : 'Waves and workers')}
+    ${fin ? '' : buildCard}
+  </div>
+  <div id="models" class="intelligence">
+    ${sectionTitle('03',langRu ? 'Модели и ресурсы' : 'Models & resources',langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
+    ${resourceBlock}
+    ${isolationBlock}
+  </div>
+  ${sectionTitle('04',langRu ? 'Качество и решения' : 'Quality & decisions',langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
+  <div id="quality" class="cols"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
-  </footer>`;
+  </footer>
+  </div>`;
 
   // Вкладка подписана проектом: когда репозиторий дорабатывают второй раз, это
   // единственное место, где видно, что на экране прошлый прогон. Пока сборка ждёт

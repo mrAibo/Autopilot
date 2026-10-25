@@ -42,6 +42,38 @@
 - The GitHub API explicitly reports \`fork: true\`, \`parent: nick-vels/skills\` for \`mrAibo/Autopilot\`. GitHub's “This branch is N commits ahead of ...” is a **fork network comparison**, not installed Autopilot version or incorrect active code. Rebranding cannot change GitHub fork metadata. GitHub supports **Settings → General → Danger Zone → Leave fork network** for eligible public forks; it is irreversible and can lose PR/issues/comments/stars/fork metadata. **Do not detach or recreate without explicit informed consent**. Keep original MIT copyright and appropriate \`Inspired by\` reference even if later detached.
 - Owner confirmed the Autopilot skill appears in graphical Codex. Native child agent model/effort and working directory still require separate GUI execution validation; do not conflate skill discovery with full runtime verification.
 
+## Dashboard 3.1 — owner-requested genuine visual redesign
+
+- User pointed out that earlier Dashboard 3.0 screenshots and author/logo changes did
+  not change the overall visual layout. They were correct: the previous interface
+  still resembled the 2.2 design despite additional model and worktree cards.
+- Actual single-file dashboard-template.html now renders a distinct command center:
+  persistent dark navigation rail (wide screens), four functional anchor links,
+  live active-agent and quality-gate counters; split live-execution/next-action
+  spotlight; four color-coded metric cards; separately numbered Tasks, Models /
+  Tokens / Worktrees, and Quality sections. At <=1150px the rail collapses;
+  small screen and Codex split-pane layouts keep content accessible at 480px.
+- Model routing, actual reported token totals, tests, requirements and Git status
+  still derive from existing state fields; no fabricated usage or claims of
+  successfully executing a graphical agent. RU/EN language toggles, theme
+  switching, polling, safety notices and responsive behavior retained.
+- Six new REAL Chrome screenshot files use cache-busting 3.1 filenames:
+  assets/dashboard-31-{desktop,narrow,models}.png and assets/ru equivalents.
+  Both README galleries point at these, with SYNTHETIC demo-state disclosure.
+  Old 3.0 screenshots retired. Added source-level brand/design checks and
+  extended headless Chrome DOM smoke to verify the new navigation and sections.
+- Verify CI on the final main SHA and GitHub README visual layout. Fork
+  relationship to nick-vels/skills is separate GitHub metadata and is left
+  untouched pending explicit informed consent for potentially destructive
+  fork-network detachment.
+
+## Real WEG_HomeManager Dashboard refreshed in place
+
+- The user's live WEG_HomeManager project contained an older copied .autopilot/dashboard.html with no 3.0/3.1 features, explaining why updates to the global skill appeared invisible in that project.
+- The new dashboard_upgrade.py safe updater validated that its embedded slug matched the authoritative state.js and atomically replaced ONLY the local HTML, preserving active run slug weg-homemanager, revision 41 and two tickets. A backup was written under the current Windows user's temporary autopilot-dashboard-backups directory. It did not touch WEG application source, task state or tracked changes.
+- Direct Chrome --dump-dom on the upgraded WEG file confirmed new mission, models and quality sections and the existing project title. Reload existing Dashboard browser tabs to use the new DOM and CSS.
+- Added four unit tests for safe upgrading, dry-run, wrong slugs and invalid snapshots; documented the upgrade procedure in phase 0, GUI integration guide and both READMEs. Future projects should refresh their copied Dashboard explicitly, not reinitialize active runs.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** In *Codex graphical application* run a disposable strict isolated ticket with approved model/effort and verify actual child-agent identity, effective cwd, tool approvals and commit/test evidence. Repeat separately for an actual **Claude Code** host (not a generic Claude chat). Host GUI success cannot be inferred from a CLI smoke; if model/effort cannot be confirmed, fall back to sequential single-agent or block the strict spawn.

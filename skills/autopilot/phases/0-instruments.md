@@ -1,5 +1,7 @@
 # Phase 0 — Instruments
 
+**Existing project upgrade (Dashboard 3.1):** the initial Phase 0 copies the dashboard template into the target project. Updating the skill does NOT replace those existing project-local HTML copies. For a project with an existing .autopilot/state.js, run the installed skill's tools/dashboard_upgrade.py --project TARGET_DIR instead of blindly copying the new template: it validates the project slug, embeds the latest state.js snapshot, and backs up the old page before atomic replacement. Reload the Dashboard tab afterwards. This does not reset tickets, specs, project code or application data.
+
 The user's live view of the run: `.autopilot/dashboard.html`, a copy of the template, showing `.autopilot/state.js`. **You never edit either by hand.** Every event of the run is one call to `.autopilot/ap.py`, which stamps the time, recounts the requirements from `manifest.md`, closes the stages the run has passed, writes a snapshot of the state into the page and keeps a static server alive for it. This file is read once, in Phase 0; the command table in §4 is what you use for the rest of the run.
 
 ## 1. Copy the template and the tool

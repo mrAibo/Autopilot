@@ -14,6 +14,11 @@ class BrandingSmoke(unittest.TestCase):
         self.assertNotIn("const LOGO =", dashboard)
         self.assertNotIn('class="logo"', dashboard)
         self.assertEqual(dashboard.count('<div class="brand"'), 2)
+        self.assertIn('class="cockpit-rail"', dashboard)
+        self.assertIn('class="cockpit-content"', dashboard)
+        self.assertIn('class="spotlight"', dashboard)
+        self.assertIn('href="#models"', dashboard)
+        self.assertIn('.cockpit-rail{display:none}', dashboard)
         self.assertIn('class="brand-version">2.3 DEV', dashboard)
 
     def test_readmes_have_only_actual_current_screenshots(self):
@@ -21,7 +26,9 @@ class BrandingSmoke(unittest.TestCase):
             with self.subTest(readme=name):
                 markdown = (ROOT / name).read_text(encoding="utf-8")
                 self.assertNotIn("autopilot-logo", markdown)
-                self.assertIn("dashboard-3-models.png", markdown)
+                self.assertIn("dashboard-31-models.png", markdown)
+                self.assertIn("dashboard-31-desktop.png", markdown)
+                self.assertNotIn("dashboard-3-desktop.png", markdown)
                 refs = re.findall(r'(?:href|src)="(assets/[^"]+)"', markdown)
                 self.assertGreaterEqual(len(refs), 6)
                 for path in refs:
@@ -31,7 +38,7 @@ class BrandingSmoke(unittest.TestCase):
         for folder in ("assets", "assets/ru"):
             for image in ("desktop", "narrow", "models"):
                 with self.subTest(folder=folder, image=image):
-                    path = ROOT / folder / ("dashboard-3-" + image + ".png")
+                    path = ROOT / folder / ("dashboard-31-" + image + ".png")
                     raw = path.read_bytes()
                     self.assertGreater(len(raw), 30000)
                     self.assertEqual(raw[:8], b"\x89PNG\r\n\x1a\n")
