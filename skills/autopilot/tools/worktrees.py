@@ -79,9 +79,8 @@ def status(root, ticket):
             "commit": head, "dirty": bool(git(target, "status", "--porcelain").stdout.strip())}
 
 
-def land(root, ticket, base):
-    """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict."""
-    root = repository(root)
+def source_commit(root, ticket, base):
+    """Return the sole executor commit, rejecting diverged or dirty worktrees."""
     target = safe_target(root, ticket)
     if not target.is_dir():
         raise WorktreeError("Worktree missing")
@@ -91,23 +90,65 @@ def land(root, ticket, base):
     head = git(target, "rev-parse", "HEAD").stdout.strip()
     if git(target, "status", "--porcelain").stdout.strip():
         raise WorktreeError("Executor worktree has uncommitted changes")
-    # Autopilot's own ledger is updated during every ticket. Never cherry-pick it;
-    # check all user source paths while ignoring only that internal directory.
-    if source_dirty(root):
-        raise WorktreeError("Main source checkout must be clean before landing")
     count = git(root, "rev-list", "--count", base_sha + ".." + head).stdout.strip()
     if count != "1" or git(target, "rev-parse", head + "^").stdout.strip() != base_sha:
         raise WorktreeError("Executor must have exactly one commit directly on its base")
-    if git(root, "rev-list", "--max-count=1", base_sha + ".." + head).stdout.strip() != head:
-        raise WorktreeError("Head does not match a single commit after base")
-    commit = git(root, "cherry-pick", head, check=False)
+    return head
+
+
+def patch_id(root, sha):
+    diff = git(root, "show", "--pretty=format:", "--binary", sha).stdout
+    result = subprocess.run(["git", "-C", str(root), "patch-id", "--stable"],
+                            input=diff, capture_output=True, text=True, encoding="utf-8")
+    if result.returncode or not result.stdout.strip():
+        raise WorktreeError("Cannot compare source and integrated commit patches")
+    return result.stdout.split()[0]
+
+
+def find_landing(root, source):
+    """Detect a previous cherry-pick after a crash, requiring matching Git patch."""
+    marker = "(cherry picked from commit %s)" % source
+    hits = git(root, "log", "HEAD", "--format=%H", "--fixed-strings",
+               "--grep=" + marker, "--max-count=8").stdout.splitlines()
+    valid = []
+    for commit in hits:
+        message = git(root, "show", "-s", "--format=%B", commit).stdout
+        if marker not in message.splitlines():
+            continue
+        if patch_id(root, commit) == patch_id(root, source):
+            valid.append(commit)
+    if len(valid) > 1:
+        raise WorktreeError("Ambiguous landing: multiple matching cherry-picks; inspect manually")
+    return valid[0] if valid else None
+
+
+def recover(root, ticket, base):
+    """Read-only Git recovery: do not cherry-pick or amend anything."""
+    root = repository(root)
+    source = source_commit(root, ticket, base)
+    found = find_landing(root, source)
+    return {"ticket": ticket, "status": "landed" if found else "not-landed",
+            "sourceCommit": source, "landedCommit": found}
+
+
+def land(root, ticket, base):
+    """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict."""
+    root = repository(root)
+    source = source_commit(root, ticket, base)
+    existing = find_landing(root, source)
+    if existing:
+        return {"ticket": ticket, "status": "landed", "sourceCommit": source,
+                "landedCommit": existing, "recovered": True}
+    if source_dirty(root):
+        raise WorktreeError("Main source checkout must be clean before landing")
+    commit = git(root, "cherry-pick", "-x", source, check=False)
     if commit.returncode:
         git(root, "cherry-pick", "--abort", check=False)
         details = (commit.stderr or commit.stdout or "unknown Git error").strip()[:900]
         raise WorktreeError("Landing failed; cherry-pick aborted: " + details)
-    return {"ticket": ticket, "status": "landed", "sourceCommit": head,
-            "landedCommit": git(root, "rev-parse", "HEAD").stdout.strip()}
-
+    return {"ticket": ticket, "status": "landed", "sourceCommit": source,
+            "landedCommit": git(root, "rev-parse", "HEAD").stdout.strip(),
+            "recovered": False}
 
 def remove(root, ticket, acknowledge_loss=False):
     root = repository(root)
@@ -125,7 +166,7 @@ def remove(root, ticket, acknowledge_loss=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["create", "status", "land", "remove"])
+    parser.add_argument("action", choices=["create", "status", "land", "recover", "remove"])
     parser.add_argument("ticket")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--base", default="HEAD",
@@ -139,6 +180,8 @@ def main():
             value = status(args.root, args.ticket)
         elif args.action == "land":
             value = land(args.root, args.ticket, args.base)
+        elif args.action == "recover":
+            value = recover(args.root, args.ticket, args.base)
         else:
             value = remove(args.root, args.ticket, args.acknowledge_loss)
         print(json.dumps(value, ensure_ascii=False, indent=2))
