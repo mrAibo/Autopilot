@@ -2,6 +2,40 @@
 
 `skills/autopilot/tools/worktrees.py` provides **opt-in** isolated Git checkouts per executor ticket. It never reads secrets, makes network requests or force-removes dirty files.
 
+## Recovery after an interrupted run
+
+The Python CLI records a source Git SHA and uses `git cherry-pick -x` to preserve
+source provenance in the integrated commit message. If power is lost **after**
+Git integration but **before** the state file is saved, do not cherry-pick again.
+Use:
+
+```bash
+python .autopilot/ap.py worktree 03 recover --tests 34/0
+```
+
+This validates the source commit, exact cherry-pick marker and stable patch ID,
+then records the previously landed commit without modifying Git. Tests must be
+independently confirmed (`34/0` is supplied by the orchestrator, not generated
+by the recovery routine). A duplicate `worktree land` is also idempotent when
+matching Git provenance exists.
+
+If `git worktree add` completed before ledger persistence, `recover` can
+reconstruct the prepared record **only if** the worktree is clean, its HEAD
+equals primary HEAD and the task is pending. Dirty or ambiguous checkouts
+remain blocked for manual investigation. Never force-remove a dirty worktree.
+
+The read-only scheduler command
+
+```bash
+python .autopilot/ap.py schedule --max-parallel 2
+```
+
+outputs JSON `selected` actions `route`, `prepare`, `start`; its
+`blocked` reasons include dependencies, source-zone collisions, exhausted
+recorded-token budget and no remaining concurrency. The scheduler does **not**
+spawn or manage external model agents: the orchestrator must obey actions/cwd.
+Worktree `reset` and `reopen` refuse unreleased worktrees.
+
 ## Integrated Autopilot CLI lifecycle
 
 For a new run explicitly enable `ap.py init ... --isolated-tickets` and
