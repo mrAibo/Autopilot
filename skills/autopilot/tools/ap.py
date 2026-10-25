@@ -39,6 +39,7 @@
 """
 
 import datetime as dt
+import hashlib
 import glob
 import json
 import os
@@ -157,7 +158,10 @@ def close_wait(state):
 
 
 def run_dir(state):
-    return os.path.join(A, state.get("dir") or "")
+    name = state.get("dir") or ""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*(?:--wip)?", name):
+        die("недопустимое имя папки прогона: %r" % name)
+    return os.path.join(A, name)
 
 
 def fresh_state(a):
@@ -321,9 +325,12 @@ def publish_tickets(state):
     out = []
     for p in files:
         t = parse_ticket(p)
+        t["fingerprint"] = hashlib.sha256(open(p, "rb").read()).hexdigest()
         prev = old.get(t["id"], {})
+        if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
+            prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
-                  "tests", "commit", "concerns"):
+                  "tests", "commit", "concerns", "placeholders"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -345,9 +352,16 @@ def check_plan(state):
     """G3 механически: каждое живое требование — в таске, каждый таск — от требования,
     у каждого таска зона и волна, в одной волне зоны не пересекаются."""
     problems = []
-    rows = manifest_rows(state) or []
+    rows = manifest_rows(state)
+    if not rows:
+        problems.append("манифест отсутствует или пуст")
     publish_tickets(state)
     tickets = state.get("tickets") or []
+    if not tickets:
+        problems.append("план пуст: нет ни одного таска")
+    rows = rows or []
+    if len({t["id"] for t in tickets}) != len(tickets):
+        problems.append("повторяются номера тасков")
     named = {r for t in tickets for r in t["requirements"]}
     base = {r.split(".")[0] for r in named}
     for rid, st in rows:
@@ -364,8 +378,8 @@ def check_plan(state):
                 problems.append("таск %s ссылается на %s, которого нет в манифесте" % (t["id"], r))
         if not t["zone"]:
             problems.append("у таска %s нет зоны" % t["id"])
-        if t["wave"] is None:
-            problems.append("у таска %s нет волны" % t["id"])
+        if t["wave"] is None or t["wave"] < 1:
+            problems.append("у таска %s нет допустимой волны" % t["id"])
         for b in t["blockedBy"]:
             if b not in ids:
                 problems.append("таск %s зависит от несуществующего %s" % (t["id"], b))
@@ -607,23 +621,27 @@ def serve(state):
     return "сервер не ответил — дашборд открывается файлом: %s" % PAGE
 
 
-def stop_now():
+def stop_now(expected_pid, expected_port):
     time.sleep(STOP_DELAY)
     port, pid = recorded()
-    if pid and is_ours(cmdline(pid)):
+    state = read_state()
+    if (state and state.get("finishedAt") and pid == expected_pid
+            and port == expected_port and is_ours(cmdline(pid))):
         kill(pid)
-    kill_orphans()
-    for f in (PIDF, LOG):
-        try:
-            os.remove(f)
-        except OSError:
-            pass
+        for f in (PIDF, LOG):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
 
 def stop_later():
     """Гасит сервер через STOP_DELAY секунд из отдельного процесса: страница
     опрашивает state.js раз в 10 секунд и должна успеть забрать финал."""
-    subprocess.Popen([sys.executable, os.path.abspath(__file__), "--stop-now"],
+    port, pid = recorded()
+    if not port or not pid:
+        return "сервер уже остановлен"
+    subprocess.Popen([sys.executable, os.path.abspath(__file__), "--stop-now", str(pid), str(port)],
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, **_detached())
     return "сервер погаснет через %d с" % STOP_DELAY
@@ -761,6 +779,8 @@ def tests_pair(v):
 def cmd_init(opt):
     if not opt.get("slug"):
         die("init требует --slug")
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(opt["slug"])):
+        die("slug: разрешены только a-z, 0-9 и одиночные дефисы")
     old = read_state()
     notes = []
     if old and not old.get("finishedAt") and not opt.get("force"):
@@ -819,6 +839,8 @@ def close_requirements(state, tk, opt, t):
     """Требование закрыто, когда закрыты все таски, где оно названо. --placeholder R05
     помечает его заглушкой вместо done: там стоит видимая метка вместо данных пользователя."""
     ph = set(re.findall(r"[RGD]\d+[a-z]?", str(opt.get("placeholder") or "")))
+    ph |= set(tk.get("placeholders") or [])
+    tk["placeholders"] = sorted(ph)
     rows = dict(manifest_rows(state) or [])
     tickets = state.get("tickets") or []
     changes = {}
@@ -830,6 +852,34 @@ def close_requirements(state, tk, opt, t):
             changes[r] = ("placeholder" if r in ph else "done",
                           (opt.get("commit")[:7] if isinstance(opt.get("commit"), str) else None))
     manifest_update(state, changes)
+
+
+def reconcile_requirements(state):
+    """Требование не может быть done, когда хотя бы один его таск снова открыт."""
+    rows = dict(manifest_rows(state) or [])
+    groups = {}
+    for ticket in state.get("tickets") or []:
+        for req in ticket.get("requirements", []):
+            groups.setdefault(req.split(".")[0], []).append(ticket)
+    changes = {}
+    for req, holders in groups.items():
+        if rows.get(req) in ("done", "placeholder") and any(
+                t.get("status") != "done" for t in holders):
+            changes[req] = ("in-ticket", "")
+    if changes:
+        manifest_update(state, changes)
+
+
+def verified_commit(rev):
+    if not isinstance(rev, str) or not re.fullmatch(r"[0-9a-fA-F]{7,40}", rev):
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "-C", ROOT, "merge-base", "--is-ancestor", rev, "HEAD"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def cmd_ticket(state, pos, opt):
@@ -844,6 +894,18 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if act in ("start", "done"):
+            pending = [dep for dep in tk.get("blockedBy", [])
+                       if known.get(dep, {}).get("status") != "done"]
+            if pending:
+                die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
+        if act == "done":
+            validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
+            if not validation or validation["passed"] < 1 or validation["failed"] != 0:
+                die("таск %s: нельзя принять без успешных тестов" % i)
+            rev = opt.get("commit") or tk.get("commit")
+            if not verified_commit(rev):
+                die("таск %s: требуется существующий коммит в HEAD" % i)
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
             tk.setdefault("startedAt", t)
@@ -904,12 +966,19 @@ def cmd_numbers(state, name, pos, multi):
     if name == "blind":
         d["mismatches"] = multi.get("mismatch", [])
         state[name] = d
-        set_gate(state, "G4", not d["mismatches"], checked=d.get("checked"), matched=d.get("matched"))
+        valid = (isinstance(d.get("checked"), int) and d["checked"] > 0
+                 and isinstance(d.get("matched"), int)
+                 and 0 <= d["matched"] <= d["checked"]
+                 and d["checked"] - d["matched"] == len(d["mismatches"]))
+        set_gate(state, "G4", valid and not d["mismatches"],
+                 checked=d.get("checked"), matched=d.get("matched"))
     else:
         d["items"] = multi.get("item", [])
         state[name] = d
         num = lambda k: d.get(k) if isinstance(d.get(k), int) else 0
-        set_gate(state, "G2", num("found") <= num("fixed") + num("deferred"),
+        set_gate(state, "G2", all(isinstance(d.get(k), int) and d[k] >= 0
+                                  for k in ("found", "fixed", "deferred"))
+                 and num("found") == num("fixed") + num("deferred"),
                  found=num("found"), fixed=num("fixed"), deferred=num("deferred"))
 
 
@@ -938,9 +1007,22 @@ def cmd_finish(state, opt):
             s["status"], s["finishedAt"] = "done", t
         elif s.get("status") == "pending":
             s["status"], s["note"], s["finishedAt"] = "skipped", s.get("note") or "не понадобился", t
-    for tk in state.get("tickets") or []:
-        if tk.get("status") in ("in-progress", "review", "repair", "pending"):
-            notes.append("! таск %s закрыт незавершённым (%s)" % (tk["id"], tk["status"]))
+    incomplete = [tk["id"] for tk in state.get("tickets") or []
+                  if tk.get("status") != "done"]
+    if incomplete or not state.get("tickets"):
+        die("finish заблокирован: незавершённые таски: %s" %
+            (", ".join(incomplete) if incomplete else "нет опубликованных тасков"))
+    test = state.get("tests") or {}
+    if test.get("passed", 0) < 1 or test.get("failed") != 0:
+        die("finish заблокирован: нет успешного полного прогона тестов")
+    missing = [g for g in ("G1", "G2", "G3", "G4")
+               if not state.get("gates", {}).get(g, {}).get("ok")]
+    if missing:
+        die("finish заблокирован: проверки %s не пройдены" % ", ".join(missing))
+    open_rows = [rid for rid, st in manifest_rows(state) or []
+                 if not rid.startswith("D") and st in ("open", "in-spec", "in-ticket")]
+    if open_rows:
+        die("finish заблокирован: требования не закрыты: %s" % ", ".join(open_rows))
     d = state.get("dir") or ""
     if d.endswith("--wip"):
         new = d[: -len("--wip")]
@@ -997,7 +1079,10 @@ def cmd_commits(state):
 def main():
     argv = sys.argv[1:]
     if "--stop-now" in argv:
-        stop_now()
+        i = argv.index("--stop-now")
+        if len(argv) <= i + 2:
+            die("stop-now требует ожидаемые PID и порт")
+        stop_now(int(argv[i + 1]), int(argv[i + 2]))
         return
     pos, opt, multi = parse_args(argv)
     cmd = pos[0] if pos else ""
@@ -1049,6 +1134,7 @@ def main():
             notes = cmd_commits(state)
         elif cmd not in ("", "sync"):
             die("неизвестная команда %s — список в начале ap.py" % cmd)
+    reconcile_requirements(state)
     recount(state)
     notes = close_passed(state) + notes
     save(state)
