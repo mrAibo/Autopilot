@@ -938,7 +938,10 @@ def profile_ok(tk):
         return False
     path = os.path.realpath(os.path.join(ROOT, relative))
     root = os.path.realpath(ROOT)
-    if os.path.commonpath((path, root)) != root:
+    try:
+        if os.path.commonpath((path, root)) != root:
+            return False
+    except ValueError:
         return False
     try:
         with open(path, "rb") as stream:
@@ -1109,8 +1112,10 @@ def cmd_budget(state, pos, opt):
 def cmd_set(state, pos):
     for p in pos:
         k, _, v = p.partition("=")
-        if not _ or k in ("stages", "tickets", "requirements"):
-            die("set key=value (скалярные поля верхнего уровня)")
+        allowed = {"tier", "baseCommit", "briefFile", "memoryFile",
+                   "memoryOwner", "skillDir", "mode", "depth"}
+        if not _ or k not in allowed:
+            die("set: разрешены только " + ", ".join(sorted(allowed)))
         state[k] = None if v in ("", "null") else v
 
 
