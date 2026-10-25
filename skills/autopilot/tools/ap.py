@@ -783,12 +783,15 @@ def ensure_gitignore():
         text = open(g, encoding="utf-8").read()
     except OSError:
         text = ""
-    if (re.search(r"^\.autopilot/serve\.\*", text, re.M)
-            and ".autopilot/state.lock" in text):
+    entries = [".autopilot/serve.*", ".autopilot/state.lock",
+               ".autopilot/worktrees/", ".autopilot/model-capabilities.json"]
+    existing = {line.strip() for line in text.splitlines()}
+    missing = [entry for entry in entries if entry not in existing]
+    if not missing:
         return
     with open(g, "a", encoding="utf-8") as f:
-        f.write(("" if not text or text.endswith("\n") else "\n") + ".autopilot/serve.*\n.autopilot/state.lock\n")
-
+        f.write(("" if not text or text.endswith("\n") else "\n")
+                + "\n".join(missing) + "\n")
 
 # ── команды ─────────────────────────────────────────────────────────────────
 
