@@ -83,8 +83,10 @@ def verify(root, ticket, base, suite, timeout=90):
     if actual.get("status") != "present":
         raise EvidenceError("Test checkout does not exist")
     target = Path(actual["cwd"]).resolve()
-    if worktrees.git(target, "rev-parse", "HEAD").stdout.strip() != base:
-        raise EvidenceError("Test checkout HEAD differs from approved base")
+    head = worktrees.git(target, "rev-parse", "HEAD").stdout.strip()
+    if head != base:
+        worktrees.source_commit(root, ticket, base)  # one clean committed executor diff
+
     checked_suite(target, suite)
     before = fingerprint(target)
     env = os.environ.copy()
@@ -105,7 +107,7 @@ def verify(root, ticket, base, suite, timeout=90):
     if result.returncode != 0 or not re.search(r"(?m)^OK(?:\s|$)", logs) or passed < 1:
         raise EvidenceError("Independent host tests did not pass")
     return {"status": "verified", "runner": "python-unittest", "suite": suite,
-            "fingerprint": after, "baseCommit": base,
+            "fingerprint": after, "baseCommit": base, "workerHead": head,
             "passed": passed, "failed": 0, "verifiedAt": datetime.now(timezone.utc).isoformat()}
 
 
@@ -119,6 +121,8 @@ def check(root, ticket, base, evidence):
     actual = worktrees.status(root, ticket)
     if actual.get("status") != "present":
         raise EvidenceError("Evidence checkout missing")
+    if worktrees.git(actual["cwd"], "rev-parse", "HEAD").stdout.strip() != evidence.get("workerHead"):
+        raise EvidenceError("Executor commit changed after verification")
     checked_suite(actual["cwd"], evidence.get("suite"))
     if fingerprint(actual["cwd"]) != evidence.get("fingerprint"):
         raise EvidenceError("Source changed after tests; rerun verification")
