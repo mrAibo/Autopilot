@@ -32,6 +32,9 @@ OpenAI default: Luna for cheap/balanced, Sol for strong; Anthropic default: Haik
 
 ## Waves
 
+**Before each wave, read the scheduler JSON:** `python .autopilot/ap.py schedule --max-parallel 2`. It evaluates dependencies, overlapping code zones, in-flight executors, prepared checkout reservations, verified routing and known token threshold. Follow each `selected[]` object's `action` (route/prepare/start); never infer that the scheduler actually spawned an agent. `selected[].cwd` is a required executor cwd for prepared isolated tasks. After an agent lands, call `schedule` again to refill only available capacity. Do not launch a task whose `blocked[]` entry lists unresolved dependencies, overlaps or budget limits. The default is two concurrent executors; three must be explicitly requested and safe.
+
+
 Phase 4 gave every ticket a wave and a zone. **Launch a whole wave in one message, one subagent call per ticket, in the background** — two calls in two messages run one after the other, and the parallelism computed in the plan is thrown away in the delivery.
 
 - **At most two in flight by default** (up to three only if explicitly permitted by the verified policy and truly independent). A wave of five normally goes out as two, two, one. A point reviewer reads a commit and writes nothing — it does not count against the three.
