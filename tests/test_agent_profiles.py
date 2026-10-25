@@ -18,7 +18,7 @@ class ProfileTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.ticket = self.root / ".autopilot" / "run" / "tickets" / "01-simple.md"
         self.ticket.parent.mkdir(parents=True)
-        self.ticket.write_text("# T01\n**Зона:** \`docs/\`\nSmall documentation edit", encoding="utf-8")
+        self.ticket.write_text("# T01\n**Зона:** `docs/`\nSmall documentation edit", encoding="utf-8")
         self.caps = self.root / "capabilities.json"
 
     def capabilities(self, provider="anthropic", model="haiku", effort="low", enforced=True):
