@@ -74,7 +74,7 @@ class Run(unittest.TestCase):
         env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1")
         r = subprocess.run([sys.executable, os.path.join(self.a, "ap.py")] + list(args) + ["--no-serve"],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=self.root)
-        return r.returncode, r.stdout
+        return r.returncode, r.stdout + ("\n[stderr] " + r.stderr[-2000:] if r.returncode and r.stderr else "")
 
     def state(self):
         raw = read(os.path.join(self.a, "state.js"))
