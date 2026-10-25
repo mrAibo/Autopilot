@@ -86,6 +86,32 @@ class Run(unittest.TestCase):
     def manifest(self):
         return read(os.path.join(self.dir, "manifest.md"))
 
+    def commit(self, name):
+        result = self.git("-c", "user.email=t@t", "-c", "user.name=t",
+                          "commit", "-q", "--allow-empty", "-m", name)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return self.git("rev-parse", "--short", "HEAD").stdout.strip()
+
+    def ready_to_finish(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("stage", "spec")
+        self.ap("coverage", "found=0", "fixed=0", "deferred=0")
+        self.ap("check-plan")
+        self.ap("ticket", "01", "start")
+        sha1 = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0",
+                            "--commit", sha1, "--placeholder", "R05")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "02", "start")
+        sha2 = self.commit("T02")
+        code, out = self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", sha2)
+        self.assertEqual(code, 0, out)
+        self.ap("tests", "5/0")
+        self.ap("blind", "checked=4", "matched=4")
+        self.git("add", "-A")
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
+
     # ── init ───────────────────────────────────────────────────────────────
     def test_init_creates_run(self):
         self.init()
@@ -187,12 +213,14 @@ class Run(unittest.TestCase):
         self.plan()
         self.ap("tickets")
         self.ap("ticket", "01", "start")
-        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", "1111111aaaa", "--placeholder", "R05")
+        sha1 = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha1, "--placeholder", "R05")
         m = self.manifest()
         self.assertRegex(m, r"\| R01 \|[^\n]*\| in-ticket \|")     # ещё и в таске 02
-        self.assertRegex(m, r"\| R05 \|[^\n]*\| placeholder \|[^\n]*1111111")
+        self.assertIn("placeholder", m)
         self.ap("ticket", "02", "start")
-        self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", "2222222bbbb")
+        sha2 = self.commit("T02")
+        self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", sha2)
         m = self.manifest()
         self.assertRegex(m, r"\| R01 \|[^\n]*\| done \|")
         self.assertRegex(m, r"\| R02 \|[^\n]*\| done \|")
@@ -204,7 +232,7 @@ class Run(unittest.TestCase):
     def test_ticket_lifecycle_counters(self):
         self.plan()
         self.ap("tickets")
-        self.ap("ticket", "01", "02", "start")
+        self.ap("ticket", "01", "start")
         self.ap("ticket", "01", "review")
         self.ap("ticket", "01", "repair", "--note", "ключ схемы — R01")
         self.ap("ticket", "02", "retry")
@@ -322,7 +350,8 @@ class Run(unittest.TestCase):
         self.ap("tickets")
         self.ap("ticket", "01", "start")
         self.ap("ticket", "01", "repair", "--note", "пустой адрес")
-        self.ap("ticket", "01", "done", "--tests", "7/0", "--commit", "abc")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "7/0", "--commit", sha)
         self.ap()
         kinds = [(e["k"], e.get("act")) for e in self.state()["log"]]
         self.assertEqual(kinds, [("init", None), ("tickets", None), ("ticket", "start"),
@@ -368,10 +397,73 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["rev"], r + 1)
 
     # ── finish ─────────────────────────────────────────────────────────────
-    def test_finish_lands_the_run(self):
+    def test_finish_rejects_incomplete_work(self):
         self.plan()
-        self.git("add", "-A")
-        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
+        self.ap("tickets")
+        code, out = self.ap("finish", "--result", "ложный успех")
+        self.assertNotEqual(code, 0)
+        self.assertIn("finish заблокирован", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_requires_all_gates(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha1 = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "2/0", "--commit", sha1)
+        self.ap("ticket", "02", "start")
+        sha2 = self.commit("T02")
+        self.ap("ticket", "02", "done", "--tests", "2/0", "--commit", sha2)
+        code, out = self.ap("finish", "--result", "ложный успех")
+        self.assertNotEqual(code, 0)
+        self.assertIn("нет успешного полного прогона", out)
+
+    def test_ticket_done_rejects_failed_tests_and_invalid_commit(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        c, out = self.ap("ticket", "01", "done", "--tests", "0/1", "--commit", "badc0de")
+        self.assertNotEqual(c, 0)
+        self.assertIn("без успешных тестов", out)
+        c, out = self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", "badc0de")
+        self.assertNotEqual(c, 0)
+        self.assertIn("существующий коммит", out)
+
+    def test_review_rolls_back_requirement_status(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0",
+                "--commit", sha, "--placeholder", "R05")
+        self.assertIn("placeholder", self.manifest())
+        self.ap("ticket", "01", "review")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| in-ticket \|")
+        self.ap("ticket", "01", "done")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| placeholder \|")
+
+    def test_plan_requires_rows_and_tickets(self):
+        self.init()
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0)
+        self.assertIn("манифест отсутствует или пуст", out)
+        self.assertIn("план пуст", out)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+
+    def test_changed_ticket_resets_previous_acceptance(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
+        self.write("tickets/01-karkas.md", ticket("01", "Новая версия", "R01, R05", "—", ["src/core/"], 1))
+        self.ap("tickets")
+        t = {t["id"]: t for t in self.state()["tickets"]}["01"]
+        self.assertEqual(t["status"], "pending")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| in-ticket \|")
+
+    def test_finish_lands_the_run(self):
+        self.ready_to_finish()
         code, out = self.ap("finish", "--result", "Бот принимает заявки")
         s = self.state()
         self.assertTrue(s["finishedAt"])
@@ -383,7 +475,7 @@ class Run(unittest.TestCase):
         self.assertIn("R", self.git("status", "--short").stdout)    # переименование через git mv
 
     def test_reopen_puts_wip_back(self):
-        self.init()
+        self.ready_to_finish()
         self.ap("finish", "--result", "готово")
         self.ap("reopen")
         s = self.state()
@@ -401,8 +493,8 @@ class Run(unittest.TestCase):
         kept = self.git("rev-parse", "--short", "HEAD").stdout.strip()
         commit("T02")
         lost = self.git("rev-parse", "--short", "HEAD").stdout.strip()
-        self.ap("ticket", "01", "done", "--commit", kept)
-        self.ap("ticket", "02", "done", "--commit", lost)
+        self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", kept)
+        self.ap("ticket", "02", "done", "--tests", "1/0", "--commit", lost)
         events = len(self.state()["log"])
         code, out = self.ap("commits")
         self.assertIn("коммиты сданных тасков на месте", out)
