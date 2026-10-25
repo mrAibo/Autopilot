@@ -58,11 +58,14 @@ def fixture():
         "tickets": [
             {"id": "01", "title": "Landing page", "wave": 1, "status": "done",
              "blockedBy": [], "zone": ["web/"], "requirements": ["R01"],
+             "worktree": {"status": "released", "sourceCommit": "fedcba123"},
              "routing": {"provider": "anthropic", "model": "haiku", "effort": "low",
                          "score": 15, "reason": "Small fixed-layout UI task"}},
             {"id": "02", "title": "API and validation", "wave": 2, "status": "in-progress",
              "blockedBy": ["01"], "zone": ["api/"], "requirements": ["R02"],
              "startedAt": "2026-10-25T10:02:00+00:00",
+             "worktree": {"status": "prepared"}, "retries": 1, "repairs": 0,
+             "retryAdvice": {"category": "tests", "why": "fix failed assertions"},
              "routing": {"provider": "openai", "model": "gpt-6.1-sol",
                          "effort": "high", "score": 70, "reason": "Authentication risk"}}
         ],
@@ -126,6 +129,9 @@ def main():
                 return 1
             if not any("resource-card" in cls.split() for cls in parsed.sections):
                 print("Resources panel not rendered: " + label, file=sys.stderr)
+                return 1
+            if not ("Изоляция и восстановление" in visible or "Isolation & recovery" in visible):
+                print("Isolation/recovery panel not rendered: " + label, file=sys.stderr)
                 return 1
             if ("haiku" not in visible or
                 not ("Модели и ресурсы" in visible or "Models & resources" in visible)):
