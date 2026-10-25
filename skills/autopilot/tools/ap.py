@@ -1120,8 +1120,8 @@ def cmd_ticket(state, pos, opt):
 
 def cmd_worktree(state, pos, opt):
     """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
-    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land", "release", "recover"):
-        die("worktree <ticket-id> prepare|status|land|release|recover [--tests N/0]")
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "finalize", "land", "release", "recover"):
+        die("worktree <ticket-id> prepare|status|finalize|land|release|recover [--tests N/0]")
     ident, action = pos
     known = {t["id"]: t for t in state.get("tickets") or []}
     tk = known.get(ident)
@@ -1205,6 +1205,22 @@ def cmd_worktree(state, pos, opt):
                               "cwd": result["cwd"]}
             log(state, "worktree", act="prepare", ticket=ident)
             return "worktree %s подготовлен: %s" % (ident, result["cwd"])
+        if action == "finalize":
+            record = tk.get("worktree") or {}
+            if (record.get("status") != "prepared" or
+                    tk.get("status") not in ("in-progress", "review", "repair")):
+                die("worktree: для финализации требуется запущенная задача и prepared checkout")
+            check = tests_pair(opt.get("tests") or "")
+            if check["passed"] < 1 or check["failed"] != 0:
+                die("worktree: сначала независимо проверь тесты N/0")
+            result = worktrees.finalize(ROOT, ident, record["baseCommit"],
+                                        tk.get("zone") or [], check["passed"], check["failed"])
+            record["sourceCommit"] = result["sourceCommit"]
+            tk["tests"] = check
+            state["tests"] = check
+            log(state, "worktree", act="finalize", ticket=ident)
+            return "worktree %s: подготовлен проверенный коммит %s" % (
+                ident, result["sourceCommit"][:12])
         record = tk.get("worktree") or {}
         if record.get("status") != "prepared" or tk.get("status") not in ("in-progress", "review", "repair"):
             die("worktree: %s не запущен в подготовленной рабочей копии" % ident)
