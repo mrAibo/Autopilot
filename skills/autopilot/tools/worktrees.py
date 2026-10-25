@@ -139,6 +139,74 @@ def recover(root, ticket, base):
             "sourceCommit": source, "landedCommit": found}
 
 
+def finalize(root, ticket, base, zones, passed, failed):
+    """Host-owned Git commit after independently confirmed tests.
+
+    Designed for sandboxed model workers that cannot write shared .git/worktrees.
+    Never stages a file outside declared zones, never deletes untracked files,
+    never runs tests on behalf of the user, and never silently modifies main.
+    """
+    root = repository(root)
+    target = safe_target(root, ticket)
+    if type(passed) is not int or passed < 1 or type(failed) is not int or failed != 0:
+        raise WorktreeError("Independent successful test results N/0 are required")
+    if not isinstance(zones, list) or not zones:
+        raise WorktreeError("Ticket must declare an exact code zone")
+    allowed = []
+    for zone in zones:
+        if not isinstance(zone, str):
+            raise WorktreeError("Invalid zone type")
+        value = zone.replace("\\", "/")
+        parts = value.rstrip("/").split("/")
+        if (not value or value.startswith("/") or
+                any(p in ("", ".", "..") for p in parts) or
+                any(c in value for c in "*?[]:\0") or value.startswith(".git")):
+            raise WorktreeError("Unsafe or wildcard code zone: " + zone)
+        allowed.append((value.rstrip("/"), value.endswith("/")))
+    if source_dirty(root):
+        raise WorktreeError("Primary source checkout must be clean before finalization")
+    if not target.is_dir() or target.is_symlink():
+        raise WorktreeError("Executor worktree missing or redirected")
+    expected = git(root, "rev-parse", "--verify", base + "^{commit}").stdout.strip()
+    if git(target, "rev-parse", "HEAD").stdout.strip() != expected:
+        raise WorktreeError("Executor HEAD already differs from planned base")
+    if git(target, "rev-parse", "-q", "--verify", "MERGE_HEAD", check=False).returncode == 0:
+        raise WorktreeError("Worktree has an unresolved Git merge")
+    if git(target, "diff", "--check").returncode:
+        raise WorktreeError("Worker diff contains whitespace errors")
+    commands = (("diff", "--name-only", "-z"),
+                ("diff", "--cached", "--name-only", "-z"),
+                ("ls-files", "--others", "--exclude-standard", "-z"))
+    paths = sorted({name for cmd in commands for name in
+                    git(target, *cmd).stdout.split("\0") if name})
+    if not paths:
+        raise WorktreeError("No changed worker files to finalize")
+    for name in paths:
+        normalized = name.replace("\\", "/")
+        pieces = normalized.split("/")
+        if (normalized.startswith("/") or
+                any(p in ("", ".", "..") for p in pieces) or
+                normalized == ".git" or normalized.startswith(".git/") or
+                normalized == ".autopilot" or normalized.startswith(".autopilot/")):
+            raise WorktreeError("Unsafe worker path: " + normalized)
+        path = target / normalized
+        if path.is_symlink() or (path.exists() and
+                                not path.resolve().is_relative_to(target.resolve())):
+            raise WorktreeError("Changed file escapes worktree")
+        if not any(normalized == prefix or
+                   (is_dir and normalized.startswith(prefix + "/"))
+                   for prefix, is_dir in allowed):
+            raise WorktreeError("Worker changed file outside declared zone: " + normalized)
+    git(target, "add", "--", *paths)
+    result = git(target, "commit", "-m", "Autopilot " + ticket + ": validated worker changes",
+                 check=False)
+    if result.returncode:
+        raise WorktreeError("Git commit failed; staged changes preserved for inspection")
+    source = source_commit(root, ticket, expected)
+    return {"ticket": ticket, "status": "finalized", "sourceCommit": source,
+            "files": paths, "tests": {"passed": passed, "failed": failed}}
+
+
 def land(root, ticket, base):
     """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict."""
     root = repository(root)
