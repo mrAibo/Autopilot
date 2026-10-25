@@ -201,6 +201,7 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
                            "model_invoked": True if result["status"] == "ready-for-review"
                                             else "unknown",
                            "worker_commit": result.get("worker_commit"),
+                           "handoff": result.get("handoff"),
                            "turn_completed": result.get("turn_completed"),
                            "cli_exit_code": result.get("exit_code"),
                            "provider_thread_observed": bool(result.get("thread_id")),
@@ -219,10 +220,15 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
                 "model_invoked": record["model_invoked"],
                 "receipt": str(path),
                 "worker_commit": record.get("worker_commit"),
+                "handoff": record.get("handoff"),
                 "usage_recorded": record.get("usage_recorded", False),
                 "tests_verified": False, "accepted": False,
-                "next_action": ("Use controller --suite TEST --advance only after "
-                                "independent trusted test verification; never replay paid call")}
+                "next_action": (
+                    "Run independently trusted host tests, then finalize/land/accept"
+                    if record["status"] == "ready-for-host-verification" else
+                    "Run host verification only after independent tests"
+                    if record["status"] == "ready-for-review" else
+                    "Inspect receipt and worktree manually; never replay paid call")}
 
 
 

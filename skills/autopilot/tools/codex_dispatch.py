@@ -18,6 +18,7 @@ import sys
 import tomllib
 
 import spend_guard
+import worker_outcome
 
 
 class DispatchError(ValueError):
@@ -144,7 +145,10 @@ def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write", o
     prompt = (data.get("developer_instructions", "") + policy_prompt +
               "\nExecute the single task described below. Stay inside your declared file zone. "
               "Do not launch nested agents, change model settings, deploy or publish. "
-              "Create exactly one Git commit of tested work, or report BLOCKED without inventing success.\n\n"
+              "Edit only your approved files. If the sandbox disallows writing shared Git "
+              "metadata or git commit, leave only the scoped source edits in the "
+              "worktree and report that the HOST must independently test and commit. "
+              "Never claim accepted work without host verification.\n\n"
               + files[0].read_text(encoding="utf-8"))
     return {"command": cmd, "cwd": str(target), "model": route["model"],
             "effort": route["effort"], "ticket": ticket_id,
@@ -238,15 +242,22 @@ def run_once(config, root, *, timeout=900):
             recorded = True
         commit, commit_issue = verify_worker_commit(root, config["ticket"])
         ok = result.returncode == 0 and completed
-        return {"status": "ready-for-review" if ok and commit else
-                ("incomplete" if ok else "failed"),
+        handoff = (worker_outcome.inspect(root, config["ticket"])
+                   if ok and not commit else None)
+        eligible = bool(handoff and handoff["eligible"])
+        status = ("ready-for-review" if ok and commit else
+                  "ready-for-host-verification" if eligible else
+                  "incomplete" if ok else "failed")
+        return {"status": status,
                 "turn_completed": ok, "worker_commit": commit,
                 "tests_verified": False, "accepted": False,
                 "exit_code": result.returncode, "thread_id": thread_id,
                 "usage_recorded": recorded, "usage": usage,
-                "diagnostic": (commit_issue if ok and not commit else
-                               "Codex CLI exited nonzero; inspect sanitized local host logs"
-                               if not ok else "")}
+                "handoff": handoff,
+                "diagnostic": ("host-tests-and-finalize-required" if eligible else
+                               "no-commit-" + handoff["reason"] if ok and handoff else
+                               commit_issue if ok and not commit else
+                               "cli-process-or-turn-failed" if not ok else "")}
 
 
 def main(argv=None):
