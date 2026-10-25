@@ -51,8 +51,24 @@ def choose_binary(explicit=None):
     raise DispatchError("Native codex executable not found; install @openai/codex or pass --codex-exe")
 
 
-def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write"):
+def optimization_rules(mode):
+    """Small explicit local policy, inspired by Ponytail, not the upstream plugin."""
+    if mode == "off":
+        return ""
+    if mode != "lean":
+        raise DispatchError("Optimization must be off or lean")
+    return (
+        "\nOptional optimization profile: first understand relevant code and its callers. "
+        "Prefer existing code, built-in capabilities and the standard library over new dependencies. "
+        "Implement only the requested behavior with the smallest maintainable diff. "
+        "Never sacrifice validation, security, error handling, accessibility, tests, or any acceptance criterion. "
+        "Do not skip tests to save tokens; explicitly report blockers.\n"
+    )
+
+
+def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write", optimization="off"):
     root = Path(root).resolve()
+    policy_prompt = optimization_rules(optimization)
     if mode not in ("read-only", "workspace-write"):
         raise DispatchError("Unsafe sandbox mode; only read-only or workspace-write accepted")
     if not re.fullmatch(r"[0-9]{2,4}", ticket_id):
@@ -118,14 +134,14 @@ def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write"):
            "--ephemeral", "--ignore-user-config",
            "--model", route["model"], "-c",
            'model_reasoning_effort="' + route["effort"] + '"', "--json"]
-    prompt = (data.get("developer_instructions", "") +
+    prompt = (data.get("developer_instructions", "") + policy_prompt +
               "\nExecute the single task described below. Stay inside your declared file zone. "
               "Do not launch nested agents, change model settings, deploy or publish. "
               "Create exactly one Git commit of tested work, or report BLOCKED without inventing success.\n\n"
               + files[0].read_text(encoding="utf-8"))
     return {"command": cmd, "cwd": str(target), "model": route["model"],
             "effort": route["effort"], "ticket": ticket_id,
-            "prompt": prompt, "binary": binary}
+            "prompt": prompt, "binary": binary, "optimization": optimization}
 
 
 def parse_usage(lines):
@@ -174,6 +190,21 @@ def single_flight(root, ticket):
             pass
 
 
+def verify_worker_commit(root, ticket):
+    """True model-turn completion never implies a usable Git commit."""
+    from worktrees import source_commit, WorktreeError
+    from worktrees import git
+    try:
+        root = Path(root).resolve()
+        state = load_state(root)
+        task = next(t for t in state.get("tickets", []) if t.get("id") == ticket)
+        base = task["worktree"]["baseCommit"]
+        revision = source_commit(root, ticket, base)
+        return revision, None
+    except (StopIteration, KeyError, OSError, ValueError, WorktreeError):
+        return None, "No clean single worker commit exists; read-only review is required"
+
+
 def run_once(config, root, *, timeout=900):
     if not 20 <= timeout <= 1800:
         raise DispatchError("Timeout must be between 20 and 1800 seconds")
@@ -191,14 +222,21 @@ def run_once(config, root, *, timeout=900):
                             "--output", str(usage["output_tokens"]),
                             "--cache-read", str(usage["cached_input_tokens"]),
                             "--source", "codex-jsonl", "--no-serve"],
-                           cwd=root, capture_output=True, text=True, timeout=30,
+                           cwd=root, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=30,
                            check=True)
             recorded = True
-        return {"status": "completed" if result.returncode == 0 and completed else "failed",
+        commit, commit_issue = verify_worker_commit(root, config["ticket"])
+        ok = result.returncode == 0 and completed
+        return {"status": "ready-for-review" if ok and commit else
+                ("incomplete" if ok else "failed"),
+                "turn_completed": ok, "worker_commit": commit,
+                "tests_verified": False, "accepted": False,
                 "exit_code": result.returncode, "thread_id": thread_id,
                 "usage_recorded": recorded, "usage": usage,
-                "diagnostic": "" if result.returncode == 0 else
-                    "Codex CLI exited nonzero; inspect sanitized local host logs"}
+                "diagnostic": (commit_issue if ok and not commit else
+                               "Codex CLI exited nonzero; inspect sanitized local host logs"
+                               if not ok else "")}
 
 
 def main(argv=None):
@@ -208,19 +246,21 @@ def main(argv=None):
     parser.add_argument("--codex-exe", type=Path)
     parser.add_argument("--sandbox", default="workspace-write",
                         choices=["read-only", "workspace-write"])
+    parser.add_argument("--optimization", default="off", choices=["off", "lean"],
+                        help="Optional lean-code rules, off by default (NOT the upstream Ponytail plugin)")
     parser.add_argument("--execute", action="store_true",
                         help="Perform one real Codex model call (otherwise dry-run)")
     parser.add_argument("--timeout", type=int, default=900)
     args = parser.parse_args(argv)
     try:
-        cfg = checked_dispatch(args.root, args.ticket, args.codex_exe, args.sandbox)
+        cfg = checked_dispatch(args.root, args.ticket, args.codex_exe, args.sandbox, args.optimization)
         if not args.execute:
             out = {key: value for key, value in cfg.items() if key != "prompt"}
             out["status"] = "dry-run"
         else:
             out = run_once(cfg, args.root, timeout=args.timeout)
         print(json.dumps(out, ensure_ascii=False, indent=2))
-        return 0 if out["status"] != "failed" else 2
+        return 0 if out["status"] in ("dry-run", "ready-for-review") else 2
     except (DispatchError, OSError, ValueError, KeyError, TypeError,
             subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
         print(json.dumps({"status": "blocked", "error": str(e)[:500]},
