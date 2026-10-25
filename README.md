@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://skills.sh/nick-vels/skills"><img src="https://skills.sh/b/nick-vels/skills" alt="skills.sh"></a>
+  <a href="https://github.com/mrAibo/Autopilot"><img src="https://github.com/mrAibo/Autopilot" alt="skills.sh"></a>
 </p>
 
 <p align="center"><strong>Describe what you want built — get a finished project.</strong></p>
@@ -17,6 +17,8 @@
 Autopilot is a development framework packaged as a skill. It takes your idea, asks questions exactly where the idea forks, and then does the rest on its own: writes the spec, thinks through what you didn't, splits the work into tasks and builds the whole project. You don't have to read the spec, size the tasks or understand the code.
 
 It works on its own: nothing else to install.
+
+> **Autopilot 2.3 development branch:** This fork includes stricter completion checks, a new [model routing policy](docs/autopilot/model-routing.md) for OpenAI/Codex and Anthropic/Claude Code, and a refreshed, more informative Dashboard 3.0. Read [бриф.md](бриф.md) for scope. This is work in progress, not a 2.3 release; model selection needs host-verified capabilities. Dashboard usage costs are marked unavailable unless measured. The existing screenshots below reflect the previous dashboard, not the new visual design.
 
 <p align="center">
   <a href="assets/autopilot-dashboard.png"><img src="assets/dash-now.png" width="380" alt="The header: what is happening now, how much is left, the eight stages"></a>
@@ -39,7 +41,7 @@ Open your AI agent — Claude Code, Cursor, Codex — and paste this:
 ```
 Install the Autopilot skill for me. Run in the terminal:
 
-npx skills add nick-vels/skills --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
+npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
 
 If npx is not found, give me a link to download Node.js and wait.
 Don't install anything else.
@@ -55,7 +57,7 @@ This command is for the **first** install. Updating later is [a different comman
 Copy this line:
 
 ```bash
-npx skills add nick-vels/skills
+npx skills add mrAibo/Autopilot
 ```
 
 The installer asks which skills to install and for which agents — just confirm.
@@ -64,7 +66,7 @@ The installer asks which skills to install and for which agents — just confirm
 <summary>One-line install, no questions</summary>
 
 ```bash
-npx skills add nick-vels/skills --skill autopilot -a claude-code -g -y
+npx skills add mrAibo/Autopilot --skill autopilot -a claude-code -g -y
 ```
 
 | Flag | What it does |
@@ -362,7 +364,7 @@ Update the Autopilot skill to the latest version. Run in the terminal:
 npx skills update autopilot -g
 
 If it says everything is up to date but the version is still old, reinstall:
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a <put yourself here: claude-code, cursor, codex>
 
 When you're done, tell me in one line what was updated and remind me to restart the session.
 ```
@@ -380,7 +382,7 @@ npx skills remove autopilot -g
 **If the skill behaves like an old version.** `update` compares the source version, not the files on disk: if the local copy was edited or got corrupted, it says "everything is up to date" and does nothing. The fix is a reinstall:
 
 ```bash
-npx skills remove autopilot -g -y && npx skills add nick-vels/skills --skill autopilot -g -y -a claude-code
+npx skills remove autopilot -g -y && npx skills add mrAibo/Autopilot --skill autopilot -g -y -a claude-code
 ```
 
 For the agent to see the new version, **restart the session** — skills are loaded at startup.
