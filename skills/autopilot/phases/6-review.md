@@ -19,7 +19,7 @@ Merged or ranked together, one axis masks another. **Which axis a finding belong
 
 ## Point review
 
-**One fresh subagent per review**, on the strong model — never a reviewer kept alive across tickets.
+**One fresh subagent per review** — never a reviewer kept alive across tickets. **Do not inherit the orchestrator model**: route this reviewer through `model_router.py` and verified host capabilities. A security-sensitive reviewer normally needs strong; a routine targeted review can be balanced. A blocked route means no spawn, not a fallback to Astra/Fable.
 
 **Launch it in the background right after the commit** — `ap.py ticket NN review`, then the subagent — and go on with the build: launch the next wave, land other tickets. Waiting on a point review is never a reason to hold a wave.
 
@@ -48,7 +48,7 @@ Everything else waits for the whole-branch review. **You do not widen the list**
 
 After the build: `ap.py stage review`.
 
-**One fresh subagent** on the strong model — at T3 with a large diff, up to three in parallel, each given a group of zones. It gets `prompts/review.md` (mode «ветка»), the range `git diff <baseCommit>..HEAD` (`baseCommit` in `state.js`) to run itself, `spec.md` and `interfaces.md` by path, the repo's conventions, and the deferred findings from `state.js` → `concerns`, so it confirms or drops them rather than rediscovering them. It may open files outside the diff where an interaction needs it. The Manifest axis is not judged here — the blind acceptance in Phase 8 closes it against the brief.
+**One fresh subagent**, explicitly routed to the strongest *permitted and host-verified* profile needed, never automatically Astra/Fable — at T3 with a large diff, up to three in parallel, each given a group of zones. It gets `prompts/review.md` (mode «ветка»), the range `git diff <baseCommit>..HEAD` (`baseCommit` in `state.js`) to run itself, `spec.md` and `interfaces.md` by path, the repo's conventions, and the deferred findings from `state.js` → `concerns`, so it confirms or drops them rather than rediscovering them. It may open files outside the diff where an interaction needs it. The Manifest axis is not judged here — the blind acceptance in Phase 8 closes it against the brief.
 
 It returns every finding sorted into three: **fix now** — it costs more to leave than to close, and the fix is bounded; **report** — real, not worth holding delivery for; **drop** — taste, or the code it pointed at is gone. Anything repeated across three or more tickets is **fix now**: that is a convention the project never settled. A security finding is fix now or report — never drop.
 

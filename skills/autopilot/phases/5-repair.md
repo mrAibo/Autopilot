@@ -11,7 +11,7 @@ Two counters, both capped at two: `repairs` (дозапросы) and `retries` (
 | | Недоделка — could have, did not | Отказ — tried, could not |
 |---|---|---|
 | What | a red check, a blocking finding, a criterion met in letter and dodged in substance | `BLOCKED`, `NEEDS_CONTEXT`, a repair that already failed |
-| Goes to | **the same executor**, by message, its context intact — a **дозапрос** | **a fresh context**, on the strong model (below) |
+| Goes to | **the same executor**, by message, its context intact — a **дозапрос** | **a fresh context**, with a verified re-route to a permitted stronger model only if the cause is reasoning complexity (below) |
 | You send | the condition, nothing else | the ticket again, the error, the failing test named, the path now spelled out |
 | Because | it holds why the code is the way it is; a cold reader repairs the symptom and breaks the reason | its context *is* the failure — the same request gets the same answer |
 
@@ -39,7 +39,7 @@ Not a failure. If the dependency fits a decision the spec already made, add it t
 
 ## When a ticket fails
 
-`ap.py ticket NN retry`, then a fresh context with the error attached, on the strong model. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
+`ap.py ticket NN retry`, then a fresh context with the error attached, **after a new capability-checked route**; do not upgrade for missing access, tools or context. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
 
 After that the flight stops for this ticket: `ap.py ticket NN fail --note "что блокирует"`, the reason in its manifest rows' Основание, and a plain sentence to the user — what is blocking, what you need from them, and which tickets are now waiting on it. Never improvise around a blocker and never narrow the ticket to whatever happened to work: a quietly reduced ticket is a lost requirement. Its wave-mates are independent by construction — let them land.
 

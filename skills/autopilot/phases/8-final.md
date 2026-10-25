@@ -1,6 +1,8 @@
 # Phase 8 — Acceptance
 
-`ap.py stage final`. Three subagents, no contact between them, each answering a different question. The blind checker and the ADR agent go out **in one message**; the memory agent goes out when the blind checker has returned, because it needs the commands the checker proved:
+\`ap.py stage final\`. Three subagents, no contact between them, each answering a different question. The blind checker and the ADR agent go out **in one message**; the memory agent goes out when the blind checker has returned, because it needs the commands the checker proved:
+
+**Model authorization applies to all three, not just code executors.** Prepare a small role-specific Markdown routing brief outside `tickets/` for each (blind acceptance, ADR, memory), call `model_router.py` with verified host capabilities and, if needed, explicit six-factor scores. Do not spawn without a ready verdict or allow the host to inherit Astra/Fable from the main session. A cheap model normally suffices for memory/ADR; blind acceptance may need balanced or strong by risk.
 
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|

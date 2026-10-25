@@ -66,6 +66,12 @@ python3 .autopilot/ap.py ticket 02 route --provider anthropic \
 
 The `route` event recomputes the model recommendation and checks the capabilities file before recording `verified=true`. Start new runs with `ap.py init ... --strict-routing` to enforce presence of that checked assignment at `ticket ... start`. This does **not** cryptographically authenticate the capabilities file or prove that an external harness billed the selected model. The recorded assignment is a plan, not proof that tokens were billed to that model. The dashboard shows cost as unavailable until real usage telemetry is connected.
 
+## Non-executor subagents
+
+Routing applies equally to code reviewers, independent spec-coverage reviewers, repository exploration, blind acceptance, ADR writers and memory agents. Create a lightweight **role-specific routing brief outside `tickets/`**, select its complexity factors (using `--scores` if the heuristic undershoots security review), then run the same provider/capability check before calling the host's Agent tool. Do not inherit the main session's model or silently bypass a blocked route.
+
+`ap.py ticket ... route` records **executor** assignments; it does not create reviewer/ADR telemetry. The latter remains a future extension, and no fabricated spend should appear in the dashboard.
+
 ## Retry
 
 1. Diagnose first. Missing files, dependencies, permissions, tool limitations and unclear instructions do not justify an automatic model upgrade.

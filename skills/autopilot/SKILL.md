@@ -114,7 +114,7 @@ CONTEXT.md                             at T2+: the project's words — or the us
 
 ## Model routing (2.3 development)
 
-Before dispatch, the executor model and reasoning effort are determined by `tools/model_router.py`, using the verified host capabilities and a fail-closed provider policy. OpenAI/Codex and Anthropic/Claude Code have separate profiles. Astra/Fable are not eligible subagent defaults. A main orchestrator on an expensive model does not imply expensive workers. The route is logged per task and displayed on Dashboard 3.0. See `docs/autopilot/model-routing.md` in the repository; the skill alone cannot force an external harness to honor its selection.
+Before dispatch, **every subagent's** model and reasoning effort (executors, reviewers, exploration, memory, ADR, acceptance) are determined by `tools/model_router.py`, using the verified host capabilities and a fail-closed provider policy. OpenAI/Codex and Anthropic/Claude Code have separate profiles. Astra/Fable are not eligible subagent defaults. A main orchestrator on an expensive model does not imply expensive workers. The route is logged per task and displayed on Dashboard 3.0. See `docs/autopilot/model-routing.md` in the repository; the skill alone cannot force an external harness to honor its selection.
 
 ## Judgement
 
