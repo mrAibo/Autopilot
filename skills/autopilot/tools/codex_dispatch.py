@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tomllib
 
+import spend_guard
+
 
 class DispatchError(ValueError):
     pass
@@ -213,6 +215,9 @@ def verify_worker_commit(root, ticket):
 def run_once(config, root, *, timeout=900):
     if not 20 <= timeout <= 1800:
         raise DispatchError("Timeout must be between 20 and 1800 seconds")
+    # Enforce at the lowest common paid execution boundary, including the
+    # direct codex_dispatch.py --execute CLI that bypasses gui_bridge.py.
+    spend_guard.assert_enforced_cap(config)
     with single_flight(root, config["ticket"]):
         result = subprocess.run(config["command"] + ["-"],
                                 input=config["prompt"], text=True, encoding="utf-8",
@@ -266,7 +271,8 @@ def main(argv=None):
             out = run_once(cfg, args.root, timeout=args.timeout)
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0 if out["status"] in ("dry-run", "ready-for-review") else 2
-    except (DispatchError, OSError, ValueError, KeyError, TypeError,
+    except (DispatchError, spend_guard.CapUnavailable,
+            OSError, ValueError, KeyError, TypeError,
             subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
         print(json.dumps({"status": "blocked", "error": str(e)[:500]},
                          ensure_ascii=False))

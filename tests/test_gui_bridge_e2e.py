@@ -115,7 +115,8 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
                                "--cd", conf["cwd"]]
             return conf
 
-        with patch.object(codex_dispatch, "checked_dispatch", offline_checked):
+        with patch.object(codex_dispatch, "checked_dispatch", offline_checked), \
+                patch.object(gui_bridge.spend_guard, "assert_enforced_cap"):
             preview = gui_bridge.bridge(h.root, "01", executable=sys.executable,
                                         timeout=45)
             self.assertEqual(preview["status"], "dry-run")
@@ -179,7 +180,8 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
             conf["command"] = [sys.executable, str(self.fake),
                                "--cd", conf["cwd"]]
             return conf
-        with patch.object(codex_dispatch, "checked_dispatch", offline_error):
+        with patch.object(codex_dispatch, "checked_dispatch", offline_error), \
+                patch.object(gui_bridge.spend_guard, "assert_enforced_cap"):
             out = gui_bridge.bridge(h.root, "01", execute=True, approval="01",
                                     executable=sys.executable, timeout=45)
             self.assertEqual(out["status"], "failed")

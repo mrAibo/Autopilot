@@ -169,6 +169,7 @@ class DispatchTests(unittest.TestCase):
     def test_execution_reports_usage(self):
         cfg = self.checked()
         with patch.object(codex_dispatch, "verify_worker_commit", return_value=(None, "No commit")), \
+                patch.object(codex_dispatch.spend_guard, "assert_enforced_cap"), \
                 patch.object(codex_dispatch.subprocess, "run") as mock:
             mock.side_effect = [
                 subprocess.CompletedProcess([], 0,

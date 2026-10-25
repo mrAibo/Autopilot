@@ -50,6 +50,15 @@ production dispatcher. On Windows it now uses a kernel kill-on-close Job Object
 and a gated start, with a real parent-crash test; POSIX is not parent-death safe.
 Host acceptance still requires independently trusted tests.
 
+**Paid-call safety gate (P0):** after a real disposable Codex CLI turn
+reported 53,187 input + 341 output tokens despite a recorded threshold of
+2,000, both GUI bridge and direct Codex dispatcher now **fail closed** on
+real execution. A positive ledger threshold or CLI timeout is not an
+enforced provider per-call spending cap. Read-only previews and the
+[local token audit](docs/autopilot/spend-guard.md) remain available. This
+restriction has no environment-variable, CLI-flag or config-file bypass;
+synthetic tests exercise the host path with reviewed, process-local mocks.
+
 **GUI-to-CLI fallback for Codex:** When named native GUI subagents are
 unavailable, a GUI host with terminal tools can invoke the
 [single-attempt bridge](docs/autopilot/gui-cli-bridge.md). The preview

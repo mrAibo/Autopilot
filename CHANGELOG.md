@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- P0 hard-cap admission gate: real Codex paid calls are blocked from both GUI bridge and direct dispatcher pending independently verified provider-enforced per-call limits. Ledger token thresholds and timeout are explicitly soft. New `spend_guard.py` read-only audit reports input/cache/output tokens, prior attempts and budget overage without fabricating monetary billing. Strict offline mock tests cover fail-closed paths; no new paid calls.
+
 - Windows process containment qualification: gated launch after successful Job Object assignment, kernel kill-on-job-close for parent crashes, claim-bound cancellation marker and acknowledged terminal receipts, plus read-only reconciliation. Windows parent-death test verified with a held native process handle. POSIX parent-death containment and production use remain unverified.
 - One explicitly authorized real Codex CLI smoke (gpt-6-luna/low) completed a model turn but **did not produce a worker commit**: `incomplete`, not accepted, no replay. Account-reported 53,187 input (46,464 cached) and 341 output tokens exceeded the recorded 2,000-token threshold; it is not a hard per-call cap. Added sanitized CLI exit/diagnostic fields to future GUI dispatch receipts. No further paid probes until spending limits and failure diagnosis are addressed.
 
