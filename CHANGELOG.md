@@ -6,6 +6,16 @@ The skill's version is the `metadata.version` field in `skills/autopilot/SKILL.m
 npx skills update autopilot -g
 ```
 
+## 2.3.0 — IN DEVELOPMENT (not released)
+
+- Added a project brief (`бриф.md`) and a dedicated development branch.
+- Hard-stop acceptance gates in `ap.py`: incomplete tickets, unverified commits, failing tests, missing gates block `finish`. Reopen/review paths reconcile requirement statuses. Empty manifest/plan fail G3.
+- Introduced OS-level locking for `state.js` writes, validated run identifiers, and protected the dashboard server against stale delayed-stop requests.
+- Added a provider-neutral model router with OpenAI Luna/Sol and Anthropic Haiku/Sonnet defaults. Restricted high-cost subagents do not launch. Selection requires actual host capabilities.
+- Dashboard 3.0 visual refresh, next-action and quality overview, per-task model decisions and explicit unknown-cost state.
+- Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
+- Pending: verified in-harness dispatch adapters, worktree isolation, actual billing telemetry, visual/browser regression, real-run benchmark.
+
 ## 2.2.0 — 2026-10-21
 
 **Size by volume, review without waiting**
