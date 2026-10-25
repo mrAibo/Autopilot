@@ -187,9 +187,16 @@
   duplicate/orphaned/partial receipt blocking, crash ambiguity,
   locked/invalid budget, dirty worker refusal and no silent test
   acceptance. Tests use mock model calls on synthetic Git fixtures.
-- Validate complete Windows/Linux CI and GUI terminal access before
-  claiming end-to-end success. No paid GUI live call has been made
-  at this milestone. Remain `2.3.0-dev`, no release tag.
+- **Merged:** [PR #4](https://github.com/mrAibo/Autopilot/pull/4)
+  squash commit `7c7fdd5e3f30c551dfc26dcd2f72c2930a7368ea` on 2026-10-25.
+  [CI #40221255682](https://github.com/mrAibo/Autopilot/actions/runs/40221255682)
+  passed **4/4** Linux/Windows Python 3.11/3.13 jobs, **199 tests** on
+  Ubuntu 3.13, dashboard JavaScript and desktop/narrow browser smoke.
+  A status-only commit advances main; check the corresponding new CI.
+- **Still missing:** real GUI-terminal availability and owner-approved
+  paid GUI→CLI→independently accepted code E2E. All new test-model calls were
+  mocked. No hard provider budget enforcement; recorded usage threshold only.
+  Remain `2.3.0-dev`, no release tag.
 
 ## Prioritized next steps
 
