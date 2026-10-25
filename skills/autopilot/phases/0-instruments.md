@@ -23,6 +23,7 @@ cp "${TPL%/phases/*}/tools/retry_policy.py" "$A/retry_policy.py"
 cp "${TPL%/phases/*}/tools/scheduler.py" "$A/scheduler.py"
 cp "${TPL%/phases/*}/tools/codex_dispatch.py" "$A/codex_dispatch.py"
 cp "${TPL%/phases/*}/tools/codex_capabilities.py" "$A/codex_capabilities.py"
+cp "${TPL%/phases/*}/tools/test_evidence.py" "$A/test_evidence.py"
 ```
 
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
