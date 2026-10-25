@@ -42,7 +42,9 @@ Phase 4 gave every ticket a wave and a zone. **Launch a whole wave in one messag
 - **One event, one message.** Every call of yours re-reads your whole context — at 200K, one call costs about as much as a small subagent's first steps. What one event needs goes out together: the `ap.py` mark, the commit, the next launch, the line to the user. Never a call that only marks, then a call that only launches.
 - **Waiting for the wave is ending your turn** — a background subagent wakes you when it returns. Never spawn an agent, or run a loop, just to wait.
 
-**One working tree, several writers (legacy mode only).** Parallel executors share the checkout. Each touches only its zone (and `.env.example`), and you commit by zone. A check that fails **only in files of zones still being written** is a neighbour's unfinished work, not this ticket's defect: the ticket may land on its own tests green, and the full check runs again when the neighbour lands.
+**Prefer a separate Git worktree for each parallel executor:** `python .autopilot/worktrees.py create NN --root . --base <baseSHA>`. Pass the returned `cwd` to the executor; integrate one clean single-commit worktree with `worktrees.py land` before `ap.py ticket NN done`. This is not yet auto-scheduled; refer to `docs/autopilot/worktrees.md`. If the harness cannot guarantee the returned cwd, **run executors sequentially**.
+
+**Legacy shared-tree mode (sequential strongly preferred).** Parallel executors share the checkout. Each touches only its zone (and `.env.example`), and you commit by zone. A check that fails **only in files of zones still being written** is a neighbour's unfinished work, not this ticket's defect: the ticket may land on its own tests green, and the full check runs again when the neighbour lands.
 
 ## The return contract
 
@@ -68,7 +70,7 @@ In this order:
 1. **Read the contract and its status.** No block → the ticket is not finished; ask for it. `BLOCKED` or `NEEDS_CONTEXT` → `phases/5-repair.md` now. A `CONCERNS` line saying the plan does not hold — a data model, an interface, two requirements colliding — is the build contradicting the plan: `phases/5-repair.md` too. Two `NEEDS_CONTEXT` in one run mean the tickets are too thin across the board.
 2. **Nothing outside the zone.** `git status --porcelain`: a changed file outside this ticket's zone, `.env.example` and the zones still in flight is a дозапрос — put it back or say why it had to change.
 3. **Append its `INTERFACES` to `interfaces.md`** — you, never the executors; parallel writers collide. Two returns claiming one interface is a plan defect: keep the one that fits and re-cut the other.
-4. **Run the check**, full, truncated: `<check> 2>&1 | tail -30`, **and read it before anything else happens** — green or red, the names of what failed, and the count. Compare the count with the contract: a `DONE` that added criteria and no tests is a дозапрос, and a suite reporting zero tests is red however it exits.
+4. **Run the check**, full, truncated: `<check> > /tmp/autopilot-check.log 2>&1; rc=$?; tail -30 /tmp/autopilot-check.log; test "$rc" -eq 0`, **and read it before anything else happens** — green or red, the names of what failed, and the count. Compare the count with the contract: a `DONE` that added criteria and no tests is a дозапрос, and a suite reporting zero tests is red however it exits.
 5. **Red → `phases/5-repair.md`.** Nothing is committed on red, and nothing is repaired by you.
 6. **Commit and record — one call, only its zone:**
 
