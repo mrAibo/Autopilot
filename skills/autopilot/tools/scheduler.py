@@ -20,8 +20,15 @@ def zones_of(ticket):
     for zone in zones:
         if not isinstance(zone, str) or not zone.strip():
             continue
-        normalized = zone.replace("\\", "/").strip("./").rstrip("/")
-        if normalized and not normalized.startswith(".."):
+        normalized = zone.replace("\\", "/").strip()
+        if normalized.startswith("/") or ".." in normalized.split("/"):
+            return ["/"]
+        if normalized.startswith("./"):
+            normalized = normalized[2:]
+        if "*" in normalized:
+            normalized = normalized.split("*", 1)[0]
+        normalized = normalized.rstrip("/")
+        if normalized:
             result.append(normalized + "/")
     return result or ["/"]
 
