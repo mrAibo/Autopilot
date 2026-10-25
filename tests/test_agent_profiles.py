@@ -89,8 +89,8 @@ class ProfileTests(unittest.TestCase):
     def test_rejects_ticket_outside_project(self):
         self.capabilities()
         other = Path(tempfile.mkdtemp()) / "outside.md"
-        self.addCleanup(lambda: other.unlink(missing_ok=True))
         self.addCleanup(lambda: other.parent.rmdir())
+        self.addCleanup(lambda: other.unlink(missing_ok=True))
         other.write_text("Test", encoding="utf-8")
         with self.assertRaises(agent_profiles.ProfileError):
             agent_profiles.prepare(self.root, other, "anthropic", self.caps,
