@@ -15,6 +15,8 @@ npx skills update autopilot -g
 - Dashboard 3.0 visual refresh, next-action and quality overview, per-task model decisions and explicit unknown-cost state. Separate attributed input/output/cache token counters and recorded-token threshold.
 - Project-scoped native Claude Code `.md` and Codex `.toml` subagent profiles; strict start validates their hash, optional Claude Code `PreToolUse` hook denies unapproved spawns.
 - Conservative Git worktree helper for per-task isolation and safe, clean single-commit cherry-pick landing. Opt-in `--isolated-tickets` now integrates prepare, start, land, done and release with validated Git SHA and negative tests.
+- Crash-safe Git integration via source-annotated `cherry-pick -x`, independent patch checks and explicit `worktree recover` for interrupted ledger writes.
+- Deterministic JSON `ap.py schedule` planner: dependency, zone, capacity, prepared checkout and budget gating. This is a planner, **not** an external agent launcher.
 - Deterministic retry triage (`retry_policy.py`), explicit causes, hard attempt limits, no escalation for environment/dependency failures.
 - Added regression tests and Linux/Windows CI, expanded setup and safety documentation.
 - Pending: verified in-harness dispatch adapters, worktree isolation, actual billing telemetry, visual/browser regression, real-run benchmark.
