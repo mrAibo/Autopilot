@@ -4,6 +4,14 @@ The optional `skills/autopilot/tools/codex_dispatch.py` invokes **one external C
 
 This is an *executor process*; it is not yet a verified child agent in the parent Codex conversation and is not an automated `schedule` loop.
 
+## Actual Windows CLI smoke and account models (2026-10-25)
+
+After the owner's VPN was disabled, `codex doctor --summary` returned **21 ok, 0 fail** and confirmed HTTP provider endpoints reachable. `codex debug models` showed account-visible GPT-6 Luna, GPT-6 Sol, and GPT-6.1 Sol. A read-only `gpt-6-luna` call with `model_reasoning_effort=low`, stdin prompt and explicit EOF returned `CODEX_OK` in **5 seconds**, with **19,718 input tokens (12,672 cached), 7 output tokens**. Another invocation with `--ignore-user-config` and stdin returned `CONFIG_ISOLATED_OK` in **4 seconds**, with **16,643 input (11,776 cached), 9 output tokens**.
+
+Previous timeouts were due to a test harness leaving stdin open (`Reading additional input from stdin...`), not a definitive model/network failure. The adapter already passes prompt via stdin and terminates input. These are actual completed **standalone CLI turns**, not proof that a GUI custom subagent used the model. High fixed input usage for tiny messages is a reason to benchmark before mass dispatch.
+
+The `codex_capabilities.py` importer now reads the **resolved live account catalog**, not bundled defaults. Its discovered model/Effort matrix was validated on the owner's Windows machine and used with `model_router.py`; a simple task routed to `gpt-6-luna / low` with `status=ready`. No API keys are exposed.
+
 ## Setup and dry-run (no model calls)
 
 - Codex CLI must be installed and signed in; check `codex --version` and `codex login status`.
