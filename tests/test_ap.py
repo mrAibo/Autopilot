@@ -701,6 +701,13 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         proof = self.state()["tickets"][0]["testEvidence"]
         self.assertEqual((proof["passed"], proof["failed"]), (1, 0))
+        with open(dest, "a", encoding="utf-8") as out_file:
+            out_file.write("# changed since independent testing\\n")
+        code, out = self.ap("worktree", "01", "finalize")
+        self.assertNotEqual(code, 0)
+        self.assertIn("Source changed after tests", out)
+        with open(dest, "w", encoding="utf-8") as out_file:
+            out_file.write("def add(a, b):\\n    return a + b\\n")
         code, out = self.ap("worktree", "01", "finalize", "--tests", "99/0")
         self.assertNotEqual(code, 0)
         self.assertIn("не совпадают", out)
