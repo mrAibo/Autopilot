@@ -1,10 +1,4 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/autopilot-logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/autopilot-logo-light.png">
-    <img src="assets/autopilot-logo-light.png" alt="autopilot" width="420">
-  </picture>
-</p>
+<h1 align="center">Autopilot 2.3 <sup>DEV</sup></h1>
 
 <p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
@@ -16,9 +10,9 @@ Autopilot is a development framework packaged as a skill. It takes your idea, as
 
 It works on its own: nothing else to install.
 
-> **Development status and handoff:** [STATUS.md](STATUS.md) records the active PR, validated checkpoints, unresolved blockers and resume instructions.
+> **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
-> **Autopilot 2.3.0-dev** — active development branch, not a release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.0 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
+> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.0 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
 
 <p align="center">
   <a href="assets/dashboard-3-desktop.png"><img src="assets/dashboard-3-desktop.png" width="650" alt="Dashboard 3.0, desktop layout using synthetic data"></a>
@@ -26,6 +20,7 @@ It works on its own: nothing else to install.
 </p>
 
 <p align="center"><sub>Dashboard 3.0 · current 2.3 template · synthetic demonstration data</sub></p>
+<p align="center"><a href="assets/dashboard-3-models.png"><img src="assets/dashboard-3-models.png" width="830" alt="Autopilot 2.3 models, token usage and isolated worktrees; synthetic demo"></a></p>
 
 **And you can always see what's going on.** At the start of a build the agent opens the dashboard itself — a single HTML file you never have to find or launch. The header colour tells you the state at a glance: blue — the build is running, orange — it's waiting for your answer, green — done. Below: what is happening right now, how much is left, every task as a coloured bar and every one of your requirements in your own words. Timers tick live, the page refreshes itself, no internet needed.
 
