@@ -15,6 +15,7 @@ python .autopilot/ap.py ticket 03 start
 # Git commit to that detached checkout (it must not edit the primary sources).
 python .autopilot/ap.py worktree 03 land --tests 34/0
 python .autopilot/ap.py ticket 03 done --commit <landedCommit>
+python .autopilot/ap.py worktree 03 release  # only AFTER accepted done
 ```
 
 `ap.py worktree 03 status` reports the current checkout state. Dependencies
@@ -23,7 +24,12 @@ one clean commit directly after its recorded base and the main **source** checko
 is clean; the changing internal `.autopilot` run ledger is excluded from that
 cleanliness check. The worktree landing step records the actual integrated SHA
 after cherry-pick (it can differ from the source SHA). Ticket `done` rejects
-unlanded or mismatched commits.
+unlanded or mismatched commits. `release` will remove only a clean worktree
+after its ticket has been accepted and its integrated commit is still in HEAD;
+the source SHA may differ from cherry-picked SHA. If the ticket Markdown
+changes while a prepared/landed worktree exists, republishing the plan blocks
+rather than silently losing its state. `done` cannot bypass preparation in
+isolated mode.
 
 **The CLI does not spawn any external model agent, and it cannot prove which
 cwd the host actually used.** The host must launch the agent in the returned
