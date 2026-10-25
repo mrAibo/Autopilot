@@ -4,14 +4,14 @@
 **Repository:** https://github.com/mrAibo/Autopilot
 **Branch:** `feat/autopilot-2.3-adaptive-router-dashboard`
 **PR:** https://github.com/mrAibo/Autopilot/pull/1 — **Draft, NOT merged**
-**Verified application+docs HEAD before this STATUS update:** `1e334d91161a3def37c45585a6dca3a105ef615a` (the STATUS update itself advances HEAD).
+**Application+docs HEAD before this STATUS update:** `7a95260c99e1af7662bc9baa4d03b50bcaca2f55`. Updating STATUS.md advances HEAD; check actual GitHub branch when resuming.
 **Baseline main:** `25b5fbada50742f1b6a900a5a92800759e5c74d4` (2.2.0)
 **Release:** 2.3.0 UNDER DEVELOPMENT; no final tag, no merge to main without review.
 **Specification:** `бриф.md`. State handoff is this file; update after each implementation milestone.
 
 ## Latest verified CI and local Windows validation
 
-- **Latest all-green HEAD check [CI #40195170862](https://github.com/mrAibo/Autopilot/actions/runs/40195170862):** all **4/4** jobs passed (Ubuntu and Windows, Python 3.11/3.13), **138 Python tests** on Ubuntu 3.13, JS syntax and headless Chrome wide/narrow dashboard checks. This confirms latest `worktrees.finalize`, `ap.py worktree finalize`, Codex real-turn-vs-completed-task separation, optional lean prompt and Windows symlink/junction fix.
+- **Latest fully verified code CI [#40196712436](https://github.com/mrAibo/Autopilot/actions/runs/40196712436):** all **4/4** Ubuntu/Windows Python 3.11/3.13 jobs green, **144 Python tests** on Ubuntu 3.13, JavaScript syntax and headless Chrome wide/narrow dashboard smoke green. This covers strict, host-run, source-fingerprinted test evidence and false N/0 prevention, plus worktree finalization, Codex CLI and scheduler. README docs changed after this code commit; check newest HEAD CI separately.
 - On the connected Windows computer (`Aibo`), local clone `C:\Users\crown\Downloads\Projects\Autopilot` is on the development branch; last synced source `9a5250b`, clean. **13/13 `test_worktrees.py` and 13/13 `test_codex_dispatch.py`** passed under Python 3.13. Use `git pull --ff-only` after future GitHub commits.
 - Codex CLI **0.165.0-alpha.1** is installed from official NPM under `%APPDATA%\npm`; `codex login status` succeeded using ChatGPT. Existing graphical Codex app `OpenAI.Codex` 26.1021.3705.0 and Claude desktop AppX are installed. Native Codex CLI `codex.exe` is under `%APPDATA%\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe`. The desktop-managed binary was not replaced.
 - User disabled VPN: `codex doctor` reached **21 ok / 0 fail**; WebSocket and required provider HTTP endpoints reachable. `codex debug models` resolves account-visible GPT-6 Luna, GPT-6 Sol, GPT-6.1 Sol etc. `codex_capabilities.py` imported live catalog and routed a trivial task to `gpt-6-luna/low`.
@@ -54,11 +54,19 @@ A disposable *synthetic only* Git repository was created at `%TEMP%\autopilot-23
 - The existing global stable `%USERPROFILE%\\.agents\\skills\\autopilot` version 2.2 and its Claude Junction are untouched. This disposable workspace is prepared for **GUI discovery tests**, but neither Codex GUI nor Claude Code GUI has yet confirmed loading the skill or executing a model. The connected Desktop Commander provides filesystem/terminal access but no verified graphical GUI click integration.
 - Next: open this exact disposable folder as a project in the graphical Codex app, reload skill discovery and inspect whether `/autopilot` is available. Do likewise only in actual Claude Code desktop integration, not generic Claude chat. Do not edit the global 2.2 install.
 
+## NEW: independently measured host test evidence (2026-10-25)
+
+- **Strict routing plus isolation now requires independent test evidence.** The new `skills/autopilot/tools/test_evidence.py` is copied by `0-instruments.md`. Command: `ap.py worktree NN verify --suite test_example.py [--timeout 90]`. The trusted host itself invokes a baseline-tracked, unchanged Python unittest suite inside the exact worktree with direct argv, `-B`, bytecode disabled, bounded timeout (10–300s), real test count and exit-0/OK parsing. This does not trust an executor's claimed N/0.
+- The verifier fingerprints the worker Git HEAD, tracked diff and nonignored untracked content before/after the test; stores suite, count, source fingerprint, head and time in `tk.testEvidence`. Strict `worktree finalize`, `land`, `recover-land` and `ticket done` refuse missing/invalid/mismatched evidence. Wrong user-provided `--tests N/0` or source changed after testing are rejected. Legacy non-strict runs retain the previous explicitly reported counts for backwards compatibility.
+- New `tests/test_test_evidence.py` negative tests: fake/failed tests, modified suite, path traversal and changed source after verification. Integrated `tests/test_ap.py` strict isolated scenario exercises `route → prepare → start → verify → finalize → land → done → release`; it also attempts false counts and source tampering. Targeted test passed on connected Windows device (Python 3.13); **CI #40196712436 passed 144/144 tests across four OS/Python jobs**.
+- The verifier is **not cryptographic attestation** against an attacker editing `state.js`, ignored files or test process environment. Tests are executable Python code, so only run suites that the operator trusts. Pytest and arbitrary test commands are not yet supported; keep failing closed for unsupported suites. See `docs/autopilot/worktrees.md`.
+- The GUI Codex/Claude Code skills share the same project files and can use this host-side verifier. **No native GUI session model/effort/cwd selection has yet been demonstrated**, so do not infer full GUI support from this CI.
+
 ## Remaining blockers and next steps
 
 1. **P0** Actual graphical Codex app and Claude Code GUI integration: verify the shared skill is discovered using supported registration or an isolated test workspace Junction, model picker/effort and native custom agents, cwd and approval controls. Do **not** confuse the generic Claude app with Claude Code and do not claim GUI E2E yet.
 2. **P0** On disposable Windows fixture, independently run tests and invoke the **new** `worktree finalize --tests N/0` with actual modified files, then land/accept/release; this complements the earlier successful manual host-commit E2E. Keep sandbox enabled.
-3. **P0** Automatic safe test evidence rather than trusting caller-supplied `N/0`, source-zone enforcement across all file operations and multi-ticket recovery. Scheduler currently plans, but does not launch/monitor native agents. Preserve fail-closed semantics.
+3. **P0 partially completed:** Python unittest host evidence with source fingerprint is now mandatory for strict isolated finalize/land/acceptance. Still needed: trusted test-suite policy beyond single unchanged unittest module, evidence resistant to direct state tampering, broader source-zone enforcement across external tools, and multi-ticket recovery. Scheduler currently plans only; it does not autonomously launch/monitor native agents.
 4. **P1** Optional upstream Ponytail Claude Code plugin evaluation in isolated workspace (not global) and controlled A/B lean/off with accepted-task quality and real tokens; no unmeasured cost claims.
 5. **P1/P2** Actual model/billing identity, usage ingestion and comparable 2.2 vs 2.3 metrics, installer and provenance audit (`skills-lock.json`), release documentation. Keep PR Draft and `main` unchanged.
 
