@@ -168,7 +168,8 @@ class DispatchTests(unittest.TestCase):
 
     def test_execution_reports_usage(self):
         cfg = self.checked()
-        with patch.object(codex_dispatch.subprocess, "run") as mock:
+        with patch.object(codex_dispatch, "verify_worker_commit", return_value=(None, "No commit")), \
+                patch.object(codex_dispatch.subprocess, "run") as mock:
             mock.side_effect = [
                 subprocess.CompletedProcess([], 0,
                     '{"type":"thread.started","thread_id":"0199a213-81c0-7800-8aa1-bbab2a035a53"}\n'
