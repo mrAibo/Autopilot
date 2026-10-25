@@ -7,6 +7,7 @@
 **Base main commit:** `25b5fbada50742f1b6a900a5a92800759e5c74d4`
 **Checkpoint when this file was written:** `4b31fd74378248571d9042b5eb3725f2f573fa4c` (subsequent commits on the same branch supersede this SHA)
 **Release:** 2.3.0 IN DEVELOPMENT. Do not merge/tag as final yet.
+**Latest implemented branch HEAD (during this update):** `e61a6add6927469907589c6655dbcef73667710c`. Validate CI against the SHA currently shown by GitHub, not an earlier completed run.
 
 ## Mission and non-negotiables
 
@@ -31,25 +32,29 @@ Do not modify `main` until reviewed and approved. Use the existing draft PR. NEV
 - Last verified all-green checkpoint before latest worktree/retry changes: commit `5ef6b92e8ae6c12c67d2f43989ff046af0d052d8`, GitHub Actions run `40184704422`, all four platform/Python combinations succeeded, 80 tests on Linux, dashboard smoke.
 - New integrated worktree + retry changes are on this branch. A first end-to-end test failed because the test Git repo lacked `user.name/email` for `cherry-pick`. The test now configures the local Git committer; detailed landing failure messages added.
 - Linux checks for the subsequent commit `b214bb91f6a931ca48e96c5df8f2c3fdb2acdc9c` were green. Current HEAD includes additional integration and docs; recheck CI for **current HEAD**, do not use old green status.
-- At writing, current workflow run `40186489341` was still running.
+- Completed all-green integrated worktree/retry checkpoint: GitHub Actions run `40186489341` (Ubuntu and Windows, Python 3.11 / 3.13). This is distinct from the earlier green baseline.
+- Since that success, more tests/guards were added: reject missing worktree on `ticket done`, release accepted worktrees, prevent live worktree records from being invalidated by ticket edits, and update phase/docs. **Latest HEAD CI must still be checked.**
 - No actual Anthropic or Codex session was launched; no paid-model/billing evidence, and model/cwd behavior must be validated in real harnesses.
 
 ## Immediate TODO (continue in this order)
 
 1. **Check latest CI on current HEAD** via GitHub connector; inspect failing job logs and fix every regression on the feature branch.
-2. **Update bootstrap copying** (`skills/autopilot/phases/0-instruments.md`) to include `worktrees.py` (already present) and `retry_policy.py` (not yet copied as of checkpoint). Confirm scripts used in tests mirror bootstrap.
-3. **Finish documentation:** `phases/5-subagents.md` needs exact integrated workflow `ap.py init --isolated-tickets` → `ap.py worktree 01 prepare` → `ap.py ticket 01 start` (executor must use returned cwd) → commit → `ap.py worktree 01 land --tests N/0` → `ap.py ticket 01 done --commit <landedSHA>`. Update `docs/autopilot/worktrees.md`; document `retry_policy.py` and `--cause` in phase 5 repair; update CHANGELOG, README and `бриф.md` progress.
-4. **Integration regression tests:** isolated ticket + dependent ticket + dirty/main conflict + reroute/resume; bounded retry logic for both strict and legacy runs; check invalid cause, changed profile and model spending. Strengthen git worktree cleanup behavior and cross-OS test coverage.
-5. **Audit dangerous edge cases:** current `worktrees.land` requires main source clean excluding `.autopilot` and assumes local git author configured; `ap.py` `publish_tickets` carries a worktree record even if ticket text changes (ensure invalidated); revision resets/reopen should not lie about landed state. Ensure `retry_policy` is copied before invoking `retry`.
+2. **DONE:** bootstrap `skills/autopilot/phases/0-instruments.md` now copies both `worktrees.py` and `retry_policy.py`; CLI integration tests copy both helpers.
+3. **DONE for this increment:** phase 5 subagent/repair docs, worktree and retry-policy docs, README EN/RU and CHANGELOG now include the new API; lifecycle includes `worktree release` after `ticket done`. Verify any remaining gaps in `бриф.md` at release.
+4. **PARTIALLY DONE:** integrated isolated task lifecycle, preparation-before-start, dependency ordering, malformed/failed tests and safe accepted release all have tests. Retry category, two-retry limit and avoidance of environment-model escalation have tests. **Remaining:** concurrent wave, multiple landed commits, restart/recovery and strict mode reroute; replay tests from a process crash; verify on both OS.
+5. **PARTIALLY DONE:** source-clean Git landing verified, dirty checkout refused, repo local Git committer required; ticket fingerprint modifications with active worktree now block; done cannot bypass isolation; helpers are bootstrapped. **Remaining:** crash recovery, reset/reopen semantics with worktrees, automatic cleanup policy and true multi-task scheduler.
 6. **Real-host verification** requires accessible local Codex CLI and Claude Code with permitted test models: verify actual agent type, effort, Claude hook, isolated cwd, usage reports. GitHub CI tests alone cannot assert external harness behavior.
 7. **Cost and benchmark:** automatic read of sanitized provider log counters, comparisons with 2.2.0 across same tasks, optional pricing; do not invent cost.
-8. Keep PR Draft and update PR description with current truthful limitations. Prepare release only after all critical gates pass.
+8. Keep PR Draft, update PR description with current truthful limits. Prepare release only after all critical gates pass.
+9. Maintain this `STATUS.md` after EVERY substantial milestone, including exact latest green workflow ID, open blockers and how to resume.
 
 ## How to resume in a NEW ChatGPT session
 
 Send this instruction:
 
 > Continue development of https://github.com/mrAibo/Autopilot in branch `feat/autopilot-2.3-adaptive-router-dashboard`, PR #1. Read `STATUS.md`, `бриф.md`, `docs/autopilot/model-routing.md`, `docs/autopilot/worktrees.md`, `docs/autopilot/retry-policy.md`, `docs/autopilot/observability.md` and relevant code/tests via connected GitHub. Verify latest HEAD and CI. Continue unfinished work from STATUS.md without replanning. Update STATUS.md after each milestone. Work only in branch, leave main unchanged, do not prematurely merge. Report genuine limitations and tests.
+
+Current integrated commands: `ap.py init ... --isolated-tickets`, `ap.py worktree NN prepare|status|land|release`, `ap.py ticket NN retry --cause tests|unknown`. Always checkpoint generated `.gitignore` source changes before creating an isolated worktree. The host must truly launch the executor in the returned `cwd`, which is not enforced by a GitHub-only test.
 
 The ChatGPT assistant can use the **connected GitHub plugin** tools through `functions.exec`; GitHub repository is accessible. Avoid relying on a local clone unless its availability is confirmed. Do not repeat work done in this branch. The user prefers Russian communication and a useful, informative Dashboard.
 
