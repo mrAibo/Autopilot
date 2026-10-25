@@ -83,11 +83,14 @@ def land(root, ticket, base):
     head = git(target, "rev-parse", "HEAD").stdout.strip()
     if git(target, "status", "--porcelain").stdout.strip():
         raise WorktreeError("Executor worktree has uncommitted changes")
-    if git(root, "status", "--porcelain").stdout.strip():
-        raise WorktreeError("Main worktree must be clean before landing")
+    # Autopilot's own ledger is updated during every ticket. Never cherry-pick it;
+    # check all user source paths while ignoring only that internal directory.
+    if git(root, "status", "--porcelain", "--untracked-files=all", "--", ".",
+           ":(exclude).autopilot").stdout.strip():
+        raise WorktreeError("Main source checkout must be clean before landing")
     count = git(root, "rev-list", "--count", base_sha + ".." + head).stdout.strip()
-    if count != "1":
-        raise WorktreeError("Only one executor commit can be landed at a time")
+    if count != "1" or git(target, "rev-parse", head + "^").stdout.strip() != base_sha:
+        raise WorktreeError("Executor must have exactly one commit directly on its base")
     if git(root, "rev-list", "--max-count=1", base_sha + ".." + head).stdout.strip() != head:
         raise WorktreeError("Head does not match a single commit after base")
     commit = git(root, "cherry-pick", head, check=False)
