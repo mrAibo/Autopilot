@@ -80,6 +80,27 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(detected["landedCommit"], first["landedCommit"])
         self.assertEqual(self.git(self.root, "rev-list", "--count", self.base + "..HEAD").stdout.strip(), "1")
 
+    def test_crash_during_cherry_pick_is_detected_without_destructive_abort(self):
+        path = Path(worktrees.create(self.root, "08")["cwd"])
+        (path / "app.txt").write_text("executor\n", encoding="utf-8")
+        self.git(path, "add", "app.txt")
+        self.git(path, "commit", "-qm", "executor modifies app")
+        source = self.git(path, "rev-parse", "HEAD").stdout.strip()
+        (self.root / "app.txt").write_text("primary\n", encoding="utf-8")
+        self.git(self.root, "add", "app.txt")
+        self.git(self.root, "commit", "-qm", "primary modifies app")
+        conflict = worktrees.git(self.root, "cherry-pick", "-x", source, check=False)
+        self.assertNotEqual(conflict.returncode, 0)
+        self.assertTrue(worktrees.interrupted_cherry_pick(self.root))
+        with self.assertRaisesRegex(worktrees.WorktreeError, "interrupted"):
+            worktrees.recover(self.root, "08", self.base)
+        with self.assertRaisesRegex(worktrees.WorktreeError, "interrupted"):
+            worktrees.land(self.root, "08", self.base)
+        # Read-only recovery did not abort or silently reset unrelated changes.
+        self.assertTrue(worktrees.interrupted_cherry_pick(self.root))
+        self.git(self.root, "cherry-pick", "--abort")
+        self.assertEqual((self.root / "app.txt").read_text(encoding="utf-8"), "primary\n")
+
     def test_recovery_refuses_uncommitted_executor_changes(self):
         path = Path(worktrees.create(self.root, "07")["cwd"])
         (path / "uncommitted.txt").write_text("hold", encoding="utf-8")
