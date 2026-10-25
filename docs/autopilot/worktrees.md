@@ -21,8 +21,13 @@ matching Git provenance exists.
 
 If `git worktree add` completed before ledger persistence, `recover` can
 reconstruct the prepared record **only if** the worktree is clean, its HEAD
-equals primary HEAD and the task is pending. Dirty or ambiguous checkouts
-remain blocked for manual investigation. Never force-remove a dirty worktree.
+equals primary HEAD and the task is pending. Dirty or ambiguous checkouts remain blocked for manual investigation.
+If a crash leaves `CHERRY_PICK_HEAD`, the recovery helper **does not**
+automatically abort or continue the sequencer. Inspect `git status`, any
+conflict markers and user modifications. Resolve via `git cherry-pick
+--continue` or `git cherry-pick --abort` only after review. After abort,
+retry a controlled landing; after continuation, verify provenance and use
+`worktree recover --tests N/0`. Never force-remove a dirty worktree.
 
 The read-only scheduler command
 
