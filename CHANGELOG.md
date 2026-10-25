@@ -17,6 +17,7 @@ npx skills update autopilot -g
 - Conservative Git worktree helper for per-task isolation and safe, clean single-commit cherry-pick landing. Opt-in `--isolated-tickets` now integrates prepare, start, land, done and release with validated Git SHA and negative tests.
 - Crash-safe Git integration via source-annotated `cherry-pick -x`, independent patch checks and explicit `worktree recover` for interrupted ledger writes.
 - Real Codex CLI account-visible catalog importer (`codex_capabilities.py`) validates model/Effort pairs via `codex debug models`; no bundled catalog fallback.
+- Strict isolated `worktree NN verify --suite test_file.py` runs baseline-tracked Python unittest in the actual worktree and records source fingerprint, test count and result; `finalize/land/done/recover` reject unverified or conflicting N/0. Legacy non-strict mode remains compatible.
 - Host-side `worktree finalize --tests N/0` safely stages only declared-zone changes and commits after independently reported passing tests; permits Windows Codex sandboxed editing without shared Git index access.
 - Corrected Codex success semantics: a model turn alone is not task completion; missing clean worker commit is `incomplete`. Explicit Windows sandbox backend preserves workspace-write/read-only boundaries.
 - Opt-in `--optimization lean` rules are Ponytail-inspired but are **not** a bundled upstream plugin; requires real A/B acceptance and token benchmarks before claims.
