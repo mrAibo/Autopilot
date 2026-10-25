@@ -198,6 +198,30 @@
   mocked. No hard provider budget enforcement; recorded usage threshold only.
   Remain `2.3.0-dev`, no release tag.
 
+## P0 qualification — subprocess GUI-bridge E2E offline (2026-10-25)
+
+- Branch `feat/bridge-process-e2e-validation` adds two actual OS process
+  end-to-end tests for GUI-to-CLI fallback. The only substituted component
+  is the external model executable; a local Python CLI shim replaces paid
+  inference in the **temporary** test Git repository.
+- First test uses a real strict isolated Autopilot run and model route
+  pinned to GPT-6 Luna / Low; a real OS child writes one worktree commit,
+  emits synthetic Codex JSONL, and actual ap.py usage records token counts.
+  A duplicate GUI bridge invocation is blocked, then independent trusted
+  baseline unittest, cherry-pick landing, ticket acceptance and worktree
+  release are performed by the actual host controller.
+- Second test exercises a nonzero OS subprocess exit with no usage;
+  persistent receipt forbids retry and preserves the in-progress ticket.
+  Failed/incomplete bridge status now reports model_invoked=unknown rather
+  than claiming the provider actually received the billable request.
+- Local Codex CLI 0.165.0-alpha.1 supports its required flags
+  --cd, --sandbox, --model, --ephemeral, --ignore-user-config, --json.
+  No real paid provider calls, GUI-host terminal interaction or Claude
+  Code execution were run during this qualification.
+- Run full Windows/Linux CI and merge only if green; synchronize the
+  Windows Junction installation and update this checkpoint with final
+  commit/CI. This is not evidence of native GUI named agents.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge

@@ -188,7 +188,10 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
             # No child/GUI-native claim and no automatic finalize/land acceptance.
             record.update({"status": result["status"],
                            "completed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-                           "model_invoked": True,
+                           # Failed or incomplete CLI process does not prove
+                           # the provider ever received the billable request.
+                           "model_invoked": True if result["status"] == "ready-for-review"
+                                            else "unknown",
                            "worker_commit": result.get("worker_commit"),
                            "turn_completed": result.get("turn_completed"),
                            "tests_verified": False,
