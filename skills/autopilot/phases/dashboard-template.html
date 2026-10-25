@@ -426,6 +426,12 @@
   .resource-budget-track{height:8px;background:var(--inset);border-radius:8px;overflow:hidden}
   .resource-budget-track i{display:block;height:100%;background:var(--rev);border-radius:8px}
   @media(max-width:600px){.resource-usage{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+  @media(max-width:560px){
+    .track{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+    .s-name{font-size:12.5px;line-height:1.35}
+    .s-time{font-size:11.5px}
+  }
 </style>
 </head>
 <body>
