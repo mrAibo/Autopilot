@@ -75,7 +75,7 @@ class RouterTests(unittest.TestCase):
             router.assess_scores(scores)
 
     def test_heuristic_flags_credentials(self):
-        scores = router.assess_ticket("**Зона:** \`src/auth/\`\nImplement password hashing and sessions")
+        scores = router.assess_ticket("**Зона:** `src/auth/`\nImplement password hashing and sessions")
         self.assertEqual(scores["risk"], 10)
 
 
