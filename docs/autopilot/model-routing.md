@@ -53,7 +53,7 @@ python3 .autopilot/model_router.py .autopilot/<run>/tickets/02-example.md \
 
 OpenAI example: `--provider openai` and capability entries for `gpt-6-luna` and `gpt-6.1-sol`.
 
-Exit 0 + `"status": "ready"` means *eligible for host dispatch*. Exit 2 + `"status": "blocked"` means **do not spawn**. Omitting capabilities always blocks. The host still must pass model and effort explicitly, check that it supports such a parameter, and refuse dispatch if the host cannot enforce it. The skill is a policy and **cannot compel an external agent tool to use a given model**.
+Exit 0 + `"status": "ready"` means *eligible for host dispatch*. Exit 2 + `"status": "blocked"` means **do not spawn**. Omitting capabilities always blocks. The host must dispatch the newly generated `agentType` (not `default`, `worker`, or `Explore`) and must refuse any model/effort override. Codex custom agents pin `model` and `model_reasoning_effort`; Claude custom subagents pin `model` and `effort`. These files may require a session reload to be discovered, and the host still must support these fields. The skill is a policy and **cannot compel an external agent tool to use a given model**.
 
 The agent records an approved decision for the dashboard:
 
@@ -64,7 +64,7 @@ python3 .autopilot/ap.py ticket 02 route --provider anthropic \
   --capabilities .autopilot/model-capabilities.json
 ```
 
-The `route` event recomputes the model recommendation and checks the capabilities file before recording `verified=true`. Start new runs with `ap.py init ... --strict-routing` to enforce presence of that checked assignment at `ticket ... start`. This does **not** cryptographically authenticate the capabilities file or prove that an external harness billed the selected model. The recorded assignment is a plan, not proof that tokens were billed to that model. The dashboard shows cost as unavailable until real usage telemetry is connected.
+The `route` event recomputes the model recommendation and checks the capabilities file, then creates a **native project agent** at `.claude/agents/autopilot-executor-<ticket>.md` or `.codex/agents/autopilot-executor-<ticket>.toml`, records its name/path/SHA256 in state, and sets `verified=true`. On strict starts, the SHA256 must still match. Start new runs with `ap.py init ... --strict-routing` to enforce presence of that checked assignment at `ticket ... start`. This does **not** cryptographically authenticate the capabilities file or prove that an external harness billed the selected model. The recorded assignment is a plan, not proof that tokens were billed to that model. The dashboard shows cost as unavailable until real usage telemetry is connected.
 
 ## Non-executor subagents
 
@@ -85,4 +85,4 @@ Default concurrency is two, with a hard policy maximum of three; never launch ag
 
 ## Development status and limits
 
-The routing selector and dashboard event recording are implemented. Harness-capability discovery and the dispatch hook are still orchestrator instructions (not an enforced API integration). Worktree isolation, automatic model cost telemetry, and empirical benchmark calibration remain future work. Treat unverified configuration as blocked, not as a successful test.
+The routing selector, native profile generator, integrity check and dashboard event recording are implemented. Harness-capability discovery and assurance that the orchestrator invokes only approved agent types are still **not** enforced by the Python code; the runtime can independently override profile settings (Claude Code also supports the `CLAUDE_CODE_EFFORT_LEVEL` override). Worktree isolation, automatic model cost telemetry, and empirical benchmark calibration remain future work. Treat unverified configuration as blocked, not as a successful test.
