@@ -1356,6 +1356,35 @@ function render(lang){
       '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
     + '</div></section>';
 
+  // ——— Isolation & recovery; read-only health indicators ———
+  const isolated = T.filter(t => t.worktree || t.retries || t.repairs);
+  const isolationRows = isolated.map(t => {
+    const wt = t.worktree;
+    const status = wt && wt.status ? wt.status : (langRu ? 'не настроен' : 'not configured');
+    const attempts = Number(t.retries) || 0;
+    const repairs = Number(t.repairs) || 0;
+    const advice = t.retryAdvice;
+    const parts = wt
+      ? '<span class="resource-chip">' + (langRu ? 'Рабочая копия' : 'Worktree') + ': ' + esc(status) + '</span>'
+      : '';
+    return '<div class="resource-item"><div class="resource-title">' + esc(t.id + ' · ' + t.title)
+      + '</div><div class="resource-tags">' + parts
+      + '<span class="resource-chip">' + (langRu ? 'Повторы' : 'Retries') + ': ' + attempts + '</span>'
+      + '<span class="resource-chip">' + (langRu ? 'Исправления' : 'Repairs') + ': ' + repairs + '</span>'
+      + '</div>'
+      + (advice && advice.why ? '<div class="resource-reason">' + esc(advice.category || '') + ': ' + esc(advice.why) + '</div>' : '')
+      + '</div>';
+  }).join('');
+  const isolationBlock = isolated.length
+    ? '<section class="card w resource-card"><div class="whead"><h3 class="wt">'
+      + (langRu ? 'Изоляция и восстановление' : 'Isolation & recovery')
+      + '</h3><span>' + isolated.length + '</span></div><div class="resource-list">'
+      + isolationRows + '</div><div class="resource-footer">'
+      + (langRu
+        ? 'Статусы отражают журнал Autopilot, не проверяют фактическую работу внешнего агента. Для диагностики используйте worktree status.'
+        : 'Statuses reflect the Autopilot ledger, not an independent check of external agent execution. Use worktree status to inspect checkout health.')
+      + '</div></section>' : '';
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
@@ -1395,6 +1424,7 @@ function render(lang){
   <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
   ${fin ? '' : buildCard}
   ${resourceBlock}
+  ${isolationBlock}
   <div class="cols"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
