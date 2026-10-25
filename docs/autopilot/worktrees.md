@@ -2,6 +2,48 @@
 
 `skills/autopilot/tools/worktrees.py` provides **opt-in** isolated Git checkouts per executor ticket. It never reads secrets, makes network requests or force-removes dirty files.
 
+## Host-verified test evidence (strict + isolated)
+
+For strict model routing with isolated task worktrees, manually entered
+`--tests N/0` is **not sufficient evidence** for finalization or landing.
+The host now runs a baseline-tracked, unchanged Python unittest suite from
+the exact worktree, pins the worktree Git HEAD and hashes its tracked diff
+plus all nonignored untracked file contents before and after the tests.
+
+```powershell
+# Run from the PRIMARY repository, not inside the worktree.
+# Must be an existing test module committed in the worktree baseline.
+py -3.13 .autopilot/ap.py worktree 01 verify --suite test_calc.py
+# If Python unittest reports actual passes and the Git-visible source did not change:
+py -3.13 .autopilot/ap.py worktree 01 finalize
+py -3.13 .autopilot/ap.py worktree 01 land
+py -3.13 .autopilot/ap.py ticket 01 done --commit <landedSHA>
+py -3.13 .autopilot/ap.py worktree 01 release
+```
+
+`verify` executes the literal interpreter command
+`sys.executable -B -m unittest -q <baseline-tracked-module>` with direct
+argument passing (no shell expansion), a bounded timeout (default 90 sec,
+10–300 sec permitted), disabled Python bytecode writes and user site
+packages. It requires a real `Ran N tests`, `OK`, process exit 0,
+N greater than zero, and an unchanged Git-visible fingerprint. The task's
+state records the suite name, approved worktree head, fingerprint, count,
+timestamp and a host-generated verifier marker. Attempts to supply
+different `--tests` counts at `finalize`, `land` or `ticket done`
+fail closed. After a worker changes the files, **rerun verify**.
+
+This is an **independent execution record, not a tamperproof attestation**:
+Python tests execute arbitrary test code, including imports from the
+worktree. Only run suites you trust. The runner currently supports
+Python unittest and Git-visible files, not pytest, ignored local files,
+symlinked modules, Docker environments or proof against an actor who can
+directly rewrite the state file. A test suite modified relative to the
+baseline is refused. Tests must not require model permissions or network.
+
+Older non-strict workflows still accept explicitly reported `N/0` for
+backward compatibility. **Use `--strict-routing --isolated-tickets`**
+when independently verified results are mandatory.
+
 ## Host-side finalization for constrained Windows sandboxes
 
 Windows Codex may safely edit files within a worktree while refusing to create Git
