@@ -42,6 +42,28 @@ provider-side token/monetary hard limit. A bounded wall-clock timeout helps
 control risk but a timed out call may still consume tokens; charges must be
 reconciled with provider billing.
 
+## Read-only runtime doctor before an approved model call
+
+For an existing, prepared isolated ticket:
+
+~~~powershell
+py -3.13 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
+~~~
+
+The doctor performs the normal receipt-free ticket/profile/worktree and
+recorded-budget preview. It then queries the **actual native Codex binary**
+for its current account-visible model catalog, version and `exec --help`.
+The pinned model/Effort must be listed, and required execution switches
+must exist. Unknown binaries, stale models and missing flags fail closed.
+`--check-runtime` is incompatible with `--execute` or `--approve-ticket`.
+No model call or attempt receipt is created; success means compatible
+CLI metadata, not attested provider execution or hard token budgeting.
+
+On the Windows host (2026-10-25), this passed with Codex CLI
+`0.165.0-alpha.1`, GPT-6 Luna / Low and the clean synthetic ticket 01
+with an unused recorded 2,000-token threshold. No file changes or receipt.
+GUI-to-terminal paid inference is still a separate outstanding gate.
+
 ## Durable anti-replay
 
 Before invoking the CLI worker, the bridge creates

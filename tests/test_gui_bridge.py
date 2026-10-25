@@ -160,6 +160,69 @@ class BridgeTests(unittest.TestCase):
         self.assertNotIn("developer_instructions", value)
         paid.assert_called_once()
 
+    def test_runtime_doctor_uses_binary_and_current_catalog_read_only(self):
+        import subprocess
+        real_run = subprocess.run
+        expected = {"gpt-6-luna": ["low", "medium"]}
+        def inspect(command, *args, **kwargs):
+            if command == [sys.executable, "--version"]:
+                return subprocess.CompletedProcess(command, 0, "codex-cli 0.165.0\n", "")
+            if command == [sys.executable, "exec", "--help"]:
+                return subprocess.CompletedProcess(
+                    command, 0,
+                    "--model --cd --sandbox --ephemeral --ignore-user-config --json", "")
+            return real_run(command, *args, **kwargs)
+        with patch.object(gui_bridge.codex_capabilities, "discover",
+                          return_value=expected) as query, \
+                patch.object(gui_bridge.subprocess, "run",
+                             side_effect=inspect):
+            result = gui_bridge.runtime_doctor(self.root, "01",
+                                               executable=sys.executable, timeout=60)
+        self.assertEqual(result["status"], "ready")
+        self.assertFalse(result["model_invoked"])
+        self.assertFalse(result["verified_provider_execution"])
+        self.assertFalse(result["provider_budget_hard_cap"])
+        self.assertTrue(result["current_catalog_model_effort"])
+        query.assert_called_once()
+        self.assertFalse((self.root / ".autopilot" / "gui-dispatch").exists())
+        self.assertFalse((self.root / ".autopilot" / "controller.lock").exists())
+
+    def test_runtime_doctor_rejects_stale_catalog_without_attempt_receipt(self):
+        with patch.object(gui_bridge.codex_capabilities, "discover",
+                          return_value={"gpt-6-luna": ["medium"]}):
+            with self.assertRaisesRegex(gui_bridge.BridgeError, "CURRENT"):
+                gui_bridge.runtime_doctor(self.root, "01",
+                                          executable=sys.executable, timeout=60)
+        self.assertFalse((self.root / ".autopilot" / "gui-dispatch").exists())
+
+    def test_runtime_doctor_rejects_unknown_binary_without_attempt_receipt(self):
+        import subprocess
+        real_run = subprocess.run
+        def inspect(command, *args, **kwargs):
+            if command == [sys.executable, "--version"]:
+                return subprocess.CompletedProcess(command, 0, "unknown-binary\n", "")
+            return real_run(command, *args, **kwargs)
+        with patch.object(gui_bridge.codex_capabilities, "discover",
+                          return_value={"gpt-6-luna": ["low"]}), \
+                patch.object(gui_bridge.subprocess, "run",
+                             side_effect=inspect):
+            with self.assertRaisesRegex(gui_bridge.BridgeError, "recognized Codex CLI"):
+                gui_bridge.runtime_doctor(self.root, "01",
+                                          executable=sys.executable, timeout=60)
+        self.assertFalse((self.root / ".autopilot" / "gui-dispatch").exists())
+
+    def test_runtime_doctor_cli_refuses_execute_together(self):
+        from io import StringIO
+        from contextlib import redirect_stdout
+        buf = StringIO()
+        args = ["--root", str(self.root), "--ticket", "01", "--check-runtime",
+                "--execute", "--approve-ticket", "01"]
+        with redirect_stdout(buf):
+            result = gui_bridge.main(args)
+        self.assertEqual(result, 2)
+        self.assertEqual(json.loads(buf.getvalue())["status"], "blocked")
+        self.assertFalse((self.root / ".autopilot" / "gui-dispatch").exists())
+
     def test_cli_dry_run_and_protected_execute(self):
         with patch.object(sys, "argv", ["gui_bridge.py", "--root", str(self.root),
                                         "--ticket", "01", "--codex-exe",

@@ -46,6 +46,8 @@ The selected model/Effort remains pinned by the existing CLI dispatcher;
 independent trusted tests and acceptance remain separate. This is **not**
 native GUI child-agent support.
 
+The read-only `gui_bridge.py --ticket NN --check-runtime` validates the current Codex CLI version, native flags and fresh pinned model/Effort before any explicit paid call.
+
 ## Installation
 
 > **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.

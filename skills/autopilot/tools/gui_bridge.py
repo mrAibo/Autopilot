@@ -15,9 +15,11 @@ import os
 from pathlib import Path
 import re
 import sys
+import subprocess
 import tempfile
 
 import codex_dispatch
+import codex_capabilities
 import controller
 import worktrees
 
@@ -214,11 +216,75 @@ def bridge(root, ticket, *, execute=False, approval=None, executable=None,
                                 "independent trusted test verification; never replay paid call")}
 
 
+
+def runtime_doctor(root, ticket, *, executable=None, sandbox="workspace-write",
+                   optimization="off", timeout=900, catalog_timeout=25):
+    """Read-only check of the ACTUAL CLI binary and fresh account catalog.
+
+    Catalog visibility does not prove authentication at inference time or
+    attest that a provider call used the model. This function never sends
+    a prompt, creates an attempt receipt or writes the project ledger.
+    """
+    if not 5 <= catalog_timeout <= 60:
+        raise BridgeError("Runtime catalog timeout must be 5-60 seconds")
+    existing = bridge(root, ticket, executable=executable, sandbox=sandbox,
+                      optimization=optimization, timeout=timeout)
+    if existing["status"] != "dry-run":
+        return {"status": "blocked", "reason": existing.get("reason", "previous attempt"),
+                "ticket": ticket, "model_invoked": False}
+    config, preflight = consent_preflight(root, ticket, executable, sandbox,
+                                         optimization, timeout)
+    binary = config["binary"]
+    try:
+        models = codex_capabilities.discover(binary, timeout=catalog_timeout)
+    except (codex_capabilities.CatalogError, OSError, subprocess.TimeoutExpired) as exc:
+        raise BridgeError("Native Codex runtime catalog check failed") from exc
+    if config["effort"] not in models.get(config["model"], []):
+        raise BridgeError("Pinned model/Effort not in the CURRENT Codex CLI catalog")
+    try:
+        version = subprocess.run([binary, "--version"], capture_output=True,
+                                 text=True, encoding="utf-8", errors="replace",
+                                 timeout=catalog_timeout)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise BridgeError("Native Codex CLI version check timed out or failed") from exc
+    if version.returncode:
+        raise BridgeError("Native Codex CLI version check failed")
+    label = version.stdout.strip().splitlines()
+    if not label or not label[0].startswith("codex-cli "):
+        raise BridgeError("Native binary version is not a recognized Codex CLI")
+    try:
+        help_result = subprocess.run([binary, "exec", "--help"],
+                                     capture_output=True, text=True,
+                                     encoding="utf-8", errors="replace",
+                                     timeout=catalog_timeout)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise BridgeError("Native Codex CLI exec help timed out or failed") from exc
+    if help_result.returncode:
+        raise BridgeError("Native Codex CLI exec help check failed")
+    help_text = help_result.stdout + help_result.stderr
+    required = ("--model", "--cd", "--sandbox", "--ephemeral",
+                "--ignore-user-config", "--json")
+    missing = [option for option in required if option not in help_text]
+    if missing:
+        raise BridgeError("Native Codex CLI is missing required exec switches")
+    return {"status": "ready", "ticket": ticket,
+            "binary": binary, "cli_version": label[0][:100],
+            "model": config["model"], "effort": config["effort"],
+            "current_catalog_model_effort": True,
+            "required_exec_switches": list(required),
+            "runtime_compatible": True,
+            "verified_provider_execution": False,
+            "model_invoked": False,
+            "provider_budget_hard_cap": False,
+            "preview": preflight}
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root", type=Path, default=Path.cwd())
     p.add_argument("--ticket", required=True)
     p.add_argument("--execute", action="store_true")
+    p.add_argument("--check-runtime", action="store_true",
+                   help="Read-only binary/version/switches/current-model check; no model call")
     p.add_argument("--approve-ticket", help="Explicit consent to one potentially billable call")
     p.add_argument("--codex-exe", type=Path)
     p.add_argument("--sandbox", choices=["workspace-write", "read-only"],
@@ -227,12 +293,19 @@ def main(argv=None):
     p.add_argument("--timeout", type=int, default=900)
     args = p.parse_args(argv)
     try:
-        result = bridge(args.root, args.ticket, execute=args.execute,
-                        approval=args.approve_ticket, executable=args.codex_exe,
-                        sandbox=args.sandbox, optimization=args.optimization,
-                        timeout=args.timeout)
+        if args.check_runtime:
+            if args.execute or args.approve_ticket:
+                raise BridgeError("Read-only --check-runtime cannot combine with paid approval")
+            result = runtime_doctor(args.root, args.ticket, executable=args.codex_exe,
+                                    sandbox=args.sandbox, optimization=args.optimization,
+                                    timeout=args.timeout)
+        else:
+            result = bridge(args.root, args.ticket, execute=args.execute,
+                            approval=args.approve_ticket, executable=args.codex_exe,
+                            sandbox=args.sandbox, optimization=args.optimization,
+                            timeout=args.timeout)
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0 if result["status"] in ("dry-run", "ready-for-review") else 2
+        return 0 if result["status"] in ("dry-run", "ready", "ready-for-review") else 2
     except (BridgeError, controller.ControllerError, codex_dispatch.DispatchError,
             worktrees.WorktreeError, OSError, TypeError, ValueError) as exc:
         print(json.dumps({"status": "blocked", "error": str(exc)[:500],

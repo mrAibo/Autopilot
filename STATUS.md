@@ -254,6 +254,26 @@
   On a crash do NOT retry the paid call automatically. Do not mistake
   this CLI route for native GUI named subagents or a Claude Code test.
 
+## P0 CLI runtime doctor — tested with actual native executable (2026-10-25)
+
+- Branch `feat/bridge-readonly-runtime-doctor` implements
+  `gui_bridge.py --check-runtime`, a read-only CLI/capability diagnostic.
+  It uses existing preflight, checks actual native Codex model/Effort
+  availability against the fresh resolved account catalog, version
+  string and required CLI exec switches. Unknown versions, missing
+  efforts or conflicting paid-execution flags block without a receipt.
+- On the Windows host it passed with Codex CLI `0.165.0-alpha.1`,
+  approved synthetic ticket `01` routed to GPT-6 Luna / Low, clean
+  worktree and 2,000 recorded unused tokens. Verified no model call,
+  no attempt receipt and no modified source.
+- Four new tests cover nominal read-only, stale model catalog, invalid
+  binary/version and mutually exclusive paid flags.
+- This establishes CLI metadata compatibility, **NOT** provider
+  execution, paid model identity, true hard budget limits or native
+  GUI/Claude Code session execution. Keep the actual synthetic ticket
+  untouched until a separately authorized potentially billable call.
+- Await CI and merge; then update STATUS with final main SHA.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge
