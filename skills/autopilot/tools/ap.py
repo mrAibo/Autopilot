@@ -221,7 +221,7 @@ def fresh_state(a):
                   + [{"id": s, "status": "pending"} for s in ORDER[1:]],
         "requirements": {"total": 0, "done": 0, "inTicket": 0, "inSpec": 0,
                          "placeholder": 0, "deferred": 0, "dropped": 0},
-        "tickets": [], "tests": None,
+        "tickets": [], "tests": None, "usageEvents": [], "budgetTokens": None,
         "debt": {"placeholders": [], "assumptions": [], "emptyEnv": []},
         "additions": [], "coverage": None, "concerns": [], "blind": None, "beats": [t],
         "rev": 0, "waiting": None, "waits": [], "log": [], "reqList": [], "gates": {}, "result": None,
@@ -959,6 +959,12 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if act == "start" and state.get("budgetTokens") is not None:
+            consumed = sum(x["input"] + x["output"]
+                           for x in state.get("usageEvents") or [])
+            if consumed >= state["budgetTokens"]:
+                die("таск %s: лимит известных токенов достигнут (%d/%d)" %
+                    (i, consumed, state["budgetTokens"]))
         if act in ("start", "done"):
             pending = [dep for dep in tk.get("blockedBy", [])
                        if known.get(dep, {}).get("status") != "done"]
@@ -1045,6 +1051,59 @@ def cmd_ticket(state, pos, opt):
             tk["commit"] = opt["commit"][:12]
     log(state, "ticket", ids=ids, act=act, tests=tests_pair(opt["tests"]) if opt.get("tests") else None,
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
+
+
+def positive_int_option(opt, name, default=None):
+    v = opt.get(name, default)
+    if isinstance(v, int):
+        value = v
+    elif isinstance(v, str) and re.fullmatch(r"\d{1,15}", v):
+        value = int(v)
+    else:
+        die("usage: --%s должен быть целым неотрицательным числом" % name)
+    if value < 0 or value > 10**12:
+        die("usage: --%s вне допустимого диапазона" % name)
+    return value
+
+
+def cmd_usage(state, pos, opt):
+    """Append an attributed, de-duplicated token report; never invent pricing."""
+    if len(pos) != 1 or pos[0] not in {t["id"] for t in state.get("tickets") or []}:
+        die("usage <known-ticket-id> --call-id ID --input N --output N --source SOURCE")
+    call_id = opt.get("call-id")
+    source = opt.get("source")
+    if (not isinstance(call_id, str) or not re.fullmatch(r"[a-zA-Z0-9._:-]{4,128}", call_id)
+            or source not in ("claude-jsonl", "codex-jsonl", "host-reported", "manual")):
+        die("usage требует допустимые --call-id и --source")
+    counts = {k: positive_int_option(opt, k, "0") for k in
+              ("input", "output", "cache-read", "cache-write")}
+    if not counts["input"] and not counts["output"] and not counts["cache-read"] and not counts["cache-write"]:
+        die("usage: нельзя записать все нулевые счётчики")
+    events = state.setdefault("usageEvents", [])
+    existing = next((e for e in events if e["callId"] == call_id), None)
+    event = {"callId": call_id, "ticket": pos[0], "source": source,
+             "input": counts["input"], "output": counts["output"],
+             "cacheRead": counts["cache-read"], "cacheWrite": counts["cache-write"]}
+    if existing:
+        match = {k: existing.get(k) for k in event} == event
+        if not match:
+            die("usage: call-id уже существует с другими параметрами")
+        return
+    if len(events) >= 2000:
+        die("usage: журнал достиг лимита 2000 событий; нужен экспорт/архивирование")
+    event["at"] = state["updatedAt"]
+    events.append(event)
+    log(state, "usage", ticket=pos[0])
+
+
+def cmd_budget(state, pos, opt):
+    if not opt.get("tokens") or pos:
+        die("budget --tokens N")
+    limit = positive_int_option(opt, "tokens")
+    if not limit:
+        die("budget: лимит должен быть больше нуля")
+    state["budgetTokens"] = limit
+    log(state, "budget", tokens=limit)
 
 
 def cmd_set(state, pos):
@@ -1222,6 +1281,10 @@ def main():
             problems = check_plan(state)
             notes += ["! " + p for p in problems] or ["G3: трасса сходится"]
             set_gate(state, "G3", not problems, problems=len(problems))
+        elif cmd == "usage":
+            cmd_usage(state, rest, opt)
+        elif cmd == "budget":
+            cmd_budget(state, rest, opt)
         elif cmd == "set":
             cmd_set(state, rest)
             if any(p.startswith("tier=") for p in rest):
