@@ -562,6 +562,31 @@ class Run(unittest.TestCase):
         code, out = self.ap("ticket", "01", "done", "--commit", wt["landedCommit"][:12])
         self.assertEqual(code, 0, out)
         self.assertEqual(self.state()["tickets"][0]["status"], "done")
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.isdir(wt["cwd"]))
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "released")
+
+    def test_isolated_done_never_bypasses_preparation(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        sha = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
+        self.assertNotEqual(code, 0)
+        self.assertIn("требует интеграции worktree", out)
+
+    def test_ticket_source_change_cannot_invalidate_live_worktree(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("checkpoint: worktree baseline")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.write("tickets/01-karkas.md",
+                   ticket("01", "Other requirements", "R01, R05", "—", ["src/core/"], 1))
+        code, out = self.ap("tickets")
+        self.assertNotEqual(code, 0)
+        self.assertIn("существующем worktree", out)
 
     def test_isolated_ticket_rejects_failed_tests_before_landing(self):
         self.plan(isolated=True)
