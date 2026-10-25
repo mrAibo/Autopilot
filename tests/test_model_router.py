@@ -44,6 +44,15 @@ class RouterTests(unittest.TestCase):
             router.choose_route("openai", scores, policy=policy,
                                 capabilities=self.capabilities("openai", "gpt-6-astra", "low"))
 
+    def test_premium_alias_cannot_bypass_restrictions(self):
+        scores = {name: 0 for name in router.WEIGHTS}
+        policy = dict(router.DEFAULT_POLICY)
+        policy["providers"] = {"anthropic": dict(router.DEFAULT_POLICY["providers"]["anthropic"])}
+        policy["providers"]["anthropic"]["cheap"] = {"model": "claude-opus-4-8", "effort": "low"}
+        with self.assertRaises(router.PolicyError):
+            router.choose_route("anthropic", scores, policy=policy,
+                                capabilities=self.capabilities("anthropic", "claude-opus-4-8", "low"))
+
     def test_fail_closed_without_capabilities(self):
         scores = {name: 0 for name in router.WEIGHTS}
         self.assertEqual(router.choose_route("anthropic", scores)["status"], "blocked")
