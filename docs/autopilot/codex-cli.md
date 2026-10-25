@@ -36,6 +36,37 @@ This uses `codex exec --cd <prepared-worktree> --model <approved-model> -c model
 
 When the CLI reports a completed turn, the adapter parses the JSONL `thread.started` + `turn.completed.usage` records, attributes real reported input/output/cache-read counts via `ap.py usage`, and returns a summary. **Only the caller can approve the final worktree commit**: independently review changes and run checks, then `ap.py worktree NN land --tests N/0` and `ticket NN done` with the landed SHA. A successful CLI process is not an acceptance gate.
 
+## Runtime Windows end-to-end result
+
+On the owner's Windows system a real Codex CLI worker with explicit Luna/Low
+and workspace-write edited one line of a disposable `calc.py`. The call
+returned `turn.completed`, but the CLI sandbox could not find `python` and
+could not write the Git `index.lock` under the shared primary `.git/worktrees`
+directory. The first adapter version had incorrectly reported success.
+The adapter now distinguishes `turn_completed` from `status` and
+`accepted` and returns `incomplete` when it cannot verify a clean worker
+commit.
+
+Independent host tests then passed 2/2; a deliberately scoped trusted-host
+commit was created, cherry-picked to the disposable main checkout, accepted
+by `ticket done`, and the worktree released. No user project source was
+touched. The new `worktree finalize --tests N/0` implements this controlled
+host-side commit path in reusable form, with negative tests for wrong zones.
+
+For Windows with `--ignore-user-config`, the CLI adapter explicitly selects
+`windows.sandbox="elevated"` as the supported sandbox backend while keeping
+`--sandbox workspace-write` (or `read-only`). This is **not**
+`--danger-full-access`; unsupported/denied commands remain blocked.
+Host-level ACLs and test execution must still be checked.
+
+## Optional lean-coding mode
+
+Add `--optimization lean` to enable a small built-in Ponytail-inspired
+instruction set, or `--optimization off` (the default) for the baseline.
+It is **not** the upstream Ponytail plugin and the cost effect is unknown.
+See [optimization](optimization.md); do not globally install upstream Ponytail
+or claim an A/B benchmark was done.
+
 ## Limitations and security
 
 - **A passed CLI preflight does not prove the server used or billed the requested model.** A real runtime call with observed model data, host capability discovery and accounting is still needed. This adapter only makes the requested settings explicit and blocks stale state. It does not prove arbitrary nested agents are disabled.
