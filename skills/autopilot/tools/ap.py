@@ -40,6 +40,7 @@
 
 import datetime as dt
 import hashlib
+import contextlib
 import glob
 import json
 import os
@@ -64,6 +65,7 @@ PAGE = os.path.join(A, "dashboard.html")
 README = os.path.join(A, "README.md")
 PIDF = os.path.join(A, "serve.pid")
 LOG = os.path.join(A, "serve.log")
+LOCK = os.path.join(A, "state.lock")
 BEGIN, END = "/*STATE-BEGIN*/", "/*STATE-END*/"
 WIN = os.name == "nt"
 REPO = "nick-vels/skills"
@@ -95,6 +97,42 @@ def die(msg):
 
 
 # ── состояние ───────────────────────────────────────────────────────────────
+
+@contextlib.contextmanager
+def locked_state(timeout=10):
+    """Cross-platform exclusive process lock. Never delete the lock file."""
+    with open(LOCK, "a+b") as f:
+        f.seek(0)
+        if not f.read(1):
+            f.seek(0)
+            f.write(b"1")
+            f.flush()
+        f.seek(0)
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                if WIN:
+                    import msvcrt
+                    msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except (OSError, BlockingIOError):
+                if time.monotonic() >= deadline:
+                    die("state.lock занят другой сессией; повтори команду позднее")
+                time.sleep(.08)
+        try:
+            yield
+        finally:
+            if WIN:
+                import msvcrt
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
 
 def read_state():
     try:
@@ -743,10 +781,11 @@ def ensure_gitignore():
         text = open(g, encoding="utf-8").read()
     except OSError:
         text = ""
-    if re.search(r"^\.autopilot/serve\.\*", text, re.M):
+    if (re.search(r"^\.autopilot/serve\.\*", text, re.M)
+            and ".autopilot/state.lock" in text):
         return
     with open(g, "a", encoding="utf-8") as f:
-        f.write(("" if not text or text.endswith("\n") else "\n") + ".autopilot/serve.*\n")
+        f.write(("" if not text or text.endswith("\n") else "\n") + ".autopilot/serve.*\n.autopilot/state.lock\n")
 
 
 # ── команды ─────────────────────────────────────────────────────────────────
@@ -1168,6 +1207,8 @@ def main():
         print("  " + (line if line.startswith("!") else "· " + line))
     for line in audit(state)[:5]:
         print("  ! " + line)
+    if cmd == "check-plan" and problems:
+        sys.exit(2)
     if opt.get("check-update"):
         note = check_update(state)
         if note:
@@ -1175,4 +1216,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--stop-now" in sys.argv:
+        main()
+    else:
+        with locked_state():
+            main()
