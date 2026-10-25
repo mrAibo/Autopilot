@@ -29,7 +29,7 @@ cp "${TPL%/phases/*}/tools/model_router.py" "$A/model_router.py"
 ```bash
 python3 .autopilot/ap.py init --slug telegram-repair-bot --title "Телеграм-бот для заявок на ремонт" \
   --mode semi --depth normal --memory-file AGENTS.md --memory-owner autopilot \
-  --skill-dir "<skillDir>" --check-update
+  --skill-dir "<skillDir>" --strict-routing --check-update
 ```
 
 It creates the run directory `<YYYY-MM-DD>-<slug>--wip/` with `tickets/` inside, writes `state.js` with all eight stages (`preflight` active), adds the run's row to `.autopilot/README.md` (writing the file on a new repo), puts `.autopilot/serve.*` and `.autopilot/state.lock` into `.gitignore`, raises the server and prints its address. A finished run's `state.js` is archived into that run's directory first; an unfinished one means this is a resume, and `init` refuses (`phases/0-resume.md`).
