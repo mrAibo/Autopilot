@@ -165,9 +165,11 @@ class BridgeTests(unittest.TestCase):
         real_run = subprocess.run
         expected = {"gpt-6-luna": ["low", "medium"]}
         def inspect(command, *args, **kwargs):
-            if command == [sys.executable, "--version"]:
+            if (len(command) == 2 and command[1] == "--version"
+                    and Path(command[0]).resolve() == Path(sys.executable).resolve()):
                 return subprocess.CompletedProcess(command, 0, "codex-cli 0.165.0\n", "")
-            if command == [sys.executable, "exec", "--help"]:
+            if (len(command) == 3 and command[1:] == ["exec", "--help"]
+                    and Path(command[0]).resolve() == Path(sys.executable).resolve()):
                 return subprocess.CompletedProcess(
                     command, 0,
                     "--model --cd --sandbox --ephemeral --ignore-user-config --json", "")
@@ -199,7 +201,8 @@ class BridgeTests(unittest.TestCase):
         import subprocess
         real_run = subprocess.run
         def inspect(command, *args, **kwargs):
-            if command == [sys.executable, "--version"]:
+            if (len(command) == 2 and command[1] == "--version"
+                    and Path(command[0]).resolve() == Path(sys.executable).resolve()):
                 return subprocess.CompletedProcess(command, 0, "unknown-binary\n", "")
             return real_run(command, *args, **kwargs)
         with patch.object(gui_bridge.codex_capabilities, "discover",
