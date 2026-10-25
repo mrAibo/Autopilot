@@ -147,6 +147,25 @@ class DispatchTests(unittest.TestCase):
                 raise RuntimeError("simulated")
         self.assertFalse(lock.exists())
 
+    def test_lean_rules_are_explicit_and_never_skip_tests(self):
+        cfg = codex_dispatch.checked_dispatch(self.root, "01",
+                                                executable=Path(sys.executable),
+                                                optimization="lean")
+        self.assertEqual(cfg["optimization"], "lean")
+        self.assertIn("standard library", cfg["prompt"])
+        self.assertIn("Do not skip tests", cfg["prompt"])
+        self.assertNotIn("standard library", self.checked()["prompt"])
+        with self.assertRaises(codex_dispatch.DispatchError):
+            codex_dispatch.checked_dispatch(self.root, "01",
+                                             executable=Path(sys.executable),
+                                             optimization="unknown")
+
+    def test_windows_sandbox_backend_has_no_full_access_mode(self):
+        cfg = self.checked()
+        if os.name == "nt":
+            self.assertIn('windows.sandbox="elevated"', cfg["command"])
+        self.assertNotIn("danger-full-access", cfg["command"])
+
     def test_execution_reports_usage(self):
         cfg = self.checked()
         with patch.object(codex_dispatch.subprocess, "run") as mock:
@@ -158,7 +177,11 @@ class DispatchTests(unittest.TestCase):
                 subprocess.CompletedProcess([], 0, "", "")
             ]
             result = codex_dispatch.run_once(cfg, self.root, timeout=90)
-        self.assertEqual(result["status"], "completed")
+        # The model turn succeeded, but did not create a worker commit.
+        self.assertEqual(result["status"], "incomplete")
+        self.assertTrue(result["turn_completed"])
+        self.assertFalse(result["accepted"])
+        self.assertIsNone(result["worker_commit"])
         self.assertTrue(result["usage_recorded"])
         self.assertEqual(mock.call_count, 2)
         self.assertIn("--sandbox", mock.call_args_list[0].args[0])
