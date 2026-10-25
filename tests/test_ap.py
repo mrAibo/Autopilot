@@ -416,7 +416,7 @@ class Run(unittest.TestCase):
         self.ap("ticket", "02", "done", "--tests", "2/0", "--commit", sha2)
         code, out = self.ap("finish", "--result", "ложный успех")
         self.assertNotEqual(code, 0)
-        self.assertIn("нет успешного полного прогона", out)
+        self.assertIn("проверки G1, G2, G3, G4", out)
 
     def test_ticket_done_rejects_failed_tests_and_invalid_commit(self):
         self.plan()
