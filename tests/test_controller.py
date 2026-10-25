@@ -169,7 +169,7 @@ class ControllerTests(unittest.TestCase):
             (apdir / "ap.py").write_text("print('NO EXECUTE')", encoding="utf-8")
             (apdir / "state.js").write_text(
                 "window.STATE = " + json.dumps(ledger(task("01"))), encoding="utf-8")
-            with patch.object(controller.worktrees, "repository", return_value=root), \
+            with patch.object(controller.worktrees, "repository", return_value=root.resolve()), \
                     patch.object(controller.subprocess, "run") as spawn:
                 d = controller.advance(root, execute=False)
                 self.assertEqual(d["status"], "dry-run")
@@ -186,7 +186,7 @@ class ControllerTests(unittest.TestCase):
             (apdir / "state.js").write_text(
                 "window.STATE = " + json.dumps(ledger(task("01"))), encoding="utf-8")
             result = Mock(returncode=0)
-            with patch.object(controller.worktrees, "repository", return_value=root), \
+            with patch.object(controller.worktrees, "repository", return_value=root.resolve()), \
                     patch.object(controller.subprocess, "run", return_value=result) as spawn:
                 d = controller.advance(root, execute=True)
                 self.assertEqual(d["status"], "advanced")
@@ -203,7 +203,7 @@ class ControllerTests(unittest.TestCase):
             (apdir / "ap.py").write_text("# approved harness", encoding="utf-8")
             (apdir / "state.js").write_text(
                 "window.STATE = " + json.dumps(ledger(task("01"))), encoding="utf-8")
-            with patch.object(controller.worktrees, "repository", return_value=root), \
+            with patch.object(controller.worktrees, "repository", return_value=root.resolve()), \
                     patch.object(controller.subprocess, "run", return_value=Mock(returncode=2)) as spawn:
                 d = controller.advance(root, execute=True)
                 self.assertEqual(d["status"], "blocked")
