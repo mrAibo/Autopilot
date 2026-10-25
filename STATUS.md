@@ -7,7 +7,7 @@
 **Base main commit:** `25b5fbada50742f1b6a900a5a92800759e5c74d4`
 **Checkpoint when this file was written:** `4b31fd74378248571d9042b5eb3725f2f573fa4c` (subsequent commits on the same branch supersede this SHA)
 **Release:** 2.3.0 IN DEVELOPMENT. Do not merge/tag as final yet.
-**Latest implemented branch HEAD (during this update):** `e61a6add6927469907589c6655dbcef73667710c`. Validate CI against the SHA currently shown by GitHub, not an earlier completed run.
+**Latest branch HEAD before this status commit:** `b1ae9042f0ff7151fe4ca5ae83134adff8f1ce2d`. A STATUS.md-only commit itself advances HEAD. Verify its CI independently when resumed.
 
 ## Mission and non-negotiables
 
@@ -21,9 +21,9 @@ Do not modify `main` until reviewed and approved. Use the existing draft PR. NEV
 2. `skills/autopilot/tools/ap.py`: hard `finish` gates, ticket Git ancestor/test checks, requirement reconciliation, validation, OS process lock, safe delayed dashboard server shutdown, model route verification, protected state fields.
 3. `skills/autopilot/tools/model_router.py` & `agent_profiles.py`: complexity tiers, separate OpenAI and Anthropic profiles, no automatic Astra/Fable/Opus; fail-closed host-capability handshake; generate native pinned `.claude/agents/*.md` and `.codex/agents/*.toml`; profile SHA verified on strict ticket start/done.
 4. `skills/autopilot/tools/claude_agent_guard.py`: opt-in Claude Code PreToolUse guard + installer and tests; not a host-level sandbox.
-5. `skills/autopilot/phases/dashboard-template.html`: redesigned responsive UI, current activity, gates, task status, model/effort, token counters and threshold; browser CI smoke for desktop/narrow and screenshot artifacts.
-6. `skills/autopilot/tools/worktrees.py`: detached per-ticket checkouts, clean-source safeguards, single-commit cherry-pick, refusal to delete dirty worktrees. `ap.py worktree ID prepare|status|land` now integrates worktree lifecycle with ticket state (new milestone still being tested).
-7. `skills/autopilot/tools/retry_policy.py`: deterministic failure diagnosis (environment/dependency/requirements/tests/reasoning/security/unknown). `ap.py ticket NN retry --cause tests|unknown` stops inappropriate model escalation and caps retries/repairs at two (new milestone still being tested).
+5. `skills/autopilot/phases/dashboard-template.html`: redesigned responsive UI, current activity, gates, task status, model/effort, token counters and threshold, isolated checkout status and diagnosed retry history; browser CI smoke for desktop/narrow and screenshot artifacts.
+6. `skills/autopilot/tools/worktrees.py`: detached per-ticket checkouts, clean-source safeguards, single-commit cherry-pick, refusal to delete dirty worktrees. `ap.py worktree ID prepare|status|land|release` now integrates worktree lifecycle with ticket state; all relevant integrated regression tests pass in latest validated CI.
+7. `skills/autopilot/tools/retry_policy.py`: deterministic failure diagnosis (environment/dependency/requirements/tests/reasoning/security/unknown). `ap.py ticket NN retry --cause tests|unknown` stops inappropriate model escalation and caps retries/repairs at two; deterministic retry tests pass in latest validated CI.
 8. `ap.py usage` accepts identified token observations; `ap.py budget` stops *new* task starts at a **recorded token** threshold; it cannot enforce monetary budget or stop a running model. Dashboard displays missing price as unavailable.
 9. Tests/CI for Linux and Windows (Python 3.11 and 3.13), Node syntax, headless Chrome DOM/screenshot. EN/RU README, CHANGELOG, routing, observability and worktree docs.
 
@@ -33,7 +33,9 @@ Do not modify `main` until reviewed and approved. Use the existing draft PR. NEV
 - New integrated worktree + retry changes are on this branch. A first end-to-end test failed because the test Git repo lacked `user.name/email` for `cherry-pick`. The test now configures the local Git committer; detailed landing failure messages added.
 - Linux checks for the subsequent commit `b214bb91f6a931ca48e96c5df8f2c3fdb2acdc9c` were green. Current HEAD includes additional integration and docs; recheck CI for **current HEAD**, do not use old green status.
 - Completed all-green integrated worktree/retry checkpoint: GitHub Actions run `40186489341` (Ubuntu and Windows, Python 3.11 / 3.13). This is distinct from the earlier green baseline.
-- Since that success, more tests/guards were added: reject missing worktree on `ticket done`, release accepted worktrees, prevent live worktree records from being invalidated by ticket edits, and update phase/docs. **Latest HEAD CI must still be checked.**
+- Subsequent integrated milestone: run `40186842186` passed all four Windows/Linux + Python 3.11/3.13 jobs, including lifecycle release, isolation-bypass and live-ticket-change regression tests.
+- Latest **validated application-code** checkpoint: commit `1f68df43522ab72ec1080b59d05242bb04a88c3b`, GitHub Actions run `40187021454`, all four jobs succeeded, **93 unit tests** on Ubuntu 3.13, Node syntax and Chrome desktop/narrow smoke. Dashboard now displays isolation/retry details. Later commits only link to STATUS.md from README; validate newest HEAD CI before reporting all green.
+- The project README in RU/EN now links to this STATUS.md for new-session continuation.
 - No actual Anthropic or Codex session was launched; no paid-model/billing evidence, and model/cwd behavior must be validated in real harnesses.
 
 ## Immediate TODO (continue in this order)
@@ -45,7 +47,7 @@ Do not modify `main` until reviewed and approved. Use the existing draft PR. NEV
 5. **PARTIALLY DONE:** source-clean Git landing verified, dirty checkout refused, repo local Git committer required; ticket fingerprint modifications with active worktree now block; done cannot bypass isolation; helpers are bootstrapped. **Remaining:** crash recovery, reset/reopen semantics with worktrees, automatic cleanup policy and true multi-task scheduler.
 6. **Real-host verification** requires accessible local Codex CLI and Claude Code with permitted test models: verify actual agent type, effort, Claude hook, isolated cwd, usage reports. GitHub CI tests alone cannot assert external harness behavior.
 7. **Cost and benchmark:** automatic read of sanitized provider log counters, comparisons with 2.2.0 across same tasks, optional pricing; do not invent cost.
-8. Keep PR Draft, update PR description with current truthful limits. Prepare release only after all critical gates pass.
+8. Keep PR Draft, update PR description with current truthful limits. Prepare release only after all critical gates pass. The dashboard browser smoke and isolated task tests are green; this is **not** proof of an actual paid model run.
 9. Maintain this `STATUS.md` after EVERY substantial milestone, including exact latest green workflow ID, open blockers and how to resume.
 
 ## How to resume in a NEW ChatGPT session
