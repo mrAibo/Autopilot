@@ -55,6 +55,42 @@ class WorktreeTests(unittest.TestCase):
         with self.assertRaises(worktrees.WorktreeError):
             worktrees.remove(self.root, "02", acknowledge_loss=True)
 
+    def test_host_finalizes_sandboxed_worker_with_explicit_zone(self):
+        path = Path(worktrees.create(self.root, "11")["cwd"])
+        (path / "app.txt").write_text("fixed\n", encoding="utf-8")
+        result = worktrees.finalize(self.root, "11", self.base, ["app.txt"], 2, 0)
+        self.assertEqual(result["status"], "finalized")
+        self.assertEqual(result["files"], ["app.txt"])
+        self.assertEqual(worktrees.status(self.root, "11")["dirty"], False)
+        self.assertEqual(worktrees.source_commit(self.root, "11", self.base),
+                         result["sourceCommit"])
+        landed = worktrees.land(self.root, "11", self.base)
+        self.assertEqual(landed["status"], "landed")
+        self.assertEqual((self.root / "app.txt").read_text(encoding="utf-8"), "fixed\n")
+
+    def test_finalization_fails_closed_on_extra_untracked_file(self):
+        path = Path(worktrees.create(self.root, "12")["cwd"])
+        (path / "app.txt").write_text("fixed\n", encoding="utf-8")
+        (path / "unexpected.txt").write_text("preserve\n", encoding="utf-8")
+        with self.assertRaisesRegex(worktrees.WorktreeError, "outside declared zone"):
+            worktrees.finalize(self.root, "12", self.base, ["app.txt"], 2, 0)
+        self.assertEqual(worktrees.status(self.root, "12")["dirty"], True)
+        self.assertTrue((path / "unexpected.txt").exists())
+        self.assertEqual(self.git(path, "rev-parse", "HEAD").stdout.strip(), self.base)
+
+    def test_finalization_blocks_unknown_tests_and_wildcards(self):
+        path = Path(worktrees.create(self.root, "13")["cwd"])
+        (path / "app.txt").write_text("fixed\n", encoding="utf-8")
+        for passed, failed in ((0, 0), (2, 1)):
+            with self.subTest(passed=passed, failed=failed):
+                with self.assertRaisesRegex(worktrees.WorktreeError, "test results"):
+                    worktrees.finalize(self.root, "13", self.base, ["app.txt"], passed, failed)
+        with self.assertRaisesRegex(worktrees.WorktreeError, "Unsafe or wildcard"):
+            worktrees.finalize(self.root, "13", self.base, ["*"], 2, 0)
+        with self.assertRaisesRegex(worktrees.WorktreeError, "Unsafe or wildcard"):
+            worktrees.finalize(self.root, "13", self.base, ["../"], 2, 0)
+        self.assertEqual(self.git(path, "rev-parse", "HEAD").stdout.strip(), self.base)
+
     def test_single_commit_can_be_landed(self):
         path = Path(worktrees.create(self.root, "03")["cwd"])
         (path / "new-file.txt").write_text("new", encoding="utf-8")
