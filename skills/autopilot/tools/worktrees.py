@@ -50,6 +50,8 @@ def create(root, ticket, base="HEAD"):
     target = safe_target(root, ticket)
     if target.exists():
         raise WorktreeError("Worktree already exists: " + str(target))
+    if git(root, "check-ignore", "-q", str(target), check=False).returncode != 0:
+        raise WorktreeError("Add .autopilot/worktrees/ to .gitignore before creating worktrees")
     if base != "HEAD" and not re.fullmatch(r"[0-9a-fA-F]{7,40}", base):
         raise WorktreeError("Base must be HEAD or a commit SHA")
     sha = git(root, "rev-parse", "--verify", base + "^{commit}").stdout.strip()
