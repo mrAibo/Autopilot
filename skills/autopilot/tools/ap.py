@@ -370,6 +370,8 @@ def publish_tickets(state):
         t["fingerprint"] = hashlib.sha256(open(p, "rb").read()).hexdigest()
         prev = old.get(t["id"], {})
         if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
+            if prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
+                die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "worktree", "retryAdvice"):
@@ -979,6 +981,8 @@ def cmd_ticket(state, pos, opt):
                     die("таск %s: worktree изменён до старта или отсутствует" % i)
             except (OSError, ValueError, ImportError, worktrees.WorktreeError) as exc:
                 die("таск %s: не удалось проверить worktree: %s" % (i, exc))
+        if act == "done" and state.get("isolateTickets") and not tk.get("worktree"):
+            die("таск %s: изолированный режим требует интеграции worktree" % i)
         if act == "done" and tk.get("worktree"):
             wt = tk["worktree"]
             if wt.get("status") != "landed" or not wt.get("landedCommit"):
@@ -1008,6 +1012,8 @@ def cmd_ticket(state, pos, opt):
             rev = opt.get("commit") or tk.get("commit")
             if not verified_commit(rev):
                 die("таск %s: требуется существующий коммит в HEAD" % i)
+        if act == "retry" and state.get("isolateTickets") and not tk.get("worktree"):
+            die("таск %s: сначала подготовь worktree для повтора" % i)
         if act in ("retry", "repair"):
             attempts = tk.get("retries", 0)
             repairs = tk.get("repairs", 0)
@@ -1107,8 +1113,8 @@ def cmd_ticket(state, pos, opt):
 
 def cmd_worktree(state, pos, opt):
     """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
-    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land"):
-        die("worktree <ticket-id> prepare|status|land [--tests N/0]")
+    if len(pos) != 2 or pos[1] not in ("prepare", "status", "land", "release"):
+        die("worktree <ticket-id> prepare|status|land|release [--tests N/0]")
     ident, action = pos
     known = {t["id"]: t for t in state.get("tickets") or []}
     tk = known.get(ident)
@@ -1120,6 +1126,15 @@ def cmd_worktree(state, pos, opt):
             info = worktrees.status(ROOT, ident)
             return "worktree %s: %s%s" % (ident, info.get("status"),
                     " · dirty" if info.get("dirty") else "")
+        if action == "release":
+            record = tk.get("worktree") or {}
+            if (record.get("status") != "landed" or tk.get("status") != "done"
+                    or not verified_commit(record.get("landedCommit"))):
+                die("worktree: освобождение требует принятого таска и интегрированного коммита")
+            result = worktrees.remove(ROOT, ident, acknowledge_loss=True)
+            record["status"] = "released"
+            log(state, "worktree", act="release", ticket=ident)
+            return "worktree %s освобождён" % ident
         if action == "prepare":
             if tk.get("status") != "pending":
                 die("worktree: сначала переведи таск %s в pending" % ident)
