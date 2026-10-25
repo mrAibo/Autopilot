@@ -37,11 +37,13 @@ def safe_target(root, ticket):
         raise WorktreeError("Ticket ID must be 1–32 safe characters")
     parent = root / ".autopilot" / "worktrees"
     target = parent / ("T" + ticket)
-    if parent.exists() and parent.resolve() != parent:
-        # Parent may resolve elsewhere via symlink; refuse.
-        raise WorktreeError("Worktree directory is a symlink")
-    if target.is_symlink():
-        raise WorktreeError("Worktree path may not be a symlink")
+    # Do not compare resolve() to the raw Windows path: canonical casing and
+    # drive normalization differ even for ordinary non-linked directories.
+    for entry in (parent.parent, parent, target):
+        if entry.is_symlink() or (getattr(entry, "is_junction", lambda: False)()):
+            raise WorktreeError("Worktree path may not contain a symlink or junction")
+    if parent.exists() and not parent.resolve().is_relative_to(Path(root).resolve()):
+        raise WorktreeError("Worktree directory escapes repository")
     return target
 
 
