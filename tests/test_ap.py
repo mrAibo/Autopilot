@@ -696,7 +696,7 @@ class Run(unittest.TestCase):
             out.write("def add(a, b):\n    return a + b\n")
         code, out = self.ap("worktree", "01", "finalize", "--tests", "1/0")
         self.assertNotEqual(code, 0)
-        self.assertIn("подтверждение", out)
+        self.assertIn("host test evidence", out)
         code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
         self.assertEqual(code, 0, out)
         proof = self.state()["tickets"][0]["testEvidence"]
