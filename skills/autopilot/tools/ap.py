@@ -1012,6 +1012,14 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
         if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
+        if act == "done" and state.get("strictRouting") and state.get("isolateTickets"):
+            recorded = tk.get("tests")
+            evidence = tk.get("testEvidence")
+            if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
+                    or recorded != {"passed": evidence.get("passed"), "failed": 0}):
+                die("таск %s: строгий режим требует результатов тестов, проверенных на хосте" % i)
+            if opt.get("tests") and tests_pair(opt["tests"]) != recorded:
+                die("таск %s: переданные тесты не совпадают с проверенными" % i)
         if act == "done":
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
             if not validation or validation["passed"] < 1 or validation["failed"] != 0:
@@ -1170,7 +1178,19 @@ def cmd_worktree(state, pos, opt):
             recovered = worktrees.recover(ROOT, ident, record["baseCommit"])
             if recovered["status"] == "not-landed":
                 return "worktree %s: коммит исполнителя есть, ещё не интегрирован" % ident
-            check = tests_pair(opt.get("tests") or "")
+            if state.get("strictRouting") and state.get("isolateTickets"):
+                import test_evidence
+                evidence = tk.get("testEvidence")
+                if record.get("sourceCommit") == recovered["sourceCommit"]:
+                    if not evidence or evidence.get("status") != "verified":
+                        die("worktree: отсутствует подтверждение тестов после финализации")
+                    check = {"passed": evidence["passed"], "failed": evidence["failed"]}
+                else:
+                    check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+                if opt.get("tests") and tests_pair(opt["tests"]) != check:
+                    die("worktree: числа тестов не совпадают с результатом хоста")
+            else:
+                check = tests_pair(opt.get("tests") or "")
             if check["passed"] < 1 or check["failed"] != 0:
                 die("worktree: подтверждение интеграции требует пройденных тестов N/0")
             record.update(status="landed", sourceCommit=recovered["sourceCommit"],
