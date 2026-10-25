@@ -32,7 +32,7 @@ from uuid import uuid4
 assert len(sys.argv) == 4 and sys.argv[1] == "--cd" and sys.argv[-1] == "-"
 target = Path(sys.argv[2])
 assert target.is_dir() and target.as_posix().endswith("/.autopilot/worktrees/T01")
-prompt = sys.stdin.read()
+prompt = sys.stdin.buffer.read().decode("utf-8")
 assert "Каркас" in prompt
 script = target / "src" / "core" / "calc.py"
 assert script.is_file()
