@@ -90,5 +90,28 @@ class SchedulerTests(unittest.TestCase):
             scheduler.schedule([], max_parallel=4)
 
 
+
+
+class UnsafeZoneRegression(unittest.TestCase):
+    def test_drive_path_and_parent_escape_claim_whole_tree(self):
+        for zone in ("C:\\\\projects\\\\src", "../src", "/src", "src/../secrets",
+                     "src//pkg", "src/./file.py"):
+            with self.subTest(zone=zone):
+                self.assertEqual(scheduler.zones_of({"zone": [zone]}), ["/"])
+
+    def test_unknown_type_is_not_disjoint(self):
+        for value in ("src/foo.py", [None, "src/"], ["", "src/"], [], None):
+            with self.subTest(zone=value):
+                self.assertEqual(scheduler.zones_of({"zone": value}), ["/"])
+
+    def test_wildcard_uses_parent_directory(self):
+        self.assertEqual(scheduler.zones_of({"zone": ["src/foo*.py"]}), ["src/"])
+        self.assertEqual(scheduler.zones_of({"zone": ["src/a?.py"]}), ["src/"])
+        self.assertEqual(scheduler.zones_of({"zone": ["*.py"]}), ["/"])
+
+    def test_casefold_does_not_claim_case_sensitive_disjointness(self):
+        self.assertTrue(scheduler.intersect(
+            {"zone": ["Src/Foo/"]}, {"zone": ["src/foo/bar.py"]}))
+
 if __name__ == "__main__":
     unittest.main()

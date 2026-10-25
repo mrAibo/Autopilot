@@ -103,6 +103,35 @@
   authenticated Claude Code GUI/CLI proof yet. Version remains 2.3.0-dev.
 - **Merged** via [PR #2](https://github.com/mrAibo/Autopilot/pull/2) on 2026-10-25: `262387adc9bbbd79c4c611967ed573e9abf85374` (squash) into `main`, preserving feature branch history. [CI #40205859815](https://github.com/mrAibo/Autopilot/actions/runs/40205859815) on the feature commit passed all four Windows/Linux, Python 3.11/3.13 jobs, **161 Python tests**, JS syntax and Chrome desktop/narrow smoke. This `STATUS.md` update advances `main`, so check its own CI when resuming. Read docs/autopilot/gui-clients.md.
 
+## P0 host controller milestone — in feature branch (2026-10-25)
+
+- New `skills/autopilot/tools/controller.py` coordinates exactly **one**
+  strict isolated host transition per invocation. Default only plans; explicit
+  `--advance` runs prepare/start, trusted verify, finalize, land, accept or
+  release. It never invokes a model, chooses a new model, fabricates success,
+  or automatically retries interrupted Git operations. Uses an OS-owned
+  persistent lock file and rereads state after each step.
+- Before any new task, validates strict isolation, verified scheduler route,
+  dependency and recorded-token budget, exact file zones, and disallows
+  multiple active tasks. No autonomous parallel waves yet. Worker dispatch
+  intentionally stays separate and explicitly opted-in through the pinned,
+  sandboxed Codex CLI path. GUI child execution remains unverified.
+- Supports actual host-run, baseline-tracked Python unittest suites:
+  a red test blocks and preserves files for repair, only verified evidence
+  permits finalization and acceptance. Existing read-only worktree recovery
+  applies after crashes; no destructive cleanup or silent replay.
+- New tests: isolated controller unit test suite covering blocked cases,
+  malformed zones, duplicate starts, lock semantics, budget, no hidden model
+  calls; an additional genuine two-ticket synthetic integration test exercises
+  Git worktree creation, independent tests, commit/land/accept/release,
+  a deliberate red test then corrected rerun and second successful landing.
+- Scheduler treats malformed Windows drive/UNC paths, parent escapes,
+  wildcards, unknown zone types and case differences as overlapping.
+  Runtime-only controller lock and __pycache__ are ignored by new projects.
+- Feature branch `feat/controller-safe-step-20261025` (main was clean at
+  creation). Do not call this an unattended, multi-agent runtime. Confirm
+  final Windows/Linux CI, then merge to main and update STATUS checkpoint.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** In *Codex graphical application* run a disposable strict isolated ticket with approved model/effort and verify actual child-agent identity, effective cwd, tool approvals and commit/test evidence. Repeat separately for an actual **Claude Code** host (not a generic Claude chat). Host GUI success cannot be inferred from a CLI smoke; if model/effort cannot be confirmed, fall back to sequential single-agent or block the strict spawn.

@@ -53,6 +53,17 @@ OpenAI default: Luna for cheap/balanced, Sol for strong; Anthropic default: Haik
 
 **Dependencies.** Ticket 01 installs everything the spec's «Решения по реализации» names. A later ticket that needs something else returns `BLOCKED` with its name; if it fits a decision already made, add it to «Решения», relaunch that ticket with permission to install exactly that — the manifest and lock files join its commit — and fly nothing else that installs at the same time.
 
+**Bounded safe host controller (available in Phase 0):** Use
+`python .autopilot/controller.py --root .` for a read-only single-step plan,
+then `--advance` for one audited host transition. It consumes the scheduler's
+eligible task, performs prepare/start only after verified routing and exact
+file-zone safety, then waits for an explicitly approved sandboxed executor.
+After a worker leaves changes, pass `--suite test_file.py` to invoke trusted
+host tests; passing runs finalize/land/accept/release one step per invocation.
+No automatic model invocation, shell commands from agent prompts, or blind retries.
+On crash use the existing conservative `worktree NN recover` command after
+inspection. See docs/autopilot/controller.md for limits and validation.
+
 ## Waves
 
 **Before each wave, read the scheduler JSON:** `python .autopilot/ap.py schedule --max-parallel 2`. It evaluates dependencies, overlapping code zones, in-flight executors, prepared checkout reservations, verified routing and known token threshold. Follow each `selected[]` object's `action` (route/prepare/start); never infer that the scheduler actually spawned an agent. `selected[].cwd` is a required executor cwd for prepared isolated tasks. After an agent lands, call `schedule` again to refill only available capacity. Do not launch a task whose `blocked[]` entry lists unresolved dependencies, overlaps or budget limits. The default is two concurrent executors; three must be explicitly requested and safe.

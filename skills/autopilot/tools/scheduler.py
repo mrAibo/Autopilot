@@ -15,21 +15,38 @@ MAX = 3
 
 
 def zones_of(ticket):
-    zones = ticket.get("zone") or []
+    """Conservatively normalize approved zones across Windows and Unix.
+
+    Never assume malformed patterns are disjoint.
+    """
+    zones = ticket.get("zone")
+    if not isinstance(zones, list) or not zones:
+        return ["/"]
     result = []
     for zone in zones:
         if not isinstance(zone, str) or not zone.strip():
-            continue
-        normalized = zone.replace("\\", "/").strip()
-        if normalized.startswith("/") or ".." in normalized.split("/"):
             return ["/"]
-        if normalized.startswith("./"):
-            normalized = normalized[2:]
-        if "*" in normalized:
-            normalized = normalized.split("*", 1)[0]
-        normalized = normalized.rstrip("/")
-        if normalized:
-            result.append(normalized + "/")
+        value = zone.strip().replace(chr(92), "/")
+        if (value.startswith("/") or ":" in value or "\x00" in value
+                or "//" in value):
+            return ["/"]
+        if value.startswith("./"):
+            value = value[2:]
+        parts = value.split("/")
+        if any(part in ("", ".", "..") for part in parts[:-1]) or (
+                parts[-1] in (".", "..")):
+            return ["/"]
+        wildcard_at = min((value.index(ch) for ch in "*?[]" if ch in value),
+                          default=-1)
+        if wildcard_at >= 0:
+            prefix = value[:wildcard_at]
+            if "/" not in prefix:
+                return ["/"]
+            value = prefix[:prefix.rfind("/")+1]
+        value = value.rstrip("/").casefold()
+        if not value or value.startswith(".git/") or value == ".git":
+            return ["/"]
+        result.append(value + "/")
     return result or ["/"]
 
 
