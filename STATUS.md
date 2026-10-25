@@ -131,9 +131,34 @@
 - **Merged** by [PR #3](https://github.com/mrAibo/Autopilot/pull/3) into `main` on 2026-10-25, squash commit `541c0549db5a548fb2c7f74cda2260466bbc9870`. Feature commit `3741bd2e9d7c69a2bc88670a19e199449f7773cd` passed [CI #40208179320](https://github.com/mrAibo/Autopilot/actions/runs/40208179320): **4/4** Windows/Linux Python 3.11/3.13 jobs green, **185 Python tests**, JS syntax and Chrome wide/narrow smoke. This STATUS-only commit starts another main CI; confirm its result separately.
 - This is an explicitly invoked host-transition controller, **NOT** an unattended multi-agent execution daemon. Never say autonomous agent dispatch or GUI/Claude E2E is verified.
 
+## NEW owner-provided Codex graphical app capability test (2026-10-25)
+
+- The owner actually ran the disposable read-only `autopilot-explorer-smoke`
+  request **inside a graphical Codex chat**, not merely via Codex CLI.
+  Screenshot shows that Codex could not select the named child role from
+  `.codex/agents/` in that session. It explicitly stopped and reported:
+  child created **No**, profile applied **No**, runtime child model
+  **unconfirmed**, reasoning effort **unconfirmed**, `EXPECTED_PROBE_WORD`
+  **not obtained**. Approximate displayed duration: **23 seconds**.
+- Codex reported no substitute agent launched and no files changed;
+  these are its UI-reported results, not an independent filesystem audit.
+- This is a **confirmed negative GUI capability test in the user's current
+  session**; it does not prove all Codex desktop versions lack the capability.
+  Do not record GUI native named-agent E2E as passed. Investigate conditional
+  `agent_type` schema exposure, runtime flags and supported host versions
+  separately and safely. Keep `codex_native_agents.py` fail-closed.
+- Approved implementation direction: GUI remains the user interface; on
+  unsupported native custom-agent sessions use the independently verified,
+  model/Effort-pinned and sandboxed Codex CLI worker plus trusted host test,
+  worktree and budget acceptance gates, or sequential GUI execution.
+  Never silently substitute a generic child inheriting a costly parent.
+- Record in `docs/autopilot/gui-clients.md` as a tested capability outcome;
+  **Claude Code still needs independent runtime verification**. Version
+  stays `2.3.0-dev`, no stable release claim.
+
 ## Prioritized next steps
 
-**P0 — GUI native execution:** In *Codex graphical application* run a disposable strict isolated ticket with approved model/effort and verify actual child-agent identity, effective cwd, tool approvals and commit/test evidence. Repeat separately for an actual **Claude Code** host (not a generic Claude chat). Host GUI success cannot be inferred from a CLI smoke; if model/effort cannot be confirmed, fall back to sequential single-agent or block the strict spawn.
+**P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. Develop the supported pinned CLI worker fallback for GUI-originated tickets; re-test genuine native GUI child model/effort/cwd only after a concrete capability change. Test actual **Claude Code** separately (not general Claude chat). If child identity and model cannot be confirmed, block strict custom-agent dispatch.
 
 **P0 — orchestrated lifecycle:** Implement a host-side execution/controller loop that consumes `ap.py schedule` plan, validates approval, launches bounded workers, handles cancellation/crash, independently verifies trusted test suites, finalizes/lands exactly once and records results. Keep fail-closed budget/sandbox boundaries. Validate with at least two independent tasks and a recoverable failure.
 
