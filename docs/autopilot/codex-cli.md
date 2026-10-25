@@ -31,6 +31,7 @@ When the CLI reports a completed turn, the adapter parses the JSONL `thread.star
 ## Limitations and security
 
 - **A passed CLI preflight does not prove the server used or billed the requested model.** A real runtime call with observed model data, host capability discovery and accounting is still needed. This adapter only makes the requested settings explicit and blocks stale state. It does not prove arbitrary nested agents are disabled.
+- A per-ticket `.autopilot/dispatch-NN.lock` is created atomically before the model call and held through token reporting. An existing file blocks the next invocation. If a process crashed, **verify that its Codex child and model request are no longer running before removing the stale lock manually**. The lock file is excluded from Git.
 - Model invocation can incur usage. `--execute` is intentionally opt-in. The runtime budget counts **already recorded** tokens, not an up-front charge reserve, and cannot stop a model mid-turn. Unexpected CLI failures can lack a usage event.
 - This process is isolated by a Git worktree and Codex workspace-write sandbox, **not** a full VM; user-level environment, external network access and shared services may still exist.
 - CLI `--ephemeral` reduces session persistence, but provider and OS activity may still be logged. Do not put credentials inside tickets.
