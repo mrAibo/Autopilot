@@ -4,14 +4,14 @@
 **Repository:** https://github.com/mrAibo/Autopilot
 **Branch:** `feat/autopilot-2.3-adaptive-router-dashboard`
 **PR:** https://github.com/mrAibo/Autopilot/pull/1 — **Draft, NOT merged**
-**Source checkpoint before this STATUS.md commit:** `9a5250bf9600` (check actual GitHub HEAD after this file changes)
+**Verified application+docs HEAD before this STATUS update:** `1e334d91161a3def37c45585a6dca3a105ef615a` (the STATUS update itself advances HEAD).
 **Baseline main:** `25b5fbada50742f1b6a900a5a92800759e5c74d4` (2.2.0)
 **Release:** 2.3.0 UNDER DEVELOPMENT; no final tag, no merge to main without review.
 **Specification:** `бриф.md`. State handoff is this file; update after each implementation milestone.
 
 ## Latest verified CI and local Windows validation
 
-- **[CI #40194890353](https://github.com/mrAibo/Autopilot/actions/runs/40194890353):** all **4/4** jobs passed (Ubuntu and Windows, Python 3.11/3.13), **138 Python tests** on Ubuntu 3.13, JS syntax and headless Chrome wide/narrow dashboard checks. This confirms latest `worktrees.finalize`, `ap.py worktree finalize`, Codex real-turn-vs-completed-task separation, optional lean prompt and Windows symlink/junction fix.
+- **Latest all-green HEAD check [CI #40195170862](https://github.com/mrAibo/Autopilot/actions/runs/40195170862):** all **4/4** jobs passed (Ubuntu and Windows, Python 3.11/3.13), **138 Python tests** on Ubuntu 3.13, JS syntax and headless Chrome wide/narrow dashboard checks. This confirms latest `worktrees.finalize`, `ap.py worktree finalize`, Codex real-turn-vs-completed-task separation, optional lean prompt and Windows symlink/junction fix.
 - On the connected Windows computer (`Aibo`), local clone `C:\Users\crown\Downloads\Projects\Autopilot` is on the development branch; last synced source `9a5250b`, clean. **13/13 `test_worktrees.py` and 13/13 `test_codex_dispatch.py`** passed under Python 3.13. Use `git pull --ff-only` after future GitHub commits.
 - Codex CLI **0.165.0-alpha.1** is installed from official NPM under `%APPDATA%\npm`; `codex login status` succeeded using ChatGPT. Existing graphical Codex app `OpenAI.Codex` 26.1021.3705.0 and Claude desktop AppX are installed. Native Codex CLI `codex.exe` is under `%APPDATA%\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe`. The desktop-managed binary was not replaced.
 - User disabled VPN: `codex doctor` reached **21 ok / 0 fail**; WebSocket and required provider HTTP endpoints reachable. `codex debug models` resolves account-visible GPT-6 Luna, GPT-6 Sol, GPT-6.1 Sol etc. `codex_capabilities.py` imported live catalog and routed a trivial task to `gpt-6-luna/low`.
@@ -47,6 +47,12 @@ A disposable *synthetic only* Git repository was created at `%TEMP%\autopilot-23
 - Opt-in isolated per-task worktrees with safe cherry-pick/recovery/release, deterministic model-aware read-only scheduler, manually reported per-call token/budget events.
 - Dashboard 3.0 responsive activity, gates, token/cached reports, worktree status, retry advice and wide/narrow browser CI.
 - OpenAI NPM CLI binary and all project scripts are separate from global stable Autopilot 2.2. **Existing** `%USERPROFILE%\.agents\skills\autopilot` is global 2.2; Claude global skill junction points to it. Do not overwrite it with draft 2.3. Under Windows Git `core.symlinks=false`, checked-in `.agents/skills/autopilot` and `.claude/skills/autopilot` are plain text placeholders, not functioning skill links. See `docs/autopilot/gui-clients.md`.
+
+## NEW: GUI skill smoke workspace (links, not copies)
+
+- Isolated Windows workspace `%TEMP%\\autopilot-gui-skill-smoke-20261025` was created. It has **three real Junction directories**, each pointing to the SAME source folder `C:\\Users\\crown\\Downloads\\Projects\\Autopilot\\skills\\autopilot`: `.agents\\skills\\autopilot`, `.claude\\skills\\autopilot`, and `.codex\\skills\\autopilot`. All three paths passed `Test-Path SKILL.md=True` and are reported as `Junction`, not text placeholders.
+- The existing global stable `%USERPROFILE%\\.agents\\skills\\autopilot` version 2.2 and its Claude Junction are untouched. This disposable workspace is prepared for **GUI discovery tests**, but neither Codex GUI nor Claude Code GUI has yet confirmed loading the skill or executing a model. The connected Desktop Commander provides filesystem/terminal access but no verified graphical GUI click integration.
+- Next: open this exact disposable folder as a project in the graphical Codex app, reload skill discovery and inspect whether `/autopilot` is available. Do likewise only in actual Claude Code desktop integration, not generic Claude chat. Do not edit the global 2.2 install.
 
 ## Remaining blockers and next steps
 
