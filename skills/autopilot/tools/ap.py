@@ -941,7 +941,7 @@ def cmd_ticket(state, pos, opt):
                        if known.get(dep, {}).get("status") != "done"]
             if pending:
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
-        if act == "start" and state.get("strictRouting") and not (tk.get("routing") or {}).get("verified"):
+        if act in ("start", "done") and state.get("strictRouting") and not (tk.get("routing") or {}).get("verified"):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
         if act == "done":
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")

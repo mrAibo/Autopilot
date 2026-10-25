@@ -406,6 +406,10 @@ class Run(unittest.TestCase):
         code, out = self.ap("ticket", "01", "start")
         self.assertNotEqual(code, 0)
         self.assertIn("строгая маршрутизация", out)
+        sha = self.commit("T01")
+        code, out = self.ap("ticket", "01", "done", "--tests", "1/0", "--commit", sha)
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", out)
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
