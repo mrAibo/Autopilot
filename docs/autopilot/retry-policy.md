@@ -33,3 +33,9 @@ The classification is heuristic. It can be wrong, particularly on multilingual o
 truncated logs. Do not paste unsanitized secrets into the \`--text\` CLI: error text
 is processed locally and not persisted, but process arguments may be logged by OS.
 The ledger stores only category/advice, not raw failure output.
+
+`--cause` is required for strict routing; `retry_policy.py` is copied into
+the project's `.autopilot` bootstrap alongside `ap.py`, `model_router.py`
+and `worktrees.py`. The CLI allows a diagnosed `tests` repair or a tracked
+`unknown` investigation without silently escalating the model. For reasoning
+failures, first replan and explicitly reroute (no automatic Opus/Astra/Fable).
