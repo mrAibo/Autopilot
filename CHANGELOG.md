@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Added a **test-only** offline subprocess supervisor with strict temporary Git fixture gating, an exclusive fsynced single-use receipt, explicit per-ticket offline consent, live-child cancellation marker, timeout and no replay on failure/crash. Its only child is a bundled deterministic Python fixture; no Codex/Claude, paid provider or invented usage events. This is a qualification harness, **not** production AI auto-dispatch.
+
 - Added bounded `host_loop.py` on top of controller: side-effect-free preview;
   explicit `--advance` drives up to 32 trusted host/Git/test transitions with
   per-ticket baseline unittest suites, fail-closed pauses for separately approved
