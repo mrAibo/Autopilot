@@ -583,6 +583,47 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("освободи worktree", out)
 
+    def test_ticket_cannot_be_started_twice(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("только из pending", out)
+
+    def test_recover_deleted_worktree_after_cleanup_crash(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("add", ".gitignore")
+        self.commit("baseline")
+        self.git("config", "user.email", "t@t")
+        self.git("config", "user.name", "t")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]
+        with open(os.path.join(wt["cwd"], "cleanup-proof.txt"), "w", encoding="utf-8") as f:
+            f.write("proof\n")
+        self.git("-C", wt["cwd"], "add", "cleanup-proof.txt")
+        self.git("-C", wt["cwd"], "commit", "-qm", "T01 cleanup")
+        code, out = self.ap("worktree", "01", "land", "--tests", "3/0")
+        self.assertEqual(code, 0, out)
+        landed = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", landed[:12])
+        self.assertEqual(code, 0, out)
+        # Simulate crash after deletion of Git worktree, before saving status.
+        clean = subprocess.run([sys.executable, os.path.join(self.a, "worktrees.py"),
+                                "remove", "01", "--root", self.root,
+                                "--acknowledge-loss"], capture_output=True, text=True)
+        self.assertEqual(clean.returncode, 0, clean.stdout + clean.stderr)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "landed")
+        code, out = self.ap("worktree", "01", "recover")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "released")
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+
     def test_schedule_machine_readable_dependency_order(self):
         self.plan()
         self.ap("tickets")
