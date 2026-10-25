@@ -115,7 +115,19 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
                                "--cd", conf["cwd"]]
             return conf
 
-        with patch.object(codex_dispatch, "checked_dispatch", offline_checked):
+        child_details = []
+        real_run = subprocess.run
+        def capture_offline_process(command, *args, **kwargs):
+            result = real_run(command, *args, **kwargs)
+            if isinstance(command, (tuple, list)) and str(self.fake) in command:
+                # The only captured output is from the offline synthetic CLI.
+                child_details.append({"exit": result.returncode,
+                                      "stderr": (result.stderr or "")[-600:],
+                                      "stdout_prefix": (result.stdout or "")[:150]})
+            return result
+        with patch.object(codex_dispatch, "checked_dispatch", offline_checked), \
+                patch.object(codex_dispatch.subprocess, "run",
+                             side_effect=capture_offline_process):
             preview = gui_bridge.bridge(h.root, "01", executable=sys.executable,
                                         timeout=45)
             self.assertEqual(preview["status"], "dry-run")
@@ -123,7 +135,8 @@ class BridgeRealProcessLifecycle(unittest.TestCase):
             output = gui_bridge.bridge(
                 h.root, "01", execute=True, approval="01",
                 executable=sys.executable, timeout=45)
-            self.assertEqual(output["status"], "ready-for-review", output)
+            self.assertEqual(output["status"], "ready-for-review",
+                             {"bridge": output, "offline_child": child_details})
             self.assertTrue(output["model_invoked"])
             self.assertFalse(output["accepted"])
             self.assertTrue(output["worker_commit"])
