@@ -97,7 +97,58 @@ def decision(payload, root):
     return True, "Approved pinned profile"
 
 
+def install_hook(root):
+    """Opt-in install: merge a project hook, preserving unrelated Claude settings."""
+    root = Path(root).resolve()
+    settings = root / ".claude" / "settings.json"
+    if not root.is_dir():
+        raise ValueError("Project root missing")
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    if not str(settings.resolve()).startswith(str(root) + os.sep):
+        raise ValueError("Settings path escapes project")
+    try:
+        content = json.loads(settings.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        content = {}
+    if not isinstance(content, dict):
+        raise ValueError("settings.json must be an object")
+    hooks = content.setdefault("hooks", {})
+    if not isinstance(hooks, dict):
+        raise ValueError("hooks must be an object")
+    current = hooks.setdefault("PreToolUse", [])
+    if not isinstance(current, list):
+        raise ValueError("hooks.PreToolUse must be a list")
+    hook = {"matcher": "Agent|Task", "hooks": [
+        {"type": "command", "command": "python .autopilot/claude_agent_guard.py"}]}
+    if hook in current:
+        return settings, False
+    current.append(hook)
+    temp = settings.with_suffix(".json.tmp")
+    try:
+        with temp.open("x", encoding="utf-8") as writer:
+            json.dump(content, writer, ensure_ascii=False, indent=2)
+            writer.write("\n")
+        os.replace(temp, settings)
+    finally:
+        if temp.exists():
+            temp.unlink()
+    return settings, True
+
+
 def main():
+    if "--install-hook" in sys.argv:
+        try:
+            ix = sys.argv.index("--root")
+            project = Path(sys.argv[ix + 1])
+        except (IndexError, ValueError):
+            project = Path.cwd()
+        try:
+            path, changed = install_hook(project)
+        except (OSError, ValueError) as e:
+            print("Autopilot guard installation blocked: " + str(e), file=sys.stderr)
+            return 2
+        print(json.dumps({"hook": str(path), "installed": changed}, ensure_ascii=False))
+        return 0
     try:
         payload = json.load(sys.stdin)
     except (ValueError, TypeError):
