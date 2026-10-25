@@ -59,11 +59,12 @@ The agent records an approved decision for the dashboard:
 
 ```bash
 python3 .autopilot/ap.py ticket 02 route --provider anthropic \
-  --model haiku --effort low --score 17 \
-  --reason "limited documentation edit; low risk"
+  --model haiku --effort low \
+  --reason "limited documentation edit; low risk" \
+  --capabilities .autopilot/model-capabilities.json
 ```
 
-The recorded assignment is a plan, not proof that tokens were billed to that model. The dashboard shows cost as unavailable until real usage telemetry is connected.
+The `route` event recomputes the model recommendation and checks the capabilities file before recording `verified=true`. Start new runs with `ap.py init ... --strict-routing` to enforce presence of that checked assignment at `ticket ... start`. This does **not** cryptographically authenticate the capabilities file or prove that an external harness billed the selected model. The recorded assignment is a plan, not proof that tokens were billed to that model. The dashboard shows cost as unavailable until real usage telemetry is connected.
 
 ## Retry
 
