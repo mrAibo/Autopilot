@@ -105,7 +105,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="dashboard-browser-") as temp:
         page = Path(temp) / "dashboard.html"
         page.write_text(rendered, encoding="utf-8")
-        for label, dimensions in (("desktop", "1440,900"), ("narrow", "460,960")):
+        for label, dimensions in (("desktop", "1440,1800"), ("narrow", "460,2100")):
             arguments = [
                 browser, "--headless=new", "--no-sandbox",
                 "--disable-gpu", "--disable-dev-shm-usage",
