@@ -77,6 +77,27 @@ class HookGuardTests(unittest.TestCase):
         ok, _ = guard.decision(self.payload(), self.root)
         self.assertFalse(ok)
 
+    def test_installer_preserves_existing_settings_and_is_idempotent(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text(json.dumps({"permissions": {"allow": ["Read"]}}),
+                            encoding="utf-8")
+        _, installed = guard.install_hook(self.root)
+        self.assertTrue(installed)
+        content = json.loads(settings.read_text(encoding="utf-8"))
+        self.assertEqual(content["permissions"]["allow"], ["Read"])
+        self.assertEqual(content["hooks"]["PreToolUse"][0]["matcher"], "Agent|Task")
+        _, installed = guard.install_hook(self.root)
+        self.assertFalse(installed)
+        content = json.loads(settings.read_text(encoding="utf-8"))
+        self.assertEqual(len(content["hooks"]["PreToolUse"]), 1)
+
+    def test_installer_rejects_invalid_settings_shape(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text("[]", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            guard.install_hook(self.root)
+        self.assertEqual(settings.read_text(encoding="utf-8"), "[]")
+
     def test_no_active_strict_autopilot_leaves_normal_claude_use_unaffected(self):
         self.state["strictRouting"] = False
         self.save()
