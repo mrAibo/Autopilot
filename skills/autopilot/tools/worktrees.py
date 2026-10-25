@@ -40,6 +40,8 @@ def safe_target(root, ticket):
     if parent.exists() and parent.resolve() != parent:
         # Parent may resolve elsewhere via symlink; refuse.
         raise WorktreeError("Worktree directory is a symlink")
+    if target.is_symlink():
+        raise WorktreeError("Worktree path may not be a symlink")
     return target
 
 
