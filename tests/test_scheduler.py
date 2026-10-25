@@ -57,6 +57,16 @@ class SchedulerTests(unittest.TestCase):
                                verified={"01": True})
         self.assertEqual(p["selected"][0]["action"], "prepare")
 
+    def test_unknown_absolute_or_wildcard_zones_block_conflicts(self):
+        absolute = [ticket("01", ["/etc/unsafe"]), ticket("02", ["src"])]
+        p = scheduler.schedule(absolute)
+        self.assertEqual(len(p["selected"]), 1)
+        self.assertEqual(p["blocked"][0]["reason"], "overlapping-zone")
+        wildcard = [ticket("01", ["src/*"]), ticket("02", ["src/api"])]
+        p = scheduler.schedule(wildcard)
+        self.assertEqual(len(p["selected"]), 1)
+        self.assertEqual(p["blocked"][0]["reason"], "overlapping-zone")
+
     def test_budget_blocks_all_new_dispatches(self):
         ts = [ticket("01", ["src/a"]), ticket("02", ["src/b"])]
         p = scheduler.schedule(ts, budget_blocked=True)
