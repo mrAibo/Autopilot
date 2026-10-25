@@ -446,6 +446,47 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("не одобрены", out)
 
+    def test_usage_is_deduplicated_and_budget_blocks_new_work(self):
+        self.plan()
+        self.ap("tickets")
+        params = ("usage", "01", "--call-id", "host:001",
+                  "--input", "150", "--output", "20", "--source", "host-reported")
+        code, out = self.ap(*params)
+        self.assertEqual(code, 0, out)
+        code, out = self.ap(*params)
+        self.assertEqual(code, 0, out)
+        events = self.state()["usageEvents"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual((events[0]["input"], events[0]["output"]), (150, 20))
+        code, out = self.ap("budget", "--tokens", "160")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("лимит известных токенов достигнут", out)
+
+    def test_usage_rejects_conflicting_id_and_invalid_counts(self):
+        self.plan()
+        self.ap("tickets")
+        code, out = self.ap("usage", "01", "--call-id", "call-001",
+                            "--input", "13", "--output", "2", "--source", "manual")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("usage", "01", "--call-id", "call-001",
+                            "--input", "20", "--output", "2", "--source", "manual")
+        self.assertNotEqual(code, 0)
+        self.assertIn("уже существует", out)
+        code, out = self.ap("usage", "01", "--call-id", "call-002",
+                            "--input", "-2", "--output", "3", "--source", "manual")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(len(self.state()["usageEvents"]), 1)
+
+    def test_set_cannot_override_protected_accounting_state(self):
+        self.init()
+        code, out = self.ap("set", "strictRouting=null")
+        self.assertNotEqual(code, 0)
+        self.assertIn("разрешены только", out)
+        code, out = self.ap("set", "budgetTokens=1")
+        self.assertNotEqual(code, 0)
+
     def test_finish_rejects_incomplete_work(self):
         self.plan()
         self.ap("tickets")
