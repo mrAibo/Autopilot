@@ -122,9 +122,17 @@ def find_landing(root, source):
     return valid[0] if valid else None
 
 
+def interrupted_cherry_pick(root):
+    """Detect a Git sequencer left behind by abrupt termination."""
+    return git(root, "rev-parse", "-q", "--verify", "CHERRY_PICK_HEAD",
+               check=False).returncode == 0
+
+
 def recover(root, ticket, base):
     """Read-only Git recovery: do not cherry-pick or amend anything."""
     root = repository(root)
+    if interrupted_cherry_pick(root):
+        raise WorktreeError("Git cherry-pick is interrupted; inspect Git status and decide --continue or --abort manually")
     source = source_commit(root, ticket, base)
     found = find_landing(root, source)
     return {"ticket": ticket, "status": "landed" if found else "not-landed",
@@ -134,6 +142,8 @@ def recover(root, ticket, base):
 def land(root, ticket, base):
     """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict."""
     root = repository(root)
+    if interrupted_cherry_pick(root):
+        raise WorktreeError("Git cherry-pick is interrupted; resolve or abort manually before landing")
     source = source_commit(root, ticket, base)
     existing = find_landing(root, source)
     if existing:
