@@ -108,7 +108,8 @@ def verify(root, ticket, base, suite, timeout=90):
         raise EvidenceError("Independent host tests did not pass")
     return {"status": "verified", "runner": "python-unittest", "suite": suite,
             "fingerprint": after, "baseCommit": base, "workerHead": head,
-            "passed": passed, "failed": 0, "verifiedAt": datetime.now(timezone.utc).isoformat()}
+            "passed": passed, "failed": 0, "timeout": timeout,
+            "verifiedAt": datetime.now(timezone.utc).isoformat()}
 
 
 def check(root, ticket, base, evidence):
@@ -126,4 +127,16 @@ def check(root, ticket, base, evidence):
     checked_suite(actual["cwd"], evidence.get("suite"))
     if fingerprint(actual["cwd"]) != evidence.get("fingerprint"):
         raise EvidenceError("Source changed after tests; rerun verification")
-    return {"passed": evidence["passed"], "failed": 0}
+    # state.js is project data, not a host-signed test receipt. A matching
+    # Git fingerprint can be calculated without running tests, so a caller
+    # could fabricate '999/0' even when the real suite fails. Re-run the
+    # approved baseline-tracked suite in the same worktree before accepting
+    # the serialized proof. This also checks for concurrent source changes.
+    timeout = evidence.get("timeout", 90)  # legacy 2.3 receipts
+    observed = verify(root, ticket, base, evidence["suite"], timeout=timeout)
+    if observed["passed"] != evidence["passed"]:
+        raise EvidenceError("Claimed test count differs from independent host run")
+    if (observed["fingerprint"] != evidence["fingerprint"]
+            or observed["workerHead"] != evidence["workerHead"]):
+        raise EvidenceError("Source changed during independent host verification")
+    return {"passed": observed["passed"], "failed": 0}

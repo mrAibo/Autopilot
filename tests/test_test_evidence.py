@@ -74,6 +74,31 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaises(test_evidence.EvidenceError):
             test_evidence.verify(self.root, "01", self.base, "test_calc.py", timeout=0)
 
+    def test_fabricated_positive_receipt_cannot_turn_a_failing_suite_green(self):
+        # A user-controlled state.js record can match HEAD and the source
+        # fingerprint without ever having been produced by verify().
+        forged = {"status": "verified", "runner": "python-unittest",
+                  "suite": "test_calc.py", "baseCommit": self.base,
+                  "workerHead": self.base,
+                  "fingerprint": test_evidence.fingerprint(self.wt),
+                  "passed": 999, "failed": 0}
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "did not pass"):
+            test_evidence.check(self.root, "01", self.base, forged)
+
+    def test_tampered_test_count_cannot_reuse_real_green_receipt(self):
+        (self.wt / "calc.py").write_text("def add(a,b): return a+b\n", encoding="utf-8")
+        genuine = test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        inflated = dict(genuine, passed=999)
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "count"):
+            test_evidence.check(self.root, "01", self.base, inflated)
+
+    def test_legacy_green_receipt_without_timeout_is_rechecked(self):
+        (self.wt / "calc.py").write_text("def add(a,b): return a+b\n", encoding="utf-8")
+        genuine = test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        genuine.pop("timeout")
+        self.assertEqual(test_evidence.check(self.root, "01", self.base, genuine),
+                         {"passed": 1, "failed": 0})
+
 
 if __name__ == "__main__":
     unittest.main()
