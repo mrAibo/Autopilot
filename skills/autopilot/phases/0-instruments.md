@@ -82,7 +82,9 @@ Immediately after `init`, before Phase 1 asks anything.
 | the plan commit is made | `set baseCommit=<sha>` — chained with it (`phases/4-plan.md`) |
 | a ticket or a whole wave launched | `ticket 02 03 start` — **before** the subagents go out |
 | a ticket goes to point review | `ticket 02 review` |
-| a blocking finding goes back | `ticket 02 repair --note "условие одной строкой"` |
+| a blocking finding goes back | `ticket 02 repair --note "условие одной строкой"` — opens an outstanding `B##` blocker |
+| an independent re-review confirms a fix | `blocker resolve --id B01 --commit <newSHA> --tests 34/0 --note "конкретный результат ревью"` |
+| whole-branch BLOCKING not tied to a repair | `blocker open --note "условие"` (optional `--ticket 02`) |
 | a failed ticket restarts | `ticket 02 retry` |
 | committed | `ticket 02 done --tests 34/0 --commit <sha>` (+ `--placeholder R05` for a stubbed row) — closes the manifest rows whose tickets are all done |
 | failed for good | `ticket 02 fail --note "что блокирует"` |
