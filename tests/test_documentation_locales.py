@@ -92,6 +92,26 @@ class DocumentationLocalesTests(unittest.TestCase):
                 self.assertIn("docs/autopilot/release-readiness.md",
                               (ROOT / name).read_text(encoding="utf-8"))
 
+    def test_automatic_model_and_effort_plan_docs_are_explicit(self):
+        phase = (ROOT / "skills/autopilot/phases/4-plan.md").read_text(
+            encoding="utf-8")
+        guide = (ROOT / "docs/autopilot/model-routing.md").read_text(
+            encoding="utf-8")
+        dashboard = (ROOT / "skills/autopilot/phases/dashboard-template.html").read_text(
+            encoding="utf-8")
+        for text in (phase, guide):
+            self.assertIn("plan-models", text)
+            self.assertIn("--apply", text)
+            self.assertIn("Effort", text)
+            self.assertIn("Phase 4", text)
+        self.assertIn("plannedRouting", guide)
+        self.assertIn("No verified host capabilities", guide)
+        self.assertIn("planned-model-routes", dashboard)
+        for language in LOCALES:
+            page = (ROOT / language).read_text(encoding="utf-8")
+            self.assertIn("plan-models", page)
+            self.assertIn("docs/autopilot/model-routing.md", page)
+
     def test_sequential_host_docs_show_limits_in_all_locales(self):
         doc_path = ROOT / "docs/autopilot/sequential-host.md"
         self.assertTrue(doc_path.is_file())

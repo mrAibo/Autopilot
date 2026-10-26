@@ -4,6 +4,25 @@ Autopilot routes *executor tasks*, not its user's main model. The orchestrator m
 
 Implementation: `skills/autopilot/tools/model_router.py`. The library is Python-standard-library-only; it does **not** create agents and does not by itself guarantee that the host obeys the choice.
 
+## Automatic per-ticket selection at the planning stage (Phase 4)
+
+**Yes: every ticket has its own independently calculated model and reasoning Effort before development begins.** The full process is:
+
+1. Phase 4 creates `tickets/01-*.md`, `02-*.md`, etc. and validates their requirements/zones/dependencies with `ap.py tickets` and `ap.py check-plan`.
+2. `ap.py plan-models --provider openai` **automatically** scores *all* published tickets in one run, selects a tier and exact model/Effort, and stores `plannedRouting` for each. Without a trusted catalog, the result is **`blocked`/advisory** with the diagnostic `No verified host capabilities`. This is a useful readable proposal, **not** verified provider availability.
+3. After obtaining actual *host*-supported capability data and confirming provider/effort enforcement, one `ap.py plan-models --provider openai --capabilities .autopilot/model-capabilities.json --apply` **atomically validates the full plan** and creates all approved native project profiles. If even one pair is not supported (or a conflicting profile already exists), the batch fails, **not a partial upgrade to another model**.
+4. Phase 5 calls exact already assigned `agentType`, only after checking the profile integrity and live host functionality. **A profile on disk does not prove GUI dispatch or the effective model.** If actual host selection cannot be established, no subagent is spawned. An explicitly chosen `--sequential-host` run does not create named child agents and rejects `plan-models`.
+
+Example of an automatic table (illustrative **policy**, not measured runtime):
+
+| Ticket | Heuristic complexity | OpenAI policy choice | Anthropic policy choice |
+|---|---|---|---|
+| Small documentation or wording | cheap | Luna / low | Haiku / low |
+| Several connected modules / unclear interfaces | balanced | Luna / high | Sonnet / medium |
+| Authentication, passwords or sensitive migrations | strong (risk override) | Sol / high | Sonnet / high |
+
+**Automatic** means a deterministic policy selects values without manually typing `--model` and `--effort` for each ticket. It does **not** mean the system invents host entitlements, silently uses a paid API, or proves the runtime honored a profile. Premium/restricted models are not selected automatically. Individual `ticket NN route` remains for reviewed exceptions/custom policies; the batch command is the normal Phase 4 path.
+
 ## Provider mapping
 
 | Level | OpenAI / Codex | Anthropic / Claude Code |

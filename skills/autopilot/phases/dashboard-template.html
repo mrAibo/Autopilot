@@ -1443,6 +1443,20 @@ function render(lang){
       + '<span class="resource-chip">' + (langRu ? 'Сложность ' : 'Score ') + esc(info.score ?? '—') + '/100</span>'
       + '</div><div class="resource-reason">' + esc(info.reason || '—') + '</div></div>';
   }).join('');
+  const proposals = T.filter(t => t.plannedRouting && !t.routing);
+  const proposalItems = proposals.map(t => {
+    const p = t.plannedRouting;
+    return '<div class="resource-item"><div class="resource-title">' +
+      esc(t.id + ' · ' + t.title) + '</div><div class="resource-tags">' +
+      '<span class="resource-chip">' + esc(p.provider || '—') + '</span>' +
+      '<span class="resource-chip">' + esc(p.model || '—') + '</span>' +
+      '<span class="resource-chip">Effort: ' + esc(p.effort || '—') + '</span>' +
+      '<span class="resource-chip">' + esc(p.profile || '—') + '</span>' +
+      '<span class="resource-chip">' + esc(p.score ?? '—') + '/100</span>' +
+      '</div><div class="resource-reason">' +
+      (langRu ? 'Предложение, не запуск: ' : 'Plan only, not executed: ') +
+      esc(p.error || p.reason || '—') + '</div></div>';
+  }).join('');
   const usageEvents = Array.isArray(S.usageEvents) ? S.usageEvents.filter(e =>
     e && Number.isSafeInteger(e.input) && Number.isSafeInteger(e.output) &&
     e.input >= 0 && e.output >= 0) : [];
@@ -1479,8 +1493,12 @@ function render(lang){
       'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
       '</p>' : '')
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
-      '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
-      'No per-task model assignments recorded yet.') + '</p>')
+      (proposals.length ? '<p class="muted">' + (langRu ?
+        'Модель и Effort рассчитаны на этапе планирования; профили не применены и реальный GUI не подтверждён.' :
+        'Model and Effort calculated at planning time; profiles not applied and live GUI unverified.') +
+        '</p>' : '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
+        'No per-task model assignments recorded yet.') + '</p>'))
+    + (proposals.length ? '<div class="resource-list" id="planned-model-routes">' + proposalItems + '</div>' : '')
     + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
     + '<div class="resource-footer">' + (langRu ?
       'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +

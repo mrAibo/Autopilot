@@ -704,6 +704,115 @@ class Run(unittest.TestCase):
         code, out = self.ap("worktree", "01", "release")
         self.assertEqual(code, 0, out)
 
+    def test_plan_models_batch_preview_without_capabilities_never_attests_child(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, payload = self.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["status"], "advisory")
+        self.assertEqual([t["ticket"] for t in plan["tickets"]], ["01", "02"])
+        self.assertTrue(all(t["status"] == "blocked" for t in plan["tickets"]))
+        for tk in self.state()["tickets"]:
+            self.assertNotIn("routing", tk)
+            self.assertEqual(tk["plannedRouting"]["status"], "blocked")
+            self.assertIn(tk["plannedRouting"]["profile"], ("cheap", "balanced", "strong"))
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+        code, output = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0, output)
+        self.assertIn("строгая маршрутизация", output)
+
+    def test_plan_models_applies_cheap_and_strong_routes_in_one_planning_call(self):
+        self.plan(strict=True)
+        # A security-sensitive task must use strong, not a naive low-cost route.
+        self.write("tickets/02-priem.md", ticket(
+            "02", "Password reset / authentication migration", "R01.1, R02, A01",
+            "01", ["src/bot/"], 2))
+        self.ap("tickets")
+        self.ap("check-plan")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+        code, payload = self.ap("plan-models", "--provider", "anthropic",
+                                "--capabilities", caps, "--apply")
+        self.assertEqual(code, 0, payload)
+        plan = json.loads(payload)
+        self.assertEqual(plan["status"], "applied")
+        self.assertEqual([t["model"] for t in plan["tickets"]], ["haiku", "sonnet"])
+        self.assertEqual([t["effort"] for t in plan["tickets"]], ["low", "high"])
+        self.assertEqual([t["profile"] for t in plan["tickets"]], ["cheap", "strong"])
+        for tk in self.state()["tickets"]:
+            route = tk["routing"]
+            self.assertTrue(route["verified"])
+            self.assertEqual(route["model"], tk["plannedRouting"]["model"])
+            self.assertEqual(route["effort"], tk["plannedRouting"]["effort"])
+            self.assertTrue(os.path.isfile(os.path.join(self.root, route["agentFile"])))
+        code, output = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.state()["tickets"][0]["status"], "in-progress")
+
+    def test_plan_models_apply_fail_closed_all_or_nothing_if_one_model_missing(self):
+        self.plan(strict=True)
+        self.write("tickets/02-priem.md", ticket(
+            "02", "Password reset security and credential migration", "R01.1, R02, A01",
+            "01", ["src/bot/"], 2))
+        self.ap("tickets")
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, out)
+        code, output = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, output)
+        self.assertIn("blocked", output)
+        self.assertTrue(all(not t.get("routing") for t in self.state()["tickets"]))
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+
+    def test_plan_models_conflicting_agent_file_blocks_entire_batch(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+        conflict = os.path.join(self.root, ".claude", "agents",
+                                "autopilot-executor-02-priem.md")
+        os.makedirs(os.path.dirname(conflict), exist_ok=True)
+        with open(conflict, "w", encoding="utf-8") as out:
+            out.write("user-owned profile: do not overwrite")
+        code, output = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, output)
+        self.assertIn("профиль существует", output)
+        self.assertFalse(os.path.exists(os.path.join(
+            self.root, ".claude", "agents", "autopilot-executor-01-karkas.md")))
+        with open(conflict, encoding="utf-8") as profile_file:
+            self.assertEqual(profile_file.read(),
+                             "user-owned profile: do not overwrite")
+        self.assertTrue(all("routing" not in t for t in self.state()["tickets"]))
+
+    def test_plan_models_rejects_stale_ticket_or_sequential_host_or_no_cap_apply(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, out = self.ap("plan-models", "--provider", "anthropic", "--apply")
+        self.assertNotEqual(code, 0, out)
+        self.write("tickets/01-karkas.md", ticket(
+            "01", "Changed after tickets were published", "R01", "—", ["src/core/"], 1))
+        code, out = self.ap("plan-models", "--provider", "anthropic")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("tickets", out.lower())
+        self.assertFalse(any(t.get("plannedRouting") for t in self.state()["tickets"]))
+        other = self.ap("init", "--slug", "repair-bot", "--title", "Бот",
+                        "--skill-dir", SKILL, "--sequential-host", "--force")
+        self.assertEqual(other[0], 0, other[1])
+        self.write("tickets/01-karkas.md", ticket(
+            "01", "A", "R01", "—", ["src/core/"], 1))
+        self.ap("tickets")
+        code, out = self.ap("plan-models", "--provider", "anthropic")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("sequential-host", out)
+
     def test_schedule_machine_readable_dependency_order(self):
         self.plan()
         self.ap("tickets")
