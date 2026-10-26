@@ -504,6 +504,12 @@
 - **Tests:** two new real disposable-Git regression tests cover repeated `tickets → check-plan → tickets`, advisory persistence, changed-ticket invalidation and recalculation, applied profile persistence/strict start, and preservation of old profile files after ticket edits. Both targeted tests passed.
 - **Scope:** no model worker, paid API, or unverified native Codex GUI child invoked. User allows **subscription-included ChatGPT/Codex tokens** only; this does not authorize separately billed API/credits or override `spend_guard`. Stable `2.3.0` remains **NO-GO** pending real host attestation.
 
+## PR #29 final checkpoint (2026-10-26)
+
+- [PR #29](https://github.com/mrAibo/Autopilot/pull/29) merged by squash as `0b9d03104985aa2680255c26f969f3e0ebdb71f0` (feature head `1d04dcd21cd15c158bb4a06c12f6400837f7937e`). GitHub [CI #40366965621](https://github.com/mrAibo/Autopilot/actions/runs/40366965621): **4/4 succeeded** on Ubuntu/Windows with Python 3.11/3.13.
+- Local Windows Aibo Python 3.13 **310/310 passed**, including two new temporary-Git model-plan persistence/invalidation tests; doc locales **9/9**; `git diff --check` clean. `main` fast-forwarded cleanly to `0b9d031`.
+- The bug fix persists `plannedRouting` through unchanged `tickets` / `check-plan`; changed tickets drop the stale recommendation and `routing`. No native child, model/Effort/runtime spending attested. No model/API calls made by this change. Stable `2.3.0` remains **NO-GO**.
+
 ## New-session resume instruction
 
 > Продолжи разработку Autopilot 2.3 в репозитории `mrAibo/Autopilot`. Сначала проверь актуальную Git-ветку, `git status`, `HEAD`, последний merge/CI и раздел **Latest merged checkpoint** ниже; если в `STATUS.md` зафиксирована незавершённая feature-ветка, продолжай её, а не создавай новую. Прочитай `STATUS.md`, `brief.md`, `skills/autopilot/SKILL.md`, `docs/autopilot/scope-and-labs.md` и документы соответствующего текущего этапа. Проверь Windows checkout и Junction-навыки. Версия пока `2.3.0-dev`, без release tag. Сохраняй STATUS после этапов, не имитируй native GUI child-agent E2E, не запускай новые платные API-эксперименты по инерции и не объявляй релиз без настоящей проверки. Для восстановления **работы Autopilot внутри пользовательского проекта** (это отдельный случай!) используй `skills/autopilot/phases/0-resume.md` и `/autopilot` в папке этого проекта.
