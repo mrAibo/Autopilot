@@ -789,6 +789,7 @@ def ensure_gitignore():
     entries = [".autopilot/serve.*", ".autopilot/state.lock",
                ".autopilot/dispatch-*.lock", ".autopilot/controller.lock",
                ".autopilot/gui-dispatch/",
+               ".autopilot/api-pilot/", ".autopilot/api-pilot-consent",
                ".autopilot/offline-worker/", ".autopilot/offline-test-consent",
                ".autopilot/__pycache__/",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
@@ -1324,7 +1325,7 @@ def cmd_usage(state, pos, opt):
     call_id = opt.get("call-id")
     source = opt.get("source")
     if (not isinstance(call_id, str) or not re.fullmatch(r"[a-zA-Z0-9._:-]{4,128}", call_id)
-            or source not in ("claude-jsonl", "codex-jsonl", "host-reported", "manual")):
+            or source not in ("claude-jsonl", "codex-jsonl", "responses-api", "host-reported", "manual")):
         die("usage требует допустимые --call-id и --source")
     counts = {k: positive_int_option(opt, k, "0") for k in
               ("input", "output", "cache-read", "cache-write")}
