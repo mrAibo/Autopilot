@@ -5,6 +5,7 @@ This module does NOT launch agents. The host must verify the proposed model and
 effort against its capabilities and dispatch exactly that verified choice.
 """
 import argparse
+from copy import deepcopy
 import json
 import re
 import sys
@@ -50,15 +51,63 @@ def load_json(path):
 
 
 def load_policy(path=None):
-    if not path:
-        return DEFAULT_POLICY
+    """Overlay only specified settings without erasing unrelated safe defaults.
+
+    A partial provider/profile customization must never implicitly remove
+    the other provider or the default premium-model deny list.
+    """
+    result = deepcopy(DEFAULT_POLICY)
+    if path is None:
+        return result
     custom = load_json(path)
     if not isinstance(custom, dict):
         raise PolicyError("policy must be a JSON object")
-    result = dict(DEFAULT_POLICY)
-    result.update(custom)
-    if not isinstance(result.get("providers"), dict):
-        raise PolicyError("providers must be a mapping")
+    unknown = set(custom) - {
+        "version", "max_parallel", "providers", "restricted",
+        "allow_restricted_subagents"}
+    if unknown:
+        raise PolicyError("unknown policy keys: " + ", ".join(sorted(unknown)))
+    if "version" in custom and (type(custom["version"]) is not int
+                                or custom["version"] != result["version"]):
+        raise PolicyError("unsupported policy version")
+    if "max_parallel" in custom:
+        count = custom["max_parallel"]
+        if type(count) is not int or not 1 <= count <= 3:
+            raise PolicyError("max_parallel must be between 1 and 3")
+        result["max_parallel"] = count
+    if "allow_restricted_subagents" in custom:
+        if type(custom["allow_restricted_subagents"]) is not bool:
+            raise PolicyError("allow_restricted_subagents must be a boolean")
+        result["allow_restricted_subagents"] = custom["allow_restricted_subagents"]
+    if "providers" in custom:
+        providers = custom["providers"]
+        if not isinstance(providers, dict):
+            raise PolicyError("providers must be a mapping")
+        for provider, profiles in providers.items():
+            if provider not in result["providers"] or not isinstance(profiles, dict):
+                raise PolicyError("unknown or malformed provider: " + str(provider))
+            for tier, selection in profiles.items():
+                if tier not in result["providers"][provider] or not isinstance(selection, dict):
+                    raise PolicyError("unknown or malformed profile: " + str(tier))
+                if not selection or set(selection) - {"model", "effort"}:
+                    raise PolicyError("profile allows only model and effort settings")
+                for field, value in selection.items():
+                    if (not isinstance(value, str) or not value or
+                            value != value.strip()):
+                        raise PolicyError("model and effort must be nonempty exact names")
+                    result["providers"][provider][tier][field] = value
+    if "restricted" in custom:
+        restricted = custom["restricted"]
+        if not isinstance(restricted, dict):
+            raise PolicyError("restricted must be a provider mapping")
+        for provider, names in restricted.items():
+            if provider not in result["restricted"] or not isinstance(names, list):
+                raise PolicyError("unknown provider or invalid restricted-model list")
+            for name in names:
+                if not isinstance(name, str) or not name or name != name.strip():
+                    raise PolicyError("restricted model names must be exact strings")
+                if name.casefold() not in {x.casefold() for x in result["restricted"][provider]}:
+                    result["restricted"][provider].append(name)
     return result
 
 
@@ -108,17 +157,32 @@ def assess_ticket(text):
 def choose_route(provider, scores, policy=None, capabilities=None):
     policy = policy or DEFAULT_POLICY
     score, profile = assess_scores(scores)
-    if provider not in policy["providers"]:
+    if not isinstance(policy, dict) or not isinstance(policy.get("providers"), dict):
+        raise PolicyError("policy providers must be a mapping")
+    if provider not in DEFAULT_POLICY["providers"] or provider not in policy["providers"]:
         raise PolicyError("unknown provider %r" % provider)
-    assignment = policy["providers"][provider].get(profile)
+    provider_profiles = policy["providers"][provider]
+    if not isinstance(provider_profiles, dict):
+        raise PolicyError("provider profiles must be a mapping")
+    assignment = provider_profiles.get(profile)
     if not isinstance(assignment, dict):
         raise PolicyError("missing profile %s for %s" % (profile, provider))
     model, effort = assignment.get("model"), assignment.get("effort")
-    if not isinstance(model, str) or not model.strip():
-        raise PolicyError("profile model is empty")
-    if not isinstance(effort, str) or not effort.strip():
-        raise PolicyError("profile effort is empty")
-    denied = [str(m).lower() for m in policy.get("restricted", {}).get(provider, [])]
+    if not isinstance(model, str) or not model or model != model.strip():
+        raise PolicyError("profile model must be an exact nonempty name")
+    if not isinstance(effort, str) or not effort or effort != effort.strip():
+        raise PolicyError("profile effort must be an exact nonempty name")
+    restricted_by_provider = policy.get("restricted", {})
+    if not isinstance(restricted_by_provider, dict):
+        raise PolicyError("restricted must be a provider mapping")
+    denied_names = restricted_by_provider.get(provider, [])
+    if not isinstance(denied_names, list) or any(
+            not isinstance(item, str) for item in denied_names):
+        raise PolicyError("restricted names must be a list of strings")
+    # A direct caller passing a crafted partial policy cannot remove baseline
+    # restricted entries just by replacing the restricted mapping.
+    denied = [m.casefold() for m in DEFAULT_POLICY["restricted"][provider]]
+    denied += [m.casefold() for m in denied_names]
     costly_prefixes = {"openai": ("gpt-6-astra",),
                        "anthropic": ("fable", "claude-fable", "opus", "claude-opus")}
     restricted = (model.lower() in denied or

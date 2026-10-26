@@ -953,12 +953,21 @@ def profile_ok(tk):
     try:
         if os.path.commonpath((path, root)) != root:
             return False
-    except ValueError:
-        return False
-    try:
+        policy_file = route.get("policyFile")
+        if policy_file is not None:
+            if (not isinstance(policy_file, str) or
+                    not isinstance(route.get("policySha"), str) or
+                    os.path.isabs(policy_file)):
+                return False
+            policy_path = os.path.realpath(os.path.join(ROOT, policy_file))
+            if os.path.commonpath((policy_path, root)) != root:
+                return False
+            with open(policy_path, "rb") as policy_stream:
+                if hashlib.sha256(policy_stream.read()).hexdigest() != route["policySha"]:
+                    return False
         with open(path, "rb") as stream:
             return hashlib.sha256(stream.read()).hexdigest() == route["profileSha"]
-    except OSError:
+    except (OSError, ValueError):
         return False
 
 
@@ -1062,6 +1071,25 @@ def cmd_ticket(state, pos, opt):
             effort = opt.get("effort")
             reason = opt.get("reason")
             cap = opt.get("capabilities") or os.path.join(A, "model-capabilities.json")
+            policy_arg = opt.get("policy")
+            policy_path = None
+            policy_relative = None
+            policy_digest = None
+            if policy_arg is not None:
+                if not isinstance(policy_arg, str) or not policy_arg.strip():
+                    die("route: --policy требует файл JSON внутри проекта")
+                policy_path = os.path.realpath(os.path.join(ROOT, policy_arg))
+                root_path = os.path.realpath(ROOT)
+                try:
+                    if os.path.commonpath((policy_path, root_path)) != root_path:
+                        die("route: policy должна находиться внутри проекта")
+                except ValueError:
+                    die("route: недопустимый путь policy")
+                if not os.path.isfile(policy_path):
+                    die("route: policy файл отсутствует")
+                policy_relative = os.path.relpath(policy_path, root_path).replace("\\", "/")
+                with open(policy_path, "rb") as policy_stream:
+                    policy_digest = hashlib.sha256(policy_stream.read()).hexdigest()
             if provider not in ("openai", "anthropic") or not all(
                     isinstance(x, str) and x.strip() for x in (model, effort, reason)):
                 die("route требует --provider --model --effort --reason")
@@ -1078,7 +1106,8 @@ def cmd_ticket(state, pos, opt):
                 source = open(candidates[0], encoding="utf-8").read()
                 scores = json.loads(opt["scores"]) if opt.get("scores") else router.assess_ticket(source)
                 route = router.choose_route(
-                    provider, scores, capabilities=router.load_json(cap))
+                    provider, scores, policy=router.load_policy(policy_path),
+                    capabilities=router.load_json(cap))
             except (ValueError, OSError, TypeError) as err:
                 die("route: %s" % err)
             if (route["status"] != "ready" or route["model"] != model
@@ -1088,7 +1117,9 @@ def cmd_ticket(state, pos, opt):
                 import agent_profiles
                 profile = agent_profiles.prepare(
                     ROOT, candidates[0], provider, cap, "executor",
-                    scores=scores, install=True)
+                    policy=policy_path, scores=scores, install=True)
+                if profile["model"] != model or profile["effort"] != effort:
+                    die("route: профиль агента не совпадает с одобренной моделью")
                 filename = profile["agent_file"]
                 with open(os.path.join(ROOT, filename), "rb") as stream:
                     digest = hashlib.sha256(stream.read()).hexdigest()
@@ -1099,6 +1130,9 @@ def cmd_ticket(state, pos, opt):
                              "reason": reason, "verified": True,
                              "agentType": profile["agent_type"],
                              "agentFile": filename, "profileSha": digest}
+            if policy_relative is not None:
+                tk["routing"].update(policyFile=policy_relative,
+                                     policySha=policy_digest)
             continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":

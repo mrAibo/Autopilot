@@ -28,6 +28,52 @@ Models/prices/availability can change. The host must advertise supported model/e
 
 Scores of 0–25 use `cheap`, 26–55 `balanced`, 56–100 `strong`. High risk is an override (risk 10 forces strong); algorithm score >=20 forces strong. A risk-bearing task may also require independent review. Simple heuristics based on ticket contents are a starting estimate; supply verified factors explicitly if the default estimate is inadequate.
 
+## Custom policy for the normal ticket route
+
+The default provider and tier policy remains fully usable without a policy
+file. To change one profile without losing the other tiers or provider,
+create a JSON file inside the application project, for example
+`.autopilot/model-policy.json`:
+
+```json
+{
+  "version": 1,
+  "max_parallel": 2,
+  "providers": {
+    "anthropic": {
+      "cheap": {"effort": "medium"}
+    }
+  },
+  "restricted": {
+    "anthropic": ["company-private-premium-model"]
+  }
+}
+```
+
+`load_policy` deep-merges only the declared model/effort overrides with a
+fresh copy of defaults. It **adds** restricted names to the built-in deny
+lists, never replaces the defaults. Invalid fields, unsupported versions,
+unknown providers/tiers, wrong types and padded model names are rejected,
+not silently ignored. This JSON is a **local routing proposal**, not
+host attestation and not a license to spawn costly agents. The host still
+must advertise and enforce the exact selected model/Effort.
+
+For an active ticket, route using that same policy file:
+
+```bash
+python3 .autopilot/ap.py ticket 01 route --provider anthropic \
+  --model haiku --effort medium --reason "small task, approved profile" \
+  --capabilities .autopilot/model-capabilities.json \
+  --policy .autopilot/model-policy.json
+```
+
+The `ticket route` command passes the **same file** to both the model
+selector and the generated agent profile. It records the policy's SHA256;
+later changes to the policy invalidate strict ticket `start`, `retry`
+and `done` until a fresh route/profile is established. The policy must
+resolve inside the project; external file paths are rejected. Existing
+tickets without a policy continue to use the unchanged defaults.
+
 ## Capabilities handshake — mandatory
 
 Create the *runtime* capability advertisement from what Codex or Claude Code **actually supports**; do not blindly reuse this example in a real run:
