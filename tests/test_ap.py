@@ -757,6 +757,7 @@ class Run(unittest.TestCase):
     def test_plan_models_applied_assignments_survive_check_plan(self):
         self.plan(strict=True)
         self.ap("tickets")
+        self.ap("check-plan")
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as stream:
             json.dump({"provider": "anthropic", "model_selection": True,
@@ -790,6 +791,85 @@ class Run(unittest.TestCase):
         self.assertNotIn("routing", refreshed["02"])
         self.assertTrue(os.path.isfile(old_agent))
         self.assertEqual(refreshed["01"]["routing"], before["01"][1])
+
+    def test_plan_models_apply_requires_current_g3_plan_contract(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+
+        # Advisory is safe before check-plan, but materializing native profiles
+        # must not bypass G3 even with a permissive synthetic capability file.
+        code, preview = self.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, preview)
+        code, denied = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, denied)
+        self.assertIn("check-plan", denied)
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+        self.assertTrue(all(not t.get("routing") for t in self.state()["tickets"]))
+
+        code, output = self.ap("check-plan")
+        self.assertEqual(code, 0, output)
+        self.assertTrue(self.state()["gates"]["G3"]["ok"])
+
+        # Changing requirement wording is a real plan-contract change even
+        # when both ticket files and their fingerprints remain unchanged.
+        self.write("manifest.md", self.manifest().replace(
+            "принимает заявки", "принимает заявки и проверяет права"))
+        code, denied = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, denied)
+        self.assertIn("check-plan", denied)
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+        self.assertTrue(all(not t.get("routing") for t in self.state()["tickets"]))
+
+        code, output = self.ap("check-plan")
+        self.assertEqual(code, 0, output)
+        self.assertTrue(self.state()["gates"]["G3"]["ok"])
+
+        # G3's finish contract intentionally excludes status columns, but
+        # applying models must detect changes to validation inputs as well.
+        original_validation = self.state()["planValidationDigest"]
+        self.write("manifest.md", self.manifest().replace("in-ticket", "in-spec"))
+        self.assertEqual(self.state()["planValidationDigest"], original_validation)
+        code, denied = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, denied)
+        self.assertIn("check-plan", denied)
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+        code, output = self.ap("check-plan")
+        self.assertEqual(code, 0, output)
+        self.assertTrue(self.state()["gates"]["G3"]["ok"])
+        code, applied = self.ap("plan-models", "--provider", "anthropic",
+                                "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, applied)
+        self.assertEqual(json.loads(applied)["status"], "applied")
+        self.assertTrue(all(t.get("routing") for t in self.state()["tickets"]))
+
+    def test_plan_models_apply_rejects_failed_g3_without_profiles(self):
+        self.plan(strict=True)
+        # Requirement R02 is no longer covered by any valid ticket.
+        self.write("tickets/02-priem.md", ticket(
+            "02", "Orphan requirement", "R99", "01", ["src/bot/"], 2))
+        self.ap("tickets")
+        code, output = self.ap("check-plan")
+        self.assertNotEqual(code, 0, output)
+        self.assertIn("R99", output)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+        self.assertNotIn("planValidationDigest", self.state())
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+        code, output = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertNotEqual(code, 0, output)
+        self.assertIn("check-plan", output)
+        self.assertTrue(all(not t.get("routing") for t in self.state()["tickets"]))
+        self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
 
     def test_plan_models_applies_cheap_and_strong_routes_in_one_planning_call(self):
         self.plan(strict=True)
@@ -827,6 +907,7 @@ class Run(unittest.TestCase):
             "02", "Password reset security and credential migration", "R01.1, R02, A01",
             "01", ["src/bot/"], 2))
         self.ap("tickets")
+        self.ap("check-plan")
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
@@ -841,6 +922,7 @@ class Run(unittest.TestCase):
     def test_plan_models_conflicting_agent_file_blocks_entire_batch(self):
         self.plan(strict=True)
         self.ap("tickets")
+        self.ap("check-plan")
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,

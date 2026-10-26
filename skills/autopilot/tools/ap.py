@@ -296,6 +296,21 @@ def plan_contract_digest(state):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def plan_validation_digest(state):
+    """G3 input snapshot: include manifest statuses, unlike the finish contract.
+
+    Status changes can affect whether an unassigned requirement needs a ticket.
+    Accepting completed tickets may change statuses later, so this checksum is
+    only a pre-dispatch check for the pending-ticket batch apply operation.
+    """
+    contract = plan_contract_digest(state)
+    rows = manifest_rows(state)
+    if contract is None or rows is None:
+        return None
+    payload = json.dumps([contract, rows], ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def recount(state):
     table = manifest_table(state)
     if table is None:
@@ -1043,6 +1058,12 @@ def cmd_plan_models(state, opt):
     cap_arg = opt.get("capabilities")
     if apply and not isinstance(cap_arg, str):
         die("plan-models: --apply требует --capabilities из проверенного хоста")
+    if apply and (state.get("gates", {}).get("G3", {}).get("ok") is not True
+                  or not state.get("planContractDigest")
+                  or state["planContractDigest"] != plan_contract_digest(state)
+                  or not state.get("planValidationDigest")
+                  or state["planValidationDigest"] != plan_validation_digest(state)):
+        die("plan-models: --apply требует актуальный успешный ap.py check-plan (G3)")
     policy_arg = opt.get("policy")
     policy_path = None
     policy_relative = None
@@ -1961,8 +1982,10 @@ def main():
                 state["blind"] = None
             if not problems:
                 state["planContractDigest"] = current_contract
+                state["planValidationDigest"] = plan_validation_digest(state)
             else:
                 state.pop("planContractDigest", None)
+                state.pop("planValidationDigest", None)
         elif cmd == "worktree":
             notes.append(cmd_worktree(state, rest, opt))
         elif cmd == "usage":
