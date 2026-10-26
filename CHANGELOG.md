@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Add a separate **fixed synthetic-only** bounded Responses API pilot (no arbitrary code execution, no tool calls, max 4096 request bytes, server `max_output_tokens=192`, one durable no-replay receipt). Uses `gpt-6-luna`, requires temporary Git fixture, exact zone and approval, records reported token usage before applying only an approved toy change. Full host Git acceptance tested with fake provider JSON response. No OPENAI_API_KEY was present and no real paid call made. This is NOT a provider hard dollar cap; Codex CLI spend_guard remains unchanged.
+
 - P0 host-verified worker outcome: the read-only zone-scoped worktree inspector recognizes completed but **uncommitted** worker edits (Windows sandbox can deny shared Git index.lock); `ready-for-host-verification` does not mean tests passed or work accepted. Existing trusted host tests/finalize/land/accept still own the code gate. A synthetic OS-worker no-commit full lifecycle and out-of-zone failure are tested. Real paid CLI remains blocked behind spend_guard.
 
 - P0 hard-cap admission gate: real Codex paid calls are blocked from both GUI bridge and direct dispatcher pending independently verified provider-enforced per-call limits. Ledger token thresholds and timeout are explicitly soft. New `spend_guard.py` read-only audit reports input/cache/output tokens, prior attempts and budget overage without fabricating monetary billing. Strict offline mock tests cover fail-closed paths; no new paid calls.

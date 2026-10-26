@@ -57,6 +57,14 @@ lands it; missing or out-of-zone edits stay incomplete.
 [Read-only outcome inspection](docs/autopilot/codex-cli.md).
 No new AI call is required to review an existing attempt.
 
+**Bounded API experiment (P0, synthetic only):** separate
+[Responses API pilot](docs/autopilot/bounded-api-pilot.md) uses a fixed toy
+task with a tiny request and server-enforced output-token limit. Its
+durable one-shot receipt, ledger reconciliation and offline-mocked API
+response were qualified through real Git tests. On the owner's Windows
+machine **no API key is configured**, so no new live API request was made.
+This does not unlock Codex CLI or enforce a provider dollar cap.
+
 **Paid-call safety gate (P0):** after a real disposable Codex CLI turn
 reported 53,187 input + 341 output tokens despite a recorded threshold of
 2,000, both GUI bridge and direct Codex dispatcher now **fail closed** on
