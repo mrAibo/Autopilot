@@ -2,6 +2,36 @@
 
 Autopilot is a **skill and project-state protocol**, not a command-line-only application. The same `SKILL.md`, phase files, `ap.py` state, dashboard and verification gates should be usable by both the desktop/GUI host and command-line host.
 
+## Read-only runtime qualification, 2026-10-26 (not GUI E2E)
+
+The connected Windows host `Aibo` was inspected without invoking an AI
+model or changing host installations. The repository was clean at
+`main` commit `be1833b` before this qualification. `codex --version`
+reports `codex-cli 0.165.0-alpha.1`; `codex features list` reports
+`multi_agent` stable/enabled but `multi_agent_v2` stable/**disabled**.
+`codex exec --help` advertises `--model`, `--sandbox`, `--cd` and
+`--json`. These are CLI metadata and do **not** reverse the actual
+graphical Codex 2026-10-25 named-agent negative test or verify native child
+profile/model/effort/cwd.
+
+No `claude` / `claude-code` command was found on PATH, and known user
+`npm` and native install locations and global npm package list did not
+show a Claude Code CLI installation. The general Claude desktop application,
+if present, must not be treated as the Claude Code agent runner. No native
+Claude Code subagent E2E was possible during this read-only qualification.
+
+An R03 fail-open condition was found and repaired in the **optional**
+Claude Code `PreToolUse` guard: an existing but unreadable, malformed,
+redirected or structurally empty Autopilot `state.js` previously looked
+equivalent to no active strict run, which could allow a generic `Agent` /
+`Task` launch. Now malformed existing state denies agent dispatch; a
+project without `state.js` or an explicitly non-strict/finished valid
+run keeps its usual behavior. Non-agent tool calls are not blocked.
+Negative Python tests and OS-process stdin/exit-code tests use synthetic
+temporary project state, not an authenticated Claude process. **This is
+guard logic verification, not proof that Claude Code has installed or is
+enforcing the hook in an active host session.**
+
 ## Dashboard 3.1: real browser viewport qualification
 
 The dedicated smoke test `tools/check-dashboard-browser.py` opens the
