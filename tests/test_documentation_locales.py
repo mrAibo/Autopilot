@@ -71,6 +71,21 @@ class DocumentationLocalesTests(unittest.TestCase):
         self.assertIn("0-resume.md", skill)
         self.assertIn("<YYYY-MM-DD>-brief.md", skill)
 
+    def test_230_scoped_codex_release_and_claude_limits(self):
+        skill = (ROOT / "skills/autopilot/SKILL.md").read_text(encoding="utf-8")
+        claude = (ROOT / "docs/autopilot/claude-code.md").read_text(encoding="utf-8")
+        self.assertIn('version: "2.3.0"', skill)
+        for name in LOCALES:
+            page = (ROOT / name).read_text(encoding="utf-8")
+            self.assertIn("2.3.0", page)
+            self.assertIn("docs/autopilot/claude-code.md", page)
+        for claim in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
+                      "CLAUDE_CODE_EFFORT_LEVEL", "not been verified",
+                      "subscription", "model-capabilities.json"):
+            self.assertIn(claim, claude)
+        self.assertIn("limited sequential-host",
+                      (ROOT / "docs/autopilot/release-readiness.md").read_text(encoding="utf-8"))
+
     def test_release_readiness_matrix_evidence_links_and_locales(self):
         path = ROOT / "docs/autopilot/release-readiness.md"
         self.assertTrue(path.is_file())

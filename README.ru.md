@@ -16,9 +16,9 @@ Autopilot — фреймворк разработки, skill, который б�
 
 > **Безопасный последовательный режим:** [один таск, отдельный Git worktree и независимые тесты](docs/autopilot/sequential-host.md). Не создаёт именованного субагента и не подтверждает реальную модель/Effort или тарификацию GUI.
 
-> **Готовность релиза:** [матрица R01–R06](docs/autopilot/release-readiness.md) — подтверждённые тесты, ограничения реального GUI и условия выпуска стабильной версии 2.3.0.
+> **Границы релиза:** [матрица R01–R06](docs/autopilot/release-readiness.md) — последовательный режим Codex выпущен с ограничениями; нативные субагенты GUI и исполнение Claude Code ещё не подтверждены.
 
-> **Autopilot 2.3.0-dev** — версия разработки в основной ветке main. Новые возможности: [маршрутизация моделей](docs/autopilot/model-routing.md), [изолированные worktrees](docs/autopilot/worktrees.md), [проверка тестов на хосте](docs/autopilot/worktrees.md), [Dashboard 3.1](docs/autopilot/gui-clients.md) и [режим экономии токенов](docs/autopilot/optimization.md). Приложения [Codex и Claude Code](docs/autopilot/gui-clients.md) используют общий навык; графическая интеграция ещё проверяется. Это предварительная версия, не релиз. Текущее состояние — [STATUS.md](STATUS.md), требования — [brief.md](brief.md).
+> **Autopilot 2.3.0 — ограниченный релиз для Codex.** Поддержан [последовательный режим](docs/autopilot/sequential-host.md): одна задача, отдельный Git-worktree, независимый запуск Python unittest. **Не подтверждены:** именованные субагенты Codex GUI, фактические модель/Effort и оплата токенов; CLI/API-автозапуск отключён. Для [Claude Code](docs/autopilot/claude-code.md) предусмотрены профили с model/Effort и проверенные офлайн-защиты, но живой запуск на Aibo пока не проверен. См. [ограничения релиза](docs/autopilot/release-readiness.md) и [STATUS.md](STATUS.md).
 
 <p align="center">
   <a href="assets/ru/dashboard-31-desktop.png"><img src="assets/ru/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1 — широкий экран, демонстрационные данные"></a>
@@ -50,7 +50,7 @@ Autopilot — фреймворк разработки, skill, который б�
 
 ## Установка
 
-> **Предварительная 2.3:** На текущем Windows-компьютере глобальные пути навыка для Codex и Claude уже связаны с исходниками этой ветки через Windows Junction. Повторно устанавливать или копировать навык не нужно. Команды `npx skills add` ниже для других пользователей устанавливают опубликованную версию из `main`, которая до релиза 2.3 может оставаться 2.2. Не запускайте `npx skills update -g` для 2.3-dev, подключённой ссылкой.
+> **Установка на Aibo:** глобальные пути навыка Codex и Claude уже привязаны к исходникам через Windows Junction. Повторно устанавливать навык не нужно. После объединения релизной ветки команды ниже установят версию 2.3.0 из опубликованного репозитория. Не заменяй Junction командой `npx skills update -g`.
 
 ### Не хотите открывать терминал
 

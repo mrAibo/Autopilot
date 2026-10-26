@@ -1,6 +1,6 @@
 # Autopilot 2.3 — release qualification / R01–R06
 
-**Assessment:** updated 2026-10-26, Windows host Aibo. **Candidate:** `2.3.0-dev`, latest independently checked clean `main` `3e483aff280f9c33eb3354d67d67715f224cad20`. **Decision: NO-GO for stable `2.3.0`.**
+**Assessment:** 2026-10-26, Windows Aibo, release candidate prepared from `main` `60ad24bbb57e53a505541001cc0b39aa678eb89b`. **Decision: GO only for a clearly labeled Codex 2.3.0 limited sequential-host release** per owner's explicit scope choice. **NO-GO** for native Codex GUI named-agent/model/Effort guarantees and native Claude Code E2E. Release sign-off requires fresh green CI and creation of the exact release tag.
 
 This is an **evidence register**, not a claim that GitHub CI certifies real AI-agent execution. The normative requirements are in [`brief.md`](../../brief.md). This document separates a test of our Python/HTML implementation, a read-only host discovery check, and an authenticated run of an external GUI or model. Do not promote one into another.
 
@@ -31,9 +31,9 @@ This is an **evidence register**, not a claim that GitHub CI certifies real AI-a
 
 **Precise claim:** This is a **real user-assisted ChatGPT-project file-edit + independently accepted host Git/test lifecycle**, not a proven **Codex GUI** invocation, native named child, enforced child model/Effort/cwd, verified ChatGPT billing, or full G1–G4 final Autopilot flight. The GUI agent could not identify effective model/Effort; the user's report of no API use is not independently audited by host Git. Thus R03 native selection and provider cost claims **remain BLOCKED**. No repeat of this already successful one-ticket smoke is necessary.
 
-## Current release countdown (2026-10-26)
+## Deferred capabilities beyond the limited 2.3.0 release (2026-10-26)
 
-**Three unresolved acceptance groups; no release date is established.**
+**The owner deliberately removed these three groups from the limited Codex release scope.** They remain prerequisites for advertising native multi-agent automation, subscription-capped autonomous inference, or full Claude Code support. The supported 2.3.0 Codex path is explicit `--sequential-host` file/Git/test orchestration only, with a user-operated agent session and no automatic model launch.
 
 1. **R03 runtime:** a genuine **Codex GUI** named-child/effective model/Effort/cwd acceptance, or a deliberately limited sequential-only support scope with a verified real GUI/model/subscription workflow. Claude Code is **not installed on PATH**; include it only after independent provider/host qualification, otherwise explicitly mark unsupported at release.
 2. **Provider charge boundary:** independently confirm subscription-only execution for the actually supported host path. The optional CLI/API bridge remains **disabled** by `spend_guard`; do not remove its hard stop or claim a soft token allowance is an enforceable cost cap.
@@ -43,14 +43,14 @@ This is an **evidence register**, not a claim that GitHub CI certifies real AI-a
 
 **Optional, not a shipping prerequisite unless marketed:** real-provider R06 token/cost savings A/B. Until measured, publish no savings percentage; state **N/A**. The critical path is the three acceptance groups above, not further routing-policy code.
 
-## Stable-release gates (in priority order)
+## Gates for expanded native-agent claims (out of scope of the limited Codex 2.3.0 release)
 
 1. **P0 — R03: native Codex GUI host proof.** Only re-test after an observable host/runtime capability change. In a disposable project and user-approved **subscription-only** environment, prove that the GUI created the exact named profile, attest child ID, assigned model, effective reasoning effort and `cwd` independently of authored profile/config, and inspect an actual accepted test+Git result. If unsupported, use the now implemented [host-verified `--sequential-host` fallback](sequential-host.md) (Git/test path tested in temporary repos), and separately qualify **actual GUI host model/Effort/subscription behavior** before considering a stable claim. Neither the fallback nor a green Python test proves an AI worker's identity. Never silently substitute a generic child inheriting a premium orchestrator.
 2. **P0 — R03: Claude Code proof.** Discover/install Claude **Code** separately from the general Claude Desktop client (with owner approval before host installation). Verify native custom subagent profile, enforced model/Effort and hook behavior inside the actual supported host. If absent, mark Claude Code operational support unverified; tests of synthetic `PreToolUse` hooks are not live evidence.
 3. **P0 — provider spending boundary.** The optional [GUI→CLI bridge](gui-cli-bridge.md) and [CLI dispatcher](spend-guard.md) explicitly **deny real model execution** without independently enforceable provider-side per-call bounds. ChatGPT-login status is **not a spending hard cap**. User authorizes only subscription-included usage, **not separate API charges, purchased credits or paid token packs**. Do not bypass the guard based on this permission.
 4. **P1 — R04/R05: GUI and docs acceptance.** Run a real owner-facing wide/narrow Dashboard inspection in each supported host, including keyboard navigation and true saved-state updates. Keep native-GUI and CLI evidence separate; ensure all sample commands describe current fail-closed behavior. A browser smoke is not a GUI deployment.
 5. **P1 — R06: measured claims.** For any public assertion of model-token or monetary savings, require matched successful real-provider A/B runs on the same baseline, with provider-reported usage, cache, model/Effort, reviewer-approved Git/test acceptance, actual retries and attributable cost. In the absence of such evidence, publish **N/A** and rely only on explicitly labeled offline host measurements. Do not add paid API experiments to the core product to fill a table.
-6. **Release operator sign-off.** Green four-platform CI on the release commit, clean installation & recovery in an existing project, scope/attribution check, no unreported blocking findings and honest support matrix. Only then change `2.3.0-dev`, create a `2.3.0` tag and publish a release. Merging documentation to `main` is *not* sign-off.
+6. **Expansion sign-off.** Any later native-agent release requires green CI, real host model/cwd/effort evidence, true subscription boundary and an updated support matrix. A green Codex limited release does not qualify other providers.
 
 ## Operator constraints and next handoff
 
@@ -62,8 +62,8 @@ Next agent: read [`STATUS.md`](../../STATUS.md), this table, [`brief.md`](../../
 
 ## Краткий вывод (Русский)
 
-**Стабильный выпуск 2.3.0 пока запрещён.** R01/R02 подтверждены тестами в пределах локальной модели доверия, Dashboard R04 проверен в браузере, документация EN/RU/DE существует, CI R06 зелёный и офлайн-бенчмарк опубликован. Но R03 не подтверждён в реальном Codex GUI и Claude Code: профиль агента ещё не означает его создание с правильной моделью и Effort. Экономия платных токенов не доказана. Новые расходы сверх лимитов подписки не разрешены.
+**Ограниченный релиз 2.3.0 для Codex допускается только с `--sequential-host`.** Нативная автоматическая маршрутизация моделей и запуск именованных субагентов не включены.  R01/R02 подтверждены тестами в пределах локальной модели доверия, Dashboard R04 проверен в браузере, документация EN/RU/DE существует, CI R06 зелёный и офлайн-бенчмарк опубликован. Но R03 не подтверждён в реальном Codex GUI и Claude Code: профиль агента ещё не означает его создание с правильной моделью и Effort. Экономия платных токенов не доказана. Новые расходы сверх лимитов подписки не разрешены.
 
 ## Kurzfazit (Deutsch)
 
-**Noch keine Freigabe für Version 2.3.0.** R01/R02 sind durch lokale Regressionstests abgesichert, Dashboard R04 durch Browser-Tests; Dokumentation und plattformübergreifende CI sind vorhanden. Die tatsächliche Ausführung benannter Subagenten inklusive Modell, Reasoning Effort und Arbeitsverzeichnis ist weder in Codex GUI noch in Claude Code nachgewiesen. Ein reales Einsparpotenzial bei Modell-Tokens oder Kosten wurde nicht gemessen. Zusätzliche API-Kosten bzw. gekaufte Credits sind nicht freigegeben.
+**Der eingeschränkte Codex-Release 2.3.0 mit `--sequential-host` ist freigegeben; native benannte GUI-Agenten gehören nicht zum zugesagten Umfang.** R01/R02 sind durch lokale Regressionstests abgesichert, Dashboard R04 durch Browser-Tests; Dokumentation und plattformübergreifende CI sind vorhanden. Die tatsächliche Ausführung benannter Subagenten inklusive Modell, Reasoning Effort und Arbeitsverzeichnis ist weder in Codex GUI noch in Claude Code nachgewiesen. Ein reales Einsparpotenzial bei Modell-Tokens oder Kosten wurde nicht gemessen. Zusätzliche API-Kosten bzw. gekaufte Credits sind nicht freigegeben.

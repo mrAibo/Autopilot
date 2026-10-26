@@ -16,9 +16,9 @@ It works on its own: nothing else to install.
 
 > **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.
 
-> **Release qualification:** [R01–R06 readiness matrix](docs/autopilot/release-readiness.md) — code tests, real GUI host limitations, and explicit no-go criteria for stable 2.3.0.
+> **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement and Claude Code execution remain unverified.
 
-> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.1 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [brief.md](brief.md).
+> **Autopilot 2.3.0 — Codex limited release.** Supported workflow: explicit [sequential-host](docs/autopilot/sequential-host.md) with one Git-isolated ticket at a time and independent host Python unittest verification. **Not included:** guaranteed native Codex GUI named subagents, enforced GUI model/Effort, verified subscription billing, or automatic CLI/API inference. [Claude Code native subagents](docs/autopilot/claude-code.md) have model/Effort profile and offline guard support but are **unverified on this Windows host**. See [release scope](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md), and [brief.md](brief.md).
 
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, desktop layout using synthetic data"></a>
@@ -50,7 +50,7 @@ For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](do
 
 ## Installation
 
-> **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.
+> **Developer-linked installation:** On Aibo, the global Codex and Claude skill paths already point to this checkout through verified Windows Junctions; do not install another copy. After this release merges, the commands below install Autopilot 2.3.0 from the published repository. Do not replace the developer-linked Junctions with a global `npx skills update -g`.
 
 ### If you'd rather not open a terminal
 

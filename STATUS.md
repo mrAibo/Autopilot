@@ -3,11 +3,11 @@
 **Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
 **Quick new-chat handoff:** [HANDOFF.md](HANDOFF.md) (2026-10-26; complete continuation prompt, scope, latest R03 feature and actual GUI proof limits). Last verified pre-handoff `main` HEAD `ec740a7c7555d09e62f3f6039700b3fdf3ea0f64`, [CI #40352034156](https://github.com/mrAibo/Autopilot/actions/runs/40352034156) **4/4 green** Ubuntu/Windows Python 3.11/3.13; full local Windows Python 3.13 **308/308 passed**. Handoff docs-only commit may advance HEAD and starts a separate CI.
-**Active branch:** `main` ([PR #27](https://github.com/mrAibo/Autopilot/pull/27) merged, Windows checkout synced and clean)
+**Current release work:** branch `release/v2.3.0-codex-limited`, based on clean merged `main` `60ad24bbb57e53a505541001cc0b39aa678eb89b`. After approved PR and CI, update `main`, create tag/release; never treat a PR branch as already published.
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).
-**Version:** `metadata.version = 2.3.0-dev`. This is a **main-branch development snapshot**, NOT a final 2.3.0 release. No stable release tag. Do not confuse publishing to main with feature-complete GUI runtime support.
+**Release candidate:** `metadata.version = 2.3.0` on the release branch; Codex **limited sequential-host scope only**. Native Codex GUI named subagents and Claude Code live subagents are **not** release-supported. A tag/release exists only after verified merge/CI and actual publication; the local checkout alone does not publish.
 **Specification:** `brief.md`. Read this STATUS first when resuming work; update it after every milestone.
 
 ## Verified QA / source
