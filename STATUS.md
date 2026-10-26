@@ -2,7 +2,7 @@
 
 **Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
-**Active branch:** `main` (PR #20 merged; clean local Windows fast-forward)
+**Active branch:** `fix/r06-host-evidence-recheck-20261026` (R06 test evidence integrity; based on `main` `1ad0efe`)
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).
@@ -406,6 +406,14 @@
 - **Confirmed R03 safety defect:** optional `claude_agent_guard.decision` previously treated malformed/unreadable existing `.autopilot/state.js` as absent state, permitting arbitrary `Agent|Task` invocations even if the saved strict policy could not be read. It now distinguishes *absent* state (allow ordinary unrelated Claude project) from existing but malformed, redirected or structurally invalid state (**deny**), rejects non-boolean strict flag, and preserves normal non-agent calls. The optional `PreToolUse` guard's narrow scope is unchanged; do not claim enforcement by an uninstalled Claude Code runtime.
 - **Targeted evidence:** 20/20 Claude guard tests passed locally, including six direct negative/compatibility state checks and three real Python hook subprocess stdin/exit-code checks. Only temporary synthetic project fixtures were used. No new dependencies, API credentials, framework components, worker daemons or actual model calls.
 - **Verified full QA:** Windows Python 3.13 local full **270/270 passed** (259 baseline + 11 R03 tests). [PR #20 CI #40290846258](https://github.com/mrAibo/Autopilot/actions/runs/40290846258) **4/4 passed** first attempt Ubuntu/Windows Python 3.11/3.13 on the exact feature head. STATUS-only merge checkpoint will trigger independent `main` CI; verify independently. No AI-model calls, provider billing or CLI installation. Stable release is **not** claimed; `2.3.0-dev` remains. See `docs/autopilot/gui-clients.md`. Next: investigate actual host GUI supported named-agent runtime only after concrete capability change; Claude Code CLI needs installation/discovery and genuine host execution before verification.
+
+## R06 host test evidence integrity — forged receipt regression (2026-10-26)
+
+- **Working branch:** `fix/r06-host-evidence-recheck-20261026`, clean starting `main` HEAD `1ad0efee2f46184f72526cbf474e3ca3f83e1729`; prior PR #20 and merged `main` CI each **4/4 green**.
+- **Reproduced acceptance defect:** `test_evidence.check` accepted hand-crafted `{"status":"verified","runner":"python-unittest","passed":999,"failed":0,...}` from state with authentic worktree HEAD/fingerprint and a baseline-tracked test suite that **actually failed**. A second negative test inflated counts on a legitimate passing receipt; both failed before the patch (no `EvidenceError`), proving lack of attestation by serialized `state.js`. No existing production workspace or live model involved.
+- **Patch:** `check` first enforces the existing approved suite/commit/fingerprint, then re-executes the same unchanged baseline-tracked Python unittest in the actual ticket worktree; compares real pass totals, process success and pre/post source integrity. `verify` records its bounded `timeout`; older saved receipts default to 90 seconds. Recheck incurs an additional test execution at host acceptance and must not be misrepresented as a signed receipt or protection against malicious approved tests.
+- **Evidence:** new failing-fixture and inflated-count tests now pass; old proof compatibility covered; targeted suite results and full CI to be recorded after completion. Scope: R01 objective acceptance and R06 negative regression tests; optional strict isolated worktree path. `2.3.0-dev` remains; no paid model invocations.
+- **Open:** ignored test dependencies, user-modified runtime/testing environment, external GUI native subagents, and A/B paid task costs are **not** solved by this patch. Follow `docs/autopilot/worktrees.md`.
 
 ## Prioritized next steps
 

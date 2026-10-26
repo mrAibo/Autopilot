@@ -28,7 +28,12 @@ argument passing (no shell expansion), a bounded timeout (default 90 sec,
 packages. It requires a real `Ran N tests`, `OK`, process exit 0,
 N greater than zero, and an unchanged Git-visible fingerprint. The task's
 state records the suite name, approved worktree head, fingerprint, count,
-timestamp and a host-generated verifier marker. Attempts to supply
+test timeout and timestamp. When the host checks a saved record, it **runs
+the same approved unittest suite again** and compares its fresh exit code,
+number of passes, Git HEAD and pre/post fingerprints; it never treats
+`state.js` alone as proof that tests executed. A legacy record without
+a timeout uses the former 90-second default. This adds one test run at
+each evidence check and may slow `finalize` / `land`. Attempts to supply
 different `--tests` counts at `finalize`, `land` or `ticket done`
 fail closed. After a worker changes the files, **rerun verify**.
 
@@ -36,8 +41,9 @@ This is an **independent execution record, not a tamperproof attestation**:
 Python tests execute arbitrary test code, including imports from the
 worktree. Only run suites you trust. The runner currently supports
 Python unittest and Git-visible files, not pytest, ignored local files,
-symlinked modules, Docker environments or proof against an actor who can
-directly rewrite the state file. A test suite modified relative to the
+symlinked modules or Docker environments. Even with the new re-run guard,
+this is not cryptographic evidence against tampering with the host
+interpreter, approved test code or environment. A test suite modified relative to the
 baseline is refused. Tests must not require model permissions or network.
 
 Older non-strict workflows still accept explicitly reported `N/0` for
