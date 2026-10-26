@@ -239,7 +239,9 @@ class OfflineSupervisorRealGit(unittest.TestCase):
                 if rec and rec["status"] == "running":
                     break
                 if supervisor.poll() is not None:
-                    self.fail("Supervisor crashed before job assignment")
+                    out, err = supervisor.communicate(timeout=5)
+                    self.fail("Supervisor exited before job assignment, exit=%d, stderr=%r, stdout=%r" %
+                              (supervisor.returncode, err[-1000:], out[-700:]))
                 time.sleep(0.05)
             else:
                 self.fail("Worker gate never became contained")
@@ -276,7 +278,7 @@ class OfflineSupervisorRealGit(unittest.TestCase):
                 kernel.CloseHandle(handle)
             if supervisor.poll() is None:
                 supervisor.kill()
-                supervisor.communicate(timeout=10)
+            supervisor.communicate(timeout=10)
 
     def test_receipt_status_and_cancel_ack(self):
         self.start_first()
