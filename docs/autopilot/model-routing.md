@@ -31,6 +31,8 @@ Example of an automatic table (illustrative **policy**, not measured runtime):
 
 The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberately has no per-ticket native subagent routing and independently warns that its GUI model/Effort cannot be attested by the controller.
 
+**Resume and replan invariant:** `ap.py tickets` and `ap.py check-plan` reconstruct ticket metadata. They retain `plannedRouting` and applied `routing` for tickets with unchanged SHA-256 content, so normal refresh, resume or G3 validation does not erase Phase-4 choices. If a ticket's bytes change, its cached plan and route are discarded; publish/check the updated plan and run `plan-models` again before native dispatch. Existing generated agent files are never silently overwritten or deleted during ticket refresh; inspect any conflicting old profile manually. These retention rules are verified using temporary Git projects, not actual agent execution.
+
 ## Provider mapping
 
 | Level | OpenAI / Codex | Anthropic / Claude Code |

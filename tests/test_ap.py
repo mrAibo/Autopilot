@@ -722,6 +722,75 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0, output)
         self.assertIn("строгая маршрутизация", output)
 
+    def test_plan_models_preview_survives_ticket_republish_and_check_plan(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, output = self.ap("plan-models", "--provider", "openai")
+        self.assertEqual(code, 0, output)
+        before = {t["id"]: t["plannedRouting"] for t in self.state()["tickets"]}
+        self.assertTrue(all(not p["applied"] for p in before.values()))
+        self.assertTrue(all(p["status"] == "blocked" for p in before.values()))
+        for cmd in ("tickets", "check-plan", "tickets"):
+            code, output = self.ap(cmd)
+            self.assertEqual(code, 0, output)
+            after = {t["id"]: t.get("plannedRouting")
+                     for t in self.state()["tickets"]}
+            self.assertEqual(after, before, "lost planning result on " + cmd)
+            self.assertTrue(all("routing" not in t for t in self.state()["tickets"]))
+
+        # A changed ticket must not inherit a cached recommendation.
+        self.write("tickets/01-karkas.md", ticket(
+            "01", "Changed password reset migration", "R01, R05", "—",
+            ["src/core/"], 1))
+        code, output = self.ap("tickets")
+        self.assertEqual(code, 0, output)
+        by_id = {t["id"]: t for t in self.state()["tickets"]}
+        self.assertNotIn("plannedRouting", by_id["01"])
+        self.assertEqual(by_id["02"]["plannedRouting"], before["02"])
+        code, output = self.ap("plan-models", "--provider", "openai")
+        self.assertEqual(code, 0, output)
+        refreshed = {t["id"]: t["plannedRouting"] for t in self.state()["tickets"]}
+        self.assertNotEqual(refreshed["01"]["fingerprint"], before["01"]["fingerprint"])
+        self.assertEqual(refreshed["01"]["profile"], "strong")
+        self.assertEqual(refreshed["02"], before["02"])
+
+    def test_plan_models_applied_assignments_survive_check_plan(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as stream:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, stream)
+        code, output = self.ap("plan-models", "--provider", "anthropic",
+                               "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, output)
+        before = {t["id"]: (t["plannedRouting"], t["routing"])
+                  for t in self.state()["tickets"]}
+        for cmd in ("tickets", "check-plan"):
+            code, output = self.ap(cmd)
+            self.assertEqual(code, 0, output)
+            for t in self.state()["tickets"]:
+                self.assertEqual((t["plannedRouting"], t["routing"]), before[t["id"]])
+                self.assertTrue(t["plannedRouting"]["applied"])
+        # The saved route remains subject to strict profile integrity checks.
+        code, output = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, output)
+
+        # Rewriting a still-pending ticket invalidates both records, but does
+        # not delete an older native file (which might belong to the owner).
+        old_agent = os.path.join(self.root, before["02"][1]["agentFile"])
+        self.assertTrue(os.path.isfile(old_agent))
+        self.write("tickets/02-priem.md", ticket(
+            "02", "Updated authentication migration", "R01.1, R02, A01", "01",
+            ["src/bot/"], 2))
+        code, output = self.ap("tickets")
+        self.assertEqual(code, 0, output)
+        refreshed = {t["id"]: t for t in self.state()["tickets"]}
+        self.assertNotIn("plannedRouting", refreshed["02"])
+        self.assertNotIn("routing", refreshed["02"])
+        self.assertTrue(os.path.isfile(old_agent))
+        self.assertEqual(refreshed["01"]["routing"], before["01"][1])
+
     def test_plan_models_applies_cheap_and_strong_routes_in_one_planning_call(self):
         self.plan(strict=True)
         # A security-sensitive task must use strong, not a naive low-cost route.
