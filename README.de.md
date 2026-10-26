@@ -12,6 +12,8 @@ Entscheidungen, formuliert eine Spezifikation, plant Arbeitspakete, organisiert
 deren Ausführung und kontrolliert die Abnahme. Ziel ist, dass Anforderungen
 aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
+> **Release-Freigabe:** [Prüfmatrix R01–R06](docs/autopilot/release-readiness.md) mit tatsächlichen Nachweisen, offenen GUI-Einschränkungen und den Bedingungen für die stabile Version.
+
 > **Entwicklungsstand:** `2.3.0-dev` auf `main`, **kein stabiler Release**.
 > Der Zustand ist in [STATUS.md](STATUS.md) dokumentiert. Die ursprünglichen
 > Anforderungen dieser Weiterentwicklung stehen in [brief.md](brief.md).

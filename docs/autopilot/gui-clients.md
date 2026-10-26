@@ -61,11 +61,12 @@ development server, npm installs or additional Python dependencies.
 When the tested GUI cannot select its native named agent, an authorized
 Codex GUI workflow may use local terminal tools to invoke
 `.autopilot/gui_bridge.py --root . --ticket NN` for a **read-only**
-preview, followed by a separate user-approved
-`--execute --approve-ticket NN` invocation. This uses the existing
-sandboxed Codex CLI worker with explicitly pinned model/Effort and a
-persistent anti-replay receipt. It never accepts results without trusted
-host tests. See [gui-cli-bridge.md](gui-cli-bridge.md).
+preview. **Actual `--execute --approve-ticket NN` is disabled by the
+fail-closed spend guard** until real provider-side per-call enforcement can
+be independently verified. The historical research prototype has a pinned
+CLI worker and anti-replay receipt, but does not currently launch a model
+or accept a task. See [gui-cli-bridge.md](gui-cli-bridge.md) and
+[spend-guard.md](spend-guard.md).
 
 The terminal tool, explicit invocation and local filesystem access
 must be available to the GUI host; they have not yet been independently

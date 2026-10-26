@@ -71,6 +71,44 @@ class DocumentationLocalesTests(unittest.TestCase):
         self.assertIn("0-resume.md", skill)
         self.assertIn("<YYYY-MM-DD>-brief.md", skill)
 
+    def test_release_readiness_matrix_evidence_links_and_locales(self):
+        path = ROOT / "docs/autopilot/release-readiness.md"
+        self.assertTrue(path.is_file())
+        page = path.read_text(encoding="utf-8")
+        for req in ("R01", "R02", "R03", "R04", "R05", "R06"):
+            self.assertIn(req, page)
+        for claim in ("NO-GO", "BLOCKED", "ChatGPT", "multi_agent_v2=false",
+                      "297/297", "Краткий вывод", "Kurzfazit"):
+            self.assertIn(claim, page)
+        for target in re.findall(r"\]\(([^)]+)\)", page):
+            if not target or target.startswith(("http:", "https:", "#")):
+                continue
+            rel = target.split("#", 1)[0]
+            with self.subTest(target=target):
+                self.assertTrue((path.parent / rel).is_file(),
+                                "Broken release evidence link: " + target)
+        for name in LOCALES:
+            with self.subTest(name=name):
+                self.assertIn("docs/autopilot/release-readiness.md",
+                              (ROOT / name).read_text(encoding="utf-8"))
+
+    def test_gui_bridge_docs_do_not_offer_disabled_paid_command(self):
+        guide = (ROOT / "docs/autopilot/gui-cli-bridge.md").read_text(
+            encoding="utf-8")
+        guard = (ROOT / "docs/autopilot/spend-guard.md").read_text(
+            encoding="utf-8")
+        clients = (ROOT / "docs/autopilot/gui-clients.md").read_text(
+            encoding="utf-8")
+        for term in ("execution is presently disabled", "assert_enforced_cap",
+                     "read-only"):
+            self.assertIn(term.lower(), guide.lower())
+        self.assertIn("refuse all real provider model invocations", guard)
+        self.assertIn("disabled by the", clients)
+        # Live execution may be mentioned as explicitly denied, but must not
+        # appear as a runnable PowerShell code line in the usage example.
+        self.assertNotRegex(guide, r"(?m)^py -3\.13 .*--execute")
+
+
 
 if __name__ == "__main__":
     unittest.main()

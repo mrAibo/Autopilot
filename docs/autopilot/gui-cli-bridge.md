@@ -23,24 +23,30 @@ From **that project's root**:
 # Safe: read-only preview, no dispatch, no receipt, no charge.
 py -3.13 .autopilot/gui_bridge.py --root . --ticket 01
 
-# Potentially billable: explicit consent to one ticket, at most ONE attempt.
-py -3.13 .autopilot/gui_bridge.py --root . --ticket 01 --execute --approve-ticket 01 --timeout 180
+# Read-only host metadata check. This also never calls a model.
+py -3.13 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
 
-# After worker edits, independently verified tests + one Git/state transition.
+# After a separately verified, independently host-tested worker output,
+# the controller can apply one authorized Git/state transition.
 py -3.13 .autopilot/controller.py --root . --suite test_calc.py --advance
 ```
 
-The execution command is an **explicit consent action**. The user should
-authorize this exact invocation and inspect the preview first; a GUI assistant
-must not infer approval from a previous generic request or run the execution
-flags on its own. It is a potentially billable inference call. The bridge
-never launches from the Dashboard page or an untrusted model suggestion.
+**Execution is presently disabled on purpose.** The bridge and the underlying
+`codex_dispatch.py` reject all real `--execute` invocations in
+`spend_guard.assert_enforced_cap` **before spawning a model**, even when
+`--approve-ticket` is supplied. A positive recorded token threshold, explicit
+user permission, a ChatGPT subscription login, or a finite timeout cannot
+establish provider-side per-call cost enforcement. Do **not** attempt to
+enable execution by changing configuration or bypassing the guard.
+This is a future design, not a currently supported or billable fallback.
+The bridge never launches from the Dashboard page or an untrusted suggestion.
+See [spend-guard.md](spend-guard.md) and
+[release-readiness.md](release-readiness.md).
 
-Preflight reports model, reasoning effort, isolated cwd, sandbox and
-**recorded** token usage/remaining threshold. This is NOT a guaranteed
-provider-side token/monetary hard limit. A bounded wall-clock timeout helps
-control risk but a timed out call may still consume tokens; charges must be
-reconciled with provider billing.
+Read-only preflight reports configured model, reasoning effort, isolated cwd,
+sandbox and **recorded** token usage/remaining threshold. It never establishes
+a provider-side token/monetary hard limit, actual agent identity, or permission
+to invoke a model. A wall-clock timeout cannot bound token usage.
 
 ## Read-only runtime doctor before an approved model call
 

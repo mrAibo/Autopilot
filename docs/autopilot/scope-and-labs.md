@@ -1,6 +1,6 @@
 # Autopilot 2.3 — product scope versus research tools
 
-Source of truth: [original brief](../../brief.md) (2026-10-25).
+Source of truth: [original brief](../../brief.md) (2026-10-25). The current audited [R01–R06 stable-release readiness matrix](release-readiness.md) separates implementation, host observation and live provider validation.
 The brief expressly says: **do not rewrite the project; preserve the CLI;
 do not use paid API calls for tests**. Work added beyond that scope is not
 automatically a product requirement or release blocker.
