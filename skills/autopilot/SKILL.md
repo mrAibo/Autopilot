@@ -15,6 +15,18 @@ Autopilot flies a dictated idea from words to a working project **in one dialogu
 
 **The brief is the contract, not the design.** *Nothing may quietly vanish*: the user's words become a numbered manifest before anything else, and every phase is gated on it — what breaks naive vibecoding is a requirement that stopped existing around the third rewrite. And *the brief is a silhouette*: it describes the happy path and nothing underneath, so working out the empty states, failures and limits is legitimate work. How far to take it is the user's [depth](phases/0-modes.md) dial; depth that **detaches** from the brief is never allowed.
 
+**Invocation on existing code and recovery:** always inspect the
+current project directory and `.autopilot/state.js` **before any `init`**.
+An already existing repository without Autopilot state is a normal
+new run *on existing code* (preserve files, architecture and dirty Git
+changes). An unfinished `state.js` means **resume** the saved flight;
+bare `/autopilot` in a new agent session invokes
+[`phases/0-resume.md`](phases/0-resume.md). Check existing active
+writers, saved requirements, verified commits, interrupted ticket
+worktrees and tests before dispatch. Never invent recovered agent work.
+A finished run is a new feature or an explicitly requested `reopen`.
+See `phases/0-preflight.md` and the three language READMEs.
+
 **Product scope:** keep the original brief → manifest → briefing → spec → plan → build → review → acceptance experience intact. The development-only offline subprocess and Responses API toy pilots are **not phases or prerequisites** of `/autopilot`; do not install, launch, or request extra API credentials for them during the normal workflow. Optional host controllers and GUI-to-CLI fallbacks must not replace the skill's supported native host workflow. See [product scope and labs](../../docs/autopilot/scope-and-labs.md).
 
 ## Reading this skill
@@ -24,7 +36,7 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 | Phase | Read | Produces |
 |---|---|---|
 | 0 Preflight | `phases/0-modes.md`, `phases/0-preflight.md`, then `0-memory.md`, `0-instruments.md` | mode announced, repo configured, dashboard open, `carried.md` after a landed run |
-| 1 Manifest | `phases/1-manifest.md` | `<дата>-brief.md`, `manifest.md` |
+| 1 Manifest | `phases/1-manifest.md` | `<YYYY-MM-DD>-brief.md`, `manifest.md` |
 | 2 Briefing | `phases/2-briefing.md` (+ `2-adversarial.md` when it runs) | answers recorded into the manifest |
 | 3 Spec | `phases/3-spec.md` | `notes.md` in existing code, `spec.md`, the boundaries in `interfaces.md` |
 | 4 Plan | `phases/4-plan.md` | `tickets/NN-*.md`, the plan commit |
