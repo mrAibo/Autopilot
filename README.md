@@ -4,7 +4,7 @@
 
 <p align="center"><strong>Describe what you want built — get a finished project.</strong></p>
 
-<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a></p>
+<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a> · <a href="README.de.md">Deutsch</a></p>
 
 Autopilot is a development framework packaged as a skill. It takes your idea, asks questions exactly where the idea forks, and then does the rest on its own: writes the spec, thinks through what you didn't, splits the work into tasks and builds the whole project. You don't have to read the spec, size the tasks or understand the code.
 
@@ -12,7 +12,7 @@ It works on its own: nothing else to install.
 
 > **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
-> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.1 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [бриф.md](бриф.md).
+> **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.1 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [brief.md](brief.md).
 
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, desktop layout using synthetic data"></a>
@@ -136,6 +136,76 @@ You can switch at any time, just say:
 ```
 
 Questions come in **rounds**: several at once, numbered, each with the answer the agent would pick itself. Agree with all — reply "ok"; disagree with one — "2 — a spreadsheet, the rest ok".
+
+---
+
+## Continue an existing project
+
+**Autopilot is not limited to new repositories.** Open Codex, Claude Code or
+another skill-capable agent **in the root of your existing project**, not in
+the Autopilot source repository. Make sure the skill is installed and start a
+new task describing what should change:
+
+```text
+/autopilot Extend this existing application with an export to CSV.
+Preserve the current API, database, tests and user data.
+```
+
+Or write your request in a file in the project and call `/autopilot brief.md`.
+The agent first inspects the repository, its Git history and worktree,
+`AGENTS.md` / `CLAUDE.md`, current stack, tests and recorded decisions.
+It **reuses the existing code**, writes requirements for the *new change*,
+and plans only the missing work. It does not delete, overwrite, stash,
+reset or commit your uncommitted changes. It must ask before destructive
+actions or changes outside the agreed scope.
+
+If the project already has an `.autopilot/` folder, the agent checks
+`.autopilot/state.js` **before** deciding whether to start a new run.
+A completed run stays in the history; a new feature can start a new run.
+To extend the **same completed run** rather than create a separate one,
+the skill has a documented `reopen` path. Neither case calls for
+rebuilding the project from scratch.
+
+## Resume when an agent or chat is interrupted
+
+**Nothing restarts itself in the background.** After a crash, context limit,
+closed terminal or lost chat, reopen the **same project directory** in a
+new agent session and enter:
+
+```text
+/autopilot
+```
+
+The project agent—not the user—then follows
+[`phases/0-resume.md`](skills/autopilot/phases/0-resume.md):
+
+1. Identify the unfinished run from `.autopilot/state.js`; read the
+   project's memory (`AGENTS.md` / `CLAUDE.md`), its manifest, dated
+   `*-brief.md` files, interfaces, tickets and current phase. Read
+   `.autopilot/PROGRESS.md` as additional context, not as a substitute
+   for the current state. **Do not start `init` again.**
+2. Run `git status --short --branch` and `python3 .autopilot/ap.py commits`. Verify that
+   completed tasks still have their actual commits. Inspect interrupted
+   tasks and their pending worktrees/diffs before resetting a task's status.
+   Do not discard, blindly accept or automatically commit unfinished code.
+3. Restore the local Dashboard and display the current phase, next task and
+   any open question. Re-run the project's established checks before
+   continuing; do **not** repeat accepted tasks or previously answered
+   questions. If a decision was never saved, ask only for that decision.
+4. Resume from the latest **verified** point. The previous chat's hidden
+   thoughts or a model tool call that never produced durable files **cannot
+   be recovered**; only committed code and saved state count as evidence.
+
+If another live session already owns the run, the agent must **stop rather
+than run two writers** against the same `state.js`. Don't delete
+`.autopilot/`, edit `state.js` by hand, or run `git reset --hard` to
+"fix" a resume. An agent that cannot access the project files must say so
+instead of pretending to have resumed.
+
+This is **resume of an unfinished run**; for *new work after a finished
+run* use the preceding section. Read the detailed
+[preflight decision table](skills/autopilot/phases/0-preflight.md)
+and [worktree recovery rules](docs/autopilot/worktrees.md).
 
 ---
 
