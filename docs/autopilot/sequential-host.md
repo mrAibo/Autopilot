@@ -1,4 +1,4 @@
-# R03 fallback — host-verified sequential mode (`2.3.0-dev`)
+# R03 — Codex 2.3.0 released host-verified sequential mode
 
 Use this mode **only when the current graphical/terminal host cannot prove native named-subagent execution** with the exact model, reasoning effort and working directory. It is a **single-operator / single active ticket** file and Git workflow, not a replacement AI launcher.
 
@@ -55,4 +55,4 @@ py -3.13 .autopilot/ap.py schedule --max-parallel 1
 
 **2026-10-26 owner-assisted result:** In a disposable ChatGPT **project** (not native Codex GUI named-agent mode), the GUI agent reported editing the prepared `T01/src/core/calc.py` only. The trusted Windows host observed exactly that one-file Git diff, passed an unchanged tracked test **1/0**, and completed `verify → finalize → land → done → release`, integrated fixture commit `283c662b57a2`. See [R03 evidence ledger](release-readiness.md). The agent **could not identify effective model or Effort**; identity and subscription charging remain unverified.
 
-**Trust limits:** Unit tests exercise this exact host/Git state machine; the above one user-assisted file-edit does not prove the GUI's model metadata, native child dispatch or provider usage. Non-Python ignored inputs and external package integrity are not fully hermetic; see [worktrees.md](worktrees.md) and [release-readiness.md](release-readiness.md). `2.3.0-dev` stays a development version pending actual native or appropriate sequential GUI validation.
+**Trust limits:** Unit tests exercise this exact host/Git state machine; the above one user-assisted file-edit does not prove the GUI's model metadata, native child dispatch or provider usage. Non-Python ignored inputs and external package integrity are not fully hermetic; see [worktrees.md](worktrees.md) and [release-readiness.md](release-readiness.md). The Codex 2.3.0 limited release includes this host/Git state machine. Native GUI named-agent and model/billing enforcement remain **unsupported, not release-complete**.

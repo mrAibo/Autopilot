@@ -66,6 +66,28 @@ class HookGuardTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("overrides", why)
 
+    def test_forced_global_model_is_denied_even_if_profile_matches(self):
+        from unittest.mock import patch
+        with patch.dict("os.environ", {
+                "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1",
+                "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"}):
+            ok, why = guard.decision(self.payload(), self.root)
+        self.assertFalse(ok)
+        self.assertIn("FORCE", why)
+
+    def test_conflicting_global_effort_is_denied(self):
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"CLAUDE_CODE_EFFORT_LEVEL": "high"}):
+            ok, why = guard.decision(self.payload(), self.root)
+        self.assertFalse(ok)
+        self.assertIn("environment override", why)
+
+    def test_matching_global_effort_does_not_break_route(self):
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"CLAUDE_CODE_EFFORT_LEVEL": "low"}):
+            ok, why = guard.decision(self.payload(), self.root)
+        self.assertTrue(ok, why)
+
     def test_modified_profile_is_denied(self):
         with self.file.open("a", encoding="utf-8") as f:
             f.write("Changed")

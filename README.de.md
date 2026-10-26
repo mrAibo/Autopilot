@@ -18,7 +18,7 @@ aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
 > **Release-Freigabe:** [Prüfmatrix R01–R06](docs/autopilot/release-readiness.md) mit tatsächlichen Nachweisen, offenen GUI-Einschränkungen und den Bedingungen für die stabile Version.
 
-> **Entwicklungsstand:** `2.3.0-dev` auf `main`, **kein stabiler Release**.
+> **Autopilot 2.3.0 — eingeschränkter Codex-Release:** unterstützt wird der sequenzielle Modus mit Git-Worktrees und hostseitigen Python-Unittests; **nicht** garantiert sind native GUI-Subagenten, tatsächliche Modell-/Effort-Durchsetzung oder Abrechnung. [Claude Code](docs/autopilot/claude-code.md): Profile und Offline-Sicherheitsprüfungen vorhanden, echte Laufzeit noch nicht getestet.
 > Der Zustand ist in [STATUS.md](STATUS.md) dokumentiert. Die ursprünglichen
 > Anforderungen dieser Weiterentwicklung stehen in [brief.md](brief.md).
 > Die korrekte Ausführung namentlich zugewiesener Subagenten in der

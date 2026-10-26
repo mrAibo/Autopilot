@@ -85,6 +85,16 @@ def decision(payload, root):
     premium = ("fable", "claude-fable", "opus", "claude-opus")
     if model.lower().startswith(premium):
         return False, "Premium subagents are blocked by strict policy"
+    # Claude Code resolves these variables after reading the profile.
+    # In particular a forced model can silently ignore a pinned profile,
+    # while the effort variable takes precedence over both frontmatter and
+    # the per-invocation value. Refuse ambiguous strict routing.
+    forced = os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", "").strip().lower()
+    if forced not in ("", "0", "false", "off"):
+        return False, "Global Claude subagent model FORCE overrides pinned routes"
+    env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "").strip()
+    if env_effort and env_effort != effort:
+        return False, "Claude effort environment override conflicts with pinned route"
     for key, field in (("model", model), ("effort", effort)):
         if args.get(key) is not None and args[key] != field:
             return False, "Explicit %s overrides pinned profile" % key
