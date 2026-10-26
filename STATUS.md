@@ -2,6 +2,7 @@
 
 **Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
+**Quick new-chat handoff:** [HANDOFF.md](HANDOFF.md) (2026-10-26; complete continuation prompt, scope, latest R03 feature and actual GUI proof limits). Last verified pre-handoff `main` HEAD `ec740a7c7555d09e62f3f6039700b3fdf3ea0f64`, [CI #40352034156](https://github.com/mrAibo/Autopilot/actions/runs/40352034156) **4/4 green** Ubuntu/Windows Python 3.11/3.13; full local Windows Python 3.13 **308/308 passed**. Handoff docs-only commit may advance HEAD and starts a separate CI.
 **Active branch:** `main` ([PR #27](https://github.com/mrAibo/Autopilot/pull/27) merged, Windows checkout synced and clean)
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
