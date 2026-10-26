@@ -392,14 +392,18 @@ class Run(unittest.TestCase):
         self.ap("ticket", "01", "start")
         self.ap("ticket", "01", "repair", "--note", "пустой адрес")
         sha = self.commit("T01")
+        self.ap("blocker", "resolve", "--id", "B01", "--commit", sha,
+                "--tests", "7/0", "--note", "Independent rerun confirms empty address fix")
         self.ap("ticket", "01", "done", "--tests", "7/0", "--commit", sha)
         self.ap()
         kinds = [(e["k"], e.get("act")) for e in self.state()["log"]]
         self.assertEqual(kinds, [("init", None), ("tickets", None), ("ticket", "start"),
-                                 ("ticket", "repair"), ("ticket", "done")])
+                                 ("blocker", "open"), ("ticket", "repair"),
+                                 ("blocker", "resolve"), ("ticket", "done")])
         last = self.state()["log"][-1]
         self.assertEqual((last["ids"], last["tests"]), (["01"], {"passed": 7, "failed": 0}))
-        self.assertEqual(self.state()["log"][3]["note"], "пустой адрес")
+        self.assertEqual(self.state()["log"][4]["note"], "пустой адрес")
+        self.assertEqual(self.state()["blockingFindings"][0]["status"], "resolved")
 
     def test_gates_follow_the_events_that_decide_them(self):
         self.plan()
@@ -981,6 +985,142 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("пройденные тесты", out)
         self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+
+    def test_finish_blocks_unresolved_review_repair_even_after_done(self):
+        self.ready_to_finish()
+        self.assertEqual(self.ap("ticket", "01", "review")[0], 0)
+        self.assertEqual(self.ap("ticket", "01", "repair", "--note",
+                                 "BLOCKING: missing data isolation")[0], 0)
+        # The previously accepted commit/tests can be reused; the repair
+        # finding has not been demonstrated fixed or reviewed again.
+        code, out = self.ap("ticket", "01", "done")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("блокирующ", out.lower())
+        code, out = self.ap("finish", "--result", "unsafe complete")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("блокирующ", out.lower())
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_branch_blocker_blocks_finish_until_explicit_resolution(self):
+        self.ready_to_finish()
+        code, out = self.ap("blocker", "open", "--note",
+                            "Security review: access control bypass")
+        self.assertEqual(code, 0, out)
+        self.assertIn("B01", out)
+        code, out = self.ap("finish", "--result", "premature")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("B01", out)
+        sha = self.commit("Fix branch security finding")
+        code, out = self.ap("blocker", "resolve", "--id", "B01",
+                            "--commit", sha, "--tests", "12/0",
+                            "--note", "Independent reviewer verified access control")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["blockingFindings"][0]["status"], "resolved")
+        code, out = self.ap("finish", "--result", "reviewed")
+        self.assertEqual(code, 0, out)
+
+    def test_blocker_resolution_requires_real_commit_tests_and_review(self):
+        self.ready_to_finish()
+        self.assertEqual(self.ap("blocker", "open", "--note",
+                                 "Security: missing authorization")[0], 0)
+        oldsha = self.git("rev-parse", "--short", "HEAD").stdout.strip()
+        updated = self.commit("Fix previously blocked authorization")
+        for args in (
+            ("--commit", "badrev", "--tests", "1/0", "--note", "Independent reviewer verified"),
+            ("--commit", oldsha, "--tests", "1/0", "--note", "Independent reviewer verified"),
+            ("--commit", updated, "--tests", "0/1", "--note", "Independent reviewer verified"),
+            ("--commit", updated, "--tests", "1/0", "--note", "short"),
+            ("--commit", updated, "--note", "Independent reviewer verified"),
+        ):
+            code, _ = self.ap("blocker", "resolve", "--id", "B01", *args)
+            self.assertNotEqual(code, 0)
+            self.assertEqual(self.state()["blockingFindings"][0]["status"], "open")
+        code, out = self.ap("blocker", "resolve", "--id", "B01",
+                            "--commit", updated, "--tests", "3/0",
+                            "--note", "Independent reviewer verified")
+        self.assertEqual(code, 0, out)
+        self.assertNotEqual(self.ap("blocker", "resolve", "--id", "B01",
+                                    "--commit", updated, "--tests", "3/0",
+                                    "--note", "Independent reviewer verified")[0], 0)
+
+    def test_review_repair_needs_new_commit_and_explicit_recheck(self):
+        self.ready_to_finish()
+        old = self.state()["tickets"][0]["commit"]
+        self.assertEqual(self.ap("ticket", "01", "repair", "--note",
+                                 "BLOCKING: lost audit trail")[0], 0)
+        code, out = self.ap("blocker", "resolve", "--id", "B01",
+                            "--commit", old, "--tests", "5/0",
+                            "--note", "Independent reviewer confirms audit trail")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("отличаться", out)
+        existing_head = self.git("rev-parse", "--short", "HEAD").stdout.strip()
+        code, out = self.ap("blocker", "resolve", "--id", "B01",
+                            "--commit", existing_head, "--tests", "5/0",
+                            "--note", "Independent reviewer confirms audited code")
+        self.assertNotEqual(code, 0, out)  # A different *old* ticket's commit is not a fix.
+        fresh = self.commit("Repair audited trail")
+        code, out = self.ap("blocker", "resolve", "--id", "B01",
+                            "--commit", fresh, "--tests", "5/0",
+                            "--note", "Independent reviewer confirms audited code")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "done", "--commit", fresh)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.ap("finish", "--result", "audited")[0], 0)
+
+    def test_resolved_blocker_cannot_be_accepted_on_old_ticket_commit(self):
+        self.ready_to_finish()
+        old = self.state()["tickets"][0]["commit"]
+        self.assertEqual(self.ap("ticket", "01", "repair", "--note",
+                                 "BLOCKING: incorrect visibility")[0], 0)
+        newer = self.commit("Fix visibility")
+        self.assertEqual(self.ap("blocker", "resolve", "--id", "B01",
+                                 "--commit", newer, "--tests", "6/0", "--note",
+                                 "Reviewer confirms corrected visibility")[0], 0)
+        code, out = self.ap("ticket", "01", "done", "--commit", old)
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("не включает", out)
+        self.assertEqual(self.ap("ticket", "01", "done", "--commit", newer)[0], 0)
+
+    def test_finish_rejects_resolved_blocker_after_history_rewrite(self):
+        self.ready_to_finish()
+        before = self.git("rev-parse", "--short", "HEAD").stdout.strip()
+        self.assertEqual(self.ap("blocker", "open", "--note",
+                                 "BLOCKING: change authorization")[0], 0)
+        fix = self.commit("Authorization fix")
+        self.assertEqual(self.ap("blocker", "resolve", "--id", "B01",
+                                 "--commit", fix, "--tests", "6/0", "--note",
+                                 "Reviewer confirms authorization correction")[0], 0)
+        self.assertEqual(self.git("reset", "--soft", before).returncode, 0)
+        code, out = self.ap("finish", "--result", "lost fix")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("B01", out)
+
+    def test_legacy_repair_findings_without_ledger_block_finish(self):
+        self.ready_to_finish()
+        state = self.state()
+        state["tickets"][0]["repairFindings"] = ["Legacy BLOCKING: missing validation"]
+        state.pop("blockingFindings", None)
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state, ensure_ascii=False))
+        code, out = self.ap("finish", "--result", "legacy false acceptance")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("старого ревью", out)
+
+    def test_corrupt_blocker_ledger_blocks_finish(self):
+        self.ready_to_finish()
+        state = self.state()
+        state["blockingFindings"] = {"B01": "hidden"}
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state, ensure_ascii=False))
+        code, out = self.ap("finish", "--result", "corrupt")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("журнал", out)
+
+    def test_nonblocking_concerns_remain_report_only(self):
+        self.ready_to_finish()
+        self.assertEqual(self.ap("add", "concerns",
+                                 "style: indentation differs")[0], 0)
+        self.assertEqual(self.ap("finish", "--result", "with notes")[0], 0)
 
     def test_finish_rejects_incomplete_work(self):
         self.plan()

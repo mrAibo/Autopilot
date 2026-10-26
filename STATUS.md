@@ -2,7 +2,7 @@
 
 **Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
-**Active branch:** `main` (PR #23 merged; Windows local checkout clean and fast-forwarded)
+**Active branch:** `fix/r01-blocking-findings-ledger-20261026` (R01 review blocker acceptance; baseline clean main `39de250`)
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).
@@ -431,6 +431,14 @@
 - **Evidence:** targeted finish tests **9/9 passed**, G3 duplicate/done-orphan negatives **2/2 passed**, changed-plan vs unchanged-plan recheck tests **2/2 passed**. Final local Windows Python 3.13 complete **288/288 passed**, [PR #23 GitHub Actions #40309791069](https://github.com/mrAibo/Autopilot/actions/runs/40309791069) **4/4 passed** Ubuntu/Windows Python 3.11/3.13 on the exact final feature SHA. Two originally incorrect test exit-code assertions were corrected to expect the actual failing G3 exit 2. Host Codex login confirmed `Logged in using ChatGPT`; the user authorizes subscription-use model calls only (not separate API, credits or paid token packs). No new model execution or API billing. Version `2.3.0-dev`; no stable tag.
 - **Cross-platform CI correction:** PR #23 `8295d05` Ubuntu 3.11 and 3.13 revealed a single negative-test preparation error: editing a ticket correctly revoked G1/G2/G4, so the test's subsequent `finish` failed for stale gates rather than its expected changed-contract check. Commit `dabb5ca` first recertifies those gates and then deletes the redundant completed ticket. Targeted Windows test and **final PR CI 4/4 green**; no product safety relaxation.
 - **Limitations:** this is not a signed attestation of malicious test code or proof a native named GUI agent exists. Source of truth is `brief.md`; `docs/autopilot/scope-and-labs.md` documents recovery and supported boundaries.
+
+## R01 blocking review findings: explicit resolution ledger (2026-10-26)
+
+- **Feature branch:** `fix/r01-blocking-findings-ledger-20261026`, baseline clean `main` `39de2502617e10b5b3da915cd85d5e299d3a8535`; [previous main CI #40310664535](https://github.com/mrAibo/Autopilot/actions/runs/40310664535) 4/4 completed successful.
+- **Reproduced fail-open:** A disposable Git run with all tickets/gates previously green accepted a ticket again after `ticket 01 review` → `ticket 01 repair --note "BLOCKING: ..."` → `ticket 01 done`, and then `finish` reported success **without confirming that finding was fixed**. New regression failed before patch as intended.
+- **Fix:** `ticket NN repair --note` automatically creates durable `blockingFindings` B-numbered open entry, distinct from nonblocking `concerns` and `report`. Explicit `blocker open --note ... [--ticket NN]` records whole-branch/other blocking findings. `blocker resolve --id BNN --commit SHA --tests N/0 --note "review verdict"` records reviewed fix and requires an existing Git commit in HEAD, passing tests and nonempty review outcome. Ticket repair resolution must be a NEW descendant of the original reviewed Git commit (even for a whole-branch blocker) and the eventual ticket commit must contain the resolved fix; `ticket done` blocks on open ticket blockers and `finish` blocks all open blockers, stale resolution commits and legacy `repairFindings` not represented in the ledger. Strict-isolated mode additionally requires matching trusted host-test evidence. Ordinary cosmetic/informational `concerns` continue as report-only.
+- **Boundaries:** `--note` independent-review claim and non-strict manual `--tests N/0` remain operator-reported, not cryptographically authenticated. Never claim verified reviewer identity or signed test receipt; strict isolated mode uses existing host evidence. Backward migration of in-progress 2.3-dev `repairFindings` must be explicitly recorded in B entries and re-reviewed, not silently marked done. No native GUI-subagent support proved; no AI/API calls needed. Version remains `2.3.0-dev`.
+- **Validation:** initial targeted synthetic R01 blocker and legacy scenarios pass; full local 3.13 suite and GitHub 4-job CI pending. Do not merge with red checks. Next: complete R01 release matrix and remaining R02–R06 qualification.
 
 ## Prioritized next steps
 

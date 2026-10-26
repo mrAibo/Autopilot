@@ -224,7 +224,8 @@ def fresh_state(a):
                          "placeholder": 0, "deferred": 0, "dropped": 0},
         "tickets": [], "tests": None, "usageEvents": [], "budgetTokens": None,
         "debt": {"placeholders": [], "assumptions": [], "emptyEnv": []},
-        "additions": [], "coverage": None, "concerns": [], "blind": None, "beats": [t],
+        "additions": [], "coverage": None, "concerns": [], "blockingFindings": [],
+        "blind": None, "beats": [t],
         "rev": 0, "waiting": None, "waits": [], "log": [], "reqList": [], "gates": {}, "result": None,
     }
 
@@ -961,6 +962,18 @@ def verified_commit(rev):
         return False
 
 
+def commit_descends_from(child_rev, ancestor_rev):
+    if not verified_commit(child_rev) or not verified_commit(ancestor_rev):
+        return False
+    try:
+        return subprocess.run(
+            ["git", "-C", ROOT, "merge-base", "--is-ancestor",
+             ancestor_rev, child_rev], capture_output=True, timeout=10
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def profile_ok(tk):
     """Refuse stale/edited native agent definitions before strict dispatch."""
     route = tk.get("routing") or {}
@@ -1059,12 +1072,22 @@ def cmd_ticket(state, pos, opt):
             if opt.get("tests") and tests_pair(opt["tests"]) != recorded:
                 die("таск %s: переданные тесты не совпадают с проверенными" % i)
         if act == "done":
+            pending_blockers = [b["id"] for b in blocker_ledger(state)
+                                if b["status"] == "open" and b.get("ticket") == i]
+            if pending_blockers:
+                die("таск %s: не закрыты блокирующие замечания %s" %
+                    (i, ", ".join(pending_blockers)))
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
             if not validation or validation["passed"] < 1 or validation["failed"] != 0:
                 die("таск %s: нельзя принять без успешных тестов" % i)
             rev = opt.get("commit") or tk.get("commit")
             if not verified_commit(rev):
                 die("таск %s: требуется существующий коммит в HEAD" % i)
+            resolved = [b for b in blocker_ledger(state)
+                        if b.get("ticket") == i and b["status"] == "resolved"]
+            if any(not commit_descends_from(rev, b.get("resolutionCommit"))
+                   for b in resolved):
+                die("таск %s: коммит сдачи не включает проверенное исправление блокера" % i)
         if act == "retry" and state.get("isolateTickets") and not tk.get("worktree"):
             die("таск %s: сначала подготовь worktree для повтора" % i)
         if act in ("retry", "repair"):
@@ -1167,9 +1190,12 @@ def cmd_ticket(state, pos, opt):
             tk["retries"] = tk.get("retries", 0) + 1
             tk["startedAt"] = tk.get("startedAt") or t
         elif act == "repair":
+            note = opt.get("note")
+            if not isinstance(note, str) or not note.strip():
+                die("таск %s: repair требует текст блокирующего условия --note" % i)
             tk["repairs"] = tk.get("repairs", 0) + 1
-            if isinstance(opt.get("note"), str):
-                tk.setdefault("repairFindings", []).append(opt["note"])
+            tk.setdefault("repairFindings", []).append(note)
+            open_blocker(state, note, tk)
         elif act in ("done", "fail"):
             tk.setdefault("startedAt", t)
             tk["finishedAt"] = t
@@ -1427,6 +1453,104 @@ def cmd_set(state, pos):
         state[k] = None if v in ("", "null") else v
 
 
+def blocker_ledger(state):
+    """Fail closed for corrupted blocker records, including old manual edits."""
+    entries = state.get("blockingFindings", [])
+    if not isinstance(entries, list):
+        die("блокирующие замечания: повреждён журнал")
+    ids = set()
+    for entry in entries:
+        if (not isinstance(entry, dict)
+                or (entry.get("status") == "resolved"
+                    and (not isinstance(entry.get("resolutionCommit"), str)
+                         or not isinstance(entry.get("review"), str)
+                         or not entry["review"].strip()
+                         or not isinstance(entry.get("resolutionTests"), dict)
+                         or not isinstance(entry["resolutionTests"].get("passed"), int)
+                         or entry["resolutionTests"]["passed"] < 1
+                         or entry["resolutionTests"].get("failed") != 0))
+                or not isinstance(entry.get("id"), str)
+                or not re.fullmatch(r"B[0-9]{2,6}", entry["id"])
+                or entry["id"] in ids
+                or not isinstance(entry.get("text"), str)
+                or not entry["text"].strip()
+                or entry.get("status") not in ("open", "resolved")
+                or (entry.get("ticket") is not None
+                    and not isinstance(entry.get("ticket"), str))):
+            die("блокирующие замечания: повреждён журнал")
+        ids.add(entry["id"])
+    return entries
+
+
+def open_blocker(state, text, ticket=None):
+    if not isinstance(text, str) or not 3 <= len(text.strip()) <= 2000:
+        die("блокирующее замечание требует --note (3–2000 символов)")
+    entries = blocker_ledger(state)
+    if len(entries) >= 1000:
+        die("достигнут лимит блокирующих замечаний")
+    n = 1 + max([int(e["id"][1:]) for e in entries] or [0])
+    item = {"id": "B%02d" % n, "text": text.strip(),
+            "ticket": ticket["id"] if ticket else None,
+            "openedAt": state["updatedAt"], "status": "open"}
+    # Anchor every blocker (including a whole-branch blocker) to the
+    # commit at review time. A previously existing commit cannot close it.
+    origin = _run(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"]).strip()
+    if not verified_commit(origin):
+        die("blocker open: нельзя определить исходный Git-коммит")
+    item["openedCommit"] = origin
+    entries.append(item)
+    log(state, "blocker", id=item["id"], act="open", ticket=item["ticket"])
+    return item
+
+
+def cmd_blocker(state, pos, opt):
+    if len(pos) != 1 or pos[0] not in ("open", "resolve"):
+        die("blocker open --note TEXT [--ticket NN] | blocker resolve --id BNN --commit SHA --tests N/0 --note REVIEW")
+    if pos[0] == "open":
+        ticket = None
+        if opt.get("ticket") is not None:
+            ticket = next((t for t in state.get("tickets") or []
+                           if t.get("id") == opt["ticket"]), None)
+            if ticket is None:
+                die("blocker: неизвестный таск")
+        item = open_blocker(state, opt.get("note"), ticket)
+        print("блокирующее замечание %s зарегистрировано" % item["id"])
+        return
+    entries = blocker_ledger(state)
+    entry = next((b for b in entries if b["id"] == opt.get("id")), None)
+    if entry is None or entry["status"] != "open":
+        die("blocker: нет открытого замечания с этим ID")
+    review = opt.get("note")
+    if not isinstance(review, str) or len(review.strip()) < 12:
+        die("blocker resolve: нужна конкретная запись результата повторного ревью --note")
+    commit = opt.get("commit")
+    if not verified_commit(commit):
+        die("blocker resolve: нужен существующий проверенный коммит в HEAD")
+    baseline = entry.get("openedCommit")
+    if (baseline and (
+            commit.lower().startswith(baseline.lower())
+            or baseline.lower().startswith(commit.lower())
+            or not commit_descends_from(commit, baseline))):
+        die("blocker resolve: коммит исправления должен отличаться от исходного"
+            " и быть его потомком")
+    if not opt.get("tests"):
+        die("blocker resolve: требуются свежие успешные тесты --tests N/0")
+    result = tests_pair(opt["tests"])
+    if result["passed"] < 1 or result["failed"]:
+        die("blocker resolve: тесты не пройдены")
+    if entry.get("ticket") and state.get("strictRouting") and state.get("isolateTickets"):
+        ticket = next((t for t in state.get("tickets") or []
+                       if t.get("id") == entry["ticket"]), None)
+        evidence = ticket.get("testEvidence") if ticket else None
+        if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
+                or result != {"passed": evidence.get("passed"), "failed": 0}):
+            die("blocker resolve: в строгом изолированном режиме необходимы независимые тесты")
+    entry.update(status="resolved", resolvedAt=state["updatedAt"],
+                 resolutionCommit=commit.lower(), resolutionTests=result,
+                 review=review.strip())
+    log(state, "blocker", id=entry["id"], act="resolve", ticket=entry.get("ticket"))
+
+
 def cmd_add(state, pos):
     if len(pos) < 2 or pos[0] not in LISTS:
         die("add <%s> \"текст\"" % "|".join(sorted(LISTS)))
@@ -1480,6 +1604,28 @@ def cmd_ask(state, pos, opt):
 
 
 def cmd_finish(state, opt):
+    pending_blockers = [b["id"] for b in blocker_ledger(state)
+                        if b["status"] == "open"]
+    if pending_blockers:
+        die("finish заблокирован: незакрытые блокирующие замечания: "
+            + ", ".join(pending_blockers))
+    # Older 2.3-dev states may have review repair notes without the new
+    # structured ledger. Do not silently treat those notes as resolved.
+    ledger = blocker_ledger(state)
+    for ticket in state.get("tickets") or []:
+        notes = ticket.get("repairFindings") or []
+        if (not isinstance(notes, list)
+                or any(not isinstance(note, str) for note in notes)
+                or any(not any(b.get("ticket") == ticket.get("id")
+                               and b.get("text") == note for b in ledger)
+                       for note in notes)):
+            die("finish заблокирован: замечания старого ревью без записи закрытия; "
+                "добавь blocker open --ticket NN и подтверди исправление")
+    stale_resolution = [b["id"] for b in ledger if b["status"] == "resolved"
+                        and not verified_commit(b.get("resolutionCommit"))]
+    if stale_resolution:
+        die("finish заблокирован: коммиты закрытия блокирующих замечаний отсутствуют в HEAD: "
+            + ", ".join(stale_resolution))
     # The run may have been reset/rebased after its tickets were accepted.
     # Reject stale Git ancestry *at the final gate*, not just at ticket done;
     # 'commits' remains a separate read-only diagnostic for manual recovery.
@@ -1664,6 +1810,8 @@ def main():
                 log(state, "tier", v=state.get("tier"))
         elif cmd == "add":
             cmd_add(state, rest)
+        elif cmd == "blocker":
+            cmd_blocker(state, rest, opt)
         elif cmd in ("coverage", "blind"):
             cmd_numbers(state, cmd, rest, multi)
         elif cmd == "tests":
