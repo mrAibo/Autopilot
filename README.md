@@ -26,65 +26,19 @@ It works on its own: nothing else to install.
 
 ---
 
-**Already-running projects:** Dashboard 3.1 has a new navigation rail and sectioned mission-control layout. Existing .autopilot/dashboard.html files are copied pages and are NOT automatically replaced by updating the skill. Use skills/autopilot/tools/dashboard_upgrade.py --project PATH to back up the old page, preserve the current state.js snapshot, then reload the browser tab.
+**Already-running projects:** the current Dashboard 3.1 is a copied HTML
+file; it does not automatically update inside existing projects.
+[Refresh it safely](docs/autopilot/gui-clients.md) without resetting tasks.
 
-**Strict isolated ticket controller (2.3-dev preview):**
-`.autopilot/controller.py --root .` plans one safe action read-only;
-`--advance` applies one host/Git/test transition without calling any model.
-Example: `python .autopilot/controller.py --root . --suite test_calc.py --advance`.
-After externally approved worker execution, it verifies the immutable baseline
-test module, finalizes, lands, accepts and releases in distinct audited steps.
-No paid agent auto-launch yet. See [Host controller](docs/autopilot/controller.md).
+**What is ready:** the original skill stages, requirement gates,
+model-routing policy, Dashboard, Git isolation and trusted tests.
+**What remains unverified:** native named-agent execution in the owner's Codex
+GUI session, genuine Claude Code execution and benchmarked savings.
+The optional Codex CLI path does **not** currently launch paid models.
 
-**Bounded host-only loop:** `.autopilot/host_loop.py --root .` previews the next
-safe transition; `--advance --max-steps 8 --suite 01=test_core.py` chains only
-explicitly authorized Git/test/state steps, stops for separate AI worker
-approval and never calls a model itself. A status of `tickets-settled` is NOT
-final G1–G4 acceptance. See [host loop](docs/autopilot/host-loop.md).
-
-**Offline P0 process qualification:** the dedicated test-only
-[offline supervisor](docs/autopilot/offline-supervisor.md) uses a real OS child,
-durable anti-replay receipt, cancellation and timeout inside disposable temporary
-Git fixtures. It **cannot call an AI model** and is not installed as a
-production dispatcher. On Windows it now uses a kernel kill-on-close Job Object
-and a gated start, with a real parent-crash test; POSIX is not parent-death safe.
-Host acceptance still requires independently trusted tests.
-
-**Safe Windows Git handoff:** a completed worker turn with zone-scoped
-uncommitted edits can be marked `ready-for-host-verification`, **not**
-accepted. The host alone runs trusted tests, creates a scoped commit and
-lands it; missing or out-of-zone edits stay incomplete.
-[Read-only outcome inspection](docs/autopilot/codex-cli.md).
-No new AI call is required to review an existing attempt.
-
-**Bounded API experiment (P0, synthetic only):** separate
-[Responses API pilot](docs/autopilot/bounded-api-pilot.md) uses a fixed toy
-task with a tiny request and server-enforced output-token limit. Its
-durable one-shot receipt, ledger reconciliation and offline-mocked API
-response were qualified through real Git tests. On the owner's Windows
-machine **no API key is configured**, so no new live API request was made.
-This does not unlock Codex CLI or enforce a provider dollar cap.
-
-**Paid-call safety gate (P0):** after a real disposable Codex CLI turn
-reported 53,187 input + 341 output tokens despite a recorded threshold of
-2,000, both GUI bridge and direct Codex dispatcher now **fail closed** on
-real execution. A positive ledger threshold or CLI timeout is not an
-enforced provider per-call spending cap. Read-only previews and the
-[local token audit](docs/autopilot/spend-guard.md) remain available. This
-restriction has no environment-variable, CLI-flag or config-file bypass;
-synthetic tests exercise the host path with reviewed, process-local mocks.
-
-**GUI-to-CLI fallback for Codex:** When named native GUI subagents are
-unavailable, a GUI host with terminal tools can invoke the
-[single-attempt bridge](docs/autopilot/gui-cli-bridge.md). The preview
-`.autopilot/gui_bridge.py --root . --ticket 01` performs no model call.
-Paid execution needs explicit per-ticket consent via
-`--execute --approve-ticket 01` and a durable non-replayable receipt.
-The selected model/Effort remains pinned by the existing CLI dispatcher;
-independent trusted tests and acceptance remain separate. This is **not**
-native GUI child-agent support.
-
-The read-only `gui_bridge.py --ticket NN --check-runtime` validates the current Codex CLI version, native flags and fresh pinned model/Effort before any explicit paid call.
+Research-only API pilots and extra supervisors are **not required** to
+use `/autopilot`. See [scope and experimental components](docs/autopilot/scope-and-labs.md), [test details](STATUS.md) and
+[host-side tools](docs/autopilot/controller.md).
 
 ## Installation
 
