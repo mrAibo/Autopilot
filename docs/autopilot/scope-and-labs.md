@@ -35,6 +35,8 @@ consistency gate, not a cryptographic signature or real-model attestation. The n
 OpenAI API key, Python SDK, an HTTP worker, a background supervisor or
 a separate experimental runtime.
 
+**Native-GUI limitation and safe fallback:** A new run may explicitly choose the [`--sequential-host` mode](sequential-host.md) when named subagents are unavailable. It enforces one prepared/active ticket, detached Git worktree and independent baseline-tracked Python unittest evidence at `finalize`/`land`/`done`, without a fake native agent profile or model dispatch. This qualifies the **host test/Git protocol**, not a real GUI-selected model, effort or subscription cost. The user must confirm those outside Autopilot or stop. Default normal flows and existing run states are not automatically converted.
+
 ## Optional, not the product's default execution path
 
 - `controller.py`, `host_loop.py`: deterministic host-side

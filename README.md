@@ -12,6 +12,8 @@ It works on its own: nothing else to install.
 
 > **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
+> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.
+
 > **Release qualification:** [R01–R06 readiness matrix](docs/autopilot/release-readiness.md) — code tests, real GUI host limitations, and explicit no-go criteria for stable 2.3.0.
 
 > **Autopilot 2.3.0-dev** — main-branch development snapshot; not a stable release. Includes [model routing](docs/autopilot/model-routing.md), [isolated worktrees and host-verified tests](docs/autopilot/worktrees.md), [Dashboard 3.1 and GUI integration plans](docs/autopilot/gui-clients.md), and an [optional lean-token experiment](docs/autopilot/optimization.md). Codex and Claude Code are designed to share one skill; native GUI integration remains under verification. Current progress: [STATUS.md](STATUS.md). Requirements: [brief.md](brief.md).

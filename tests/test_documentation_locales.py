@@ -92,6 +92,26 @@ class DocumentationLocalesTests(unittest.TestCase):
                 self.assertIn("docs/autopilot/release-readiness.md",
                               (ROOT / name).read_text(encoding="utf-8"))
 
+    def test_sequential_host_docs_show_limits_in_all_locales(self):
+        doc_path = ROOT / "docs/autopilot/sequential-host.md"
+        self.assertTrue(doc_path.is_file())
+        page = doc_path.read_text(encoding="utf-8")
+        for claim in ("--sequential-host", "--max-parallel 1", "worktree 01 verify",
+                      "No provider model is invoked", "effort", "spend_guard"):
+            self.assertIn(claim.lower(), page.lower())
+        self.assertNotIn("gui_bridge.py --root . --ticket 01 --execute", page)
+        for name in LOCALES:
+            self.assertIn("docs/autopilot/sequential-host.md",
+                          (ROOT / name).read_text(encoding="utf-8"))
+        phase = (ROOT / "skills/autopilot/phases/5-subagents.md").read_text(
+            encoding="utf-8")
+        self.assertIn("unconditionally", phase)
+        self.assertNotRegex(phase, r"(?m)^\\?`?python .autopilot/gui_bridge.py.*--execute")
+        dashboard = (ROOT / "skills/autopilot/phases/dashboard-template.html").read_text(
+            encoding="utf-8")
+        self.assertIn("sequential-host-notice", dashboard)
+        self.assertIn("no child agent is created", dashboard)
+
     def test_gui_bridge_docs_do_not_offer_disabled_paid_command(self):
         guide = (ROOT / "docs/autopilot/gui-cli-bridge.md").read_text(
             encoding="utf-8")

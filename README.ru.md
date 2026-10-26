@@ -12,6 +12,8 @@ Autopilot — фреймворк разработки, skill, который б�
 
 > **Текущий статус и продолжение разработки:** [STATUS.md](STATUS.md). Здесь перечислены выполненные работы, непроверенные интеграции, актуальная ветка и инструкция для следующего чата.
 
+> **Безопасный последовательный режим:** [один таск, отдельный Git worktree и независимые тесты](docs/autopilot/sequential-host.md). Не создаёт именованного субагента и не подтверждает реальную модель/Effort или тарификацию GUI.
+
 > **Готовность релиза:** [матрица R01–R06](docs/autopilot/release-readiness.md) — подтверждённые тесты, ограничения реального GUI и условия выпуска стабильной версии 2.3.0.
 
 > **Autopilot 2.3.0-dev** — версия разработки в основной ветке main. Новые возможности: [маршрутизация моделей](docs/autopilot/model-routing.md), [изолированные worktrees](docs/autopilot/worktrees.md), [проверка тестов на хосте](docs/autopilot/worktrees.md), [Dashboard 3.1](docs/autopilot/gui-clients.md) и [режим экономии токенов](docs/autopilot/optimization.md). Приложения [Codex и Claude Code](docs/autopilot/gui-clients.md) используют общий навык; графическая интеграция ещё проверяется. Это предварительная версия, не релиз. Текущее состояние — [STATUS.md](STATUS.md), требования — [brief.md](brief.md).

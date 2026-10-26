@@ -143,6 +143,10 @@ Routing applies equally to code reviewers, independent spec-coverage reviewers, 
 
 `ap.py ticket ... route` records **executor** assignments; it does not create reviewer/ADR telemetry. The latter remains a future extension, and no fabricated spend should appear in the dashboard.
 
+## Explicit no-child sequential fallback
+
+When the GUI cannot prove named-subagent model/Effort selection, do **not** claim a generated `.codex/agents` or `.claude/agents` file proves a real child. For a **new** owner-approved run, `ap.py init ... --sequential-host` selects a one-ticket, detached-worktree host mode with mandatory independent baseline-tracked Python unittest evidence, and prohibits `ticket NN route`. It does not spawn AI models, certify effective model/Effort or promise token billing. See [sequential-host.md](sequential-host.md). This is a **host acceptance fallback**, not a substitute for runtime model enforcement, and not proof that R03 native dispatch is released.
+
 ## Retry
 
 1. Diagnose first. Missing files, dependencies, permissions, tool limitations and unclear instructions do not justify an automatic model upgrade.

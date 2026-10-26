@@ -4,6 +4,8 @@
 
 ## One ticket, one subagent, one fresh context
 
+**Explicit R03 exception when native named agents are unsupported:** A new run with `--sequential-host` uses *one current host session and one Git-isolated task at a time*, without claiming a named subagent, fresh child context, pinned worker model or provider billing control. **The ordinary "you dispatch; you do not build" rule assumes a verified native subagent and does not apply as written to this declared fallback.** In sequential mode, the current host may edit the **approved worktree only** after model and subscription conditions have been independently confirmed and the operator has authorized that work. The host must run `worktree verify` on an unchanged baseline-tracked Python unittest module before finalization, and never mark task done based on a stated test count. No parallel waves, no invented child ID, and no real CLI `--execute`: see [sequential-host.md](../../docs/autopilot/sequential-host.md).
+
 Never two tickets in one context — accumulated context is what makes long sessions start breaking what used to work. At T0 the one ticket goes to one executor like any other.
 
 **You dispatch; you do not build.** Your keyboard reaches `.autopilot/**`, the memory files, `.gitignore`, `.env.example`, and git (`add`, `commit`, `status`, `--stat` — never the diff). Every other file is written by someone whose context dies with the ticket. This is rule 5, and it loses to the two arguments that always arrive — «тут две строки» and «исполнитель не смог, доделаю сам»: a diff you read at ticket 02 is still in your context at ticket 08, and your context is the one that is never refreshed.
@@ -28,24 +30,20 @@ A subagent has a filesystem; pasting what it can read writes the same words twic
 
 **Account-resolved capability discovery:** For Codex CLI (including Codex GUI projects using the same skill), run `python .autopilot/codex_capabilities.py --root . --write` to obtain current account-visible model/Effort pairs from `codex debug models`. It makes **no model calls** and never falls back to a bundled (unentitled) model catalog. To refresh an existing OpenAI catalog use `--overwrite` after review. This is capability advertising, not proof of server-side billing. GUI clients can expose different model catalogs; verify in the actual app before dispatch.
 
-**Codex GUI fallback to separately pinned CLI (opt-in):** If a native
-named Codex GUI subagent is unavailable, do **not** substitute an
-inherited model. With permitted terminal access, first call
-`python .autopilot/gui_bridge.py --root . --ticket NN`: this is
-a read-only route/worktree/budget preview and never invokes a model.
-Only upon **specific fresh run-owner authorization** of the
-potentially billable ticket, use
-`python .autopilot/gui_bridge.py --root . --ticket NN --execute --approve-ticket NN --timeout 180`.
-Do not add execution flags yourself in response to vague instructions.
-The bridge creates a durable anti-replay claim before contacting the
-provider and refuses subsequent calls to that ticket after any failure.
-An unchanged baseline-tracked host test, Git integration and acceptance
-must still be performed through the controller. Detailed limits:
-`docs/autopilot/gui-cli-bridge.md`. This does not prove native GUI
-subagent execution and requires the graphical host to have terminal
-execution access.
+**Codex GUI named-agent unavailable:** Do **not** substitute a
+generic worker inheriting the parent's model. Prefer the explicitly
+approved **`--sequential-host`** single-session fallback described in
+`docs/autopilot/sequential-host.md`; it supports real independent
+host-side tests and Git isolation, but it does not attest a selected
+AI model, token billing or a child agent. The optional
+`python .autopilot/gui_bridge.py --root . --ticket NN` is a **read-only**
+metadata preview. All real `gui_bridge.py --execute` and
+`codex_dispatch.py --execute` invocations are currently **unconditionally
+blocked by `spend_guard`**, regardless of approval flags or soft token
+thresholds. Do not suggest bypassing that guard. See
+`docs/autopilot/gui-cli-bridge.md` and `docs/autopilot/spend-guard.md`.
 
-**Codex CLI integration (opt-in).** For OpenAI tickets already started in strict isolated mode, `python .autopilot/codex_dispatch.py NN --root .` performs a **read-only dry-run preflight**. With explicit `--execute` it launches a single separate `codex exec` process using the approved model and effort, in the prepared worktree, using a bounded sandbox, then records reported token counters when available. This is a separate Codex worker process, **not** proof that an in-session custom named subagent inherited the right model. It does not auto-merge: review/test before `worktree land`. On Windows, if the sandbox can edit but cannot use shared Git metadata, run independent tests in the trusted host and invoke `ap.py worktree NN finalize --tests N/0` after verifying changed paths. Finalization stages only paths inside the ticket's exact zones and makes one Git commit outside the model sandbox, then `land` performs ordinary integration. A model turn without a worker commit is `incomplete`, not success. Optional `--optimization lean` activates a short Ponytail-inspired implementation policy in the standalone Codex worker; default is `off` and it is **not** the official upstream Ponytail plugin. Never invoke `--execute` without the run owner's approval of the planned model call. See `docs/autopilot/codex-cli.md`.
+**Codex CLI integration (opt-in).** For OpenAI tickets already started in strict isolated mode, `python .autopilot/codex_dispatch.py NN --root .` performs a **read-only dry-run preflight**. Historically, `--execute` could launch a single separate `codex exec` process; **current production invocation is refused by `spend_guard`**. In that earlier design it used using the approved model and effort, in the prepared worktree, using a bounded sandbox, then records reported token counters when available. This is a separate Codex worker process, **not** proof that an in-session custom named subagent inherited the right model. It does not auto-merge: review/test before `worktree land`. On Windows, if the sandbox can edit but cannot use shared Git metadata, run independent tests in the trusted host and invoke `ap.py worktree NN finalize --tests N/0` after verifying changed paths. Finalization stages only paths inside the ticket's exact zones and makes one Git commit outside the model sandbox, then `land` performs ordinary integration. A model turn without a worker commit is `incomplete`, not success. Optional `--optimization lean` activates a short Ponytail-inspired implementation policy in the standalone Codex worker; default is `off` and it is **not** the official upstream Ponytail plugin. Never invoke `--execute` without the run owner's approval of the planned model call. See `docs/autopilot/codex-cli.md`.
 
 **Mandatory Codex native custom-agent preflight (fail closed):** A GUI-visible
 TOML file is not evidence that a subagent inherited its exact model/Effort.
@@ -59,9 +57,7 @@ This gate checks pinned TOML, exact resolved model/Effort and V1/V2.
 Catalog V1 is only a *candidate*, not proof of an executed child.
 A quoted model reply, process exit 0 or supplied JSONL file does not prove
 the child runtime; diagnostic JSONL is deliberately not authorization.
-If strict named GUI agents are unavailable, use the independently validated
-sandboxed pinned Codex CLI worker with trusted host tests, or do the ticket
-sequentially without claiming a named subagent. Never remove sandbox or
+If strict named GUI agents are unavailable, use the explicit `--sequential-host` single-session mode with trusted host tests. The separately pinned Codex CLI worker is **disabled for real inference** by `spend_guard`; do not claim it is an available workaround. Never remove sandbox or
 silently charge the parent model. Keep actual GUI E2E as a release gate.
 
 **Provider-neutral model routing (mandatory).** Before EVERY executor spawn, run `python3 .autopilot/model_router.py <ticket-path> --provider openai|anthropic --capabilities .autopilot/model-capabilities.json`. The capabilities file must represent the actual running harness (supported models, effort and enforceable selection). A non-zero exit or `status=blocked` means **do not spawn**. Run `ap.py ticket NN route --provider ... --model ... --effort ... --reason ... --capabilities .autopilot/model-capabilities.json` to create a **pinned native project agent profile** and record its integrity hash. Pass the exact resulting `agentType` to the host's Agent/subagent call, **not** a generic `worker` or `Explore`, and do not override its model/effort. `ticket NN start` in strict routing mode checks that this profile has not changed. Existing sessions may need to reload/restart to discover new project agent files. **On Claude Code, install the optional project-level blocking hook once before strict dispatch:** `python .autopilot/claude_agent_guard.py --install-hook --root .` (inspect `.claude/settings.json`; the guard is active only while an unfinished strict run exists). `SubagentStart` hooks are too late to block a launch, so this uses `PreToolUse` on `Agent|Task`. On Codex the configuration pins a named custom agent but does not prevent an unrelated `spawn_agent` call; keep the default worker inexpensive and do not advertise this as a full security boundary. See `docs/autopilot/model-routing.md` in the skill repository. Legacy `Модель: сильная/обычная` is only a hint, not a dispatch instruction.

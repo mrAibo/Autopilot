@@ -77,7 +77,7 @@ subagents or authenticated human consent from a CLI flag alone.
 
 | Host | Skill workflow | Model-aware dispatch | Validation status |
 |---|---|---|---|
-| Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native named subagents **not available in the user-tested GUI session**; safe fallback: separate approved pinned CLI worker or sequential execution | **GUI test performed 2026-10-25: fail-closed, no named child**; full GUI end-to-end still unverified |
+| Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native named subagents **not available in the user-tested GUI session**; safe host-side fallback: explicitly selected `--sequential-host` with one task and trusted Git/tests; real pinned CLI worker execution currently blocked | **GUI test performed 2026-10-25: fail-closed, no named child**; full GUI end-to-end still unverified |
 | Codex CLI | Same skill instructions and project files | Explicit `codex exec` model/effort process via `codex_dispatch.py`, with isolated worktree and JSON usage | CLI 0.165.0-alpha.1 login, real Luna Low inference and a disposable code-edit / host-tested / accepted worktree E2E verified on Windows; GUI host remains unverified |
 | Claude Code (terminal or supported graphical host) | Same skill instructions loaded from `.claude/skills/` | Native pinned `.claude/agents/*.md` with optional `PreToolUse` guard | Synthetic tests only; **actual GUI/CLI behavior unverified** |
 | Claude general chat app without code execution / filesystem tools | Can read project docs if attached, but cannot run the local workflow | No supported local dispatch guarantee | **Not equivalent to Claude Code** |
@@ -120,7 +120,8 @@ and must not silently substitute a generic inheriting parent-model child.
 **Safe operational option:** Use Codex GUI as the interface, then explicitly
 delegate ticket execution through the separately validated `codex_dispatch.py`
 CLI worker with approved model/Effort, sandboxed worktree, host-side test
-evidence, Git integration and budget ledger; or execute tasks sequentially.
+evidence, Git integration and budget ledger; or use [the verified *host* sequential state/test mode](sequential-host.md).
+Actual GUI model selection and billing still require separate host proof.
 Do not call this verified native GUI subagent mode. Claude Code remains a
 separate unverified host and needs its own authenticated runtime test.
 
@@ -144,8 +145,9 @@ fixture lives under user TEMP/autopilot-native-gui-agent-smoke-20261025.
 The new codex_native_agents.py validates native catalog and profile pins
 and fails closed if model or effort is unavailable, V2 cannot choose a
 custom agent, or native child execution cannot be independently attested.
-Caller-supplied JSONL is only diagnostic, NOT authorization. Prefer
-sequential GUI execution or verified pinned, sandboxed CLI dispatcher.
+Caller-supplied JSONL is only diagnostic, NOT authorization. Prefer the explicitly selected [sequential host mode](sequential-host.md)
+with Git-isolated task/test acceptance; the sandboxed CLI dispatcher is
+currently **blocked for real model calls** by the spend guard.
 These read-only EXE tests **did not operate the graphical Codex window**;
 GUI native subagents remain unverified. Claude Desktop is present, but no
 Claude Code CLI command was found, so Claude Code GUI/CLI is also unverified.
@@ -168,13 +170,17 @@ Project Dashboards are **copies** of the skill template, not Junctions. The inst
 
 The standalone upgrader requires a valid existing .autopilot/state.js, refuses mismatched project identity, backs up the old Dashboard under the user's temporary directory, and atomically replaces only the HTML while embedding the current snapshot. Reload the browser tab. It never changes an active application or task ledger. This was confirmed on the synthetic test suite and the real WEG_HomeManager local Dashboard (rev 41, two tickets) with a successful headless Chrome DOM read.
 
+## Explicit single-session host fallback
+
+A **new** run may choose [`--sequential-host`](sequential-host.md) when the named child is unsupported. Autopilot enforces exactly one in-progress/prepared task and independently re-runs unchanged baseline Python unittests before accepting Git changes; the Dashboard labels the mode and warns that GUI model/Effort are **not verified**. This does **not** enable blocked `gui_bridge --execute` nor prove native child-agent identity. The host must independently confirm which model is selected and whether its use is covered by the owner's subscription; otherwise stop any model work. This host/Git path is regression-tested in disposable repos only; real Codex GUI end-to-end remains unverified.
+
 ## Expected GUI user journey
 
 1. Open the target project in the existing Codex/Claude Code graphical application.
 2. Confirm the `autopilot` skill is visible (not a Windows text-file placeholder), then invoke `/autopilot` or the host-supported skill selector. Restart a session if the host caches skills.
 3. Run project preflight. Select manual or strict execution modes; use the host's **own** model picker and approval flow.
 4. Autopilot manages specification, tasks, scheduler, detached Git worktrees and dashboard through project files. The GUI agent executes the approved actions using its native tools.
-5. Native named subagents must be discovered in the host session with the approved model/effort. If not, use single-agent sequential mode; **never silently inherit a costly parent model**.
+5. Native named subagents must be discovered in the host session with the approved model/effort. If not, choose the explicit [`--sequential-host` workflow](sequential-host.md) only after reviewing host model/effort and subscription exposure; **never silently inherit a costly parent model or claim verified child dispatch**.
 6. At acceptance, check actual tests, Git commits, requirements and G1–G4 gates. Persist `STATUS.md` and `PROGRESS.md`.
 
 ## Host-side lifecycle controller (not GUI agent dispatch)
