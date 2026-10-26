@@ -1,6 +1,10 @@
 # Autopilot 2.3 — optional lean-coding experiment
 
 **Status:** opt-in experiment; no measured cost savings claim.
+For a checked-in **offline** comparison of the deterministic Autopilot 2.2
+versus 2.3 host CLI and the prompt-byte overhead of `off`/`lean`, see
+[R06 measured baseline](r06-offline-benchmark.md). That experiment invokes
+no models and establishes no lean token savings.
 
 ## Why
 
