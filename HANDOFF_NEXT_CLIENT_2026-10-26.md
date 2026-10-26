@@ -3,8 +3,8 @@
 **Date:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
 **Workstation:** Aibo, `C:\Users\crown\Downloads\Projects\Autopilot`
-**Published baseline:** `v2.3.0`, product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5`; later checkpoint on main `a5f05600b101c8f05742520fcf9e40633ddb9456`.
-**Next focused branch:** `fix/codex-midrun-sequential-handoff` (verify current HEAD, PR and CI before changing it; this handoff is part of that branch).
+**Published baseline:** `v2.3.0`, product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5`. **Post-release fix already merged on main:** `54d8ca32d191aa98ed11246ad0fd86b2d5f76590` ([PR #33](https://github.com/mrAibo/Autopilot/pull/33), 4/4 GitHub CI; Windows Python 3.13 local 320/320). Do not change the published tag.
+**Continue from:** clean, synchronized `main` on Aibo. The strict-to-sequential switch is **already implemented and applied** to FBreaderREA; next work is host-attested Rust tests and safe dirty-repo onboarding, not another switch rewrite.
 **Mandatory reading:** `STATUS.md`, `brief.md`, `HANDOFF.md`, `docs/autopilot/release-readiness.md`, `docs/autopilot/sequential-host.md`, `skills/autopilot/phases/0-resume.md`.
 
 ## 1. What is released and what remains unverified
@@ -23,11 +23,11 @@ The project is **intentionally very dirty**: dozens of untracked files (includin
 
 The project's main native app includes **Rust**, while the 2.3.0 sequential acceptance harness accepts only a baseline-tracked Python `unittest`. This is a real product gap: switching the run to sequential-host alone **cannot** produce an accepted Rust ticket. Do not fake Python wrappers or test totals.
 
-## 3. Targeted fix in this branch
+## 3. Completed and tested hotfix — do not repeat
 
-Add `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` to switch a **still-unstarted** strict run without overwriting `state.js`, tickets, the requirement manifest, phase/startedAt or source. It must fail closed if any ticket was launched, worktree prepared, pinned routing approved, execution stage entered, or the run already finished. It closes only the recorded `stop` question and logs the transition. The state lock is handled by the usual `ap.py` wrapper.
+PR #33 **added** `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` for a **still-unstarted** strict run without overwriting source, requirements or progress. It refuses prior worker/routing/worktree execution or a finished run. New negative tests, complete local Windows 320/320 and 4/4 GitHub CI passed.
 
-After a green code review, regression suite and PR merge, upgrade only the exact `.autopilot/ap.py` copy in the affected project (first verify it matches the previously shipped source hash) and run the switch command **once**, not `init`. Then inspect `strictRouting=false, sequentialHost=true, isolateTickets=true` and unchanged manifest/Git source. Do not start a Rust implementation or call `worktree prepare` until the baseline/test gap below is solved.
+This was performed on the **actual** FBreaderREA run on 2026-10-26 at 22:24 Europe/Berlin, with saved script/state/dashboard backup in `%TEMP%\Autopilot_FBREADER_PreSwitch_20261026_222450`: verified `strictRouting=false`, `sequentialHost=true`, `isolateTickets=true`, `waiting=null`, **15 requirements, zero published tickets**, unchanged `manifest.md` and unchanged complete Git status. Do not re-run the switch. Do not start Rust execution or `worktree prepare` until the baseline/test gaps below are resolved. See the local project-specific handoff `FBreaderREA\HANDOFF_AUTOPILOT_CROSS_CLIENT_2026-10-26.md`.
 
 ## 4. Next actual engineering work (no broad refactor)
 
@@ -42,4 +42,4 @@ Read the original `brief.md` and current `STATUS.md` before broad changes. Do no
 
 ## Copy-ready request to the next client
 
-> Continue `mrAibo/Autopilot` on Aibo from `HANDOFF_NEXT_CLIENT_2026-10-26.md`. Read its required documents and inspect Git/CI first. Finish the fail-closed mid-run switch implementation, tests and PR. The affected `FBreaderREA` working tree is dirty and has 15 open requirements with no started tickets; do not re-init or commit unknown source. After the safe mode switch, tackle independently verified Rust tests and dirty-project onboarding in separately reviewed changes. No independently billed API calls. Explain the exact supported actions and blockers instead of impersonating subagents.
+> Continue `mrAibo/Autopilot` on Aibo from `HANDOFF_NEXT_CLIENT_2026-10-26.md`. Read its required documents and inspect Git/CI first. The fail-closed mid-run switch was already merged in PR #33 and applied to `FBreaderREA`. Its working tree remains dirty, with 15 open requirements and no published tickets. Do not re-init, switch again, or commit unknown source. Next tackle independently verified Rust tests and dirty-project onboarding in separately reviewed changes. No independently billed API calls. Explain the exact supported actions and blockers instead of impersonating subagents.
