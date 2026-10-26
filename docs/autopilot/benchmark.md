@@ -1,3 +1,8 @@
+> **For the reproducible Autopilot 2.2 vs 2.3-dev R06 offline paired host
+> benchmark, see [R06 measurement](r06-offline-benchmark.md).**
+> The historical 1.x vs 2.0 results below used different project modes and
+> normalized token *units*, not a matched 2.2/2.3 provider-billing comparison.
+
 # Version 2.0 control run
 
 How to check, on the same brief, that the new version is cheaper and no worse than the old one.

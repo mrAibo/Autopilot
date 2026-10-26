@@ -40,6 +40,8 @@ Research-only API pilots and extra supervisors are **not required** to
 use `/autopilot`. See [scope and experimental components](docs/autopilot/scope-and-labs.md), [test details](STATUS.md) and
 [host-side tools](docs/autopilot/controller.md).
 
+For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](docs/autopilot/r06-offline-benchmark.md). It measures host-only Git/CLI checks with no model calls. **Real AI token savings have not been established.**
+
 ## Installation
 
 > **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.

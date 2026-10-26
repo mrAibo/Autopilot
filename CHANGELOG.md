@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- R06 offline benchmark: fixed deterministic 2.2.0 `25b5fbad` vs 2.3-dev measured host CLI/Git fixtures, paired five times per scenario with alternating order and 20 raw samples. The baseline wrongly accepted all five empty runs while current rejected all five; both accepted 5/5 two-ticket synthetic valid runs. Median host-only valid scenario 2475.37ms (2.2) vs 2011.82ms (2.3). This does **not** demonstrate real AI token savings, billing, autonomous coding correctness or general performance. Optional `lean` adds 414 prompt UTF-8 bytes; tokens unknown. No API calls.
+
 - R04 Dashboard: escaped malformed/untrusted state values in test totals, task-wave headings/blockers, gate messages and live timer attributes; the boot error path now escapes its own message. Added a dependency-free Node VM rendered-state regression, automatically invoked by the existing Dashboard check on Linux and Windows. Preserves bilingual, responsive, no-CDN HTML.
 
 - R03 routing: custom JSON policy now safely deep-merges partial model/Effort selections without deleting unrelated default tiers/providers or baseline restricted models; rejects malformed/unknown settings. Normal `ap.py ticket NN route --policy FILE` uses the same policy for selection and agent profile, records its SHA256 and refuses stale-policy strict task transitions. No model/API calls and no additional dependency.
