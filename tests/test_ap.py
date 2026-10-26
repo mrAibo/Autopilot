@@ -1131,6 +1131,15 @@ class Run(unittest.TestCase):
         code, out = self.ap("check-plan")
         self.assertEqual(code, 0, out)
         self.assertIn("G3: трасса сходится", out)
+        # A changed plan deliberately revokes G1/G2/G4. Re-certify them
+        # before testing *removal detection*, not that separate safety gate.
+        for command in (("stage", "spec", "done"),
+                        ("coverage", "found=0", "fixed=0", "deferred=0"),
+                        ("blind", "checked=4", "matched=4")):
+            code, out = self.ap(*command)
+            self.assertEqual(code, 0, out)
+        self.assertTrue(all(self.state()["gates"][g]["ok"]
+                            for g in ("G1", "G2", "G3", "G4")))
         os.unlink(os.path.join(self.dir, "tickets", "01-karkas.md"))
         code, out = self.ap("finish", "--result", "удалённый таск")
         self.assertNotEqual(code, 0, out)
