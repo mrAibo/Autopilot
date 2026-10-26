@@ -1444,10 +1444,13 @@ function render(lang){
       + '</div><div class="resource-reason">' + esc(info.reason || '—') + '</div></div>';
   }).join('');
   const proposals = T.filter(t => t.plannedRouting && !t.routing);
+  const blockedProposals = proposals.filter(t => t.plannedRouting.status === 'blocked');
   const proposalItems = proposals.map(t => {
     const p = t.plannedRouting;
     return '<div class="resource-item"><div class="resource-title">' +
       esc(t.id + ' · ' + t.title) + '</div><div class="resource-tags">' +
+      '<span class="resource-chip">' + (p.status === 'blocked' ?
+        (langRu ? 'ЗАБЛОКИРОВАНО' : 'BLOCKED') : (langRu ? 'НЕ ПРИМЕНЕНО' : 'NOT APPLIED')) + '</span>' +
       '<span class="resource-chip">' + esc(p.provider || '—') + '</span>' +
       '<span class="resource-chip">' + esc(p.model || '—') + '</span>' +
       '<span class="resource-chip">Effort: ' + esc(p.effort || '—') + '</span>' +
@@ -1487,11 +1490,18 @@ function render(lang){
     : '';
   const resourceBlock = '<section class="card w resource-card"><div class="whead">'
     + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
-    + '<span>' + (langRu ? 'Назначено: ' : 'Assigned: ') + routed.length + '/' + T.length + '</span></div>'
+    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
     + (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
       (langRu ? 'Последовательный режим: один таск за раз, тесты проверяет хост. Модель и Effort текущей GUI-сессии не подтверждены Autopilot; субагент не создаётся.' :
       'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
       '</p>' : '')
+    + (blockedProposals.length ? '<p id="model-routing-blocked-notice" class="resource-reason stale" role="status">' +
+      (langRu ? 'БЛОКИРОВКА: ' : 'BLOCKED: ') + blockedProposals.length +
+      (langRu ? ' задач(и) без применённого назначения. Проверьте поддержку точных моделей и Effort в реальном хосте, затем подтвердите каталог возможностей и выполните plan-models --apply. До проверки не запускайте субагентов.' :
+      ' task(s) without applied routes. Verify exact model and Effort support in the real host, then attest the capability catalog and run plan-models --apply. Do not spawn subagents until verified.') + '</p>' : '')
+    + (routed.length ? '<p id="model-routing-runtime-notice" class="muted">' +
+      (langRu ? 'Записанный маршрут или сохранённый профиль не подтверждает фактический запуск субагента, модель и Effort в GUI.' :
+      'A recorded route or saved profile does not attest actual GUI child execution, model or Effort.') + '</p>' : '')
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
       (proposals.length ? '<p class="muted">' + (langRu ?
         'Модель и Effort рассчитаны на этапе планирования; профили не применены и реальный GUI не подтверждён.' :

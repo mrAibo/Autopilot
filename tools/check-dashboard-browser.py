@@ -228,8 +228,12 @@ try {
     has_sequential_notice: !!document.getElementById('sequential-host-notice') &&
       visible.includes(%(sequential_warning)s),
     has_planned_route: !!document.getElementById('planned-model-routes') &&
-      visible.includes('Plan only, not executed:') &&
+      visible.includes(%(planned_label)s) &&
       visible.includes('No verified host capabilities'),
+    has_blocked_notice: !!document.getElementById('model-routing-blocked-notice') &&
+      visible.includes(%(blocked_label)s) && visible.includes(%(blocked_action)s),
+    has_runtime_notice: !!document.getElementById('model-routing-runtime-notice') &&
+      visible.includes(%(runtime_notice)s),
   };
   const output = document.createElement('pre');
   output.id = 'autopilot-layout-probe';
@@ -245,10 +249,21 @@ try {
 </script>
 """ % {"lang": json.dumps(lang), "theme": json.dumps(theme),
        "sequential": json.dumps(label == "mobile-dark"),
-       "planned": json.dumps(label == "mobile"),
+       "planned": json.dumps(label in ("narrow", "mobile")),
+       "planned_label": json.dumps(
+           "Plan only, not executed:" if lang == "en" else
+           "Предложение, не запуск:"),
+       "blocked_label": json.dumps(
+           "BLOCKED: 1" if lang == "en" else "БЛОКИРОВКА: 1"),
+       "blocked_action": json.dumps(
+           "Do not spawn subagents" if lang == "en" else
+           "До проверки не запускайте субагентов"),
        "sequential_warning": json.dumps(
            "no child agent is created" if lang == "en" else
-           "субагент не создаётся")}
+           "субагент не создаётся"),
+       "runtime_notice": json.dumps(
+           "A recorded route or saved profile" if lang == "en" else
+           "Записанный маршрут или сохранённый профиль")}
             child = Path(temp) / ("dashboard-" + label + ".html")
             child.write_text(rendered.replace("</body>", probe + "</body>"), encoding="utf-8")
             # Headless Chrome clamps top-level windows to around 500 CSS px.
@@ -346,8 +361,10 @@ const repeat = setInterval(() => {
                 print("Accessibility/theme/layout assertion failed: " + label +
                       " " + repr(metrics), file=sys.stderr)
                 return 1
-            if metrics["has_planned_route"] != (label == "mobile"):
-                print("Incorrect model-plan advisory rendering: " + label + " " +
+            if (metrics["has_planned_route"] != (label in ("narrow", "mobile")) or
+                    metrics["has_blocked_notice"] != (label in ("narrow", "mobile")) or
+                    not metrics["has_runtime_notice"]):
+                print("Incorrect blocked-plan/runtime disclosure: " + label + " " +
                       repr(metrics), file=sys.stderr)
                 return 1
             if metrics["has_sequential_notice"] != (label == "mobile-dark"):

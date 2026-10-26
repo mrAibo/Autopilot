@@ -23,6 +23,14 @@ Example of an automatic table (illustrative **policy**, not measured runtime):
 
 **Automatic** means a deterministic policy selects values without manually typing `--model` and `--effort` for each ticket. It does **not** mean the system invents host entitlements, silently uses a paid API, or proves the runtime honored a profile. Premium/restricted models are not selected automatically. Individual `ticket NN route` remains for reviewed exceptions/custom policies; the batch command is the normal Phase 4 path.
 
+### Reading Dashboard routing status
+
+- **BLOCKED / ЗАБЛОКИРОВАНО:** a ticket has only a proposed model/Effort and no applicable pinned profile. The panel displays the reason (for example, `No verified host capabilities`) and warns **not** to spawn a subagent. Check actual host enforcement, attest the exact capability catalog, then deliberately run `plan-models --capabilities ... --apply`; never fabricate a catalog from this documentation.
+- **NOT APPLIED / НЕ ПРИМЕНЕНО:** a proposal may be compatible with a supplied catalog but is still not a pinned route. Review the complete batch and apply explicitly.
+- **Profiles pinned / Профили закреплены:** matching native profile files have been written and their hashes recorded. This is **not** independent evidence of a created GUI child, effective model, reasoning Effort or billing; live runtime qualification remains a separate release gate.
+
+The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberately has no per-ticket native subagent routing and independently warns that its GUI model/Effort cannot be attested by the controller.
+
 ## Provider mapping
 
 | Level | OpenAI / Codex | Anthropic / Claude Code |
