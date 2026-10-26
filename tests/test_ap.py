@@ -226,6 +226,24 @@ class Run(unittest.TestCase):
         self.assertIn("таск 04 ни к чему не привязан", out)
         self.assertIn("у таска 04 нет зоны", out)
 
+    def test_check_plan_blocks_previously_done_unowned_requirement(self):
+        self.plan()
+        self.write("manifest.md", MANIFEST +
+                   "| G01 | «ранее сделано» | done | — | T99 |\n")
+        code, out = self.ap("check-plan")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("требование G01 (done) не попало", out)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+
+    def test_check_plan_blocks_duplicate_manifest_ids(self):
+        self.plan()
+        self.write("manifest.md", MANIFEST +
+                   "| R01 | «другая формулировка» | done | — | T01 |\n")
+        code, out = self.ap("check-plan")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("повторяются ID требований", out)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+
     def test_check_plan_catches_a_requirement_in_no_ticket(self):
         self.plan()
         self.write("manifest.md", MANIFEST + "| G01 | «отмена» | in-spec | — | spec §5 |\n")
@@ -1040,6 +1058,93 @@ class Run(unittest.TestCase):
         self.assertIn("| сдан | Бот принимает заявки |", read(os.path.join(self.a, "README.md")))
         self.assertEqual(s["result"], "Бот принимает заявки")
         self.assertIn("R", self.git("status", "--short").stdout)    # переименование через git mv
+
+    def test_finish_rechecks_requirement_added_after_g3_even_if_marked_done(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest() +
+                   "| G01 | «новая функция» | done | — | T99 |\n")
+        code, out = self.ap("finish", "--result", "необоснованная сдача")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("G3", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_rechecks_ticket_edited_after_g3(self):
+        self.ready_to_finish()
+        self.write("tickets/01-karkas.md",
+                   ticket("01", "Изменённые критерии", "R01, R05", "—",
+                          ["src/core/"], 1, "да — фундамент", "сильная"))
+        code, out = self.ap("finish", "--result", "устаревший план")
+        self.assertNotEqual(code, 0, out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_rejects_changed_requirement_words_after_g3(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest().replace(
+            "«принимает заявки»", "«удаляет заявки»"))
+        code, out = self.ap("finish", "--result", "устаревший бриф")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("измен", out.lower())
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_rechecking_changed_plan_revokes_earlier_acceptance(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest().replace(
+            "«принимает заявки»", "«показывает чужие заявки»"))
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        self.assertIn("G3: трасса сходится", out)
+        state = self.state()
+        self.assertTrue(state["gates"]["G3"]["ok"])
+        self.assertTrue(all(not state["gates"][g]["ok"] for g in ("G1", "G2", "G4")))
+        self.assertIsNone(state["blind"])
+        code, out = self.ap("finish", "--result", "устаревшая слепая приёмка")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("проверки G1, G2, G4", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_rechecking_unchanged_plan_preserves_valid_acceptance(self):
+        self.ready_to_finish()
+        before = self.state()["planContractDigest"]
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        state = self.state()
+        self.assertEqual(state["planContractDigest"], before)
+        self.assertTrue(all(state["gates"][g]["ok"] for g in ("G1", "G2", "G3", "G4")))
+        code, out = self.ap("finish", "--result", "всё подтверждено")
+        self.assertEqual(code, 0, out)
+
+    def test_finish_detects_removed_redundant_completed_ticket(self):
+        self.ready_to_finish()
+        # Let T02 also cover R05, so removing T01 cannot be discovered merely
+        # from the list of requirements that still have one remaining owner.
+        self.write("tickets/02-priem.md",
+                   ticket("02", "Приём", "R01, R02, R05, A01", "01",
+                          ["src/bot/"], 2))
+        code, out = self.ap("tickets")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "02", "start")
+        self.assertEqual(code, 0, out)
+        sha = self.commit("T02 revised")
+        code, out = self.ap("ticket", "02", "done", "--tests", "5/0",
+                            "--commit", sha)
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        self.assertIn("G3: трасса сходится", out)
+        # A changed plan deliberately revokes G1/G2/G4. Re-certify them
+        # before testing *removal detection*, not that separate safety gate.
+        for command in (("stage", "spec", "done"),
+                        ("coverage", "found=0", "fixed=0", "deferred=0"),
+                        ("blind", "checked=4", "matched=4")):
+            code, out = self.ap(*command)
+            self.assertEqual(code, 0, out)
+        self.assertTrue(all(self.state()["gates"][g]["ok"]
+                            for g in ("G1", "G2", "G3", "G4")))
+        os.unlink(os.path.join(self.dir, "tickets", "01-karkas.md"))
+        code, out = self.ap("finish", "--result", "удалённый таск")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("измен", out.lower())
+        self.assertIsNone(self.state()["finishedAt"])
 
     def test_finish_rejects_done_ticket_after_git_history_rewrite(self):
         self.ready_to_finish()

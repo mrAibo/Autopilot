@@ -109,7 +109,7 @@ Every ticket of the chain carries the same requirement. It applies when the chan
 
 ## Gate G3, publishing, and the plan commit
 
-`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every live requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect the dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again.
+`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every live requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect the dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again. Successful G3 binds the exact wording/rationale of manifest requirements and every planned ticket file. If those change after G3, a fresh `check-plan` invalidates the earlier G1/G2/G4 approvals: inspect the changed specification, redo coverage and blind acceptance; do **not** treat the renewed G3 alone as permission to finish.
 
 **Then the plan commit** — the run's first, and the base every later diff is measured from. Run the redaction gate over `.autopilot/` (`phases/1-manifest.md`), then commit exactly the files this skill wrote so far — never anything else in the tree:
 

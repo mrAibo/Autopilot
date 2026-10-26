@@ -271,6 +271,29 @@ def manifest_rows(state):
     return None if rows is None else [(r["id"], r["status"]) for r in rows]
 
 
+def plan_contract_digest(state):
+    """Bind G3 to requirement wording and the exact planned ticket files.
+
+    Ticket acceptance legitimately changes manifest progress columns, but
+    must not change requirement ID/text/rationale or silently remove/replace
+    a planned ticket. Include D constraints and ticket file names and bytes.
+    """
+    rows = manifest_table(state)
+    if not rows:
+        return None
+    contract = [[r["id"], r["text"], r["why"]] for r in rows]
+    tickets = []
+    for path in sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md"))):
+        try:
+            with open(path, "rb") as source:
+                digest = hashlib.sha256(source.read()).hexdigest()
+        except OSError:
+            return None
+        tickets.append([os.path.basename(path), digest])
+    payload = json.dumps([contract, tickets], ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def recount(state):
     table = manifest_table(state)
     if table is None:
@@ -406,10 +429,12 @@ def check_plan(state):
     rows = rows or []
     if len({t["id"] for t in tickets}) != len(tickets):
         problems.append("повторяются номера тасков")
+    if len({rid for rid, _ in rows}) != len(rows):
+        problems.append("повторяются ID требований в манифесте")
     named = {r for t in tickets for r in t["requirements"]}
     base = {r.split(".")[0] for r in named}
     for rid, st in rows:
-        if st in ("in-spec", "in-ticket", "placeholder") and not rid.startswith("D") and rid not in base:
+        if st in ("in-spec", "in-ticket", "placeholder", "done") and not rid.startswith("D") and rid not in base:
             problems.append("требование %s (%s) не попало ни в один таск" % (rid, st))
     known = {rid for rid, _ in rows}
     ids = {t["id"] for t in tickets}
@@ -1464,6 +1489,20 @@ def cmd_finish(state, opt):
     if stale:
         die("finish заблокирован: коммиты сданных тасков отсутствуют в HEAD: %s"
             % ", ".join(stale))
+    missing = [g for g in ("G1", "G2", "G3", "G4")
+               if not state.get("gates", {}).get(g, {}).get("ok")]
+    if missing:
+        die("finish заблокирован: проверки %s не пройдены" % ", ".join(missing))
+    saved_contract = state.get("planContractDigest")
+    if (not isinstance(saved_contract, str)
+            or saved_contract != plan_contract_digest(state)):
+        die("finish заблокирован: требования изменились после G3 "
+            "или нет отпечатка старого прогона; повтори check-plan "
+            "и при необходимости G2/G4")
+    problems = check_plan(state)
+    if problems:
+        die("finish заблокирован: повторная G3 проверка плана не пройдена: "
+            + "; ".join(problems))
     t = now()
     notes = []
     for s in state.get("stages") or []:
@@ -1482,10 +1521,6 @@ def cmd_finish(state, opt):
     test = state.get("tests") or {}
     if test.get("passed", 0) < 1 or test.get("failed") != 0:
         die("finish заблокирован: нет успешного полного прогона тестов")
-    missing = [g for g in ("G1", "G2", "G3", "G4")
-               if not state.get("gates", {}).get(g, {}).get("ok")]
-    if missing:
-        die("finish заблокирован: проверки %s не пройдены" % ", ".join(missing))
     open_rows = [rid for rid, st in manifest_rows(state) or []
                  if not rid.startswith("D") and st in ("open", "in-spec", "in-ticket")]
     if open_rows:
@@ -1599,9 +1634,24 @@ def main():
             notes.append(publish_tickets(state))
             log(state, "tickets", n=len(state.get("tickets") or []))
         elif cmd == "check-plan":
+            previous_contract = state.get("planContractDigest")
+            was_g3_accepted = state.get("gates", {}).get("G3", {}).get("ok") is True
             problems = check_plan(state)
             notes += ["! " + p for p in problems] or ["G3: трасса сходится"]
+            current_contract = plan_contract_digest(state) if not problems else None
             set_gate(state, "G3", not problems, problems=len(problems))
+            if ((previous_contract is not None or was_g3_accepted)
+                    and previous_contract != current_contract):
+                # Replacing a verified plan also invalidates earlier spec,
+                # coverage and blind acceptance, not only the G3 snapshot.
+                # Legacy 2.3-dev runs with G3 true but no contract requalify.
+                for gate in ("G1", "G2", "G4"):
+                    set_gate(state, gate, False, reason="plan-changed")
+                state["blind"] = None
+            if not problems:
+                state["planContractDigest"] = current_contract
+            else:
+                state.pop("planContractDigest", None)
         elif cmd == "worktree":
             notes.append(cmd_worktree(state, rest, opt))
         elif cmd == "usage":
