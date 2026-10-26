@@ -78,8 +78,11 @@ class DocumentationLocalesTests(unittest.TestCase):
         for req in ("R01", "R02", "R03", "R04", "R05", "R06"):
             self.assertIn(req, page)
         for claim in ("NO-GO", "BLOCKED", "ChatGPT", "multi_agent_v2=false",
-                      "297/297", "Краткий вывод", "Kurzfazit"):
+                      "Краткий вывод", "Kurzfazit"):
             self.assertIn(claim, page)
+        # The regression count advances as tests are added; require a
+        # concrete measured total without freezing a stale release snapshot.
+        self.assertRegex(page, r"full local Windows Python 3\.13 regression \*\*\d+/\d+\*\*")
         for target in re.findall(r"\]\(([^)]+)\)", page):
             if not target or target.startswith(("http:", "https:", "#")):
                 continue
