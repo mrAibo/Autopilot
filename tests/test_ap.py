@@ -133,6 +133,70 @@ class Run(unittest.TestCase):
         self.git("add", "-A")
         self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
 
+    def test_switch_strict_run_to_sequential_preserves_manifest_and_waiting(self):
+        self.init(strict=True)
+        self.write("manifest.md", MANIFEST)
+        self.ap("stage", "manifest")
+        self.ap("ask", "stop", "--note", "named child unavailable")
+        original = self.state()
+        manifest_before = self.manifest()
+        code, out = self.ap("execution", "sequential-host")
+        self.assertEqual(code, 0, out)
+        state = self.state()
+        self.assertFalse(state["strictRouting"])
+        self.assertTrue(state["sequentialHost"])
+        self.assertTrue(state["isolateTickets"])
+        self.assertEqual(state["startedAt"], original["startedAt"])
+        self.assertEqual(state["dir"], original["dir"])
+        self.assertEqual(state["stages"], original["stages"])
+        self.assertEqual(self.manifest(), manifest_before)
+        self.assertIsNone(state["waiting"])
+        self.assertEqual(state["log"][-1]["k"], "execution")
+        self.assertEqual(self.ap("schedule", "--max-parallel", "2")[0], 1)
+        self.assertEqual(self.ap("execution", "sequential-host")[0], 0)
+        self.assertEqual(self.state()["dir"], original["dir"])
+
+    def test_switch_rejects_active_ticket_without_modifying_persisted_state(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        state = self.state()
+        state["tickets"][0]["status"] = "in-progress"
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state, ensure_ascii=False))
+        before = read(os.path.join(self.a, "state.js"))
+        code, out = self.ap("execution", "sequential-host")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("начала задач", out)
+        self.assertEqual(read(os.path.join(self.a, "state.js")), before)
+
+    def test_switch_rejects_approved_routing_and_worktree_directory(self):
+        self.init(strict=True)
+        state = self.state()
+        state["tickets"] = [{"id": "01", "status": "pending",
+                              "routing": {"verified": True, "model": "sonnet"}}]
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state))
+        self.assertNotEqual(self.ap("execution", "sequential-host")[0], 0)
+        state["tickets"] = []
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state))
+        os.makedirs(os.path.join(self.a, "worktrees"))
+        self.write("tickets/test.md", "keep")
+        with open(os.path.join(self.a, "worktrees", "T01"), "w") as f:
+            f.write("occupied")
+        self.assertNotEqual(self.ap("execution", "sequential-host")[0], 0)
+        self.assertTrue(self.state()["strictRouting"])
+
+    def test_switch_rejects_finished_or_wrong_execution_mode(self):
+        self.init(sequential=True)
+        self.assertEqual(self.ap("execution", "sequential-host")[0], 0)
+        self.assertNotEqual(self.ap("execution", "native")[0], 0)
+        state = self.state()
+        state["finishedAt"] = "2026-10-26T20:00:00+01:00"
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(state))
+        self.assertNotEqual(self.ap("execution", "sequential-host")[0], 0)
+
     # ── init ───────────────────────────────────────────────────────────────
     def test_init_creates_run(self):
         self.init()

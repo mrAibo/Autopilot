@@ -900,6 +900,50 @@ def cmd_init(opt):
     return state, notes
 
 
+def cmd_execution(state, pos, opt):
+    """Opt in to sequential-host on an unfinished run before any worker work.
+
+    Never reinterpret already launched tasks, approved model routes or existing
+    worktrees as host-operated tickets. No re-init, branch edits or code writes.
+    """
+    if pos != ["sequential-host"] or set(opt) - {"no-serve"}:
+        die("execution: используй `ap.py execution sequential-host`")
+    if state.get("finishedAt"):
+        die("execution: завершённый прогон нельзя переключить")
+    if state.get("sequentialHost") and state.get("strictRouting") is False:
+        return "уже выбран sequential-host; состояние не переинициализировано"
+    if state.get("strictRouting") is not True or state.get("sequentialHost"):
+        die("execution: переключение поддерживается только из активного strict-routing")
+    tickets = state.get("tickets")
+    if not isinstance(tickets, list):
+        die("execution: повреждён список задач")
+    for tk in tickets:
+        if (not isinstance(tk, dict) or tk.get("status") != "pending"
+                or any(tk.get(k) for k in
+                       ("worktree", "routing", "plannedRouting", "commit",
+                        "testEvidence", "tests", "startedAt", "finishedAt"))):
+            die("execution: нельзя менять режим после маршрутизации или начала задач")
+    if any(s.get("id") in ("build", "review", "final") and
+           s.get("status") != "pending" for s in state.get("stages", [])):
+        die("execution: этап исполнения уже начался")
+    if any((e.get("k") == "worktree"
+            or (e.get("k") == "plan-models" and e.get("applied") is True)
+            or e.get("k") == "ticket")
+           for e in state.get("log", [])):
+        die("execution: обнаружена история работы исполнителя или модельного маршрута")
+    worktree_dir = os.path.join(A, "worktrees")
+    if os.path.isdir(worktree_dir) and os.listdir(worktree_dir):
+        die("execution: существуют worktrees — сначала разберись с ними")
+    state["strictRouting"] = False
+    state["sequentialHost"] = True
+    state["isolateTickets"] = True
+    if isinstance(state.get("waiting"), dict) and state["waiting"].get("kind") == "stop":
+        close_wait(state)
+    log(state, "execution", mode="sequential-host", previous="strict-routing")
+    return ("переключён в sequential-host; план сохранён; один таск за раз. "
+            "Перед worktree prepare проверь чистоту Git и подтверждённые тесты")
+
+
 def cmd_stage(state, pos, opt):
     if not pos:
         die("stage <id> [done|skip|fail] [--note …]")
@@ -1958,7 +2002,9 @@ def main():
             beat(state)
         if cmd in MOVES_ON:
             close_wait(state)
-        if cmd == "stage":
+        if cmd == "execution":
+            notes.append(cmd_execution(state, rest, opt))
+        elif cmd == "stage":
             cmd_stage(state, rest, opt)
         elif cmd == "ticket":
             cmd_ticket(state, rest, opt)
