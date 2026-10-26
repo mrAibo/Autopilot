@@ -399,7 +399,8 @@ def publish_tickets(state):
                 die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
-                  "tests", "commit", "concerns", "placeholders", "routing", "worktree", "retryAdvice"):
+                  "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
+                  "worktree", "retryAdvice"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")

@@ -496,6 +496,14 @@
 - **Additional GUI discovery:** Codex desktop application `OpenAI.Codex 26.1021.3705.0`, bundled `codex-cli 0.164.0-alpha.11.1`; both GUI-bundled and standalone CLI still report `multi_agent_v2=false`. Bundled runtime attestation/discovery features remain disabled. This is non-inference host inspection, not GUI child execution.
 - **Release:** remains `2.3.0-dev` / R03 native GUI **NO-GO** until independently verified host runtime evidence. Do not use mock capability catalogs as proof.
 
+## R03 — persist Phase-4 model/Effort plans across normal ticket refresh (2026-10-26)
+
+- **Base:** clean `main` `4439fed2bee7614477790c1bd6fefeb2e80d88f6`; latest `main` GitHub Actions [#40362273491](https://github.com/mrAibo/Autopilot/actions/runs/40362273491) and [#40362129016](https://github.com/mrAibo/Autopilot/actions/runs/40362129016) are both **4/4 green**.
+- **Bug fixed:** `publish_tickets()` recreated each ticket on `tickets` or `check-plan` and preserved `routing` but omitted `plannedRouting`. This silently erased automatic Phase-4 model/Effort recommendations in ordinary refresh and resume workflows.
+- **Change:** preserve `plannedRouting` alongside `routing` when the published ticket SHA-256 is unchanged. A changed ticket still invalidates both cached plan and applied route; the controller never silently removes or overwrites generated profile files. Native agent runtime proof remains unavailable.
+- **Tests:** two new real disposable-Git regression tests cover repeated `tickets → check-plan → tickets`, advisory persistence, changed-ticket invalidation and recalculation, applied profile persistence/strict start, and preservation of old profile files after ticket edits. Both targeted tests passed.
+- **Scope:** no model worker, paid API, or unverified native Codex GUI child invoked. User allows **subscription-included ChatGPT/Codex tokens** only; this does not authorize separately billed API/credits or override `spend_guard`. Stable `2.3.0` remains **NO-GO** pending real host attestation.
+
 ## New-session resume instruction
 
 > Продолжи разработку Autopilot 2.3 в репозитории `mrAibo/Autopilot`. Сначала проверь актуальную Git-ветку, `git status`, `HEAD`, последний merge/CI и раздел **Latest merged checkpoint** ниже; если в `STATUS.md` зафиксирована незавершённая feature-ветка, продолжай её, а не создавай новую. Прочитай `STATUS.md`, `brief.md`, `skills/autopilot/SKILL.md`, `docs/autopilot/scope-and-labs.md` и документы соответствующего текущего этапа. Проверь Windows checkout и Junction-навыки. Версия пока `2.3.0-dev`, без release tag. Сохраняй STATUS после этапов, не имитируй native GUI child-agent E2E, не запускай новые платные API-эксперименты по инерции и не объявляй релиз без настоящей проверки. Для восстановления **работы Autopilot внутри пользовательского проекта** (это отдельный случай!) используй `skills/autopilot/phases/0-resume.md` и `/autopilot` в папке этого проекта.
