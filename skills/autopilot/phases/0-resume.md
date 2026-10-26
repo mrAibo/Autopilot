@@ -67,6 +67,8 @@ crashed and do not start a second writer. Follow
 `phases/0-preflight.md`, say which run is active and request
 an explicit choice of the continuing window.
 
+**Codex GUI strict-routing blocker:** if the run has not started any task and its only blocker is an unverified named subagent, inspect [sequential-host.md](../../../docs/autopilot/sequential-host.md) and use `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` as an explicit, fail-closed opt-in. This preserves the existing run; never re-run `init`, edit `state.js` manually, or bypass Git/host-test requirements. The sequential acceptance verifier is currently Python-`unittest`-only; Rust/Node code remains blocked pending independently supported test evidence and a reviewed clean baseline.
+
 **Other cases:** an existing repository *without* `.autopilot/state.js`
 is a **new Autopilot run on existing code**, not a resume. A project
 with a *completed* `finishedAt` starts a new feature run or, when

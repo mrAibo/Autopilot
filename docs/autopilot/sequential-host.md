@@ -17,6 +17,18 @@ py -3.13 .autopilot/ap.py init --slug my-project --title "My project" --skill-di
 - The normal `route` action is deliberately disabled in this mode: its TOML/Markdown profile would be a claim about an unavailable native worker, not proof of execution.
 - Recover an existing unfinished project using [Phase 0 resume](../../skills/autopilot/phases/0-resume.md); never run `init` again just to change its mode or bypass accepted tasks.
 
+## Existing strict run stopped by Codex GUI (no re-init)
+
+For an **unfinished, unstarted** run that selected `--strict-routing` before Codex GUI reported that named-agent model/effort cannot be verified, the safe migration is:
+
+```powershell
+py -3.13 .autopilot/ap.py execution sequential-host --no-serve
+```
+
+This keeps the run ID, requirements, completed planning stages, and source unchanged, sets `strictRouting=false`, `sequentialHost=true`, `isolateTickets=true`, closes a pending `stop` notice, and records the decision. It refuses completed runs, launched or approved tasks, existing worktrees, applied native routing, or any evidence of earlier worker execution. It does **not** run a model, create a Git commit, or make dirty source safe. Run `git status --short --branch` first; if the source is dirty, `worktree prepare` remains blocked. Never automatically `git add -A` or discard unrelated user files just to make it pass.
+
+**Non-Python projects:** the released sequential workflow currently accepts only baseline-tracked Python `unittest`. Rust/Node-only projects are **not** accepted by this verifier. A Rust `cargo test` adapter requires a separate safe implementation with host-owned command allowlisting, baseline-tracked test evidence and regression coverage; until then stop before `worktree prepare` / acceptance rather than inventing Python proofs.
+
 ## Work one ticket at a time
 
 ```powershell
