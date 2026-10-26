@@ -1027,6 +1027,134 @@ def sequential_occupied(state, ticket_id):
         for t in state.get("tickets") or [])
 
 
+def cmd_plan_models(state, opt):
+    """Phase 4: plan all ticket models; --apply atomically installs profiles."""
+    if state.get("sequentialHost"):
+        die("plan-models: sequential-host не создаёт нативных субагентов")
+    provider = opt.get("provider")
+    if provider not in ("openai", "anthropic"):
+        die("plan-models: требуется --provider openai|anthropic")
+    if not state.get("tickets") or any(t.get("status") != "pending" for t in state["tickets"]):
+        die("plan-models: сначала опубликуй pending таски через ap.py tickets")
+    apply = opt.get("apply") is True
+    if opt.get("apply") not in (None, True):
+        die("plan-models: --apply не принимает аргумент")
+    cap_arg = opt.get("capabilities")
+    if apply and not isinstance(cap_arg, str):
+        die("plan-models: --apply требует --capabilities из проверенного хоста")
+    policy_arg = opt.get("policy")
+    policy_path = None
+    policy_relative = None
+    policy_sha = None
+    if policy_arg is not None:
+        if not isinstance(policy_arg, str) or not policy_arg.strip():
+            die("plan-models: неверный --policy")
+        policy_path = os.path.realpath(os.path.join(ROOT, policy_arg))
+        try:
+            if os.path.commonpath((policy_path, os.path.realpath(ROOT))) != os.path.realpath(ROOT):
+                die("plan-models: policy должна быть внутри проекта")
+        except ValueError:
+            die("plan-models: недопустимый путь policy")
+        if not os.path.isfile(policy_path):
+            die("plan-models: файл policy не найден")
+        policy_relative = os.path.relpath(policy_path, ROOT).replace(chr(92), "/")
+        with open(policy_path, "rb") as stream:
+            policy_sha = hashlib.sha256(stream.read()).hexdigest()
+    cap_path = os.path.realpath(os.path.join(ROOT, cap_arg)) if isinstance(cap_arg, str) else None
+    if cap_path and not os.path.isfile(cap_path):
+        die("plan-models: файл capabilities не найден")
+    try:
+        import model_router as router
+        import agent_profiles
+        policy = router.load_policy(policy_path)
+        caps = router.load_json(cap_path) if cap_path else None
+        plans = []
+        for tk in state["tickets"]:
+            tid = tk["id"]
+            candidates = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % tid))
+            if len(candidates) != 1:
+                die("plan-models: tickets отличаются от опубликованного плана: %s" % tid)
+            with open(candidates[0], "rb") as stream:
+                raw = stream.read()
+            if hashlib.sha256(raw).hexdigest() != tk.get("fingerprint"):
+                die("plan-models: tickets изменены; повтори ap.py tickets и check-plan")
+            scores = router.assess_ticket(raw.decode("utf-8"))
+            route = router.choose_route(provider, scores, policy, caps)
+            proposal = {
+                "ticket": tid, "provider": provider, "model": route["model"],
+                "effort": route["effort"], "profile": route["profile"],
+                "score": route["score"], "factors": scores,
+                "reason": route["reason"], "requiresReview": route["requires_review"],
+                "status": route["status"], "fingerprint": tk["fingerprint"],
+                "hostExecutionVerified": False,
+            }
+            if route["status"] != "ready":
+                proposal["error"] = route["error"]
+            item = {"ticket": tk, "file": candidates[0], "scores": scores,
+                    "route": route, "proposal": proposal}
+            if apply and route["status"] == "ready":
+                profile = agent_profiles.prepare(ROOT, candidates[0], provider, cap_path,
+                                                 "executor", policy_path, scores, False)
+                relative = profile["agent_file"]
+                path = os.path.join(ROOT, relative)
+                target = os.path.realpath(path)
+                if os.path.commonpath((target, os.path.realpath(ROOT))) != os.path.realpath(ROOT):
+                    die("plan-models: профиль за пределами проекта")
+                if os.path.islink(path) or os.path.islink(os.path.dirname(path)):
+                    die("plan-models: ссылки профиля запрещены")
+                expected_rel, expected_text = agent_profiles.definition(
+                    provider, profile["agent_type"], "executor", route,
+                    os.path.relpath(candidates[0], ROOT).replace(chr(92), "/"))
+                if expected_rel.as_posix() != relative:
+                    die("plan-models: несовместимый профиль")
+                if os.path.lexists(path):
+                    with open(path, encoding="utf-8") as stream:
+                        if stream.read() != expected_text:
+                            die("plan-models: профиль существует с другим содержимым")
+                item.update(profile=profile, profilePath=path)
+            plans.append(item)
+        blocked = [p for p in plans if p["route"]["status"] != "ready"]
+        if apply and blocked:
+            die("plan-models: blocked — " + "; ".join(
+                p["ticket"]["id"] + ": " + p["route"]["error"] for p in blocked))
+        if apply:
+            created = []
+            try:
+                for p in plans:
+                    existed = os.path.isfile(p["profilePath"])
+                    agent_profiles.prepare(ROOT, p["file"], provider, cap_path,
+                                           "executor", policy_path, p["scores"], True)
+                    if not existed:
+                        created.append(p["profilePath"])
+            except (OSError, ValueError, TypeError) as exc:
+                for path in created:
+                    os.unlink(path)
+                die("plan-models: создание профилей отменено: " + str(exc))
+        for p in plans:
+            tk = p["ticket"]
+            tk["plannedRouting"] = dict(p["proposal"], applied=apply)
+            if apply:
+                profile = p["profile"]
+                with open(p["profilePath"], "rb") as stream:
+                    digest = hashlib.sha256(stream.read()).hexdigest()
+                tk["routing"] = {
+                    "provider": provider, "model": p["route"]["model"],
+                    "effort": p["route"]["effort"], "score": p["route"]["score"],
+                    "reason": p["route"]["reason"], "verified": True,
+                    "agentType": profile["agent_type"],
+                    "agentFile": profile["agent_file"], "profileSha": digest,
+                }
+                if policy_relative is not None:
+                    tk["routing"].update(policyFile=policy_relative, policySha=policy_sha)
+        log(state, "plan-models", provider=provider, applied=apply, tickets=len(plans),
+            blocked=len(blocked))
+        return {"status": "applied" if apply else "advisory", "provider": provider,
+                "modelCalls": 0, "hostExecutionVerified": False,
+                "tickets": [p["proposal"] for p in plans]}
+    except (ValueError, OSError, TypeError, ImportError) as exc:
+        die("plan-models: " + str(exc))
+
+
 def cmd_ticket(state, pos, opt):
     acts = [p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
@@ -1769,6 +1897,16 @@ def main():
         if state is None:
             die("state.js ещё нет — начни с `ap.py init`")
         rest = pos[1:]
+        if cmd == "plan-models":
+            if rest:
+                die("plan-models: лишние аргументы")
+            state["updatedAt"] = now()
+            payload = cmd_plan_models(state, opt)
+            beat(state)
+            save(state)
+            write_snapshot(state)
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return
         if cmd == "schedule":
             if rest:
                 die("schedule: лишние аргументы")

@@ -54,12 +54,23 @@ Every ticket of the chain carries the same requirement. It applies when the chan
 - `да — <риск>` — a ticket whose **own code** is one of these: sign-in, passwords, sessions, 2FA; keys and secrets; money; deleting or migrating user data. A ticket that only checks permissions inside an ordinary feature is not a risk ticket — the whole-branch review covers it. Most tickets in a product with access rights touch them; marking them all is how a run reviews 12 tickets of 15.
 - `нет` — the rest. Most tickets. **At T0 the one ticket is `нет` too**: the whole-branch review is its review, and a point review would read the same diff twice.
 
-**Model** — decide per ticket with the provider-neutral adaptive router, not just the number of changed lines. The legacy `сильная`/`обычная` label is descriptive only: it must never override the real model/effort authorization.
+**Model AND reasoning effort are automatically calculated for EVERY ticket in Phase 4 (planning), not guessed by the executor at launch.** The legacy ticket header `**Модель:** сильная/обычная` is only descriptive and must not override this decision. The provider (`openai` for Codex or `anthropic` for Claude Code) is chosen from the actual host, not guessed from the orchestrator's model.
 
-- Determine complexity from algorithm, coupling, uncertainty, context, testing, risk. Run `.autopilot/model_router.py` on each ticket, supply the current harness' verified capabilities. See [model routing](../../../docs/autopilot/model-routing.md) in the repository.
-- Assign low effort and cheaper permitted models to routine copy/docs; use stronger permitted models for substantial coding; risk overrides total score, requires focused review and prevents cheap-model default.
-- Record the approved decision (model, effort, score, reason) in `ap.py ticket NN route` before spawning. If model selection is unsupported or verification is missing, **do not dispatch a subagent**. Ask for capability setup or stop; never silently inherit the orchestrator's model.
-- High-price Astra/Fable are prohibited for subagents in the default policy; never escalate on a missing file or ambiguous specification.
+After `ap.py tickets` and `ap.py check-plan`, compute the entire ticket matrix **with one command**:
+
+```bash
+# Advisory plan, no model calls, no native profiles or host entitlement claims:
+python3 .autopilot/ap.py plan-models --provider openai
+
+# Only after host capability discovery genuinely supports model + Effort selection:
+python3 .autopilot/ap.py plan-models --provider openai \
+  --capabilities .autopilot/model-capabilities.json --apply
+```
+
+- For each ticket, the deterministic `model_router.py` scores algorithm (25), coupling (20), uncertainty (15), context (15), tests (15), risk (10). It chooses `cheap`/`balanced`/`strong` and the **exact model + reasoning Effort** from the provider policy; critical risk can force `strong`. See [adaptive routing](../../../docs/autopilot/model-routing.md).
+- `plan-models` saves `plannedRouting` on each ticket and returns JSON showing ticket, category, score, model, Effort, reason, and `ready/blocked`. Without capabilities it is **advisory only**: no agent launched, no false host verification. With `--apply`, **all** tickets must be supported; it prepares all native project agent definitions and verified routing records **in one batch**, or fails closed before creating profiles if any selected model/Effort is unavailable.
+- The applied route is an authorized **configuration**, not evidence of an actual child/model/Effort. Phase 5 must still check profile hashes, runtime dispatch capabilities and the exact effective selected agent. On an unsupported GUI, **do not use `--apply` as a workaround**; use [`--sequential-host`](../../../docs/autopilot/sequential-host.md) instead and do not claim named subagents.
+- No automatic use of Astra/Fable/Opus, no inheriting the expensive parent model, no model call or paid API tokens during the plan. Task changes require republishing tickets, rechecking G3 and recalculating routes; retries with changed risk/complexity require reapproval.
 - Rebalance independent ticket sizes to avoid cold-start costs; one ticket does not imply several reviewers.
 
 ## The ticket file

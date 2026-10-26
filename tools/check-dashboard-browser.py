@@ -137,6 +137,13 @@ def main():
 <script>
 try {
   if (%(sequential)s) window.STATE.sequentialHost = true;
+  if (%(planned)s) {
+    const ticket = window.STATE.tickets[1];
+    delete ticket.routing;
+    ticket.plannedRouting = {provider:'openai', model:'gpt-6-luna',
+      effort:'low', profile:'cheap', score:12,
+      status:'blocked', error:'No verified host capabilities'};
+  }
   render(%(lang)s);
   applyTheme(%(theme)s);
   // Exercise the real delegated language-click rerender and a later refresh.
@@ -220,6 +227,9 @@ try {
                       visible.includes('Models & resources'),
     has_sequential_notice: !!document.getElementById('sequential-host-notice') &&
       visible.includes(%(sequential_warning)s),
+    has_planned_route: !!document.getElementById('planned-model-routes') &&
+      visible.includes('Plan only, not executed:') &&
+      visible.includes('No verified host capabilities'),
   };
   const output = document.createElement('pre');
   output.id = 'autopilot-layout-probe';
@@ -235,6 +245,7 @@ try {
 </script>
 """ % {"lang": json.dumps(lang), "theme": json.dumps(theme),
        "sequential": json.dumps(label == "mobile-dark"),
+       "planned": json.dumps(label == "mobile"),
        "sequential_warning": json.dumps(
            "no child agent is created" if lang == "en" else
            "субагент не создаётся")}
@@ -334,6 +345,10 @@ const repeat = setInterval(() => {
                         "landmark_targets_focusable", "mission_focus_preserved"))):
                 print("Accessibility/theme/layout assertion failed: " + label +
                       " " + repr(metrics), file=sys.stderr)
+                return 1
+            if metrics["has_planned_route"] != (label == "mobile"):
+                print("Incorrect model-plan advisory rendering: " + label + " " +
+                      repr(metrics), file=sys.stderr)
                 return 1
             if metrics["has_sequential_notice"] != (label == "mobile-dark"):
                 print("Incorrect sequential-host warning: " + label + " " +
