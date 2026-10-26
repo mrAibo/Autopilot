@@ -1086,6 +1086,33 @@ class Run(unittest.TestCase):
         self.assertIn("измен", out.lower())
         self.assertIsNone(self.state()["finishedAt"])
 
+    def test_rechecking_changed_plan_revokes_earlier_acceptance(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest().replace(
+            "«принимает заявки»", "«показывает чужие заявки»"))
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        self.assertIn("G3: трасса сходится", out)
+        state = self.state()
+        self.assertTrue(state["gates"]["G3"]["ok"])
+        self.assertTrue(all(not state["gates"][g]["ok"] for g in ("G1", "G2", "G4")))
+        self.assertIsNone(state["blind"])
+        code, out = self.ap("finish", "--result", "устаревшая слепая приёмка")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("проверки G1, G2, G4", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_rechecking_unchanged_plan_preserves_valid_acceptance(self):
+        self.ready_to_finish()
+        before = self.state()["planContractDigest"]
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        state = self.state()
+        self.assertEqual(state["planContractDigest"], before)
+        self.assertTrue(all(state["gates"][g]["ok"] for g in ("G1", "G2", "G3", "G4")))
+        code, out = self.ap("finish", "--result", "всё подтверждено")
+        self.assertEqual(code, 0, out)
+
     def test_finish_detects_removed_redundant_completed_ticket(self):
         self.ready_to_finish()
         # Let T02 also cover R05, so removing T01 cannot be discovered merely

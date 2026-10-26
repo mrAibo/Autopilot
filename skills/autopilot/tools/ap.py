@@ -1634,11 +1634,22 @@ def main():
             notes.append(publish_tickets(state))
             log(state, "tickets", n=len(state.get("tickets") or []))
         elif cmd == "check-plan":
+            previous_contract = state.get("planContractDigest")
+            was_g3_accepted = state.get("gates", {}).get("G3", {}).get("ok") is True
             problems = check_plan(state)
             notes += ["! " + p for p in problems] or ["G3: трасса сходится"]
+            current_contract = plan_contract_digest(state) if not problems else None
             set_gate(state, "G3", not problems, problems=len(problems))
+            if ((previous_contract is not None or was_g3_accepted)
+                    and previous_contract != current_contract):
+                # Replacing a verified plan also invalidates earlier spec,
+                # coverage and blind acceptance, not only the G3 snapshot.
+                # Legacy 2.3-dev runs with G3 true but no contract requalify.
+                for gate in ("G1", "G2", "G4"):
+                    set_gate(state, gate, False, reason="plan-changed")
+                state["blind"] = None
             if not problems:
-                state["planContractDigest"] = plan_contract_digest(state)
+                state["planContractDigest"] = current_contract
             else:
                 state.pop("planContractDigest", None)
         elif cmd == "worktree":

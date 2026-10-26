@@ -174,6 +174,8 @@ Placeholders and empty variables are not repeated here — they are in the repor
 
 In this order, so the report names paths that exist:
 
+**Before landing:** `finish` compares the requirements and ticket files with the verified G3 plan, checks all gates and independently revalidates the plan. If it reports a stale or missing G3 contract (including an unfinished 2.3-dev run resumed from before this check existed), run `ap.py check-plan`, investigate any unowned/duplicate requirement or changed ticket, and repeat G1/G2/G4 validation when the plan has changed. Never just rewrite `state.js` or mark a new requirement as `done` to bypass this gate.
+
 1. The memory file (or its proposal), the ADRs, the glossary and the progress file are written.
 2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and puts the server out twelve seconds later, after the page has fetched the final picture. A `!` line about the rename means the name was taken or the index dirty: leave it, the run is not undone by a cosmetic suffix.
 3. **The final commit** — exactly what this skill wrote since the plan commit, never the rest of the tree, where the user may have work of their own:

@@ -26,9 +26,11 @@ constraints) plus the file names and bytes of each planned ticket. Normal
 progress columns of `manifest.md` may still change during execution.
 Before `finish`, Autopilot requires this contract to match and checks
 the plan again; missing/replaced/deleted tasks, duplicate requirement IDs
-and even `done` requirements with no owner block release. Older in-progress
-2.3-dev states without the contract must rerun `ap.py check-plan`, then
-review/resolve any newly exposed G2/G4 acceptance gaps. This is a Git/project
+and even `done` requirements with no owner block release. After a changed
+plan passes another `check-plan`, saved G1/G2/G4 approvals are revoked and
+blind acceptance must be repeated. An identical re-check preserves approvals.
+Older in-progress 2.3-dev states without the contract must rerun
+`ap.py check-plan` and renew G1/G2/G4 acceptance if their earlier G3 was green. This is a Git/project
 consistency gate, not a cryptographic signature or real-model attestation. The normal `/autopilot` route does not require an
 OpenAI API key, Python SDK, an HTTP worker, a background supervisor or
 a separate experimental runtime.
