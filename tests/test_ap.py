@@ -991,6 +991,27 @@ class Run(unittest.TestCase):
         self.assertEqual(s["result"], "Бот принимает заявки")
         self.assertIn("R", self.git("status", "--short").stdout)    # переименование через git mv
 
+    def test_finish_rejects_done_ticket_after_git_history_rewrite(self):
+        self.ready_to_finish()
+        old_state = self.state()
+        lost = old_state["tickets"][1]["commit"]
+        kept = old_state["tickets"][0]["commit"]
+        self.assertNotEqual(kept, lost)
+        # Keep the state and working files intact; only HEAD ancestry changes.
+        result = self.git("reset", "--soft", kept)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotEqual(self.git("merge-base", "--is-ancestor", lost, "HEAD").returncode, 0)
+        code, out = self.ap("finish", "--result", "ложная сдача после rebase")
+        self.assertNotEqual(code, 0)
+        self.assertIn("коммиты сданных тасков отсутствуют", out)
+        self.assertIn("02", out)
+        after = self.state()
+        self.assertIsNone(after["finishedAt"])
+        self.assertEqual(after["tickets"][1]["status"], "done")
+        self.assertEqual(after["dir"], old_state["dir"])
+        self.assertEqual(after["stages"], old_state["stages"])
+        self.assertNotIn("ложная сдача после rebase", read(os.path.join(self.a, "README.md")))
+
     def test_reopen_puts_wip_back(self):
         self.ready_to_finish()
         self.ap("finish", "--result", "готово")

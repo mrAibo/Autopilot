@@ -1,6 +1,6 @@
 # STATUS.md — Autopilot 2.3 handoff
 
-**Updated:** 2026-10-25 (Europe/Berlin)
+**Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
 **Active branch:** `main`
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
@@ -334,6 +334,15 @@
 - **Verified:** 9/9 targeted `tests/test_bounded_api_pilot.py` passed with mocked HTTPS reply but real temporary Git worktrees/state/test execution/commit/landing. Negative cases include missing API key, wrong marker/zone, exceeded token report, incomplete/malicious response, timeout non-replayable receipt and no side effects. Full local Windows Python 3.13 **238/238 tests green**, Dashboard JS syntax passed. [PR #12 CI #40247616196](https://github.com/mrAibo/Autopilot/actions/runs/40247616196) **4/4 green** Ubuntu/Windows Python 3.11/3.13. Windows checkout fast-forwarded cleanly to merged `dd95fd1` on `main`. This STATUS-only checkpoint will independently trigger main CI and must be checked.
 - Docs: `docs/autopilot/bounded-api-pilot.md`, English/Russian README and CHANGELOG; normal `ap.py` .gitignore now excludes temporary API pilot receipts and marker. This file is intentionally **not** deployed by Phase 0 into arbitrary application projects; it remains a deliberately narrow development-only qualification harness.
 - **Next P0:** connect legitimate independent API credential using the machine's secure environment only after user provisions it and verifies account billing controls; then, with explicit one-shot ticket approval, consider a single tiny API request. Provider currency cap still not proven; keep previous `spend_guard` on Codex CLI. After actual model verification, investigate stronger process cancellation for POSIX and production-safe parallel orchestration.
+
+## Return to original Autopilot 2.3 scope (2026-10-26)
+
+- **Feature branch:** `fix/brief-scope-finish-ancestry-20261026`, based on clean `main` `ea07d19`. No merge or new tag at this initial checkpoint.
+- The owner correctly observed scope creep. The original `бриф.md` explicitly says **no wholesale rewrite, preserve the existing CLI and no paid API tests**. The required product is R01–R06: objective finish/gates, safe locking, economical model routing, responsive Dashboard, documentation and real regressions. The normal `/autopilot` should not require a new paid API key, background supervisor or an experimental worker.
+- **R01 production bug fixed:** `ap.py finish` previously trusted `status=done` even if an accepted ticket's Git commit had disappeared from HEAD after a reset/rebase. It now rechecks every accepted ticket commit against current HEAD before stage mutation or final acceptance. A real temporary Git negative regression uses `reset --soft` to rewrite ancestry while preserving state, demonstrates `finish` refuses false success and does not change stages, result or project run directory.
+- **Product clarity:** `docs/autopilot/scope-and-labs.md` categorizes core R01–R06 versus optional experiments. `SKILL.md` explicitly states that `bounded_api_pilot.py`, offline subprocess harnesses and API credentials are not prerequisites of the normal skill. Both READMEs now put the actual user journey before a short, transparent limitations summary; verbose experimental adapter explanations remain reachable through their existing specialist docs and status. No experimental modules removed, promoted or integrated into the default workflow.
+- **Tests and CI:** update with real local full test counts, PR and merge SHA, and 4-job CI only after checking results. Version remains `2.3.0-dev`. No new live/paid model calls and no changes to the owner's other projects.
+- **Remaining core priorities:** verify supported Codex/Claude runtime routing honestly (a native named subagent was unavailable in the user-tested GUI), finish R01–R06 acceptance review, matched benchmarks and remaining Dashboard UX. Resist further API harness/dispatcher expansion unless an original requirement genuinely needs it.
 
 ## Prioritized next steps
 

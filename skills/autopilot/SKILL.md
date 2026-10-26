@@ -15,6 +15,8 @@ Autopilot flies a dictated idea from words to a working project **in one dialogu
 
 **The brief is the contract, not the design.** *Nothing may quietly vanish*: the user's words become a numbered manifest before anything else, and every phase is gated on it — what breaks naive vibecoding is a requirement that stopped existing around the third rewrite. And *the brief is a silhouette*: it describes the happy path and nothing underneath, so working out the empty states, failures and limits is legitimate work. How far to take it is the user's [depth](phases/0-modes.md) dial; depth that **detaches** from the brief is never allowed.
 
+**Product scope:** keep the original brief → manifest → briefing → spec → plan → build → review → acceptance experience intact. The development-only offline subprocess and Responses API toy pilots are **not phases or prerequisites** of `/autopilot`; do not install, launch, or request extra API credentials for them during the normal workflow. Optional host controllers and GUI-to-CLI fallbacks must not replace the skill's supported native host workflow. See [product scope and labs](../../docs/autopilot/scope-and-labs.md).
+
 ## Reading this skill
 
 This file is the orchestrator: order, gates, the rules that never lose. Each phase's rules are in its own file, **read when that phase starts and not before** — one file at a time, never ahead: a file opened early stays in the one context that is never refreshed for the rest of the run.

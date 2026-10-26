@@ -1421,6 +1421,15 @@ def cmd_ask(state, pos, opt):
 
 
 def cmd_finish(state, opt):
+    # The run may have been reset/rebased after its tickets were accepted.
+    # Reject stale Git ancestry *at the final gate*, not just at ticket done;
+    # 'commits' remains a separate read-only diagnostic for manual recovery.
+    stale = [tk.get("id", "?") for tk in state.get("tickets") or []
+             if tk.get("status") == "done"
+             and not verified_commit(tk.get("commit"))]
+    if stale:
+        die("finish заблокирован: коммиты сданных тасков отсутствуют в HEAD: %s"
+            % ", ".join(stale))
     t = now()
     notes = []
     for s in state.get("stages") or []:

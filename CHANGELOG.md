@@ -8,6 +8,9 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Scope correction toward the original R01–R06 brief: stop presenting optional paid-API experiments and process harnesses as a normal `/autopilot` prerequisite. Add `docs/autopilot/scope-and-labs.md` and refocus both README front pages.
+- R01 final-acceptance regression: `ap.py finish` revalidates all accepted ticket commit ancestry against current HEAD. A real temporary Git `reset --soft` negative test demonstrates stale commits block a false final release while preserving run state.
+
 - Add a separate **fixed synthetic-only** bounded Responses API pilot (no arbitrary code execution, no tool calls, max 4096 request bytes, server `max_output_tokens=192`, one durable no-replay receipt). Uses `gpt-6-luna`, requires temporary Git fixture, exact zone and approval, records reported token usage before applying only an approved toy change. Full host Git acceptance tested with fake provider JSON response. No OPENAI_API_KEY was present and no real paid call made. This is NOT a provider hard dollar cap; Codex CLI spend_guard remains unchanged.
 
 - P0 host-verified worker outcome: the read-only zone-scoped worktree inspector recognizes completed but **uncommitted** worker edits (Windows sandbox can deny shared Git index.lock); `ready-for-host-verification` does not mean tests passed or work accepted. Existing trusted host tests/finalize/land/accept still own the code gate. A synthetic OS-worker no-commit full lifecycle and out-of-zone failure are tested. Real paid CLI remains blocked behind spend_guard.
