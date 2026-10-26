@@ -9,6 +9,13 @@ For strict model routing with isolated task worktrees, manually entered
 The host now runs a baseline-tracked, unchanged Python unittest suite from
 the exact worktree, pins the worktree Git HEAD and hashes its tracked diff
 plus all nonignored untracked file contents before and after the tests.
+It **rejects ignored Python executable/importable files** in the worktree
+(`.py`, `.pyw`, `.pyc`, `.pyo`, `.pth`, `.pyd`, `.so`, `.zip`,
+`.egg`, `.whl`, case-insensitively and including nested ignored
+directories), rather than accidentally accepting an untracked dependency.
+Unlike ignored code, ordinary ignored data files are not blocked or hashed.
+Move required Python test inputs into tracked source or obtain an explicit
+operator-reviewed test workflow outside strict isolated automation.
 
 ```powershell
 # Run from the PRIMARY repository, not inside the worktree.
@@ -25,7 +32,10 @@ py -3.13 .autopilot/ap.py worktree 01 release
 `sys.executable -B -m unittest -q <baseline-tracked-module>` with direct
 argument passing (no shell expansion), a bounded timeout (default 90 sec,
 10–300 sec permitted), disabled Python bytecode writes and user site
-packages. It requires a real `Ran N tests`, `OK`, process exit 0,
+packages. The host drops inherited `PYTHON*` environment variables,
+including `PYTHONPATH` and `PYTHONHOME`, before applying its own
+bytecode/user-site controls. This prevents those particular host variables
+from silently sourcing external code. It requires a real `Ran N tests`, `OK`, process exit 0,
 N greater than zero, and an unchanged Git-visible fingerprint. The task's
 state records the suite name, approved worktree head, fingerprint, count,
 test timeout and timestamp. When the host checks a saved record, it **runs
@@ -40,11 +50,16 @@ fail closed. After a worker changes the files, **rerun verify**.
 This is an **independent execution record, not a tamperproof attestation**:
 Python tests execute arbitrary test code, including imports from the
 worktree. Only run suites you trust. The runner currently supports
-Python unittest and Git-visible files, not pytest, ignored local files,
-symlinked modules or Docker environments. Even with the new re-run guard,
-this is not cryptographic evidence against tampering with the host
-interpreter, approved test code or environment. A test suite modified relative to the
-baseline is refused. Tests must not require model permissions or network.
+Python unittest and Git-visible files, not pytest, ignored local
+**data** files, symlinked modules or Docker environments. An ignored
+`.env` / JSON / fixture can still influence an approved test if the test
+itself loads that file: this policy does not attest all runtime inputs.
+It also cannot prove interpreter, installed packages, PATH, environment
+variables other than `PYTHON*` or approved test code are benign. Blocking
+ignored Python code can reject a project with an ignored virtualenv or
+generated Python files; review/remove those inputs before strict verification.
+This is not cryptographic evidence. A test suite modified relative to
+the baseline is refused. Tests must not require model permissions or network.
 
 Older non-strict workflows still accept explicitly reported `N/0` for
 backward compatibility. **Use `--strict-routing --isolated-tickets`**

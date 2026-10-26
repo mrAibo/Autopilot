@@ -33,9 +33,31 @@ def git_bytes(root, *args):
     return p.stdout
 
 
+# Ignored Python source, bytecode or importable extension modules are
+# unreviewed executable inputs. They are absent from ordinary Git status and
+# cannot be attested by hashing only tracked/nonignored files.
+IGNORED_PYTHON_PATTERNS = tuple(
+    ":(icase)*" + ext for ext in (
+        ".py", ".pyw", ".pyc", ".pyo", ".pyd", ".so",
+        ".pth", ".zip", ".egg", ".whl",
+    )
+)
+
+
+def reject_ignored_python(target):
+    ignored = git_bytes(
+        target, "ls-files", "--others", "--ignored", "--exclude-standard",
+        "-z", "--", *IGNORED_PYTHON_PATTERNS)
+    if ignored.strip(b"\0"):
+        # Avoid printing filenames: ignored paths may contain private names.
+        raise EvidenceError("Ignored Python inputs in test worktree; "
+                            "remove them or obtain independent operator review")
+
+
 def fingerprint(target):
     """Hash tracked changes, index and exact untracked file bytes (including paths)."""
     target = Path(target).resolve()
+    reject_ignored_python(target)
     digest = hashlib.sha256()
     digest.update(git_bytes(target, "rev-parse", "HEAD"))
     digest.update(git_bytes(target, "diff", "--binary", "HEAD", "--"))
@@ -89,7 +111,11 @@ def verify(root, ticket, base, suite, timeout=90):
 
     checked_suite(target, suite)
     before = fingerprint(target)
-    env = os.environ.copy()
+    # Avoid inheriting PYTHONPATH/PYTHONHOME/etc. from the controlling host.
+    # Otherwise an external module can satisfy tests without being represented
+    # in the ticket's worktree fingerprint. Preserve non-Python OS variables.
+    env = {k: v for k, v in os.environ.items()
+           if not k.upper().startswith("PYTHON")}
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONNOUSERSITE"] = "1"
     try:

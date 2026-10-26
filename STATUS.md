@@ -2,7 +2,7 @@
 
 **Updated:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
-**Active branch:** `main` (PR #21 merged, clean local checkout fast-forwarded)
+**Active branch:** `fix/r06-ignored-python-env-20261026` (ignored test inputs and Python runtime isolation; baseline `main` `d03fd7f`)
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).
@@ -414,6 +414,14 @@
 - **Patch:** `check` first enforces the existing approved suite/commit/fingerprint, then re-executes the same unchanged baseline-tracked Python unittest in the actual ticket worktree; compares real pass totals, process success and pre/post source integrity. `verify` records its bounded `timeout`; older saved receipts default to 90 seconds. Recheck incurs an additional test execution at host acceptance and must not be misrepresented as a signed receipt or protection against malicious approved tests.
 - **Validation:** Two negative tests demonstrated the pre-patch failure (both failed because forged evidence was wrongly accepted), then turned green; third new test confirms old receipts without timeout remain compatible. Targeted suite **8/8**, full local Windows Python 3.13 **273/273**, [PR #21 CI #40293184857](https://github.com/mrAibo/Autopilot/actions/runs/40293184857) **4/4 successful** Ubuntu/Windows Python 3.11/3.13. A status-only checkpoint commit creates separate `main` CI to verify. Scope: R01 objective acceptance and R06 negative regression tests; optional strict isolated worktree path. `2.3.0-dev` remains; no paid model invocations.
 - **Open:** ignored test dependencies, user-modified runtime/testing environment, external GUI native subagents, and A/B paid task costs are **not** solved by this patch. Follow `docs/autopilot/worktrees.md`.
+
+## R06 strict test inputs: ignored Python and inherited environment (2026-10-26)
+
+- **Working feature:** `fix/r06-ignored-python-env-20261026`, based on clean `main` `d03fd7f611338496c1c91d2e205cce2662a528d3`. Prior merged [main CI #40293850121](https://github.com/mrAibo/Autopilot/actions/runs/40293850121) **4/4 successful**.
+- **Observed fail-open:** before patch, temporary strict-isolated worktree tests confirmed (a) an ignored Python module was successfully imported by an approved tracked unittest while missing from the Git evidence fingerprint; (b) inherited host `PYTHONPATH` pointed a tracked test to a module outside the worktree. Both negative tests failed as intended before the fix and passed after it. No provider model calls.
+- **R06 patch:** `test_evidence.fingerprint` now fails closed on ignored Python source, bytecode, importable archive and extension inputs (`.py/.pyw/.pyc/.pyo/.pyd/.so/.pth/.zip/.egg/.whl`, case-insensitive, nested). It never displays ignored filenames. Test runner strips inherited `PYTHON*` environment variables, then sets `PYTHONDONTWRITEBYTECODE` and `PYTHONNOUSERSITE` to safe values. Check now also rejects ignored Python files added after a prior passing receipt.
+- **Bounds:** non-Python ignored data (`.env`, JSON, etc.) remain untracked by design and can affect tests if explicitly loaded; installed packages/interpreter/PATH and trusted test source are not independently attested. Ignored Python generated files / virtualenv may now block strict checks until removed or separately operator-reviewed. No claim of hermetic test sandbox or signed evidence. GUI Codex native named-agent support unchanged and actual Claude Code CLI still absent on host.
+- **Targeted tests:** expanded from baseline 8 to 15 negative/compatibility/positive synthetic cases, including ignored Python added between `verify` and `check`; final local full suite and four-job GitHub CI must pass before merge. No new dependencies or billable API calls. Keep `2.3.0-dev`.
 
 ## Prioritized next steps
 
