@@ -50,7 +50,7 @@ For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](do
 
 ## Installation
 
-> **Development-linked 2.3 preview:** On the current Windows development machine, the global Codex and Claude skill paths already point to this checkout through verified Junction directories. No new installation or second copy is needed. For others, the `npx skills add` examples below install the published `main` branch, which may remain 2.2 until 2.3 is released. Do not run `npx skills update -g` on the developer-linked preview.
+> **Developer-linked installation:** On Aibo, the global Codex and Claude skill paths already point to this checkout through verified Windows Junctions; do not install another copy. After this release merges, the commands below install Autopilot 2.3.0 from the published repository. Do not replace the developer-linked Junctions with a global `npx skills update -g`.
 
 ### If you'd rather not open a terminal
 

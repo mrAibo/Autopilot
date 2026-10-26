@@ -1,7 +1,7 @@
 # Autopilot 2.3 — handoff to a new ChatGPT/Codex conversation
 
 **Date:** 2026-10-26 (Europe/Berlin)
-**Product stage:** `2.3.0-dev` (**NOT a stable release**; no `2.3.0` release tag).
+**Product stage:** user-approved limited `2.3.0` Codex sequential-host release candidate. Native Codex GUI named-agent/model/Effort not included; Claude Code profile/guard offline qualification only. Confirm merged release tag and GitHub CI rather than assuming publication from this file.
 **Repository:** https://github.com/mrAibo/Autopilot
 **Windows host:** Aibo
 **Checkout:** `C:\Users\crown\Downloads\Projects\Autopilot`
