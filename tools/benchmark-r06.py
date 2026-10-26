@@ -7,8 +7,6 @@ installed project changes. Wall-clock timings measure local CLI/Git overhead,
 NOT model execution, active project duration or cost.
 """
 import argparse
-from datetime import datetime, timezone
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -74,7 +72,7 @@ def task(tid, title, reqs, deps, zone, wave):
     return ("# %s — %s\n\n**Требования:** %s\n**Зависит от:** %s\n**Зона:** %s\n"
             "**Волна:** %s\n**Ревью:** нет\n**Модель:** обычная\n\n"
             "## Критерии приёмки\n\n- [ ] задача проверена\n" %
-            (tid, title, reqs, deps, "·".join("`%s`" % x for x in zone), wave))
+            (tid, title, reqs, deps, " · ".join("`%s`" % x for x in zone), wave))
 
 
 def init_fixture(skill, location):
@@ -181,7 +179,6 @@ def run_fixture(skill, scenario):
 
 def prompt_proxy(repo):
     path = repo / "skills" / "autopilot" / "tools" / "codex_dispatch.py"
-    spec = importlib.util.spec_from_file_location("benchmark_codex_dispatch", path)
     # Avoid importing optional dispatch modules, provider tools or model clients.
     # Read-only byte measurement from the shipped static optimization rules.
     src = path.read_text(encoding="utf-8")
