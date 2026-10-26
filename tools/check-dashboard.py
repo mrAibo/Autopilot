@@ -28,7 +28,13 @@ def main():
             if r.returncode:
                 print("%s: %s" % (output.name, r.stderr), file=sys.stderr)
                 return r.returncode
+    check = subprocess.run(["node", str(ROOT / "tools" / "test-dashboard-render.js")],
+                           capture_output=True, text=True)
+    if check.returncode:
+        print("Dashboard rendered-state safety failed:", check.stderr, file=sys.stderr)
+        return check.returncode
     print("Dashboard JS syntax OK (%d inline scripts)" % len(source))
+    print(check.stdout.strip())
     return 0
 
 
