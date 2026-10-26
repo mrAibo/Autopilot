@@ -138,6 +138,34 @@ def main():
 try {
   render(%(lang)s);
   applyTheme(%(theme)s);
+  // Exercise the real delegated language-click rerender and a later refresh.
+  const targetLang = %(lang)s === 'ru' ? 'en' : 'ru';
+  const languageButton = document.querySelector('#app button[data-lang="' + targetLang + '"]');
+  languageButton.focus();
+  languageButton.click();
+  const language_click_kept_focus = document.activeElement?.getAttribute('data-lang') === targetLang;
+  render(%(lang)s);
+  const refresh_kept_focus = document.activeElement?.getAttribute('data-lang') === targetLang;
+  const skip = document.querySelector('#app .skip-link');
+  const skip_labelled = !!skip && skip.textContent.trim() ===
+    (%(lang)s === 'ru' ? 'Перейти к содержимому' : 'Skip to main content');
+  const skip_target = !!document.querySelector('#mission[tabindex="-1"]');
+  if (skip) {skip.focus(); render(%(lang)s);}
+  const skip_kept_focus = !!skip && document.activeElement?.getAttribute('data-focus-key') === 'skip';
+  const navLink = document.querySelector('#app a[data-focus-key="nav-models"]');
+  let nav_kept_focus = true;
+  if (navLink && getComputedStyle(document.querySelector('.cockpit-rail')).display !== 'none') {
+    navLink.focus();
+    render(%(lang)s);
+    nav_kept_focus = document.activeElement?.getAttribute('data-focus-key') === 'nav-models';
+  }
+  const external = document.createElement('button');
+  external.textContent = 'External focus';
+  document.body.appendChild(external);
+  external.focus();
+  render(%(lang)s);
+  const outside_focus_preserved = document.activeElement === external;
+  external.remove();
   const html = document.documentElement;
   const rail = document.querySelector('.cockpit-rail');
   const app = document.getElementById('app');
@@ -166,8 +194,11 @@ try {
     muted_contrast_on_inset: contrast(variable('--mut'), variable('--inset')),
     quiet_contrast_on_inset: contrast(variable('--quiet'), variable('--inset')),
     focusable_controls: document.querySelectorAll('#app button, #app a[href]').length,
+    language_click_kept_focus, refresh_kept_focus, skip_kept_focus,
+    skip_labelled, skip_target, nav_kept_focus, outside_focus_preserved,
     unlabeled_buttons: controls.filter(b => !b.innerText.trim() &&
       !(b.getAttribute('aria-label') || b.getAttribute('title'))).length,
+    main_landmark: !!document.querySelector('main.cockpit-content'),
     has_mission: !!document.getElementById('mission'),
     has_tasks: !!document.getElementById('tasks'),
     has_models: !!document.getElementById('models'),
@@ -280,11 +311,15 @@ const repeat = setInterval(() => {
             if (metrics["lang"] != lang or metrics["theme"] != theme or
                     metrics["rail_visible"] != (label == "desktop") or
                     metrics["focusable_controls"] < 5 or
-                    metrics["unlabeled_buttons"] != 0):
+                    metrics["unlabeled_buttons"] != 0 or
+                    not all(metrics.get(k) for k in (
+                        "language_click_kept_focus", "refresh_kept_focus",
+                        "skip_kept_focus", "skip_labelled", "skip_target",
+                        "nav_kept_focus", "outside_focus_preserved"))):
                 print("Accessibility/theme/layout assertion failed: " + label +
                       " " + repr(metrics), file=sys.stderr)
                 return 1
-            required = ("has_mission", "has_tasks", "has_models", "has_quality",
+            required = ("main_landmark", "has_mission", "has_tasks", "has_models", "has_quality",
                         "has_resources", "has_isolation",
                         "has_model_name", "has_models_title")
             if not all(metrics.get(x) for x in required):

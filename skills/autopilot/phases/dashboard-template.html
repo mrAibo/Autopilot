@@ -448,6 +448,11 @@
     --inset:#25334C;--soft:#293A54;--tx:#F2F6FF;--tx2:#D1DEF0;--mut:#9BADC9;--quiet:#899CB7;
     --line:rgba(204,224,255,.1)}}
   html{scroll-behavior:smooth}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  .skip-link{position:fixed;top:0;left:12px;z-index:50;transform:translateY(-130%);
+    padding:10px 16px;border:2px solid #AFFFF0;border-radius:0 0 12px 12px;
+    background:#142643;color:#fff;font-weight:750;text-decoration:none}
+  .skip-link:focus-visible{transform:none;outline:3px solid #FF9566;outline-offset:3px}
   .wrap{max-width:1840px;display:block;padding:0 30px 38px 292px}
   .cockpit-content{display:flex;flex-direction:column;gap:17px;padding:22px 0;min-width:0}
   .cockpit-rail{position:fixed;z-index:20;top:0;bottom:0;left:0;width:260px;
@@ -1522,15 +1527,24 @@ function render(lang){
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
   document.documentElement.lang = L.lang;
+  const app = document.getElementById('app');
+  // A live refresh or language/filter click must not discard keyboard focus.
+  // Only stable, locally generated attributes are used; no selector interpolation.
+  const active = document.activeElement;
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh'];
+  const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
+    ? focusAttrs.find(name => active.hasAttribute(name)) : null;
+  const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
+  const focusTag = focusAttr ? active.tagName : null;
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
     <div class="rail-brand"><span class="rail-symbol" aria-hidden="true">A</span>
       <span>Autopilot<small>CONTROL CENTER / 2.3</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
-      <a href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
-      <a href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>
-      <a href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>
-      <a href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>
+      <a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
+      <a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>
+      <a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>
+      <a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>
     </nav>
     <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
       <b>${esc(nextTitle)}</b>
@@ -1542,10 +1556,10 @@ function render(lang){
   </aside>`;
   const sectionTitle = (number, title, sub) =>
     `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
-  const app = document.getElementById('app');
   app.innerHTML = `
+  <a class="skip-link" data-focus-key="skip" href="#mission">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>
   ${rail}
-  <div class="cockpit-content">
+  <main class="cockpit-content">
   <header class="top">
     <div class="brand" aria-label="Autopilot 2.3.0 dev"><span class="brand-name">Autopilot</span><span class="brand-version">2.3 DEV</span></div>
     <div class="tools">
@@ -1565,7 +1579,7 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  <div id="mission" class="spotlight">${hero}${opsBlock}</div>
+  <div id="mission" class="spotlight" tabindex="-1">${hero}${opsBlock}</div>
   ${sectionTitle('01',langRu ? 'Состояние работы' : 'Execution health',langRu ? 'Прогресс и проверки' : 'Progress and validation')}
   <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
   <div id="tasks" class="pipeline">
@@ -1584,7 +1598,12 @@ function render(lang){
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
   </footer>
-  </div>`;
+  </main>`;
+  if (focusAttr) {
+    const replacement = [...app.querySelectorAll('button, a[href]')].find(node =>
+      node.tagName === focusTag && node.getAttribute(focusAttr) === focusValue);
+    if (replacement) replacement.focus({preventScroll:true});
+  }
 
   // Вкладка подписана проектом: когда репозиторий дорабатывают второй раз, это
   // единственное место, где видно, что на экране прошлый прогон. Пока сборка ждёт
