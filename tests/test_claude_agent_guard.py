@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -103,6 +104,80 @@ class HookGuardTests(unittest.TestCase):
         self.save()
         ok, _ = guard.decision(self.payload(agent="Explore"), self.root)
         self.assertTrue(ok)
+
+    def test_absent_autopilot_state_does_not_block_unrelated_claude(self):
+        (self.ap / "state.js").unlink()
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertTrue(ok, why)
+
+    def test_corrupt_existing_state_denies_generic_agent(self):
+        (self.ap / "state.js").write_text("window.STATE = {not JSON}", encoding="utf-8")
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("malformed", why)
+
+    def test_non_object_existing_state_denies_agent(self):
+        (self.ap / "state.js").write_text("window.STATE = [];", encoding="utf-8")
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("malformed", why)
+
+    def test_corrupt_strict_flag_is_not_permissive(self):
+        self.state["strictRouting"] = "false"
+        self.save()
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("strictRouting", why)
+
+    def test_empty_state_object_is_not_an_opt_out(self):
+        (self.ap / "state.js").write_text("window.STATE = {};", encoding="utf-8")
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("ticket ledger", why)
+
+    def test_corrupt_ticket_ledger_is_not_an_opt_out(self):
+        self.state["tickets"] = "invalid"
+        self.state["strictRouting"] = False
+        self.save()
+        ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("ticket ledger", why)
+
+    def test_corrupt_state_does_not_block_unrelated_tool(self):
+        (self.ap / "state.js").write_text("corrupt", encoding="utf-8")
+        ok, why = guard.decision({"tool_name": "Read", "tool_input": {}}, self.root)
+        self.assertTrue(ok, why)
+
+    def test_existing_state_read_error_denies_agent(self):
+        from unittest.mock import patch
+        with patch.object(guard, "read_state", return_value=None):
+            ok, why = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("unreadable", why)
+
+    def run_real_hook(self, payload):
+        return subprocess.run(
+            [sys.executable, str(guard.__file__)],
+            cwd=self.root, input=json.dumps(payload),
+            capture_output=True, text=True, encoding="utf-8", timeout=15)
+
+    def test_real_hook_subprocess_blocks_corrupt_state(self):
+        state_path = self.ap / "state.js"
+        state_path.write_text("window.STATE = {bad}", encoding="utf-8")
+        old_bytes = state_path.read_bytes()
+        result = self.run_real_hook(self.payload(agent="Explore"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("malformed", result.stderr)
+        self.assertEqual(state_path.read_bytes(), old_bytes)
+
+    def test_real_hook_subprocess_accepts_pinned_executor(self):
+        result = self.run_real_hook(self.payload())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_real_hook_subprocess_allows_unrelated_project(self):
+        (self.ap / "state.js").unlink()
+        result = self.run_real_hook(self.payload(agent="Explore"))
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

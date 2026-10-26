@@ -45,12 +45,26 @@ def parse_frontmatter(path):
 def decision(payload, root):
     if not isinstance(payload, dict):
         return False, "Malformed Claude hook payload"
-    state = read_state(root)
-    # Opt-in safeguard, active only during strict Autopilot flights.
-    if not state or not state.get("strictRouting") or state.get("finishedAt"):
-        return True, "No active strict run"
     if payload.get("tool_name") not in ("Agent", "Task"):
         return True, "Not an agent invocation"
+    state_file = Path(root) / ".autopilot" / "state.js"
+    if state_file.is_symlink():
+        return False, "Autopilot state may not be redirected"
+    # No run is a legitimate non-Autopilot Claude project. An existing but
+    # unreadable/malformed run is NOT proof that strict routing is disabled.
+    if not state_file.exists():
+        return True, "No Autopilot run"
+    state = read_state(root)
+    if state is None:
+        return False, "Existing Autopilot state is unreadable or malformed"
+    if not isinstance(state.get("tickets"), list):
+        return False, "Existing Autopilot state has no valid ticket ledger"
+    strict = state.get("strictRouting")
+    if strict is not None and not isinstance(strict, bool):
+        return False, "Autopilot strictRouting flag is malformed"
+    # Opt-in safeguard, active only during strict Autopilot flights.
+    if not strict or state.get("finishedAt"):
+        return True, "No active strict run"
     args = payload.get("tool_input")
     if not isinstance(args, dict):
         return False, "Missing subagent tool input"
