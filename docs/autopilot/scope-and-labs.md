@@ -18,7 +18,18 @@ automatically a product requirement or release blocker.
 
 The expected user flow remains **brief → manifest → briefing → spec →
 plan → build → review → acceptance**. The product is a **skill**, not a new
-standalone API service. The normal `/autopilot` route does not require an
+standalone API service.
+
+**Final G3 integrity:** Successful `check-plan` now records a SHA-256
+contract over all requirement IDs, exact wording and rationale (including
+constraints) plus the file names and bytes of each planned ticket. Normal
+progress columns of `manifest.md` may still change during execution.
+Before `finish`, Autopilot requires this contract to match and checks
+the plan again; missing/replaced/deleted tasks, duplicate requirement IDs
+and even `done` requirements with no owner block release. Older in-progress
+2.3-dev states without the contract must rerun `ap.py check-plan`, then
+review/resolve any newly exposed G2/G4 acceptance gaps. This is a Git/project
+consistency gate, not a cryptographic signature or real-model attestation. The normal `/autopilot` route does not require an
 OpenAI API key, Python SDK, an HTTP worker, a background supervisor or
 a separate experimental runtime.
 
