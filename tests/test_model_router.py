@@ -1,6 +1,8 @@
 """Contract tests for fail-closed provider routing."""
 import importlib.util
+import json
 import pathlib
+import tempfile
 import unittest
 
 SRC = pathlib.Path(__file__).resolve().parents[1] / "skills/autopilot/tools/model_router.py"
@@ -77,6 +79,178 @@ class RouterTests(unittest.TestCase):
     def test_heuristic_flags_credentials(self):
         scores = router.assess_ticket("**Зона:** `src/auth/`\nImplement password hashing and sessions")
         self.assertEqual(scores["risk"], 10)
+
+    def policy_from(self, value):
+        with tempfile.TemporaryDirectory(prefix="router-policy-") as folder:
+            path = pathlib.Path(folder) / "policy.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            return router.load_policy(path)
+
+    def test_partial_profile_override_keeps_other_tiers_and_provider(self):
+        policy = self.policy_from({
+            "providers": {"openai": {"cheap": {"effort": "medium"}}},
+            "max_parallel": 1})
+        scores = {name: 0 for name in router.WEIGHTS}
+        result = router.choose_route(
+            "openai", scores, policy=policy,
+            capabilities=self.capabilities("openai", "gpt-6-luna", "medium"))
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["max_parallel"], 1)
+        self.assertEqual(policy["providers"]["openai"]["balanced"],
+                         router.DEFAULT_POLICY["providers"]["openai"]["balanced"])
+        self.assertEqual(policy["providers"]["anthropic"],
+                         router.DEFAULT_POLICY["providers"]["anthropic"])
+        self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["effort"],
+                         "low")
+
+    def test_custom_restricted_list_adds_to_not_erases_default(self):
+        policy = self.policy_from({
+            "restricted": {"openai": ["gpt-6-luna"]}})
+        self.assertIn("gpt-6-astra", policy["restricted"]["openai"])
+        self.assertIn("gpt-6-luna", policy["restricted"]["openai"])
+        scores = {name: 0 for name in router.WEIGHTS}
+        with self.assertRaisesRegex(router.PolicyError, "restricted"):
+            router.choose_route(
+                "openai", scores, policy=policy,
+                capabilities=self.capabilities("openai", "gpt-6-luna", "low"))
+        blank = self.policy_from({"restricted": {"openai": []}})
+        self.assertIn("gpt-6-astra", blank["restricted"]["openai"])
+
+    def test_policy_must_reject_invalid_or_unknown_settings(self):
+        invalid = [
+            {"providers": {"openai": {"cheap": None}}},
+            {"providers": {"openai": {"cheap": {}}}},
+            {"providers": {"openai": {"cheap": {"model": " gpt-6-astra"}}}},
+            {"providers": {"openai": {"cheap": {"model": False}}}},
+            {"providers": {"openai": {"superfast": {"model": "foo"}}}},
+            {"providers": {"unknown": {}}},
+            {"providers": []},
+            {"restricted": {"openai": False}},
+            {"restricted": {"openai": [False]}},
+            {"restricted": {"unknown": ["x"]}},
+            {"max_parallel": True},
+            {"max_parallel": 4},
+            {"version": 99},
+            {"allow_restricted_subagents": 1},
+            {"unsupported_option": True},
+        ]
+        for value in invalid:
+            with self.subTest(policy=value):
+                with self.assertRaises(router.PolicyError):
+                    self.policy_from(value)
+
+    def test_default_policy_is_not_mutated_by_custom_overrides(self):
+        first = self.policy_from({"providers": {
+            "anthropic": {"strong": {"model": "some-host-model"}}}})
+        second = router.load_policy()
+        self.assertEqual(second, router.DEFAULT_POLICY)
+        self.assertNotEqual(first["providers"]["anthropic"]["strong"],
+                            second["providers"]["anthropic"]["strong"])
+        first["providers"]["openai"]["cheap"]["model"] = "mutated"
+        self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["model"],
+                         "gpt-6-luna")
+
+    def test_direct_policy_cannot_bypass_baseline_premium_deny_with_whitespace(self):
+        policy = self.policy_from({"providers": {
+            "openai": {"cheap": {"model": "gpt-6-luna"}}}})
+        policy["providers"]["openai"]["cheap"]["model"] = " gpt-6-astra "
+        scores = {name: 0 for name in router.WEIGHTS}
+        with self.assertRaisesRegex(router.PolicyError, "exact"):
+            router.choose_route("openai", scores, policy=policy,
+                                capabilities=self.capabilities(
+                                    "openai", " gpt-6-astra ", "low"))
+        policy["providers"]["openai"]["cheap"]["model"] = "gpt-6-astra"
+        policy["restricted"] = {"openai": []}
+        with self.assertRaisesRegex(router.PolicyError, "restricted"):
+            router.choose_route(
+                "openai", scores, policy=policy,
+                capabilities=self.capabilities("openai", "gpt-6-astra", "low"))
+
+    def policy_from(self, value):
+        with tempfile.TemporaryDirectory(prefix="router-policy-") as folder:
+            path = pathlib.Path(folder) / "policy.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            return router.load_policy(path)
+
+    def test_partial_profile_override_keeps_other_tiers_and_provider(self):
+        policy = self.policy_from({
+            "providers": {"openai": {"cheap": {"effort": "medium"}}},
+            "max_parallel": 1})
+        scores = {name: 0 for name in router.WEIGHTS}
+        result = router.choose_route(
+            "openai", scores, policy=policy,
+            capabilities=self.capabilities("openai", "gpt-6-luna", "medium"))
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["max_parallel"], 1)
+        self.assertEqual(policy["providers"]["openai"]["balanced"],
+                         router.DEFAULT_POLICY["providers"]["openai"]["balanced"])
+        self.assertEqual(policy["providers"]["anthropic"],
+                         router.DEFAULT_POLICY["providers"]["anthropic"])
+        self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["effort"],
+                         "low")
+
+    def test_custom_restricted_list_adds_to_not_erases_default(self):
+        policy = self.policy_from({
+            "restricted": {"openai": ["gpt-6-luna"]}})
+        self.assertIn("gpt-6-astra", policy["restricted"]["openai"])
+        self.assertIn("gpt-6-luna", policy["restricted"]["openai"])
+        scores = {name: 0 for name in router.WEIGHTS}
+        with self.assertRaisesRegex(router.PolicyError, "restricted"):
+            router.choose_route(
+                "openai", scores, policy=policy,
+                capabilities=self.capabilities("openai", "gpt-6-luna", "low"))
+        blank = self.policy_from({"restricted": {"openai": []}})
+        self.assertIn("gpt-6-astra", blank["restricted"]["openai"])
+
+    def test_policy_must_reject_invalid_or_unknown_settings(self):
+        invalid = [
+            {"providers": {"openai": {"cheap": None}}},
+            {"providers": {"openai": {"cheap": {}}}},
+            {"providers": {"openai": {"cheap": {"model": " gpt-6-astra"}}}},
+            {"providers": {"openai": {"cheap": {"model": False}}}},
+            {"providers": {"openai": {"superfast": {"model": "foo"}}}},
+            {"providers": {"unknown": {}}},
+            {"providers": []},
+            {"restricted": {"openai": False}},
+            {"restricted": {"openai": [False]}},
+            {"restricted": {"unknown": ["x"]}},
+            {"max_parallel": True},
+            {"max_parallel": 4},
+            {"version": 99},
+            {"allow_restricted_subagents": 1},
+            {"unsupported_option": True},
+        ]
+        for value in invalid:
+            with self.subTest(policy=value):
+                with self.assertRaises(router.PolicyError):
+                    self.policy_from(value)
+
+    def test_default_policy_is_not_mutated_by_custom_overrides(self):
+        first = self.policy_from({"providers": {
+            "anthropic": {"strong": {"model": "some-host-model"}}}})
+        second = router.load_policy()
+        self.assertEqual(second, router.DEFAULT_POLICY)
+        self.assertNotEqual(first["providers"]["anthropic"]["strong"],
+                            second["providers"]["anthropic"]["strong"])
+        first["providers"]["openai"]["cheap"]["model"] = "mutated"
+        self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["model"],
+                         "gpt-6-luna")
+
+    def test_direct_policy_cannot_bypass_baseline_premium_deny_with_whitespace(self):
+        policy = self.policy_from({"providers": {
+            "openai": {"cheap": {"model": "gpt-6-luna"}}}})
+        policy["providers"]["openai"]["cheap"]["model"] = " gpt-6-astra "
+        scores = {name: 0 for name in router.WEIGHTS}
+        with self.assertRaisesRegex(router.PolicyError, "exact"):
+            router.choose_route("openai", scores, policy=policy,
+                                capabilities=self.capabilities(
+                                    "openai", " gpt-6-astra ", "low"))
+        policy["providers"]["openai"]["cheap"]["model"] = "gpt-6-astra"
+        policy["restricted"] = {"openai": []}
+        with self.assertRaisesRegex(router.PolicyError, "restricted"):
+            router.choose_route(
+                "openai", scores, policy=policy,
+                capabilities=self.capabilities("openai", "gpt-6-astra", "low"))
 
 
 if __name__ == "__main__":

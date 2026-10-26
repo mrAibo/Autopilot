@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- R03 routing: custom JSON policy now safely deep-merges partial model/Effort selections without deleting unrelated default tiers/providers or baseline restricted models; rejects malformed/unknown settings. Normal `ap.py ticket NN route --policy FILE` uses the same policy for selection and agent profile, records its SHA256 and refuses stale-policy strict task transitions. No model/API calls and no additional dependency.
+
 - Scope correction toward the original R01–R06 brief: stop presenting optional paid-API experiments and process harnesses as a normal `/autopilot` prerequisite. Add `docs/autopilot/scope-and-labs.md` and refocus both README front pages.
 - R01 final-acceptance regression: `ap.py finish` revalidates all accepted ticket commit ancestry against current HEAD. A real temporary Git `reset --soft` negative test demonstrates stale commits block a false final release while preserving run state.
 

@@ -344,6 +344,15 @@
 - **Verified:** local Windows Python 3.13 **239/239 tests passed**, Dashboard JS syntax (2 inline scripts) passed, [PR #13 CI #40249998379](https://github.com/mrAibo/Autopilot/actions/runs/40249998379) **4/4 passed** Ubuntu/Windows Python 3.11/3.13. Local Windows worktree fast-forwarded cleanly to merge `18f4cc0` on `main`. This documentation-only checkpoint triggers another main CI, whose result must be verified separately. No new live/paid model calls and no changes to the owner's other projects.
 - **Remaining core priorities:** verify supported Codex/Claude runtime routing honestly (a native named subagent was unavailable in the user-tested GUI), finish R01–R06 acceptance review, matched benchmarks and remaining Dashboard UX. Resist further API harness/dispatcher expansion unless an original requirement genuinely needs it.
 
+## R03 original-brief model policy integration (2026-10-26)
+
+- **Feature branch:** `fix/r03-policy-merge-20261026`, based on clean `main` `4e7f817`. PR and merge not yet recorded at this checkpoint.
+- The final `main` CI for the preceding scope/finish correction ([#40250432426](https://github.com/mrAibo/Autopilot/actions/runs/40250432426)) **4/4 passed** Ubuntu/Windows Python 3.11/3.13.
+- **R03 bug:** `model_router.load_policy()` previously shallow-overwrote the entire provider map when the user changed one model/Effort tier, dropping the other tiers/providers. `ap.py ticket NN route` did not accept custom policy at all even though `model_router.py` and `agent_profiles.py` supported one. This directly breaks the brief's configurable economical-routing policy.
+- Fix: deep-copy and merge only explicit policy overrides, preserve built-in restricted deny lists when custom lists are supplied, validate unknown fields and exact names, and reject malformed settings fail-closed. The normal `ticket NN route --policy FILE` now uses one checked local project file for both model choice and native agent-profile rendering. Its SHA256 is recorded and required to remain current before strict `start`/`retry`/`done`. No independent API key, new worker, billing call or GUI capability claim.
+- New `test_model_router.py` policy merge/negative regression tests and `test_ap.py` integration tests cover partial overrides, unchanged defaults, premium-model deny, malformed policy, exact model/effort, policy-outside-project rejection and mutation after route. Docs: `docs/autopilot/model-routing.md`, CHANGELOG. Record actual full local tests, independent 4-job CI, PR/merge SHA and final main checkpoint after verification.
+- Next: evaluate other R01–R06 gaps and regression tests, avoid adding unrelated research components. Version remains `2.3.0-dev`.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge

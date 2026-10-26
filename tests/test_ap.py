@@ -451,6 +451,56 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("строгая маршрутизация", out)
 
+    def test_route_custom_policy_is_applied_and_mutation_blocks_strict_start(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low", "medium"]}}, target)
+        policy = os.path.join(self.a, "model-policy.json")
+        with open(policy, "w", encoding="utf-8") as target:
+            json.dump({"providers": {
+                "anthropic": {"cheap": {"effort": "medium"}}}}, target)
+        args = ("ticket", "01", "route", "--provider", "anthropic",
+                "--model", "haiku", "--reason", "approved custom effort",
+                "--capabilities", caps, "--policy", policy)
+        code, output = self.ap(*args, "--effort", "low")
+        self.assertNotEqual(code, 0)
+        self.assertIn("не одобрены", output)
+        code, output = self.ap(*args, "--effort", "medium")
+        self.assertEqual(code, 0, output)
+        route = self.state()["tickets"][0]["routing"]
+        self.assertEqual(route["effort"], "medium")
+        self.assertEqual(route["policyFile"], ".autopilot/model-policy.json")
+        self.assertEqual(len(route["policySha"]), 64)
+        code, output = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, output)
+        self.ap("ticket", "01", "reset")
+        with open(policy, "w", encoding="utf-8") as target:
+            json.dump({"providers": {
+                "anthropic": {"cheap": {"effort": "low"}}}}, target)
+        code, output = self.ap("ticket", "01", "start")
+        self.assertNotEqual(code, 0)
+        self.assertIn("строгая маршрутизация", output)
+        self.assertEqual(self.state()["tickets"][0]["status"], "pending")
+
+    def test_route_policy_outside_project_is_denied(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"]}}, target)
+        path = os.path.join(os.path.dirname(self.root), "external-policy.json")
+        code, output = self.ap(
+            "ticket", "01", "route", "--provider", "anthropic",
+            "--model", "haiku", "--effort", "low",
+            "--reason", "route", "--capabilities", caps,
+            "--policy", path)
+        self.assertNotEqual(code, 0)
+        self.assertIn("внутри проекта", output)
+
     def test_route_rejects_unapproved_model_even_with_host_advertisement(self):
         self.plan()
         self.ap("tickets")
