@@ -152,6 +152,13 @@ try {
   const skip_target = !!document.querySelector('#mission[tabindex="-1"]');
   if (skip) {skip.focus(); render(%(lang)s);}
   const skip_kept_focus = !!skip && document.activeElement?.getAttribute('data-focus-key') === 'skip';
+  const targetIds = ['mission','tasks','models','quality'];
+  const landmark_targets_focusable = targetIds.every(id =>
+    document.getElementById(id)?.getAttribute('tabindex') === '-1');
+  const mission = document.getElementById('mission');
+  mission.focus();
+  render(%(lang)s);
+  const mission_focus_preserved = document.activeElement?.id === 'mission';
   const navLink = document.querySelector('#app a[data-focus-key="nav-models"]');
   let nav_kept_focus = true;
   if (navLink && getComputedStyle(document.querySelector('.cockpit-rail')).display !== 'none') {
@@ -196,6 +203,7 @@ try {
     focusable_controls: document.querySelectorAll('#app button, #app a[href]').length,
     language_click_kept_focus, refresh_kept_focus, skip_kept_focus,
     skip_labelled, skip_target, nav_kept_focus, outside_focus_preserved,
+    landmark_targets_focusable, mission_focus_preserved,
     unlabeled_buttons: controls.filter(b => !b.innerText.trim() &&
       !(b.getAttribute('aria-label') || b.getAttribute('title'))).length,
     main_landmark: !!document.querySelector('main.cockpit-content'),
@@ -315,7 +323,8 @@ const repeat = setInterval(() => {
                     not all(metrics.get(k) for k in (
                         "language_click_kept_focus", "refresh_kept_focus",
                         "skip_kept_focus", "skip_labelled", "skip_target",
-                        "nav_kept_focus", "outside_focus_preserved"))):
+                        "nav_kept_focus", "outside_focus_preserved",
+                        "landmark_targets_focusable", "mission_focus_preserved"))):
                 print("Accessibility/theme/layout assertion failed: " + label +
                       " " + repr(metrics), file=sys.stderr)
                 return 1
