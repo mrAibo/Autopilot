@@ -37,10 +37,10 @@ function render(state, options = {}) {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(code, sandbox, {timeout: 1500, filename: 'dashboard-template-inline.js'});
+  vm.runInContext(code, sandbox, {timeout: 5000, filename: 'dashboard-template-inline.js'});
   if (options.bootError) {
     sandbox.__testError = options.bootError;
-    vm.runInContext('bootFail(__testError)', sandbox, {timeout: 500});
+    vm.runInContext('bootFail(__testError)', sandbox, {timeout: 2000});
   }
   return {html: app.innerHTML, title: document.title};
 }

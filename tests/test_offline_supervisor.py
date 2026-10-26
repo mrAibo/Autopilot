@@ -1,16 +1,82 @@
 """Offline child-process dispatch, cancellation, receipt and Git integration."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] /
                         "skills" / "autopilot" / "tools"))
 import offline_supervisor
 import test_ap
+
+
+class OfflineReceiptAtomicReplace(unittest.TestCase):
+    """Portable fault-injection for Windows receipt reader/replace races."""
+
+    @staticmethod
+    def locked(winerror=5):
+        exc = PermissionError(13, "simulated Windows sharing denial")
+        exc.winerror = winerror
+        return exc
+
+    def test_retries_short_windows_reader_lock_without_losing_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "candidate.tmp"
+            dst = Path(tmp) / "01.json"
+            src.write_text('{"status":"running"}', encoding="utf-8")
+            dst.write_text('{"status":"invocation-uncertain"}', encoding="utf-8")
+            actual_replace = os.replace
+            attempts = [0]
+
+            def transient(a, b):
+                attempts[0] += 1
+                if attempts[0] <= 2:
+                    self.assertEqual(dst.read_text(encoding="utf-8"),
+                                     '{"status":"invocation-uncertain"}')
+                    raise self.locked(5 if attempts[0] == 1 else 32)
+                return actual_replace(a, b)
+
+            with patch.object(offline_supervisor.os, "replace",
+                              side_effect=transient), patch.object(
+                                  offline_supervisor.time, "sleep") as sleep:
+                offline_supervisor.replace_with_bounded_windows_retry(
+                    src, dst, windows=True)
+            self.assertEqual(attempts[0], 3)
+            self.assertEqual(sleep.call_count, 2)
+            self.assertEqual(dst.read_text(encoding="utf-8"), '{"status":"running"}')
+            self.assertFalse(src.exists())
+
+    def test_permanent_windows_lock_fails_closed_and_preserves_old_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "candidate.tmp"
+            dst = Path(tmp) / "01.json"
+            src.write_text("new", encoding="utf-8")
+            dst.write_text("old", encoding="utf-8")
+            with patch.object(offline_supervisor.os, "replace",
+                              side_effect=self.locked(5)) as replace, patch.object(
+                                  offline_supervisor.time, "sleep"):
+                with self.assertRaises(PermissionError):
+                    offline_supervisor.replace_with_bounded_windows_retry(
+                        src, dst, windows=True)
+            self.assertEqual(replace.call_count, 12)
+            self.assertEqual(dst.read_text(encoding="utf-8"), "old")
+            self.assertEqual(src.read_text(encoding="utf-8"), "new")
+
+    def test_other_errors_and_posix_mode_do_not_retry(self):
+        for windows, winerror in ((True, 87), (False, 5)):
+            with self.subTest(windows=windows, winerror=winerror):
+                with patch.object(offline_supervisor.os, "replace",
+                                  side_effect=self.locked(winerror)) as replace:
+                    with self.assertRaises(PermissionError):
+                        offline_supervisor.replace_with_bounded_windows_retry(
+                            Path("candidate"), Path("current"), windows=windows)
+                self.assertEqual(replace.call_count, 1)
 
 
 class OfflineSupervisorRealGit(unittest.TestCase):

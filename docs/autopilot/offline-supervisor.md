@@ -59,6 +59,17 @@ causing the kernel to terminate contained child processes. An actual Windows
 integration test killed the parent and verified the gate process signalled
 termination via an open OS handle; the fixture source remained untouched.
 
+**Windows receipt-sharing race:** a read-only status probe may temporarily
+hold the old `NN.json` receipt while the supervisor atomically replaces
+it. Unlike POSIX rename, Windows can return WinError 5/32
+(ACCESS_DENIED/SHARING_VIOLATION). `persist()` now retries only these two
+recognized errors with **12 bounded attempts** and a total delay of less
+than a second. It never deletes the old receipt to make replacement work;
+an exhausted lock or an unrelated error still fails closed and leaves
+the existing receipt in place. Portable fault-injection tests exercise
+transient recovery, permanent lock preservation and no retries for
+unrelated errors or POSIX mode. No OS-process or model launch retries.
+
 **Linux/macOS:** processes run in a separate POSIX session, but parent-death
 kill of descendants is **not** guaranteed. Production calls must not rely
 on that weak fallback; platform-specific containment remains to be built.

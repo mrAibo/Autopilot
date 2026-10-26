@@ -8,6 +8,8 @@ npx skills update autopilot -g
 
 ## 2.3.0 — IN DEVELOPMENT (not released)
 
+- Windows test reliability found during R04 qualification: concurrent read of a durable synthetic offline-worker receipt could cause atomic `os.replace` to fail with WinError 5/32. Receipt replacement now retries these exact temporary Windows sharing conditions briefly, preserves the old receipt on exhaustion, and fails closed for all other errors; three portable fault-injection tests added. The Node VM Dashboard test also has a bounded but less fragile 5-second limit for slower CI runners. No AI or API calls.
+
 - R04 actual responsive browser qualification: fix falsely labeled narrow screenshots caused by Chrome's 500px minimum headless window. The browser smoke now uses 460/390 CSS-pixel frames, validates actual viewport width, horizontal overflow, controls/sections, RU/EN, light/dark and ≥4.5:1 contrast of secondary small labels against inset surfaces. Adjusted only muted/quiet foreground colors to improve small-text readability; no UI framework or service introduced.
 
 - R06 offline benchmark: fixed deterministic 2.2.0 `25b5fbad` vs 2.3-dev measured host CLI/Git fixtures, paired five times per scenario with alternating order and 20 raw samples. The baseline wrongly accepted all five empty runs while current rejected all five; both accepted 5/5 two-ticket synthetic valid runs. Median host-only valid scenario 2475.37ms (2.2) vs 2011.82ms (2.3). This does **not** demonstrate real AI token savings, billing, autonomous coding correctness or general performance. Optional `lean` adds 414 prompt UTF-8 bytes; tokens unknown. No API calls.
