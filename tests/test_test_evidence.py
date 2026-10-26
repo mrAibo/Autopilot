@@ -1,9 +1,11 @@
 """Host test evidence cannot be forged by logs or reused after source changes."""
+import os
 import pathlib
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] /
                        "skills" / "autopilot" / "tools"))
@@ -98,6 +100,79 @@ class EvidenceTests(unittest.TestCase):
         genuine.pop("timeout")
         self.assertEqual(test_evidence.check(self.root, "01", self.base, genuine),
                          {"passed": 1, "failed": 0})
+
+    def test_ignored_python_dependency_is_refused_before_execution(self):
+        # An ignored module can change independently of the worktree hash.
+        (self.wt / ".gitignore").write_text(
+            ".autopilot/worktrees/\nhidden_helper.py\n", encoding="utf-8")
+        (self.wt / "hidden_helper.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "from hidden_helper import add\n", encoding="utf-8")
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "Ignored Python"):
+            test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+
+    def test_nested_ignored_python_dependency_is_refused(self):
+        (self.wt / ".gitignore").write_text(
+            ".autopilot/worktrees/\nlocal_modules/\n", encoding="utf-8")
+        nested = self.wt / "local_modules"
+        nested.mkdir()
+        (nested / "hidden_helper.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "from local_modules.hidden_helper import add\n", encoding="utf-8")
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "Ignored Python"):
+            test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+
+    def test_ignored_python_added_after_verify_invalidates_receipt(self):
+        (self.wt / ".gitignore").write_text(
+            ".autopilot/worktrees/\nhidden_helper.py\n", encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        proof = test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        (self.wt / "hidden_helper.py").write_text(
+            "def add(a,b): return 42\n", encoding="utf-8")
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "Ignored Python"):
+            test_evidence.check(self.root, "01", self.base, proof)
+
+    def test_ignored_uppercase_extension_is_refused(self):
+        (self.wt / ".gitignore").write_text(
+            ".autopilot/worktrees/\n*.PY\n", encoding="utf-8")
+        (self.wt / "IGNORED_HELPER.PY").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        with self.assertRaisesRegex(test_evidence.EvidenceError, "Ignored Python"):
+            test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+
+    def test_inherited_pythonpath_cannot_supply_untracked_test_code(self):
+        # PYTHONPATH from the host must never become a silent test dependency.
+        external = self.root / "external_lib"
+        external.mkdir()
+        (external / "outside_helper.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "from outside_helper import add\n", encoding="utf-8")
+        with patch.dict(os.environ, {"PYTHONPATH": str(external)}):
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "did not pass"):
+                test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+
+    def test_inherited_pythonhome_does_not_break_clean_host_tests(self):
+        (self.wt / "calc.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        with patch.dict(os.environ, {"PYTHONHOME": str(self.root / "nonexistent-python")}):
+            proof = test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        self.assertEqual(proof["passed"], 1)
+
+    def test_ignored_non_python_data_does_not_block_tracked_unittest(self):
+        (self.wt / ".gitignore").write_text(
+            ".autopilot/worktrees/\nnotes.json\n", encoding="utf-8")
+        (self.wt / "notes.json").write_text(
+            '{"synthetic":true}\n', encoding="utf-8")
+        (self.wt / "calc.py").write_text(
+            "def add(a,b): return a+b\n", encoding="utf-8")
+        proof = test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        self.assertEqual(test_evidence.check(self.root, "01", self.base, proof)["passed"], 1)
 
 
 if __name__ == "__main__":
