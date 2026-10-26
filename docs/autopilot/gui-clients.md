@@ -2,6 +2,30 @@
 
 Autopilot is a **skill and project-state protocol**, not a command-line-only application. The same `SKILL.md`, phase files, `ap.py` state, dashboard and verification gates should be usable by both the desktop/GUI host and command-line host.
 
+## Dashboard 3.1: real browser viewport qualification
+
+The dedicated smoke test `tools/check-dashboard-browser.py` opens the
+**actual** standalone Dashboard in headless Chrome/Edge with synthetic state.
+It verifies desktop (~1424 CSS px), narrow Claude/Codex split panel (**460
+CSS px**) and phone-size (**390 CSS px**) in RU/EN and light/dark combinations.
+
+Headless Chrome enforces a minimum top-level viewport width of roughly 500
+CSS px. Older `--window-size=460,...` snapshots were therefore **not
+actually taken at 460 CSS px**. The browser smoke now uses a same-origin,
+fixed-width iframe for 460/390 widths and asserts the frame's *measured*
+`window.innerWidth` and `documentElement.clientWidth`, not its CLI
+window-size argument. The probe also checks scroll widths, main sections,
+model/recovery content, navigation-rail breakpoint, labeled buttons and
+small-label foreground contrast against inset panels (at least 4.5:1).
+A default screenshot artifact stores wide/narrow/mobile/mobile-dark captures
+for the Linux CI run; optional `AUTOPILOT_SCREENSHOT_DIR` saves local PNGs.
+
+The four checked cases are desktop RU/light, 460 RU/dark, 390 EN/light and
+390 EN/dark. These **synthetic browser checks do not prove** real GUI host
+state updates, screen-reader reading order, keyboard interaction end-to-end
+or complete WCAG compliance. They run without models, external scripts, a
+development server, npm installs or additional Python dependencies.
+
 ## Supported GUI-to-CLI alternative (owner-approved direction)
 
 When the tested GUI cannot select its native named agent, an authorized
