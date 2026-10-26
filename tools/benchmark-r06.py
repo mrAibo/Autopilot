@@ -91,7 +91,7 @@ def init_fixture(skill, location):
 
 def run_fixture(skill, scenario):
     """Run one fresh Git repo and record only objective host observations."""
-    with tempfile.TemporaryDirectory(prefix="autopilot-r06-") as root_name:
+    with tempfile.TemporaryDirectory(prefix="autopilot-r06-", ignore_cleanup_errors=True) as root_name:
         root = Path(root_name)
         ap = init_fixture(skill, root)
         env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1")
@@ -213,7 +213,7 @@ def benchmark(repo, repetitions=2):
         raise BenchmarkError("Current and baseline must be different")
     scenarios = ("empty-finish", "valid-two-tickets")
     runs = []
-    with tempfile.TemporaryDirectory(prefix="r06-sources-") as scratch:
+    with tempfile.TemporaryDirectory(prefix="r06-sources-", ignore_cleanup_errors=True) as scratch:
         base = snapshot(repo, BASELINE, Path(scratch) / "old")
         latest = snapshot(repo, head, Path(scratch) / "new")
         for i in range(repetitions):
