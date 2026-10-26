@@ -732,7 +732,7 @@ const I18N = {
       ask:e=>`Ждём тебя${e.note ? ': ' + e.note : ''}`,answered:"Ответ получен — сборка идёт дальше",
       finish:"Сборка сдана",reopen:"Новый бриф — сборка открыта снова"},
     boot:"Дашборд ещё не прочитал состояние",
-    bootWhy:"Состояния нет ни внутри страницы, ни в файле <code>.autopilot/state.js</code> рядом: прогон только начался, либо файл помялся.",
+    bootWhy:"Состояния нет ни внутри страницы, ни в файле .autopilot/state.js рядом: прогон только начался, либо файл помялся.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа"},
   en:{lang:"en",of:"of",
@@ -829,7 +829,7 @@ const I18N = {
       ask:e=>`Waiting for you${e.note ? ': ' + e.note : ''}`,answered:"Answer received — the build goes on",
       finish:"Build done",reopen:"New brief — the build is open again"},
     boot:"Dashboard has no state yet",
-    bootWhy:"No state either inside the page or in <code>.autopilot/state.js</code> beside it: the run has just started, or the file got mangled.",
+    bootWhy:"No state either inside the page or in .autopilot/state.js beside it: the run has just started, or the file got mangled.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you"}
 };
@@ -944,7 +944,7 @@ const hhmm = iso => { const t = toMs(iso); if (t == null) return ''; const d = n
 function timerHTML(from, to){
   const ms = activeMs(from, to);
   if (ms == null) return '—';
-  return to ? fmtClock(ms) : `<span data-live data-from="${from}">${fmtClock(ms)}</span>`;
+  return to ? fmtClock(ms) : `<span data-live data-from="${esc(from)}">${fmtClock(ms)}</span>`;
 }
 function agoText(iso){
   const ms = spanMs(iso, null);
@@ -1251,8 +1251,8 @@ function render(lang){
   const last = done[done.length - 1];
   const tests = S.tests || (last && last.tests) || null;
   const tileTests = `<section class="card tile w"><span class="tk">${L.tTests}</span>${tests
-    ? `<span class="tv">${tests.passed}</span><span class="okb ${tests.failed ? 'f-bad' : 'f-done'}">${ic(tests.failed ? 'x' : 'check','xs')}${
-        tests.failed ? L.testsBad(tests.failed) : L.testsOk}</span><span class="ts">${fin ? L.testsFinal : L.testsSub}</span>`
+    ? `<span class="tv">${esc(tests.passed)}</span><span class="okb ${tests.failed ? 'f-bad' : 'f-done'}">${ic(tests.failed ? 'x' : 'check','xs')}${
+        tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}</span><span class="ts">${fin ? L.testsFinal : L.testsSub}</span>`
     : `<span class="tv dim">—</span><span class="ts">${L.testsLater}</span>`}</section>`;
   const B = S.blind;
   const tile4 = fin && B
@@ -1278,7 +1278,7 @@ function render(lang){
       const blockers = [...new Set(inWave.flatMap(t => t.blockedBy || []))].filter(b => byId[b] && byId[b].status !== 'done');
       const sub = inWave.every(t => t.status === 'pending') && blockers.length ? L.waveWaits(blockers)
         : inWave.length > 1 ? L.waveSub(inWave.length) : '';
-      return `<div class="wave">${L.wave(w)}${sub ? ` <span>${sub}</span>` : ''}</div>` + inWave.map(t => {
+      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(t => {
         const k = kindOf(t);
         const time = t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
         const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
@@ -1358,10 +1358,10 @@ function render(lang){
   if (!G.G4 && B) G.G4 = {ok: !(B.mismatches || []).length, matched: B.matched, checked: B.checked};
   const gate = (id, cls, icon, sub) => `<div class="gate"><span class="gi ${cls}">${ic(icon,'xs')}</span><div><div class="gt">${L.gT[id]}</div><div class="gs">${sub}</div></div><span class="gk">${id}</span></div>`;
   const later = (id, sub) => gate(id, 'wait', 'clock', fin ? L.gNone : sub);
-  const g1 = G.G1 ? (G.G1.ok ? gate('G1','ok','check',L.g1ok(G.G1.total || R.total || 0)) : gate('G1','warn','alert',L.g1bad(G.G1.open || 0)))
+  const g1 = G.G1 ? (G.G1.ok ? gate('G1','ok','check',esc(L.g1ok(G.G1.total || R.total || 0))) : gate('G1','warn','alert',esc(L.g1bad(G.G1.open || 0))))
     : waiting && waiting.kind === 'briefing' ? gate('G1','warn','msg',L.g1ask) : later('G1', L.g1later);
   const g2 = G.G2 ? gate('G2', G.G2.ok ? 'ok' : 'warn', G.G2.ok ? 'check' : 'alert', L.g2(+G.G2.found||0, +G.G2.fixed||0, +G.G2.deferred||0)) : later('G2', L.g2later);
-  const g3 = G.G3 ? (G.G3.ok ? gate('G3','ok','check',L.g3ok(live, T.length)) : gate('G3','bad','x',L.g3bad(G.G3.problems || 0))) : later('G3', L.g3later);
+  const g3 = G.G3 ? (G.G3.ok ? gate('G3','ok','check',L.g3ok(live, T.length)) : gate('G3','bad','x',esc(L.g3bad(G.G3.problems || 0)))) : later('G3', L.g3later);
   const g4 = G.G4 ? gate('G4', G.G4.ok ? 'ok' : 'warn', G.G4.ok ? 'check' : 'alert',
       L.g4(esc(G.G4.matched), esc(G.G4.checked), Math.max(0, (+G.G4.checked||0) - (+G.G4.matched||0)))) : later('G4', L.g4later);
   const okGates = ['G1','G2','G3','G4'].filter(g => G[g] && G[g].ok).length;
@@ -1635,7 +1635,7 @@ function bootFail(why){
   if (!app) return;
   const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
   app.innerHTML = `<header class="top"><div class="brand" aria-label="Autopilot 2.3.0 dev"><span class="brand-name">Autopilot</span><span class="brand-version">2.3 DEV</span></div></header>
-    <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${why}</p>
+    <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
     <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
 }
 
@@ -1647,7 +1647,7 @@ if (typeof STATE === 'undefined' || !STATE || typeof STATE !== 'object') {
     render(I18N[savedLang] ? savedLang : 'ru');
     lastStamp = stampOf(STATE);
   } catch (e) {
-    bootFail(esc(String(e && e.message || e)));
+    bootFail(String(e && e.message || e));
     pollState();
   }
 }

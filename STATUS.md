@@ -353,6 +353,15 @@
 - **Verified:** `test_model_router.py` 16/16, targeted `test_ap.py` policy cases passed; Windows Python 3.13 full suite **246/246 green**, Dashboard JS syntax passed. [PR #14 CI #40251787940](https://github.com/mrAibo/Autopilot/actions/runs/40251787940) **4/4 green on attempt 2**. On attempt 1, Windows Python 3.11 failed an **unrelated intermittent test** `test_real_offline_dispatch_accept_and_cancel_second` (`Supervisor exited before cancellation`); that specific job was rerun and passed. Do not omit this first-attempt failure; follow up if it repeats. Local Windows checkout cleanly fast-forwarded to merged `f7f6322` on `main`. This checkpoint-only commit triggers another main CI which must be checked separately. Docs: `docs/autopilot/model-routing.md`, CHANGELOG.
 - Next: evaluate other R01–R06 gaps and regression tests, avoid adding unrelated research components. Version remains `2.3.0-dev`.
 
+## R04 Dashboard state-to-HTML safety regression (2026-10-26)
+
+- **Feature branch:** `fix/r04-dashboard-escape-rendered-state-20261026`, based on clean `main` `3ff2cda`. PR / merge to be recorded after verification.
+- **Verified preceding main CI:** [#40252664249](https://github.com/mrAibo/Autopilot/actions/runs/40252664249) **4/4 passed** Ubuntu/Windows Python 3.11/3.13.
+- **R04 defect:** several state-driven values were inserted into HTML templates without `esc()` even though most user-supplied brief/ticket text was already escaped: `tests.passed`, error test counts, ticket wave labels/dependency text, G1/G3 gate details, the `data-from` attribute for live timers and boot error text. A malformed or manipulated state could inject markup in these paths; normal numeric states hid the problem.
+- **Minimal fix:** escape only the above HTML boundaries, preserve existing visual styles, themes, languages, layout and 10-second refresh. No React/CDN, no external model calls, no new runtime dependencies.
+- **Regression:** new `tools/test-dashboard-render.js` executes the actual Dashboard inline JavaScript in a deterministic, DOM-free Node VM and rejects injected HTML from malicious strings in five state fields, the English translation path and boot-error text. It also checks normal rendering. `tools/check-dashboard.py` runs this test after its existing syntax checks in all CI jobs. The new test failed demonstrably on the original template before the fix, passed after it. Full regression/PR CI and exact merge SHA to be recorded only once verified.
+- Remaining brief: run actual browser screenshot smoke for narrow/wide, contrast and usability R04; quantify R06 benchmark on matched conditions. Optional API pilots are not on the default product path. Version remains `2.3.0-dev`.
+
 ## Prioritized next steps
 
 **P0 — GUI native execution:** Codex GUI named-agent selection **tested and unavailable in the owner's 2026-10-25 session** (see negative evidence above). Do not repeat the same paid probe without a meaningful configuration/runtime change. A first one-shot approved CLI fallback is implemented in the GUI bridge
