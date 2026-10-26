@@ -1474,6 +1474,10 @@ function render(lang){
   const resourceBlock = '<section class="card w resource-card"><div class="whead">'
     + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
     + '<span>' + (langRu ? 'Назначено: ' : 'Assigned: ') + routed.length + '/' + T.length + '</span></div>'
+    + (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
+      (langRu ? 'Последовательный режим: один таск за раз, тесты проверяет хост. Модель и Effort текущей GUI-сессии не подтверждены Autopilot; субагент не создаётся.' :
+      'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
+      '</p>' : '')
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
       '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
       'No per-task model assignments recorded yet.') + '</p>')

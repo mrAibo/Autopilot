@@ -212,7 +212,8 @@ def fresh_state(a):
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
         "tier": None, "strictRouting": bool(a.get("strict-routing")),
-        "isolateTickets": bool(a.get("isolated-tickets")),
+        "sequentialHost": bool(a.get("sequential-host")),
+        "isolateTickets": bool(a.get("isolated-tickets") or a.get("sequential-host")),
         "briefFile": a.get("brief-file"),
         "memoryFile": a.get("memory-file") or "AGENTS.md",
         "memoryOwner": a.get("memory-owner") or "autopilot",
@@ -857,6 +858,9 @@ def tests_pair(v):
 
 
 def cmd_init(opt):
+    if opt.get("sequential-host") and opt.get("strict-routing"):
+        die("init: --sequential-host и --strict-routing несовместимы; "
+            "нет подтверждения нативного субагента")
     if not opt.get("slug"):
         die("init требует --slug")
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(opt["slug"])):
@@ -1009,6 +1013,20 @@ def profile_ok(tk):
         return False
 
 
+def verified_host_required(state):
+    """Host-side test evidence even without native named-agent routing."""
+    return bool(state.get("isolateTickets") and (
+        state.get("strictRouting") or state.get("sequentialHost")))
+
+
+def sequential_occupied(state, ticket_id):
+    """Block second prepared/running task in sequential fallback."""
+    return any(t.get("id") != ticket_id and (
+        t.get("status") in ("in-progress", "review", "repair")
+        or (t.get("worktree") or {}).get("status") == "prepared")
+        for t in state.get("tickets") or [])
+
+
 def cmd_ticket(state, pos, opt):
     acts = [p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
@@ -1021,6 +1039,10 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if state.get("sequentialHost") and act == "route":
+            die("таск %s: sequential-host не создаёт и не запускает нативных субагентов" % i)
+        if state.get("sequentialHost") and act in ("start", "retry") and sequential_occupied(state, i):
+            die("таск %s: sequential-host допускает только один активный таск" % i)
         if act == "start" and tk.get("status") != "pending":
             die("таск %s: start разрешён только из pending (уже запущен или завершён)" % i)
         if act == "start" and (state.get("isolateTickets") or tk.get("worktree")):
@@ -1063,7 +1085,7 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
         if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
-        if act == "done" and state.get("strictRouting") and state.get("isolateTickets"):
+        if act == "done" and verified_host_required(state):
             recorded = tk.get("tests")
             evidence = tk.get("testEvidence")
             if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
@@ -1267,7 +1289,7 @@ def cmd_worktree(state, pos, opt):
             recovered = worktrees.recover(ROOT, ident, record["baseCommit"])
             if recovered["status"] == "not-landed":
                 return "worktree %s: коммит исполнителя есть, ещё не интегрирован" % ident
-            if state.get("strictRouting") and state.get("isolateTickets"):
+            if verified_host_required(state):
                 import test_evidence
                 evidence = tk.get("testEvidence")
                 if record.get("sourceCommit") == recovered["sourceCommit"]:
@@ -1307,6 +1329,8 @@ def cmd_worktree(state, pos, opt):
                 die("worktree: зависимости таска %s не закрыты" % ident)
             if state.get("strictRouting") and not profile_ok(tk):
                 die("worktree: сначала подтверди модель таска %s" % ident)
+            if state.get("sequentialHost") and sequential_occupied(state, ident):
+                die("worktree: sequential-host допускает только один подготовленный/активный таск")
             if tk.get("worktree"):
                 die("worktree: для %s уже существует запись, проверь status" % ident)
             result = worktrees.create(ROOT, ident)
@@ -1339,7 +1363,7 @@ def cmd_worktree(state, pos, opt):
             if (record.get("status") != "prepared" or
                     tk.get("status") not in ("in-progress", "review", "repair")):
                 die("worktree: для финализации требуется запущенная задача и prepared checkout")
-            if state.get("strictRouting") and state.get("isolateTickets"):
+            if verified_host_required(state):
                 import test_evidence
                 check = test_evidence.check(ROOT, ident, record["baseCommit"],
                                             tk.get("testEvidence"))
@@ -1360,7 +1384,7 @@ def cmd_worktree(state, pos, opt):
         record = tk.get("worktree") or {}
         if record.get("status") != "prepared" or tk.get("status") not in ("in-progress", "review", "repair"):
             die("worktree: %s не запущен в подготовленной рабочей копии" % ident)
-        if state.get("strictRouting") and state.get("isolateTickets"):
+        if verified_host_required(state):
             import test_evidence
             evidence = tk.get("testEvidence")
             if record.get("sourceCommit"):
@@ -1538,7 +1562,7 @@ def cmd_blocker(state, pos, opt):
     result = tests_pair(opt["tests"])
     if result["passed"] < 1 or result["failed"]:
         die("blocker resolve: тесты не пройдены")
-    if entry.get("ticket") and state.get("strictRouting") and state.get("isolateTickets"):
+    if entry.get("ticket") and verified_host_required(state):
         ticket = next((t for t in state.get("tickets") or []
                        if t.get("id") == entry["ticket"]), None)
         evidence = ticket.get("testEvidence") if ticket else None
@@ -1748,9 +1772,11 @@ def main():
         if cmd == "schedule":
             if rest:
                 die("schedule: лишние аргументы")
-            raw_limit = str(opt.get("max-parallel", "2"))
+            raw_limit = str(opt.get("max-parallel", "1" if state.get("sequentialHost") else "2"))
             if not re.fullmatch(r"[1-3]", raw_limit):
                 die("schedule: --max-parallel допускает 1, 2 или 3")
+            if state.get("sequentialHost") and raw_limit != "1":
+                die("schedule: sequential-host допускает только --max-parallel 1")
             try:
                 from scheduler import schedule
                 budget = state.get("budgetTokens")

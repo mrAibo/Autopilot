@@ -85,12 +85,14 @@ class Run(unittest.TestCase):
     def stage(self, sid):
         return next(s for s in self.state()["stages"] if s["id"] == sid)
 
-    def init(self, strict=False, isolated=False):
+    def init(self, strict=False, isolated=False, sequential=False):
         args = ["init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", SKILL]
         if strict:
             args.append("--strict-routing")
         if isolated:
             args.append("--isolated-tickets")
+        if sequential:
+            args.append("--sequential-host")
         code, out = self.ap(*args)
         self.assertEqual(code, 0, out)
         self.dir = os.path.join(self.a, self.state()["dir"])
@@ -191,8 +193,8 @@ class Run(unittest.TestCase):
         self.assertEqual(self.stage("briefing")["status"], "skipped")
 
     # ── tickets and the manifest ───────────────────────────────────────────
-    def plan(self, strict=False, isolated=False):
-        self.init(strict=strict, isolated=isolated)
+    def plan(self, strict=False, isolated=False, sequential=False):
+        self.init(strict=strict, isolated=isolated, sequential=sequential)
         self.write("manifest.md", MANIFEST)
         self.write("tickets/01-karkas.md", ticket("01", "Каркас", "R01, R05", "—", ["src/core/"], 1, "да — фундамент", "сильная"))
         self.write("tickets/02-priem.md", ticket("02", "Приём", "R01.1, R02, A01", "01", ["src/bot/"], 2))
@@ -908,6 +910,80 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         code, out = self.ap("worktree", "01", "release")
         self.assertEqual(code, 0, out)
+
+    def test_sequential_host_requires_real_host_tests_and_one_active_ticket(self):
+        self.plan(sequential=True)
+        self.assertTrue(self.state()["sequentialHost"])
+        self.assertTrue(self.state()["isolateTickets"])
+        self.assertFalse(self.state()["strictRouting"])
+        self.ap("tickets")
+        self.git("config", "user.name", "Autopilot Sequential Fixture")
+        self.git("config", "user.email", "test@example.invalid")
+        os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
+        with open(os.path.join(self.root, "src", "core", "calc.py"), "w", encoding="utf-8") as f:
+            f.write("def add(a,b): return a-b\n")
+        with open(os.path.join(self.root, "test_calc.py"), "w", encoding="utf-8") as f:
+            f.write("import unittest\nfrom src.core.calc import add\n"
+                    "class Test(unittest.TestCase):\n"
+                    " def test_add(self): self.assertEqual(add(2,3), 5)\n")
+        self.git("add", ".gitignore", "test_calc.py", "src/core/calc.py")
+        self.commit("source and baseline test")
+        code, out = self.ap("schedule", "--max-parallel", "2")
+        self.assertNotEqual(code, 0, out)  # Never silently schedule two workers.
+        code, out = self.ap("schedule", "--max-parallel", "1")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(out)["selected"][0]["action"], "prepare")
+        self.assertFalse(json.loads(out)["automaticLaunch"])
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "02", "prepare")
+        self.assertNotEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "route",
+                            "--provider", "anthropic", "--model", "haiku")
+        self.assertNotEqual(code, 0, out)  # No invented named agent.
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "02", "start")
+        self.assertNotEqual(code, 0, out)
+        wt = self.state()["tickets"][0]["worktree"]["cwd"]
+        dest = os.path.join(wt, "src", "core", "calc.py")
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write("def add(a,b): return a+b\n")
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "999/0")
+        self.assertNotEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["testEvidence"]["passed"], 1)
+        with open(dest, "a", encoding="utf-8") as f:
+            f.write("# tampered\n")
+        code, out = self.ap("worktree", "01", "finalize")
+        self.assertNotEqual(code, 0, out)
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write("def add(a,b): return a+b\n")
+        for step, args in (
+            ("finalize", ()),
+            ("land", ()),
+        ):
+            code, out = self.ap("worktree", "01", step, *args)
+            self.assertEqual(code, 0, (step, out))
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--tests", "999/0",
+                            "--commit", commit[:12])
+        self.assertNotEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
+        self.assertFalse((self.state()["tickets"][0].get("routing") or {}).get("verified"))
+
+    def test_sequential_host_rejects_incompatible_strict_routing(self):
+        args = ("init", "--slug", "repair-bot", "--title", "Бот",
+                "--skill-dir", SKILL, "--strict-routing", "--sequential-host")
+        code, out = self.ap(*args)
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("sequential-host", out)
+        self.assertFalse(os.path.isfile(os.path.join(self.a, "state.js")))
 
     def test_isolated_ticket_full_lifecycle(self):
         self.plan(isolated=True)

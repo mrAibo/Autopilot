@@ -12,6 +12,8 @@ Entscheidungen, formuliert eine Spezifikation, plant Arbeitspakete, organisiert
 deren Ausführung und kontrolliert die Abnahme. Ziel ist, dass Anforderungen
 aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
+> **Sicherer sequenzieller Modus:** [Ein Ticket, separater Git-Worktree, unabhängige Tests](docs/autopilot/sequential-host.md). Kein benannter Subagent und kein Nachweis über das tatsächliche GUI-Modell, Effort oder Kosten.
+
 > **Release-Freigabe:** [Prüfmatrix R01–R06](docs/autopilot/release-readiness.md) mit tatsächlichen Nachweisen, offenen GUI-Einschränkungen und den Bedingungen für die stabile Version.
 
 > **Entwicklungsstand:** `2.3.0-dev` auf `main`, **kein stabiler Release**.

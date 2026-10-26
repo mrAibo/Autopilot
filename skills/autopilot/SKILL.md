@@ -27,7 +27,7 @@ worktrees and tests before dispatch. Never invent recovered agent work.
 A finished run is a new feature or an explicitly requested `reopen`.
 See `phases/0-preflight.md` and the three language READMEs.
 
-**Product scope:** keep the original brief → manifest → briefing → spec → plan → build → review → acceptance experience intact. The development-only offline subprocess and Responses API toy pilots are **not phases or prerequisites** of `/autopilot`; do not install, launch, or request extra API credentials for them during the normal workflow. Optional host controllers and GUI-to-CLI fallbacks must not replace the skill's supported native host workflow. See [product scope and labs](../../docs/autopilot/scope-and-labs.md).
+**Product scope:** keep the original brief → manifest → briefing → spec → plan → build → review → acceptance experience intact. The development-only offline subprocess and Responses API toy pilots are **not phases or prerequisites** of `/autopilot`; do not install, launch, or request extra API credentials for them during the normal workflow. Optional host controllers and GUI-to-CLI fallbacks must not replace a verified native host workflow. Where the GUI cannot prove named-child model/Effort, a new run may explicitly select **`--sequential-host`**: one host-operated task at a time, Git-isolated with mandatory baseline-tracked host tests, **no claimed child/model enforcement**. Read [sequential host safety contract](../../docs/autopilot/sequential-host.md) before choosing it. The paid CLI bridge remains disabled. See [product scope and labs](../../docs/autopilot/scope-and-labs.md).
 
 ## Reading this skill
 

@@ -48,6 +48,8 @@ python3 .autopilot/ap.py init --slug telegram-repair-bot --title "Телегра
   --skill-dir "<skillDir>" --strict-routing --check-update
 ```
 
+**Unsupported native named-agent host:** If the user chooses a single-session fallback after the host's model/Effort and subscription status have been reviewed, replace `--strict-routing` above with **`--sequential-host`** (implies `--isolated-tickets`, one ticket at a time and mandatory independently rerun baseline unittest). Do not combine both flags or pretend a named child ran. See `docs/autopilot/sequential-host.md`. Never reinitialize a live existing run merely to change modes. The optional billable GUI/CLI worker is still blocked by `spend_guard`.
+
 It creates the run directory `<YYYY-MM-DD>-<slug>--wip/` with `tickets/` inside, writes `state.js` with all eight stages (`preflight` active), adds the run's row to `.autopilot/README.md` (writing the file on a new repo), puts `.autopilot/serve.*` and `.autopilot/state.lock` into `.gitignore`, raises the server and prints its address. A finished run's `state.js` is archived into that run's directory first; an unfinished one means this is a resume, and `init` refuses (`phases/0-resume.md`).
 
 A line starting with **`↑`** means a newer Autopilot is out: put it into the opening block as it is — one line, not a question, never an update mid-run.

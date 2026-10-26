@@ -136,6 +136,7 @@ def main():
             probe = """
 <script>
 try {
+  if (%(sequential)s) window.STATE.sequentialHost = true;
   render(%(lang)s);
   applyTheme(%(theme)s);
   // Exercise the real delegated language-click rerender and a later refresh.
@@ -217,6 +218,8 @@ try {
     has_model_name: visible.includes('haiku'),
     has_models_title: visible.includes('Модели и ресурсы') ||
                       visible.includes('Models & resources'),
+    has_sequential_notice: !!document.getElementById('sequential-host-notice') &&
+      visible.includes(%(sequential_warning)s),
   };
   const output = document.createElement('pre');
   output.id = 'autopilot-layout-probe';
@@ -230,7 +233,11 @@ try {
   document.body.appendChild(output);
 }
 </script>
-""" % {"lang": json.dumps(lang), "theme": json.dumps(theme)}
+""" % {"lang": json.dumps(lang), "theme": json.dumps(theme),
+       "sequential": json.dumps(label == "mobile-dark"),
+       "sequential_warning": json.dumps(
+           "no child agent is created" if lang == "en" else
+           "субагент не создаётся")}
             child = Path(temp) / ("dashboard-" + label + ".html")
             child.write_text(rendered.replace("</body>", probe + "</body>"), encoding="utf-8")
             # Headless Chrome clamps top-level windows to around 500 CSS px.
@@ -327,6 +334,10 @@ const repeat = setInterval(() => {
                         "landmark_targets_focusable", "mission_focus_preserved"))):
                 print("Accessibility/theme/layout assertion failed: " + label +
                       " " + repr(metrics), file=sys.stderr)
+                return 1
+            if metrics["has_sequential_notice"] != (label == "mobile-dark"):
+                print("Incorrect sequential-host warning: " + label + " " +
+                      repr(metrics), file=sys.stderr)
                 return 1
             required = ("main_landmark", "has_mission", "has_tasks", "has_models", "has_quality",
                         "has_resources", "has_isolation",
