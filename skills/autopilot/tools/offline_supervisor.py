@@ -71,6 +71,27 @@ def read_receipt(root, ticket):
     return data
 
 
+def replace_with_bounded_windows_retry(src, dst, *, windows=None):
+    """Keep receipt replacement atomic despite brief Windows reader locks.
+
+    Windows may deny os.replace while another process is reading the old
+    receipt. Retry only its recognized sharing/access-denied WinErrors;
+    never retry different errors, never unlink the current receipt, and
+    fail closed after a short finite window if a lock does not clear.
+    """
+    if windows is None:
+        windows = os.name == "nt"
+    for attempt in range(12):
+        try:
+            os.replace(src, dst)
+            return
+        except OSError as exc:
+            if (not windows or getattr(exc, "winerror", None) not in (5, 32)
+                    or attempt == 11):
+                raise
+            time.sleep(min(0.01 * (attempt + 1), 0.05))
+
+
 def persist(path, content):
     tmp = None
     try:
@@ -83,7 +104,7 @@ def persist(path, content):
             out.write("\n")
             out.flush()
             os.fsync(out.fileno())
-        os.replace(tmp, path)
+        replace_with_bounded_windows_retry(tmp, path)
     finally:
         if tmp is not None and tmp.exists():
             tmp.unlink()

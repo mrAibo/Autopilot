@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Headless Chrome smoke test of Dashboard 3.0 with synthetic state.
+"""Headless Chrome smoke test of Dashboard 3.1 with synthetic state.
 
 Creates independent full-width and narrow screenshots; no external services.
 On CI, set AUTOPILOT_SCREENSHOT_DIR to preserve screenshots as artifacts.
 """
+from html import unescape
 from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -125,7 +127,107 @@ def main():
     with tempfile.TemporaryDirectory(prefix="dashboard-browser-") as temp:
         page = Path(temp) / "dashboard.html"
         page.write_text(rendered, encoding="utf-8")
-        for label, dimensions in (("desktop", "1440,1800"), ("narrow", "460,2100")):
+        for label, dimensions, lang, theme in (
+                ("desktop", "1440,1800", "ru", "light"),
+                ("narrow", "460,2100", "ru", "dark"),
+                ("mobile", "390,2100", "en", "light"),
+                ("mobile-dark", "390,2100", "en", "dark"),
+        ):
+            probe = """
+<script>
+try {
+  render(%(lang)s);
+  applyTheme(%(theme)s);
+  const html = document.documentElement;
+  const rail = document.querySelector('.cockpit-rail');
+  const app = document.getElementById('app');
+  const visible = app ? app.innerText : '';
+  const controls = [...document.querySelectorAll('#app button')];
+  const css = getComputedStyle(html);
+  const variable = name => css.getPropertyValue(name).trim();
+  const luminosity = hex => {
+    const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map(v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  };
+  const contrast = (fg, bg) => {
+    const a = luminosity(fg), b = luminosity(bg);
+    return Math.round(((Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)) * 100)/100;
+  };
+  const result = {
+    width: window.innerWidth,
+    client: html.clientWidth,
+    document_width: html.scrollWidth,
+    body_width: document.body.scrollWidth,
+    lang: html.lang,
+    theme: html.getAttribute('data-theme'),
+    rail_visible: !!rail && getComputedStyle(rail).display !== 'none',
+    background: variable('--bg'),
+    muted_contrast_on_inset: contrast(variable('--mut'), variable('--inset')),
+    quiet_contrast_on_inset: contrast(variable('--quiet'), variable('--inset')),
+    focusable_controls: document.querySelectorAll('#app button, #app a[href]').length,
+    unlabeled_buttons: controls.filter(b => !b.innerText.trim() &&
+      !(b.getAttribute('aria-label') || b.getAttribute('title'))).length,
+    has_mission: !!document.getElementById('mission'),
+    has_tasks: !!document.getElementById('tasks'),
+    has_models: !!document.getElementById('models'),
+    has_quality: !!document.getElementById('quality'),
+    has_resources: !!document.querySelector('.resource-card'),
+    has_isolation: visible.includes('Изоляция и восстановление') ||
+                   visible.includes('Isolation & recovery'),
+    has_model_name: visible.includes('haiku'),
+    has_models_title: visible.includes('Модели и ресурсы') ||
+                      visible.includes('Models & resources'),
+  };
+  const output = document.createElement('pre');
+  output.id = 'autopilot-layout-probe';
+  output.hidden = true;
+  output.textContent = JSON.stringify(result);
+  document.body.appendChild(output);
+} catch (e) {
+  const output = document.createElement('pre');
+  output.id = 'autopilot-layout-probe';
+  output.textContent = JSON.stringify({error: String(e)});
+  document.body.appendChild(output);
+}
+</script>
+""" % {"lang": json.dumps(lang), "theme": json.dumps(theme)}
+            child = Path(temp) / ("dashboard-" + label + ".html")
+            child.write_text(rendered.replace("</body>", probe + "</body>"), encoding="utf-8")
+            # Headless Chrome clamps top-level windows to around 500 CSS px.
+            # A fixed-width same-origin iframe is an actual 390/460 CSS px
+            # viewport, so its own media queries and horizontal overflow are real.
+            use_frame = label != "desktop"
+            if use_frame:
+                requested_width = int(dimensions.split(",")[0])
+                loader = """<!doctype html><html><head><meta charset="utf-8"></head>
+<body style="margin:0">
+<iframe id="dashboard-frame" src="%(src)s"
+  style="border:0;width:%(width)spx;height:2100px;display:block"></iframe>
+<script>
+const repeat = setInterval(() => {
+  try {
+    const child = document.getElementById('dashboard-frame').contentDocument;
+    const source = child && child.getElementById('autopilot-layout-probe');
+    if (!source) return;
+    const mirror = document.createElement('pre');
+    mirror.id = 'autopilot-layout-probe';
+    mirror.hidden = true;
+    mirror.textContent = source.textContent;
+    document.body.appendChild(mirror);
+    clearInterval(repeat);
+  } catch (e) {
+    const mirror = document.createElement('pre');
+    mirror.id = 'autopilot-layout-probe';
+    mirror.textContent = JSON.stringify({error: String(e)});
+    document.body.appendChild(mirror);
+    clearInterval(repeat);
+  }
+}, 50);
+</script></body></html>""" % {"src": child.name, "width": requested_width}
+                page.write_text(loader, encoding="utf-8")
+            else:
+                page.write_text(child.read_text(encoding="utf-8"), encoding="utf-8")
             arguments = [
                 browser, "--headless=new", "--no-sandbox",
                 "--disable-gpu", "--disable-dev-shm-usage",
@@ -138,30 +240,63 @@ def main():
             if proc.returncode:
                 print("Chrome smoke failed: " + proc.stderr[-1000:], file=sys.stderr)
                 return 1
-            needed = ('class="cockpit-rail"', 'class="cockpit-content"',
-                      'id="mission"', 'id="tasks"', 'id="models"',
-                      'id="quality"', 'href="#models"', 'class="spotlight"')
-            missing = [part for part in needed if part not in proc.stdout]
-            if missing:
-                print("Command center missing: " + label + " " +
-                      repr(missing), file=sys.stderr)
+            if not use_frame:
+                needed = ('class="cockpit-rail"', 'class="cockpit-content"',
+                          'id="mission"', 'id="tasks"', 'id="models"',
+                          'id="quality"', 'href="#models"', 'class="spotlight"')
+                missing = [part for part in needed if part not in proc.stdout]
+                if missing:
+                    print("Command center missing: " + label + " " +
+                          repr(missing), file=sys.stderr)
+                    return 1
+            match = re.search(r'<pre id="autopilot-layout-probe"[^>]*>(.*?)</pre>',
+                              proc.stdout, flags=re.DOTALL)
+            if not match:
+                print("Browser layout probe absent: " + label, file=sys.stderr)
                 return 1
-            parsed = RenderedDOM()
-            parsed.feed(proc.stdout)
-            visible = " ".join(parsed.content)
-            if not any("ops" in cls.split() for cls in parsed.sections):
-                print("Mission control not rendered: " + label, file=sys.stderr)
+            metrics = json.loads(unescape(match.group(1)))
+            print("Dashboard layout probe:", label, metrics)
+            if metrics.get("error"):
+                print("Browser layout probe failed: " + metrics["error"], file=sys.stderr)
                 return 1
-            if not any("resource-card" in cls.split() for cls in parsed.sections):
-                print("Resources panel not rendered: " + label, file=sys.stderr)
+            expected_width = int(dimensions.split(",")[0])
+            if use_frame and (metrics.get("width") != expected_width or
+                              metrics.get("client") != expected_width):
+                print("False narrow viewport: " + label + " " + repr(metrics),
+                      file=sys.stderr)
                 return 1
-            if not ("Изоляция и восстановление" in visible or "Isolation & recovery" in visible):
-                print("Isolation/recovery panel not rendered: " + label, file=sys.stderr)
+            if metrics["document_width"] > metrics["client"] + 2 or (
+                    metrics["body_width"] > metrics["client"] + 2):
+                print("Horizontal overflow: " + label + " " + repr(metrics),
+                      file=sys.stderr)
                 return 1
-            if ("haiku" not in visible or
-                not ("Модели и ресурсы" in visible or "Models & resources" in visible)):
-                print("Agent model text not visible: " + label, file=sys.stderr)
+            # AA contrast threshold for normal-sized panel labels.
+            # The inset surface is the lower-contrast case versus the card.
+            if (metrics["muted_contrast_on_inset"] < 4.5 or
+                    metrics["quiet_contrast_on_inset"] < 4.5):
+                print("Panel label contrast below 4.5:1: " + label + " " +
+                      repr(metrics), file=sys.stderr)
                 return 1
+            if (metrics["lang"] != lang or metrics["theme"] != theme or
+                    metrics["rail_visible"] != (label == "desktop") or
+                    metrics["focusable_controls"] < 5 or
+                    metrics["unlabeled_buttons"] != 0):
+                print("Accessibility/theme/layout assertion failed: " + label +
+                      " " + repr(metrics), file=sys.stderr)
+                return 1
+            required = ("has_mission", "has_tasks", "has_models", "has_quality",
+                        "has_resources", "has_isolation",
+                        "has_model_name", "has_models_title")
+            if not all(metrics.get(x) for x in required):
+                print("Dashboard sections/text missing: " + label + " " +
+                      repr(metrics), file=sys.stderr)
+                return 1
+            if not use_frame:
+                parsed = RenderedDOM()
+                parsed.feed(proc.stdout)
+                if not any("ops" in cls.split() for cls in parsed.sections):
+                    print("Mission control not rendered: " + label, file=sys.stderr)
+                    return 1
             if output_dir:
                 dest = Path(output_dir)
                 dest.mkdir(parents=True, exist_ok=True)
