@@ -6,6 +6,7 @@ project test code. Emits only aggregate Git status counts, not private filenames
 """
 import argparse
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -38,7 +39,8 @@ def inspect(root):
     baseline = head.stdout.decode("ascii", "replace").strip() if head.returncode == 0 else None
     result = {"status": "blocked", "read_only": True, "git_mutated": False,
               "base_commit": baseline, "source": {}, "blockers": [],
-              "warnings": [], "test_runners": {"available": ["python-unittest"],
+              "warnings": [], "test_runners": {"available": (["python-unittest", "cargo-test"]
+                                 if shutil.which("cargo") else ["python-unittest"]),
                                                  "other_frameworks": "not-attested"}}
     blockers = result["blockers"]
     if baseline is None:
@@ -87,7 +89,8 @@ def inspect(root):
         blockers.append("worktree-directory-not-ignored")
     if (root / "Cargo.toml").is_file():
         result["warnings"].append(
-            "Rust/Cargo verifier is not yet accepted by the host evidence gate.")
+            "Rust Cargo verification is limited to approved, dependency-free, "
+            "frozen integration suites with a tracked manifest and lockfile.")
     if (root / "package.json").is_file():
         result["warnings"].append(
             "Node/JS verifier is not yet accepted by the host evidence gate.")

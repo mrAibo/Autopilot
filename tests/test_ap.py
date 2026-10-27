@@ -1240,6 +1240,58 @@ class Run(unittest.TestCase):
         code, out = self.ap("worktree", "01", "release")
         self.assertEqual(code, 0, out)
 
+    @unittest.skipUnless(shutil.which("cargo"), "Cargo not installed on CI host")
+    def test_sequential_host_accepts_real_baseline_cargo_suite(self):
+        self.plan(sequential=True)
+        self.ap("tickets")
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Autopilot Cargo Test")
+        src = os.path.join(self.root, "src", "core")
+        os.makedirs(src, exist_ok=True)
+        with open(os.path.join(src, "lib.rs"), "w", encoding="utf-8") as out:
+            out.write("pub fn add(a: i32, b: i32) -> i32 { a - b }\n")
+        with open(os.path.join(self.root, "Cargo.toml"), "w", encoding="utf-8") as out:
+            out.write('[package]\nname="autopilot_host_fixture"\nversion="0.1.0"\n'
+                      'edition="2021"\n[lib]\npath="src/core/lib.rs"\n')
+        tests = os.path.join(self.root, "tests")
+        os.makedirs(tests, exist_ok=True)
+        with open(os.path.join(tests, "smoke.rs"), "w", encoding="utf-8") as out:
+            out.write("use autopilot_host_fixture::add;\n"
+                      "#[test]\nfn test_add() { assert_eq!(add(2,3),5); }\n")
+        generate = subprocess.run(
+            ["cargo", "generate-lockfile", "--offline",
+             "--manifest-path", os.path.join(self.root, "Cargo.toml")],
+            cwd=self.root, capture_output=True, text=True, timeout=30)
+        self.assertEqual(generate.returncode, 0, generate.stderr)
+        self.git("add", ".gitignore", "Cargo.toml", "Cargo.lock",
+                 "src/core/lib.rs", "tests/smoke.rs")
+        self.commit("standalone trusted cargo baseline")
+        code, out = self.ap("worktree", "01", "prepare")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        dest = os.path.join(self.state()["tickets"][0]["worktree"]["cwd"],
+                            "src", "core", "lib.rs")
+        with open(dest, "w", encoding="utf-8") as stream:
+            stream.write("pub fn add(a: i32, b: i32) -> i32 { a + b }\n")
+        code, out = self.ap("worktree", "01", "verify",
+                            "--suite", "cargo:smoke", "--timeout", "120")
+        self.assertEqual(code, 0, out)
+        receipt = self.state()["tickets"][0]["testEvidence"]
+        self.assertEqual((receipt["runner"], receipt["passed"]), ("cargo-test", 1))
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "99/0")
+        self.assertNotEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "finalize", "--tests", "1/0")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "land")
+        self.assertEqual(code, 0, out)
+        commit = self.state()["tickets"][0]["worktree"]["landedCommit"]
+        code, out = self.ap("ticket", "01", "done", "--commit", commit[:12])
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("worktree", "01", "release")
+        self.assertEqual(code, 0, out)
+        self.assertIn("a + b", read(os.path.join(src, "lib.rs")))
+
     def test_host_side_finalize_then_land_and_done(self):
         self.plan(isolated=True)
         self.ap("tickets")

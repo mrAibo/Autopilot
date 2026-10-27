@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Host-owned Python unittest evidence for strict isolated Autopilot tickets.
+"""Host-owned Python unittest or offline Cargo evidence for isolated tickets.
 
-This module runs a baseline-tracked, unchanged unittest module in the exact
+Runs operator-approved, unchanged baseline-tracked Python unittest or
+restricted frozen/offline Cargo integration tests in the exact
 executor worktree and checks the checkout fingerprint before/after. It does
 not trust the model's "N/0" text or execute arbitrary shell command strings.
-Unit tests themselves execute Python code and must be trusted by the operator.
+Test binaries/code run as the host user and require independent operator trust.
 """
 from datetime import datetime, timezone
 import hashlib
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import tomllib
 
 import worktrees
 
@@ -23,6 +27,15 @@ class EvidenceError(ValueError):
 
 SUITE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_./-]{0,180}\.py$")
 RAN = re.compile(r"(?m)^Ran (\d+) tests? in [\d.]+s\s*$")
+
+CARGO_SUITE = re.compile(r"cargo:([a-zA-Z][a-zA-Z0-9_-]{0,63})\Z")
+CARGO_RESULT = re.compile(
+    r"(?m)^test result: ok\. (\d+) passed; (\d+) failed; "
+    r"(\d+) ignored; (\d+) measured; (\d+) filtered out;")
+IGNORED_RUST_PATTERNS = (
+    ":(icase)*.rs", ":(icase)*.toml", ":(icase)*.lock",
+    ":(icase).cargo/config", ":(icase).cargo/config.toml",
+)
 
 
 def git_bytes(root, *args):
@@ -52,6 +65,15 @@ def reject_ignored_python(target):
         # Avoid printing filenames: ignored paths may contain private names.
         raise EvidenceError("Ignored Python inputs in test worktree; "
                             "remove them or obtain independent operator review")
+
+
+def reject_ignored_rust(target):
+    ignored = git_bytes(
+        target, "ls-files", "--others", "--ignored", "--exclude-standard",
+        "-z", "--", *IGNORED_RUST_PATTERNS)
+    if ignored.strip(b"\0"):
+        raise EvidenceError(
+            "Ignored Cargo/Rust inputs in test worktree; independent review required")
 
 
 def fingerprint(target):
@@ -97,6 +119,91 @@ def checked_suite(target, suite):
     return test_path
 
 
+def checked_baseline_cargo(target, suite):
+    """A single unchanged baseline-tracked Cargo integration test; no options."""
+    match = CARGO_SUITE.fullmatch(suite) if isinstance(suite, str) else None
+    if not match:
+        raise EvidenceError("Cargo suite must be cargo:<integration-test-name>")
+    name = match.group(1)
+    # Cargo can execute project build scripts, dependencies and test code:
+    # baseline selection is an operator trust decision, not a sandbox.
+    for rel in ("Cargo.toml", "Cargo.lock", "tests/" + name + ".rs"):
+        path = Path(target) / rel
+        if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(
+                Path(target).resolve()):
+            raise EvidenceError("Cargo baseline manifest, lock or test missing/redirected")
+        if subprocess.run(
+                ["git", "-C", str(target), "cat-file", "-e", "HEAD:" + rel],
+                capture_output=True, timeout=20).returncode:
+            raise EvidenceError("Cargo manifest, lock and integration suite must be baseline-tracked")
+        if subprocess.run(
+                ["git", "-C", str(target), "diff", "--quiet", "HEAD", "--", rel],
+                capture_output=True, timeout=20).returncode:
+            raise EvidenceError("Modified Cargo manifest, lock or test suite needs independent review")
+    for candidate in (".cargo/config", ".cargo/config.toml"):
+        if (Path(target) / candidate).exists():
+            raise EvidenceError("Cargo project config requires independent review")
+    reject_ignored_rust(target)
+    # Deliberately narrow initial host-backed adapter: dependency-free package,
+    # no build scripts or Cargo workspace configuration. This keeps dependency
+    # resolution, custom build-script execution and external source trees out of
+    # the pilot. Broader operator-attested Cargo graphs need a separate review.
+    try:
+        with (Path(target) / "Cargo.toml").open("rb") as manifest_stream:
+            manifest = tomllib.load(manifest_stream)
+    except (OSError, ValueError) as exc:
+        raise EvidenceError("Invalid baseline Cargo manifest") from exc
+    package = manifest.get("package")
+    if not isinstance(package, dict) or "workspace" in manifest:
+        raise EvidenceError("Cargo verifier currently requires standalone crate")
+    lib = manifest.get("lib") or {}
+    if not isinstance(lib, dict):
+        raise EvidenceError("Invalid Cargo library definition")
+    if ((Path(target) / "build.rs").exists()
+            or package.get("build") not in (None, False)
+            or lib.get("proc-macro") is True):
+        raise EvidenceError("Cargo build scripts/proc-macros require independent review")
+    if any(key in manifest for key in (
+            "dependencies", "dev-dependencies", "build-dependencies",
+            "patch", "replace", "target", "workspace", "test", "bench")):
+        raise EvidenceError("Cargo external dependencies require independent review")
+    return name
+
+
+def run_cargo(target, suite, timeout):
+    name = checked_baseline_cargo(target, suite)
+    cargo = shutil.which("cargo")
+    if not cargo:
+        raise EvidenceError("Cargo binary unavailable on verified test host")
+    # No user-provided command strings/flags. Frozen forbids network and lock
+    # updates; private target and home prevent use of project target and
+    # inherited Cargo configs. The Rust toolchain itself is host trusted.
+    env = {k: v for k, v in os.environ.items()
+           if not k.upper().startswith(("CARGO_", "RUST", "RUSTUP_"))}
+    env["CARGO_NET_OFFLINE"] = "true"
+    env["CARGO_TERM_COLOR"] = "never"
+    try:
+        with tempfile.TemporaryDirectory(prefix="autopilot-cargo-") as build:
+            env["CARGO_HOME"] = str(Path(build) / "cargo-home")
+            env["CARGO_TARGET_DIR"] = str(Path(build) / "target")
+            result = subprocess.run(
+                [cargo, "test", "--frozen", "--quiet",
+                 "--manifest-path", str(Path(target) / "Cargo.toml"),
+                 "--test", name, "--", "--test-threads=1"],
+                cwd=target, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=timeout, env=env)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        raise EvidenceError("Cargo tests could not complete within host limits") from exc
+    output = result.stdout + "\n" + result.stderr
+    results = CARGO_RESULT.findall(output)
+    if result.returncode or len(results) != 1:
+        raise EvidenceError("Independent host Cargo integration test did not pass")
+    passed, failed, ignored, measured, filtered = map(int, results[0])
+    if passed < 1 or any((failed, ignored, measured, filtered)):
+        raise EvidenceError("Cargo test gate requires positive, unfiltered, unignored N/0")
+    return passed
+
+
 def verify(root, ticket, base, suite, timeout=90):
     if type(timeout) is not int or not 10 <= timeout <= 300:
         raise EvidenceError("Test timeout must be 10–300 seconds")
@@ -109,8 +216,22 @@ def verify(root, ticket, base, suite, timeout=90):
     if head != base:
         worktrees.source_commit(root, ticket, base)  # one clean committed executor diff
 
-    checked_suite(target, suite)
+    runner = "cargo-test" if isinstance(suite, str) and suite.startswith("cargo:") else "python-unittest"
+    if runner == "cargo-test":
+        checked_baseline_cargo(target, suite)
+    else:
+        checked_suite(target, suite)
     before = fingerprint(target)
+    if runner == "cargo-test":
+        passed = run_cargo(target, suite, timeout)
+        after = fingerprint(target)
+        reject_ignored_rust(target)
+        if before != after:
+            raise EvidenceError("Worktree changed while running tests; results invalidated")
+        return {"status": "verified", "runner": runner, "suite": suite,
+                "fingerprint": after, "baseCommit": base, "workerHead": head,
+                "passed": passed, "failed": 0, "timeout": timeout,
+                "verifiedAt": datetime.now(timezone.utc).isoformat()}
     # Avoid inheriting PYTHONPATH/PYTHONHOME/etc. from the controlling host.
     # Otherwise an external module can satisfy tests without being represented
     # in the ticket's worktree fingerprint. Preserve non-Python OS variables.
@@ -140,7 +261,7 @@ def verify(root, ticket, base, suite, timeout=90):
 
 def check(root, ticket, base, evidence):
     if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
-            or evidence.get("runner") != "python-unittest"
+            or evidence.get("runner") not in ("python-unittest", "cargo-test")
             or evidence.get("baseCommit") != base
             or type(evidence.get("passed")) is not int or evidence["passed"] < 1
             or evidence.get("failed") != 0):
@@ -150,7 +271,10 @@ def check(root, ticket, base, evidence):
         raise EvidenceError("Evidence checkout missing")
     if worktrees.git(actual["cwd"], "rev-parse", "HEAD").stdout.strip() != evidence.get("workerHead"):
         raise EvidenceError("Executor commit changed after verification")
-    checked_suite(actual["cwd"], evidence.get("suite"))
+    if evidence["runner"] == "cargo-test":
+        checked_baseline_cargo(actual["cwd"], evidence.get("suite"))
+    else:
+        checked_suite(actual["cwd"], evidence.get("suite"))
     if fingerprint(actual["cwd"]) != evidence.get("fingerprint"):
         raise EvidenceError("Source changed after tests; rerun verification")
     # state.js is project data, not a host-signed test receipt. A matching
@@ -160,6 +284,8 @@ def check(root, ticket, base, evidence):
     # the serialized proof. This also checks for concurrent source changes.
     timeout = evidence.get("timeout", 90)  # legacy 2.3 receipts
     observed = verify(root, ticket, base, evidence["suite"], timeout=timeout)
+    if observed["runner"] != evidence["runner"]:
+        raise EvidenceError("Host test runner differs from approved receipt")
     if observed["passed"] != evidence["passed"]:
         raise EvidenceError("Claimed test count differs from independent host run")
     if (observed["fingerprint"] != evidence["fingerprint"]

@@ -12,6 +12,8 @@ Entscheidungen, formuliert eine Spezifikation, plant Arbeitspakete, organisiert
 deren Ausführung und kontrolliert die Abnahme. Ziel ist, dass Anforderungen
 aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
+> **Cargo-Testprüfung nach 2.3.0:** Der aktuelle Entwicklungsstand unterstützt [eingeschränkte, hostseitig geprüfte Offline-Cargo-Integrationstests](docs/autopilot/trusted-cargo-tests.md) für eigenständige Rust-Crates ohne externe Abhängigkeiten. Manifest, Lockdatei und Test müssen unverändert zur Git-Basis passen; keine freie Befehlsausführung oder Sandbox-Garantie.
+
 > **Read-only Prüfung bestehender Projekte:** Die [Git-Vorabprüfung](docs/autopilot/repository-preflight.md) meldet Hindernisse für isolierte Aufgaben, ohne Dateien zu ändern oder Dateinamen auszugeben. Diese Funktion gehört zu Autopilot und ist unabhängig von anderen Projekten.
 
 > **Model-only Routing (nach 2.3):** Wenn der Host das exakte Agentenmodell sicher festlegen kann, aber den Effort nicht, erlaubt `effort_selection:false` native Profile ohne Effort. Die Effort-Empfehlung bleibt unverifiziert; Modell, benannter Agent und echte Host-Unterstützung müssen weiterhin geprüft werden. Dadurch werden fehlende native Codex-GUI-Agenten **nicht** freigeschaltet. Siehe [Modellrouting](docs/autopilot/model-routing.md).

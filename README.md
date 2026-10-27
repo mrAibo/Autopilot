@@ -12,6 +12,8 @@ It works on its own: nothing else to install.
 
 > **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
+> **Post-release Cargo test gate:** [Trusted offline Cargo integration tests](docs/autopilot/trusted-cargo-tests.md) are supported on current development `main` for restricted dependency-free standalone Rust crates, with a baseline-pinned test/manifest/lock, independent host rerun and no arbitrary commands. This does **not** modify the published Python-only `v2.3.0` tag or imply a sandbox.
+
 > **Existing-project Git preflight:** [read-only repository diagnostic](docs/autopilot/repository-preflight.md) identifies basic Git isolation blockers without changing files or disclosing filenames. This is project-independent Autopilot functionality.
 
 > **Model-only routing (post-2.3 change):** If a host can genuinely enforce the named agent's model but cannot set effort, `effort_selection:false` allows profiles without an effort field. The displayed effort is only advisory. Model/name/host checks remain mandatory; Codex GUI native agent support is **not** unlocked by this change. See [model routing](docs/autopilot/model-routing.md).

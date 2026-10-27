@@ -24,7 +24,7 @@ def parse_suites(values):
         tid, sep, suite = value.partition("=")
         if (not sep or not tid.isdigit() or not 1 <= len(tid) <= 4 or
                 not suite or tid in result or "\x00" in suite):
-            raise ValueError("Use unique --suite TICKET=baseline_test.py entries")
+            raise ValueError("Use unique --suite TICKET=baseline_test.py or TICKET=cargo:name")
         result[tid] = suite
     return result
 
