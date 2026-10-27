@@ -12,6 +12,8 @@ Entscheidungen, formuliert eine Spezifikation, plant Arbeitspakete, organisiert
 deren Ausführung und kontrolliert die Abnahme. Ziel ist, dass Anforderungen
 aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
+> **Model-only Routing (nach 2.3):** Wenn der Host das exakte Agentenmodell sicher festlegen kann, aber den Effort nicht, erlaubt `effort_selection:false` native Profile ohne Effort. Die Effort-Empfehlung bleibt unverifiziert; Modell, benannter Agent und echte Host-Unterstützung müssen weiterhin geprüft werden. Dadurch werden fehlende native Codex-GUI-Agenten **nicht** freigeschaltet. Siehe [Modellrouting](docs/autopilot/model-routing.md).
+
 > **Automatische Modellauswahl in Phase 4:** `ap.py plan-models` berechnet für **jedes Ticket** Modell und Reasoning Effort nach Komplexität und Risiko. `--apply` registriert Profile gesammelt nur bei bestätigten Host-Fähigkeiten. Siehe [Modellrouting](docs/autopilot/model-routing.md); die tatsächliche GUI-Ausführung ist damit nicht nachgewiesen.
 
 > **Sicherer sequenzieller Modus:** [Ein Ticket, separater Git-Worktree, unabhängige Tests](docs/autopilot/sequential-host.md). Kein benannter Subagent und kein Nachweis über das tatsächliche GUI-Modell, Effort oder Kosten.

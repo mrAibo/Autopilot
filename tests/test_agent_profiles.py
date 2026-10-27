@@ -53,6 +53,26 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(config["name"], result["agent_type"])
         self.assertIn("developer_instructions", config)
 
+    def test_model_only_profiles_omit_unenforceable_effort(self):
+        for provider, model in (("openai", "gpt-6-luna"),
+                                ("anthropic", "haiku")):
+            with self.subTest(provider=provider):
+                self.capabilities(provider, model, "high")
+                self.caps.write_text(json.dumps({
+                    "provider": provider, "model_selection": True,
+                    "effort_selection": False,
+                    "models": {model: []}}), encoding="utf-8")
+                result = agent_profiles.prepare(
+                    self.root, self.ticket, provider, self.caps,
+                    "executor", scores=self.easy(), install=True)
+                text = (self.root / result["agent_file"]).read_text(encoding="utf-8")
+                self.assertIn(model, text)
+                self.assertFalse(result["effort_enforced"])
+                if provider == "anthropic":
+                    self.assertNotIn("\\neffort:", text)
+                else:
+                    self.assertNotIn("model_reasoning_effort =", text)
+
     def test_dry_run_does_not_install_or_change_repo(self):
         self.capabilities()
         result = agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,

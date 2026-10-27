@@ -70,6 +70,34 @@ class RouterTests(unittest.TestCase):
         capabilities = self.capabilities("anthropic", "haiku", "high")
         self.assertEqual(router.choose_route("anthropic", scores, capabilities=capabilities)["status"], "blocked")
 
+    def test_model_only_host_accepts_unenforceable_effort_as_advisory(self):
+        scores = {name: 0 for name in router.WEIGHTS}
+        for provider, model in (("openai", "gpt-6-luna"),
+                                ("anthropic", "haiku")):
+            with self.subTest(provider=provider):
+                caps = {"provider": provider, "model_selection": True,
+                        "effort_selection": False, "models": {model: []}}
+                route = router.choose_route(provider, scores, capabilities=caps)
+                self.assertEqual(route["status"], "ready")
+                self.assertFalse(route["effort_enforced"])
+                self.assertEqual(route["effort_status"], "advisory")
+                self.assertTrue(route["effort"])
+
+    def test_model_only_still_requires_exact_model_and_host_control(self):
+        scores = {name: 0 for name in router.WEIGHTS}
+        base = {"provider": "anthropic", "model_selection": True,
+                "effort_selection": False, "models": {"wrong": []}}
+        self.assertEqual(router.choose_route(
+            "anthropic", scores, capabilities=base)["status"], "blocked")
+        base["models"] = {"haiku": []}
+        base["model_selection"] = False
+        self.assertEqual(router.choose_route(
+            "anthropic", scores, capabilities=base)["status"], "blocked")
+        base["model_selection"] = True
+        base["effort_selection"] = "false"
+        self.assertEqual(router.choose_route(
+            "anthropic", scores, capabilities=base)["status"], "blocked")
+
     def test_out_of_range_score_fails(self):
         scores = {name: 0 for name in router.WEIGHTS}
         scores["algorithm"] = 26

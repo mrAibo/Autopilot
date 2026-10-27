@@ -12,6 +12,8 @@ It works on its own: nothing else to install.
 
 > **Development status and handoff:** [STATUS.md](STATUS.md) records the merged main checkpoint, current validation, unresolved blockers and resume instructions.
 
+> **Model-only routing (post-2.3 change):** If a host can genuinely enforce the named agent's model but cannot set effort, `effort_selection:false` allows profiles without an effort field. The displayed effort is only advisory. Model/name/host checks remain mandatory; Codex GUI native agent support is **not** unlocked by this change. See [model routing](docs/autopilot/model-routing.md).
+
 > **Automatic model choice during planning:** `ap.py plan-models` selects model and reasoning Effort **per ticket** by complexity/risk. `--apply` registers all profiles only with host-supported capabilities. See [adaptive routing](docs/autopilot/model-routing.md). This does not attest actual GUI execution.
 
 > **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.

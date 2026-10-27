@@ -80,8 +80,8 @@ def decision(payload, root):
     if fields.get("name") != name:
         return False, "Agent profile name mismatch"
     model, effort = fields.get("model"), fields.get("effort")
-    if not model or not effort or model == "inherit":
-        return False, "Agent model and effort must be pinned"
+    if not model or model == "inherit":
+        return False, "Agent model must be pinned"
     premium = ("fable", "claude-fable", "opus", "claude-opus")
     if model.lower().startswith(premium):
         return False, "Premium subagents are blocked by strict policy"
@@ -92,33 +92,46 @@ def decision(payload, root):
     forced = os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", "").strip().lower()
     if forced not in ("", "0", "false", "off"):
         return False, "Global Claude subagent model FORCE overrides pinned routes"
-    env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "").strip()
-    if env_effort and env_effort != effort:
-        return False, "Claude effort environment override conflicts with pinned route"
-    for key, field in (("model", model), ("effort", effort)):
-        if args.get(key) is not None and args[key] != field:
-            return False, "Explicit %s overrides pinned profile" % key
+    if args.get("model") is not None and args["model"] != model:
+        return False, "Explicit model overrides pinned profile"
     caps_file = root / ".autopilot" / "model-capabilities.json"
     try:
         caps = json.loads(caps_file.read_text(encoding="utf-8"))
+        advertised = caps.get("models")
         if (caps.get("provider") != "anthropic"
                 or caps.get("model_selection") is not True
-                or effort not in caps.get("models", {}).get(model, [])):
-            return False, "Host has not advertised this model/effort"
+                or type(caps.get("effort_selection", True)) is not bool
+                or not isinstance(advertised, dict)
+                or not isinstance(advertised.get(model), list)):
+            return False, "Host has not advertised this model"
+        effort_enforced = caps.get("effort_selection", True)
+        if effort_enforced:
+            if (not effort or effort not in advertised[model]):
+                return False, "Host has not advertised this model/effort"
+            env_effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "").strip()
+            if env_effort and env_effort != effort:
+                return False, "Claude effort environment override conflicts with pinned route"
+            if args.get("effort") is not None and args["effort"] != effort:
+                return False, "Explicit effort overrides pinned profile"
+        elif effort is not None:
+            return False, "Advisory effort must not be pinned in profile"
     except (OSError, ValueError, AttributeError, TypeError):
         return False, "Host capability advertisement missing/invalid"
     if name.startswith("autopilot-executor-"):
         known = [t.get("routing") or {} for t in state.get("tickets") or []]
         matching = [r for r in known if r.get("agentType") == name and
                     r.get("verified") and r.get("provider") == "anthropic" and
-                    r.get("model") == model and r.get("effort") == effort]
+                    r.get("model") == model and
+                    r.get("effortEnforced", True) is effort_enforced and
+                    (not effort_enforced or r.get("effort") == effort)]
         if len(matching) != 1:
             return False, "Executor does not match an approved Autopilot task"
         with agent.open("rb") as f:
             digest = hashlib.sha256(f.read()).hexdigest()
         if digest != matching[0].get("profileSha"):
             return False, "Agent profile changed since route approval"
-    return True, "Approved pinned profile"
+    return True, ("Approved pinned model and effort" if effort_enforced
+                  else "Approved pinned model; effort unverified/advisory")
 
 
 def install_hook(root):

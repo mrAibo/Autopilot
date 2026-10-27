@@ -208,13 +208,22 @@ def choose_route(provider, scores, policy=None, capabilities=None):
         return route
     models = capabilities.get("models", {})
     supported = models.get(model) if isinstance(models, dict) else None
-    if not isinstance(supported, list) or effort not in supported:
+    if not isinstance(supported, list):
+        route["error"] = "Model unavailable in this harness"
+        return route
+    if type(capabilities.get("effort_selection", True)) is not bool:
+        route["error"] = "Invalid effort_selection capability"
+        return route
+    effort_enforced = capabilities.get("effort_selection", True)
+    if effort_enforced and effort not in supported:
         route["error"] = "Model/effort unavailable in this harness"
         return route
     if capabilities.get("model_selection") is not True:
         route["error"] = "Host cannot enforce per-subagent model selection"
         return route
     route["status"] = "ready"
+    route["effort_enforced"] = effort_enforced
+    route["effort_status"] = "enforced" if effort_enforced else "advisory"
     route.pop("error")
     return route
 
