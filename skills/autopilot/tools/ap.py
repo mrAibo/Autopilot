@@ -1148,7 +1148,9 @@ def cmd_plan_models(state, opt):
             route = router.choose_route(provider, scores, policy, caps)
             proposal = {
                 "ticket": tid, "provider": provider, "model": route["model"],
-                "effort": route["effort"], "profile": route["profile"],
+                "effort": route["effort"],
+                "effortEnforced": route.get("effort_enforced"),
+                "profile": route["profile"],
                 "score": route["score"], "factors": scores,
                 "reason": route["reason"], "requiresReview": route["requires_review"],
                 "status": route["status"], "fingerprint": tk["fingerprint"],
@@ -1205,7 +1207,9 @@ def cmd_plan_models(state, opt):
                     digest = hashlib.sha256(stream.read()).hexdigest()
                 tk["routing"] = {
                     "provider": provider, "model": p["route"]["model"],
-                    "effort": p["route"]["effort"], "score": p["route"]["score"],
+                    "effort": p["route"]["effort"],
+                    "effortEnforced": p["route"]["effort_enforced"],
+                    "score": p["route"]["score"],
                     "reason": p["route"]["reason"], "verified": True,
                     "agentType": profile["agent_type"],
                     "agentFile": profile["agent_file"], "profileSha": digest,
@@ -1390,7 +1394,9 @@ def cmd_ticket(state, pos, opt):
             except (ValueError, OSError, ImportError, TypeError) as err:
                 die("route: не удалось создать нативный профиль субагента: %s" % err)
             tk["routing"] = {"provider": provider, "model": model,
-                             "effort": effort, "score": route["score"],
+                             "effort": effort,
+                             "effortEnforced": route["effort_enforced"],
+                             "score": route["score"],
                              "reason": reason, "verified": True,
                              "agentType": profile["agent_type"],
                              "agentFile": filename, "profileSha": digest}

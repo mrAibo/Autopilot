@@ -46,7 +46,8 @@ def resolved_catalog(binary, timeout=30):
 
 
 def check_profile(profile_path, name, model, effort):
-    if not AGENT_ID.fullmatch(name) or not MODEL_ID.fullmatch(model) or effort not in EFFORTS:
+    if not AGENT_ID.fullmatch(name) or not MODEL_ID.fullmatch(model) or (
+            effort is not None and effort not in EFFORTS):
         raise NativeAgentError("Unsafe native agent identifier, model or effort")
     target = Path(profile_path)
     if not target.is_file() or target.is_symlink() or target.suffix != ".toml":
@@ -55,7 +56,11 @@ def check_profile(profile_path, name, model, effort):
         profile = tomllib.loads(target.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise NativeAgentError("Malformed native TOML agent profile") from exc
-    expected = {"name": name, "model": model, "model_reasoning_effort": effort}
+    expected = {"name": name, "model": model}
+    if effort is not None:
+        expected["model_reasoning_effort"] = effort
+    elif "model_reasoning_effort" in profile:
+        raise NativeAgentError("Advisory effort must not be pinned in native profile")
     for key, value in expected.items():
         if profile.get(key) != value:
             raise NativeAgentError("Native profile does not pin approved " + key)
@@ -69,7 +74,7 @@ def catalog_preflight(catalog, parent_model, agent_model, effort):
     for item in (parent_model, agent_model):
         if not isinstance(item, str) or not MODEL_ID.fullmatch(item):
             raise NativeAgentError("Invalid model ID")
-    if effort not in EFFORTS:
+    if effort is not None and effort not in EFFORTS:
         raise NativeAgentError("Invalid model effort")
     all_models = catalog.get("models") if isinstance(catalog, dict) else None
     if not isinstance(all_models, list):
@@ -82,7 +87,7 @@ def catalog_preflight(catalog, parent_model, agent_model, effort):
     child = models[agent_model]
     supported = {entry.get("effort") for entry in child.get("supported_reasoning_levels", [])
                  if isinstance(entry, dict)}
-    if effort not in supported:
+    if effort is not None and effort not in supported:
         return {"status": "blocked", "reason": "child-effort-not-supported",
                 "parent": parent_model, "child": agent_model}
     # Newer hosted GPT-6 V2 may expose only task_name/message/fork_turns;
@@ -128,7 +133,7 @@ def attested_events(lines, name, model, effort):
         if (item.get("type") == "child_session_metadata"
                 and item.get("agent_type") == name
                 and item.get("model") == model
-                and item.get("model_reasoning_effort") == effort
+                and (effort is None or item.get("model_reasoning_effort") == effort)
                 and isinstance(item.get("child_id"), str) and item["child_id"]):
             child_ids.add(item["child_id"])
     observed_pair = bool(spawn_ids & child_ids)
@@ -170,7 +175,7 @@ def main(argv=None):
     p.add_argument("--name", required=True)
     p.add_argument("--parent-model", required=True)
     p.add_argument("--child-model", required=True)
-    p.add_argument("--effort", required=True)
+    p.add_argument("--effort", help="Optional enforced effort. Omit for model-only/advisory mode.")
     p.add_argument("--native-events", type=Path)
     args = p.parse_args(argv)
     try:

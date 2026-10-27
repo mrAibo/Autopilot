@@ -1,8 +1,27 @@
-# Adaptive model routing (Autopilot 2.3 development)
+# Adaptive model routing (Autopilot 2.3+; model-only capability path)
 
 Autopilot routes *executor tasks*, not its user's main model. The orchestrator may run on a powerful model while a document-writing subagent uses a cheaper model with low effort. No executor should silently inherit the orchestrator's model.
 
 Implementation: `skills/autopilot/tools/model_router.py`. The library is Python-standard-library-only; it does **not** create agents and does not by itself guarantee that the host obeys the choice.
+
+## Model-only routing when a harness cannot set effort (2026-10-27)
+
+The policy **still recommends** an effort for every ticket, but an actual host may explicitly advertise `"effort_selection": false`. In that **opt-in, model-only** case, `effortEnforced=false` is written to the route and the generated Claude/Codex native agent profile contains **only the exact model** (no `effort` / `model_reasoning_effort` setting). A displayed Low/Medium/High value is **advisory only**, and the actual runtime effort is **unverified**; never claim token savings or enforcement.
+
+Example of the **format, not verified capability evidence**:
+
+```json
+{
+  "provider": "anthropic",
+  "model_selection": true,
+  "effort_selection": false,
+  "models": {"haiku": [], "sonnet": []}
+}
+```
+
+Use `"provider": "openai"` and genuinely supported exact model IDs for Codex. The empty lists express **no enforceable effort claims**; they are **not** proof of model availability. A real host must separately confirm it can enforce each exact named agent/model pair. Do not invent this file merely to make a run pass. Missing `effort_selection` retains the old strict pair-checking behavior. `model_selection: false`, a missing model, malformed capability metadata, inherited/premium models, stale profile hashes, forbidden generic agents and V2 Codex custom-agent unavailability **still block**. `--sequential-host` continues to be the safe Codex GUI fallback and makes no native child claims.
+
+Existing active routes must not be silently downgraded to model-only. Only a new reviewed planning/apply step with real host capabilities can create such routes; previously pinned effort remains enforced in older profiles.
 
 ## Automatic per-ticket selection at the planning stage (Phase 4)
 
@@ -10,7 +29,7 @@ Implementation: `skills/autopilot/tools/model_router.py`. The library is Python-
 
 1. Phase 4 creates `tickets/01-*.md`, `02-*.md`, etc. and validates their requirements/zones/dependencies with `ap.py tickets` and `ap.py check-plan`.
 2. `ap.py plan-models --provider openai` **automatically** scores *all* published tickets in one run, selects a tier and exact model/Effort, and stores `plannedRouting` for each. Without a trusted catalog, the result is **`blocked`/advisory** with the diagnostic `No verified host capabilities`. This is a useful readable proposal, **not** verified provider availability.
-3. After obtaining actual *host*-supported capability data and confirming provider/effort enforcement, one `ap.py plan-models --provider openai --capabilities .autopilot/model-capabilities.json --apply` **atomically validates the full plan** and creates all approved native project profiles. **`--apply` requires a successful, still-current G3 `ap.py check-plan`:** the exact ticket and requirement contract **and** the manifest statuses at validation must still match. If G3 is missing/failed, a ticket or requirement changes, statuses change, a model/Effort pair is unavailable, or a profile conflicts, the batch is refused *before* any profile is created. Run `tickets`, `check-plan`, and recalculate/reapply the plan after reviewing the changes; never silently downgrade or skip G3.
+3. After obtaining actual *host*-supported capability data and confirming **model selection** (and effort only if supported), one `ap.py plan-models --provider openai --capabilities .autopilot/model-capabilities.json --apply` **atomically validates the full plan** and creates all approved native project profiles. **`--apply` requires a successful, still-current G3 `ap.py check-plan`:** the exact ticket and requirement contract **and** the manifest statuses at validation must still match. If G3 is missing/failed, a ticket or requirement changes, statuses change, a model/Effort pair is unavailable, or a profile conflicts, the batch is refused *before* any profile is created. Run `tickets`, `check-plan`, and recalculate/reapply the plan after reviewing the changes; never silently downgrade or skip G3.
 4. Phase 5 calls exact already assigned `agentType`, only after checking the profile integrity and live host functionality. **A profile on disk does not prove GUI dispatch or the effective model.** If actual host selection cannot be established, no subagent is spawned. An explicitly chosen `--sequential-host` run does not create named child agents and rejects `plan-models`.
 
 Example of an automatic table (illustrative **policy**, not measured runtime):

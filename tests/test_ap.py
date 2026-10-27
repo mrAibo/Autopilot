@@ -965,6 +965,39 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertEqual(self.state()["tickets"][0]["status"], "in-progress")
 
+    def verify_model_only_batch(self, provider, models, suffix, marker):
+        self.plan(strict=True)
+        self.ap("tickets")
+        self.ap("check-plan")
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": provider, "model_selection": True,
+                       "effort_selection": False, "models": models}, out)
+        code, payload = self.ap("plan-models", "--provider", provider,
+                                "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, payload)
+        proposal = json.loads(payload)["tickets"]
+        self.assertTrue(all(p["effortEnforced"] is False for p in proposal))
+        for task in self.state()["tickets"]:
+            route = task["routing"]
+            self.assertFalse(route["effortEnforced"])
+            self.assertTrue(route["effort"])
+            self.assertTrue(route["verified"])
+            text = read(os.path.join(self.root, route["agentFile"]))
+            self.assertTrue(route["agentFile"].endswith(suffix))
+            self.assertNotIn(marker, text)
+        code, output = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, output)
+
+    def test_plan_models_batch_claude_model_only(self):
+        self.verify_model_only_batch(
+            "anthropic", {"haiku": [], "sonnet": []}, ".md", "effort:")
+
+    def test_plan_models_batch_codex_model_only(self):
+        self.verify_model_only_batch(
+            "openai", {"gpt-6-luna": [], "gpt-6.1-sol": []},
+            ".toml", "model_reasoning_effort =")
+
     def test_plan_models_apply_fail_closed_all_or_nothing_if_one_model_missing(self):
         self.plan(strict=True)
         self.write("tickets/02-priem.md", ticket(

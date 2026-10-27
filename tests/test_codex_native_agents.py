@@ -61,6 +61,27 @@ class NativeAgentGateTests(unittest.TestCase):
         with self.assertRaises(native.NativeAgentError):
             native.check_profile(self.profile, self.agent, "gpt-6-luna", "low")
 
+    def test_model_only_native_profile_and_catalog_remain_candidate(self):
+        _, body = agent_profiles.definition(
+            "openai", self.agent, "explorer",
+            {"model": "gpt-6-luna", "effort": "low",
+             "effort_enforced": False}, "PROBE.md")
+        self.profile.write_text(body, encoding="utf-8")
+        config = native.check_profile(self.profile, self.agent, "gpt-6-luna", None)
+        self.assertNotIn("model_reasoning_effort", config)
+        with self.assertRaises(native.NativeAgentError):
+            native.check_profile(self.profile, self.agent, "gpt-6-sol", None)
+        gate = native.catalog_preflight(catalog(), "gpt-5.6-luna",
+                                         "gpt-6-luna", None)
+        self.assertEqual(gate["status"], "candidate-only")
+        self.assertFalse(gate.get("native_session_verified", False))
+
+    def test_model_only_v2_parent_still_blocks_named_agent(self):
+        gate = native.catalog_preflight(catalog(), "gpt-6-sol",
+                                         "gpt-6-luna", None)
+        self.assertEqual(gate["status"], "blocked")
+        self.assertEqual(gate["reason"], "custom-agent-type-not-exposed-by-parent")
+
     def test_model_text_cannot_forge_native_spawn(self):
         events = [{"type": "item.completed", "item": {"type": "agent_message",
                    "text": "I spawned autopilot-explorer-smoke gpt-6-luna low"}}]

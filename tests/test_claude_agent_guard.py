@@ -88,6 +88,49 @@ class HookGuardTests(unittest.TestCase):
             ok, why = guard.decision(self.payload(), self.root)
         self.assertTrue(ok, why)
 
+    def model_only(self):
+        self.file.write_text(self.file.read_text(encoding="utf-8").replace(
+            "effort: low" + chr(10), ""), encoding="utf-8")
+        route = self.state["tickets"][0]["routing"]
+        route["profileSha"] = hashlib.sha256(self.file.read_bytes()).hexdigest()
+        route["effortEnforced"] = False
+        self.save()
+        (self.ap / "model-capabilities.json").write_text(json.dumps({
+            "provider": "anthropic", "model_selection": True,
+            "effort_selection": False, "models": {"haiku": []}}), encoding="utf-8")
+
+    def test_model_only_allows_effort_override_but_not_model_override(self):
+        from unittest.mock import patch
+        self.model_only()
+        with patch.dict("os.environ", {"CLAUDE_CODE_EFFORT_LEVEL": "high"}):
+            ok, why = guard.decision(self.payload(effort="high"), self.root)
+        self.assertTrue(ok, why)
+        self.assertIn("unverified", why)
+        ok, why = guard.decision(self.payload(model="sonnet"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("model", why.lower())
+
+    def test_model_only_still_denies_generic_and_forced_global_model(self):
+        from unittest.mock import patch
+        self.model_only()
+        ok, _ = guard.decision(self.payload(agent="Explore"), self.root)
+        self.assertFalse(ok)
+        with patch.dict("os.environ", {"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"}):
+            ok, why = guard.decision(self.payload(), self.root)
+        self.assertFalse(ok)
+        self.assertIn("FORCE", why)
+
+    def test_model_only_rejects_mismatched_route_capabilities(self):
+        self.model_only()
+        self.state["tickets"][0]["routing"]["effortEnforced"] = True
+        self.save()
+        self.assertFalse(guard.decision(self.payload(), self.root)[0])
+        self.state["tickets"][0]["routing"]["effortEnforced"] = False
+        self.save()
+        self.file.write_text(self.file.read_text(encoding="utf-8").replace(
+            "model: haiku", "model: sonnet"), encoding="utf-8")
+        self.assertFalse(guard.decision(self.payload(), self.root)[0])
+
     def test_modified_profile_is_denied(self):
         with self.file.open("a", encoding="utf-8") as f:
             f.write("Changed")

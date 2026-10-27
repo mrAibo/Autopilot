@@ -24,14 +24,14 @@ py -3 .autopilot/ap.py plan-models --provider anthropic
 # Read-only recommendation; status may be blocked until actual host capability discovery.
 ```
 
-If live host model/effort support is *independently established* and represented in a verified project-local capability catalog, the owner may approve:
+If live host **model and named-agent** support is independently established and represented in a verified project-local capability catalog (effort support is optional, with `effort_selection:false` when not enforceable), the owner may approve:
 
 ```powershell
 py -3 .autopilot/ap.py plan-models --provider anthropic --capabilities .autopilot/model-capabilities.json --apply
 py -3 .autopilot/claude_agent_guard.py --install-hook --root .
 ```
 
-The generated project-local `.claude/agents/*.md` contain the pinned `model`, `effort`, and restricted `tools` fields. The optional `PreToolUse` guard refuses unapproved agent types, modified profile hashes, per-call overrides, globally forced `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` and conflicting `CLAUDE_CODE_EFFORT_LEVEL` environment settings.
+The generated project-local `.claude/agents/*.md` always pin `model` and restricted `tools`; they pin `effort` **only when the host advertises enforceable effort selection**. With a verified model-only catalog (`effort_selection:false`), the effort recommendation stays advisory and no profile effort field is written. The optional `PreToolUse` guard refuses unapproved agent types, modified profile hashes, **model** overrides and globally forced `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`. It additionally refuses conflicting per-call/environment **effort** only for routes that declare `effortEnforced:true`. Model-only mode never claims effort enforcement.
 
 **Important runtime limitations:** in newer Claude Code versions, an Agent invocation can override frontmatter `model` / `effort`; `CLAUDE_CODE_EFFORT_LEVEL` overrides even both; a forced model override can ignore pinned profiles; organization allowlists may substitute another model. The guard is an additional protection, **not** evidence of the effective spawned model. The owner must check `/tasks` while an agent is running (where available), the agent identity, cwd and actual tool activity before calling the path qualified.
 
