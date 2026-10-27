@@ -1,5 +1,7 @@
 # Autopilot — continuation handoff to Codex, Claude Code or another client
 
+> **Archived cross-project incident context — not the current Autopilot roadmap.** This document records a historical support case from another repository. The owner clarified on 2026-10-27 that other project is separate. Do not treat its 15 requirements, Rust codebase, or dirty Git tree as Autopilot's own project or as a priority mandate. For current Autopilot development, use [HANDOFF.md](HANDOFF.md), [STATUS.md](STATUS.md), [brief.md](brief.md) and the independently scoped [repository preflight](docs/autopilot/repository-preflight.md). Do not modify the other repository as part of Autopilot work.
+
 **Date:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
 **Workstation:** Aibo, `C:\Users\crown\Downloads\Projects\Autopilot`
