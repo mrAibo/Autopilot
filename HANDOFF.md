@@ -1,5 +1,7 @@
 # Autopilot 2.3 — handoff to a new ChatGPT/Codex conversation
 
+> **Current product-only scope (2026-10-27):** This handoff concerns **Autopilot**, not any other application repository. The separate historical cross-project report `HANDOFF_NEXT_CLIENT_2026-10-26.md` is **not the active development plan**. Current product work: [read-only repository preflight](docs/autopilot/repository-preflight.md), generic host test-verification contracts, model-only advisory effort, safe run continuity. Preserve historical evidence in [STATUS.md](STATUS.md), but do not import external project tickets or prioritization. Published `v2.3.0` stays unchanged; check latest main SHA/CI.
+
 **Date:** 2026-10-26 (Europe/Berlin)
 **Product stage:** [`v2.3.0`](https://github.com/mrAibo/Autopilot/releases/tag/v2.3.0) **officially published**, Codex limited sequential-host support. Tag points to product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5` (PR #32, full release PR CI 4/4 green and local Python 316/316). Native Codex GUI named-agent/model/Effort not included; Claude Code profile/guard offline-tested only, pending separate subscription and live CLI.
 **Repository:** https://github.com/mrAibo/Autopilot

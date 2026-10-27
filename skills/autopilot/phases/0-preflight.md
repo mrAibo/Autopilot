@@ -26,6 +26,8 @@ The first case needs both marks: two sessions writing one `state.js` overwrite e
 
 ## 2. Git
 
+For an existing repository, use the **independent read-only** `repo_doctor.py --root <project-root>` from the installed Autopilot skill before deciding whether isolated worktrees can be prepared. See [repository preflight](../../../docs/autopilot/repository-preflight.md). This performs aggregate Git diagnostics only; it never stages/commits user source or runs tests. Unsupported test frameworks remain blocked for strict host acceptance.
+
 No repo → `git init` now. Write `.gitignore` before anything else is created, with at least `.env`, `.env.*`, `!.env.example`, `node_modules/`, `__pycache__/`, `.DS_Store`. `.autopilot/` is **committed**, not ignored — it is the user's record of what was promised and delivered; only its `serve.*` files are ignored, and `init` adds that line. The first commit happens at the end of Phase 4 (`phases/4-plan.md`).
 
 A dirty working tree → say so in one line and continue; never stash, reset or clean the user's work, and never commit it: every commit this skill makes names its paths.
