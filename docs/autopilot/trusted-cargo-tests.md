@@ -29,7 +29,7 @@ worktree**, removes inherited Cargo/Rust configuration environment variables,
 and disables Cargo network access. Tests must pass with a frozen tracked lockfile.
 
 This first adapter deliberately supports **standalone, dependency-free
-packages only**: no workspaces, Cargo dependencies, custom project
+library packages only** (library source must stay inside the worktree): no workspaces, Cargo dependencies, custom project
 `.cargo/config`, package build scripts or proc macros. Expanding to vetted
 dependencies/build scripts requires separate design and security review. An
 installed Cargo/Rust toolchain is necessary.

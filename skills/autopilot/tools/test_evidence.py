@@ -159,6 +159,14 @@ def checked_baseline_cargo(target, suite):
     lib = manifest.get("lib") or {}
     if not isinstance(lib, dict):
         raise EvidenceError("Invalid Cargo library definition")
+    source_name = lib.get("path", "src/lib.rs")
+    if (not isinstance(source_name, str) or not source_name
+            or ".." in Path(source_name).parts):
+        raise EvidenceError("Unsafe Cargo library source path")
+    source = Path(target) / source_name
+    if (source.is_symlink() or not source.is_file()
+            or not source.resolve().is_relative_to(Path(target).resolve())):
+        raise EvidenceError("Cargo library source must stay inside the worktree")
     if ((Path(target) / "build.rs").exists()
             or package.get("build") not in (None, False)
             or lib.get("proc-macro") is True):

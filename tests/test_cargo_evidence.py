@@ -136,6 +136,18 @@ class CargoEvidenceTests(unittest.TestCase):
                 self.git("add", "Cargo.toml")
                 self.git("commit", "-qm", "return to normal Cargo baseline")
 
+    def test_baseline_cargo_library_outside_checkout_is_rejected(self):
+        manifest = self.root / "Cargo.toml"
+        manifest.write_text(manifest.read_text(encoding="utf-8")
+                            + '\n[lib]\npath = "../outside.rs"\n', encoding="utf-8")
+        self.git("add", "Cargo.toml")
+        self.git("commit", "-qm", "unapproved source redirection fixture")
+        sha = self.git("rev-parse", "HEAD").stdout.strip()
+        worktrees.create(self.root, "07")
+        with self.assertRaisesRegex(test_evidence.EvidenceError,
+                                    "Unsafe Cargo library source path"):
+            test_evidence.verify(self.root, "07", sha, "cargo:smoke")
+
     def test_invalid_target_names_and_arguments_are_rejected(self):
         for name in ("cargo:../smoke", "cargo:smoke;echo", "cargo:smoke -- --ignored",
                      "cargo:", "cargo:-smoke", "cargo:smoke/other", "cargo:smoke.rs"):
