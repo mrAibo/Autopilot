@@ -624,3 +624,7 @@ Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns foll
 ## 2026-10-29 — F2 Claude attestation transcript path
 
 `claude_attest.py` now records `transcript_path` on `SubagentStop` lines, taken only from `agent_transcript_path` when it is a string, so the subagent transcript (per-message `message.model`) is kept as the evidence source for model checks. PreToolUse and PostToolUse lines carry `transcript_path: null`; the main session path and message content are never written, and the hook still always exits 0. Covered by 2 new tests in `tests/test_claude_attest.py`; not verified against a live Claude Code session.
+
+## OTel cost tools (2026-10-29)
+
+`tools/otel_sink.py` and `tools/otel_summary.py` make cost measurement a first-class tool: a stdlib-only local OTLP receiver and a summary of tokens and estimated USD per query_source × model × effort with the main-vs-subagent share. Fixes the T13 flaw where the main session's `sdk` api_request events were counted as subagent. Covered by `tests/test_otel_tools.py` on synthetic fixtures; not yet run against a live A/B (a Sonnet-routed vs Sonnet-flat probe is prepared outside the repo). Usage: `docs/autopilot/measuring-cost.md`.
