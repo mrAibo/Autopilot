@@ -4,7 +4,19 @@
 
 ## Why Claude Code is a good target
 
-Official Claude Code supports custom project agents in `.claude/agents/<name>.md`. Each agent can specify `model: haiku|sonnet` and `effort: low|medium|high`. Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Strong/critical jobs use Sonnet/high; simpler jobs can use Haiku/low. Opus and Fable remain forbidden executor defaults.
+Claude Code project agents live in `.claude/agents/<name>.md`. Relevant frontmatter:
+- `model`: `sonnet`, `opus`, `haiku`, `fable`, a full model ID, or `inherit`.
+- `effort`: `low`, `medium`, `high`, `xhigh`, `max` (available levels depend on the model).
+- Effort precedence: `CLAUDE_CODE_EFFORT_LEVEL` > per-invocation `effort` (v2.1.292+) > frontmatter > session.
+- Model precedence: per-invocation `model` > frontmatter > `CLAUDE_CODE_SUBAGENT_MODEL` > main model. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` ignores frontmatter; an `availableModels` allowlist can substitute a model.
+- `/tasks` shows model and effort per running subagent (v2.1.242+).
+
+Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Tiers: cheap haiku/low · balanced sonnet/medium · strong sonnet/high · critical sonnet/xhigh (risk >= 10 and algorithm >= 20). Opus and Fable are not used as subagents by default.
+
+Tool rules per role (field names are case-sensitive; Claude Code silently ignores misspelled fields):
+- executor: `tools: Read, Grep, Glob, Bash, Edit, Write`.
+- reviewer and acceptance: `tools: Read, Grep, Glob, Bash` plus `disallowedTools: Edit, Write, Agent`, so they can run tests or install and run the project without edit rights. Acceptance also sets `omitClaudeMd: true` (blind acceptance, no project memory).
+- explorer: read-only (`Read, Grep, Glob`).
 
 Claude Code documentation: [Custom subagents](https://code.claude.com/docs/en/sub-agents), [Model configuration](https://code.claude.com/docs/en/model-config).
 
