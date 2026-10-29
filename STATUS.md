@@ -41,6 +41,10 @@
 
 Claude Code reviewer and acceptance profiles previously received only `Read, Grep, Glob`, so blind acceptance could not install or run the project. They now receive `Read, Grep, Glob, Bash` with `disallowedTools: Edit, Write, Agent`; acceptance additionally sets `omitClaudeMd: true`. Executor and explorer profiles are unchanged. The existing security-routing test was updated to assert the new no-edit contract instead of the old no-Bash one. Offline tests only; no live Claude Code run was performed.
 
+## Claude profile maxTurns and role colors (T10)
+
+Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns follow ticket volume (the `**Volume:**`/`**Объём:**` line): 60 up to 900 lines, 120 up to 2000, 200 above, 120 when the line is missing; reviewer, acceptance and explorer get a fixed 80. Colors are executor blue, reviewer purple, explorer cyan, acceptance green. Codex TOML is unchanged. The brief text is passed to `definition()` from both `prepare()` and `ap.py plan-models`, so re-applying regenerates the same profile. **Profiles installed before this change must be regenerated once** (delete the old `autopilot-*` Claude profile and re-run `plan-models --apply`), because their content no longer matches. Offline tests only; no live Claude Code run.
+
 ## Current presentation and GitHub upstream status (2026-10-25)
 
 - User noticed earlier README images still displayed inherited original branding. Fixed the *actual dashboard template*, not just screenshot names: removed the embedded old PNG logo, replaced both headers (including error state) with text-only \`Autopilot / 2.3 DEV\`. Removed the two inherited README logo PNG assets and header references.

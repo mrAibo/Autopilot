@@ -965,6 +965,29 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertEqual(self.state()["tickets"][0]["status"], "in-progress")
 
+    def test_plan_models_apply_twice_keeps_volume_maxturns(self):
+        # Re-applying must regenerate the same executor profile, including
+        # the brief-derived maxTurns (500 lines -> 60), without a content mismatch.
+        self.plan(strict=True)
+        self.write("tickets/01-karkas.md", ticket(
+            "01", "Каркас", "R01, R05", "—", ["src/core/"], 1, "да — фундамент", "сильная"
+        ).replace("## Критерии", "**Объём:** 500\n\n## Критерии", 1))
+        self.ap("tickets")
+        self.ap("check-plan")
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+        for attempt in (1, 2):
+            with self.subTest(attempt=attempt):
+                code, output = self.ap("plan-models", "--provider", "anthropic",
+                                       "--capabilities", caps, "--apply")
+                self.assertEqual(code, 0, output)
+                route = self.state()["tickets"][0]["routing"]
+                text = read(os.path.join(self.root, route["agentFile"]))
+                self.assertIn("maxTurns: 60\n", text)
+                self.assertIn("color: blue\n", text)
+
     def verify_model_only_batch(self, provider, models, suffix, marker):
         self.plan(strict=True)
         self.ap("tickets")

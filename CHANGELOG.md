@@ -9,6 +9,7 @@ npx skills update autopilot -g
 ## 2.3.0 — Codex limited release (2026-10-26)
 
 - Claude reviewer and acceptance profiles now get `Bash` (no `Edit`/`Write`/`Agent` via `disallowedTools`); acceptance also sets `omitClaudeMd: true`. Executor profile unchanged.
+- Claude agent profiles now set `maxTurns` (executor by ticket volume: ≤900 lines 60, ≤2000 120, else 200, no volume line 120; reviewer/acceptance/explorer 80) and role `color` (executor blue, reviewer purple, explorer cyan, acceptance green). Codex TOML unchanged.
 
 - **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
 
