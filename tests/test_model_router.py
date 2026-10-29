@@ -27,7 +27,7 @@ class RouterTests(unittest.TestCase):
         self.assertEqual((r["status"], r["model"]), ("ready", "haiku"))
 
     def test_strong_anthropic_uses_sonnet_not_opus_or_fable(self):
-        scores = {"algorithm": 25, "coupling": 20, "uncertainty": 15,
+        scores = {"algorithm": 15, "coupling": 20, "uncertainty": 15,
                   "context": 15, "testing": 15, "risk": 10}
         r = router.choose_route("anthropic", scores, capabilities=self.capabilities("anthropic", "sonnet", "high"))
         self.assertEqual((r["status"], r["model"], r["profile"]), ("ready", "sonnet", "strong"))
@@ -279,6 +279,35 @@ class RouterTests(unittest.TestCase):
             router.choose_route(
                 "openai", scores, policy=policy,
                 capabilities=self.capabilities("openai", "gpt-6-astra", "low"))
+
+    def critical_scores(self, risk, algorithm):
+        scores = {name: 0 for name in router.WEIGHTS}
+        scores.update(risk=risk, algorithm=algorithm)
+        return scores
+
+    def test_risk_and_algorithm_max_selects_critical(self):
+        r = router.choose_route("anthropic", self.critical_scores(10, 25),
+                                capabilities=self.capabilities("anthropic", "sonnet", "xhigh"))
+        self.assertEqual((r["status"], r["profile"], r["model"], r["effort"]),
+                         ("ready", "critical", "sonnet", "xhigh"))
+
+    def test_strong_unchanged_for_high_risk_only(self):
+        self.assertEqual(router.assess_scores(self.critical_scores(10, 5))[1], "strong")
+
+    def test_custom_policy_can_override_critical(self):
+        policy = self.policy_from({"providers": {"anthropic": {
+            "critical": {"model": "some-host-model", "effort": "max"}}}})
+        r = router.choose_route("anthropic", self.critical_scores(10, 25), policy=policy,
+                                capabilities=self.capabilities("anthropic", "some-host-model", "max"))
+        self.assertEqual((r["status"], r["model"], r["effort"]),
+                         ("ready", "some-host-model", "max"))
+
+    def test_critical_blocked_without_xhigh_capability(self):
+        caps = {"provider": "anthropic", "model_selection": True,
+                "models": {"sonnet": ["low", "medium", "high"]}}
+        r = router.choose_route("anthropic", self.critical_scores(10, 25), capabilities=caps)
+        self.assertEqual((r["status"], r["error"]),
+                         ("blocked", "Model/effort unavailable in this harness"))
 
 
 if __name__ == "__main__":

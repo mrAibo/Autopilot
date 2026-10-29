@@ -1,6 +1,7 @@
 """Claude PreToolUse guard tests (no Claude subscription or process required)."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -157,6 +158,68 @@ class HookGuardTests(unittest.TestCase):
         content = json.loads(settings.read_text(encoding="utf-8"))
         self.assertEqual(len(content["hooks"]["PreToolUse"]), 1)
 
+    def test_installer_writes_exec_form_fail_closed(self):
+        guard.install_hook(self.root)
+        settings = json.loads((self.root / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        hook = settings["hooks"]["PreToolUse"][0]["hooks"][0]
+        self.assertEqual(hook["command"], str(Path(sys.executable).resolve()))
+        self.assertTrue(hook["args"][0].startswith("${CLAUDE_PROJECT_DIR}"))
+        self.assertEqual(hook["onFailure"], "block")
+
+    def test_installer_denies_claude_started_forks(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text(json.dumps({"permissions": {"deny": ["Bash(rm *)"]}}),
+                            encoding="utf-8")
+        guard.install_hook(self.root)
+        guard.install_hook(self.root)
+        deny = json.loads(settings.read_text(encoding="utf-8"))["permissions"]["deny"]
+        self.assertEqual(deny, ["Bash(rm *)", "Agent(fork)"])
+
+    def test_installer_adds_fork_deny_to_existing_hook_install(self):
+        guard.install_hook(self.root)
+        settings = self.root / ".claude" / "settings.json"
+        content = json.loads(settings.read_text(encoding="utf-8"))
+        content["permissions"]["deny"].remove("Agent(fork)")
+        settings.write_text(json.dumps(content), encoding="utf-8")
+        _, installed = guard.install_hook(self.root)
+        self.assertTrue(installed)
+        self.assertIn("Agent(fork)",
+                      json.loads(settings.read_text(encoding="utf-8"))["permissions"]["deny"])
+
+    def test_installer_rejects_invalid_permissions_shape(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text(json.dumps({"permissions": {"deny": "Agent(fork)"}}),
+                            encoding="utf-8")
+        with self.assertRaises(ValueError):
+            guard.install_hook(self.root)
+
+    def test_installer_replaces_legacy_relative_hook(self):
+        settings = self.root / ".claude" / "settings.json"
+        legacy = {"matcher": "Agent|Task", "hooks": [
+            {"type": "command", "command": "python .autopilot/claude_agent_guard.py"}]}
+        other = {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}
+        settings.write_text(json.dumps({"hooks": {"PreToolUse": [other, legacy]}}),
+                            encoding="utf-8")
+        _, installed = guard.install_hook(self.root)
+        self.assertTrue(installed)
+        entries = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PreToolUse"]
+        self.assertIn(other, entries)
+        guards = [e for e in entries if "claude_agent_guard.py" in json.dumps(e)]
+        self.assertEqual(len(guards), 1)
+        self.assertEqual(guards[0]["hooks"][0]["onFailure"], "block")
+        self.assertNotIn(legacy, entries)
+
+    def test_root_from_claude_project_dir_env(self):
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"CLAUDE_PROJECT_DIR": str(self.root)}):
+            self.assertEqual(guard.project_root({"cwd": "/somewhere/else"}), str(self.root))
+
+    def test_root_falls_back_to_payload_cwd(self):
+        from unittest.mock import patch
+        with patch.dict("os.environ", {}):
+            os.environ.pop("CLAUDE_PROJECT_DIR", None)
+            self.assertEqual(guard.project_root({"cwd": str(self.root)}), str(self.root))
+
     def test_installer_rejects_invalid_settings_shape(self):
         settings = self.root / ".claude" / "settings.json"
         settings.write_text("[]", encoding="utf-8")
@@ -220,11 +283,23 @@ class HookGuardTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("unreadable", why)
 
-    def run_real_hook(self, payload):
+    def run_real_hook(self, payload, cwd=None, project_dir=None):
+        # Isolate from the caller's Claude session so cwd-only tests stay meaningful.
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+        if project_dir is not None:
+            env["CLAUDE_PROJECT_DIR"] = str(project_dir)
         return subprocess.run(
             [sys.executable, str(guard.__file__)],
-            cwd=self.root, input=json.dumps(payload),
+            cwd=cwd or self.root, input=json.dumps(payload), env=env,
             capture_output=True, text=True, encoding="utf-8", timeout=15)
+
+    def test_strict_run_denied_when_hook_cwd_is_subdirectory(self):
+        sub = self.root / "sub"
+        sub.mkdir()
+        result = self.run_real_hook(self.payload(agent="Explore"), cwd=sub,
+                                    project_dir=self.root)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("Only explicitly", result.stderr)
 
     def test_real_hook_subprocess_blocks_corrupt_state(self):
         state_path = self.ap / "state.js"

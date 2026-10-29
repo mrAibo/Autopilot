@@ -98,6 +98,7 @@ class OfflineSupervisorRealGit(unittest.TestCase):
                            "--reason", "offline-no-provider",
                            "--capabilities", str(cap))
             self.assertEqual(rc, 0, out)
+        h.attest_routes()
         h.git("config", "user.email", "test@example.invalid")
         h.git("config", "user.name", "Autopilot Offline Process Tests")
         core = Path(h.root) / "src" / "core"
