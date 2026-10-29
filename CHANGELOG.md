@@ -6,6 +6,10 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased
+
+- **`ap.py` fixes, ported from upstream 2.2.1** (nick-vels/skills@f50d1b1): `--help`/`-h`/`help` print the usage and never touch `state.js`; `coverage` and `blind` refuse to record without all their numbers (a missing counter is not zero, `blind` no longer wipes recorded mismatches); `Зависит от` refs match ticket ids as written (`E34` is no longer turned into `34`) and a reference to a missing ticket fails `check-plan`.
+
 ## 2.4.1 — Token economy (2026-10-29)
 
 Cheaper runs without new features: shorter always-read phase and prompt text, capped agent reports, cost measurement tools and a measured A/B of the main-session model and ticket routing.
