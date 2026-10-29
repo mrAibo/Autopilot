@@ -55,7 +55,7 @@ It creates the run directory `<YYYY-MM-DD>-<slug>--wip/` with `tickets/` inside,
 
 A line starting with **`↑`** means a newer Autopilot is out: put it into the opening block as it is — one line, not a question, never an update mid-run.
 
-Also say once, in one line, that the main session's model is the biggest cost driver and Sonnet is recommended for the build (`/model` switches it); never block, never ask.
+Also say once, in one line, that the main session's model is the biggest cost driver and Sonnet is recommended for the build (`/model` switches it); never block, never ask. For a complex or fuzzy idea Opus can plan first; the offer to build in a fresh Sonnet chat comes at the end of Phase 4 (`phases/4-plan.md`), not here.
 
 ## 3. Open it once, yourself
 

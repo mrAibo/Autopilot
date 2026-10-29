@@ -8,6 +8,7 @@ npx skills update autopilot -g
 
 ## Unreleased
 - **New logo:** own light/dark SVG logo (`assets/autopilot-logo-*.svg`) in all three READMEs; stale "2.3 DEV" heading replaced.
+- **Plan on a strong model, build in a fresh cheaper chat:** Phase 4 now ends with a one-line offer (an informational line only in semi, interview and full), `phases/0-resume.md` handles "plan approved, build not started" by going straight to Phase 5, and the READMEs and `model-routing.md` describe the three-step scenario.
 
 ## 2.4.1 — Token economy (2026-10-29)
 

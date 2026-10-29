@@ -25,7 +25,6 @@ class BrandingSmoke(unittest.TestCase):
         for name in ("README.md", "README.ru.md"):
             with self.subTest(readme=name):
                 markdown = (ROOT / name).read_text(encoding="utf-8")
-                self.assertNotIn("autopilot-logo", markdown)
                 self.assertIn("dashboard-31-models.png", markdown)
                 self.assertIn("dashboard-31-desktop.png", markdown)
                 self.assertNotIn("dashboard-3-desktop.png", markdown)
