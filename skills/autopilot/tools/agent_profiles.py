@@ -53,15 +53,23 @@ def definition(provider, name, role, route, ticket):
     )
     if provider == "anthropic":
         # Model and effort frontmatter are documented Claude Code settings.
-        allowed_tools = ("Read, Grep, Glob, Bash, Edit, Write" if role == "executor"
-                         else "Read, Grep, Glob")
+        if role == "executor":
+            allowed_tools, extra = "Read, Grep, Glob, Bash, Edit, Write", ""
+        elif role in ("reviewer", "acceptance"):
+            allowed_tools = "Read, Grep, Glob, Bash"
+            extra = "disallowedTools: Edit, Write, Agent\n"
+            if role == "acceptance":
+                extra += "omitClaudeMd: true\n"   # blind acceptance: no project memory
+        else:  # explorer
+            allowed_tools, extra = "Read, Grep, Glob", ""
         output = (
             "---\nname: " + name + "\n"
             "description: " + role_description(role) + "\n"
             "model: " + model + "\n"
             + ("effort: " + effort + "\n" if effort_enforced else "")
             + "tools: " + allowed_tools + "\n"
-            "---\n\n" + instructions
+            + extra
+            + "---\n\n" + instructions
         )
         relative_path = Path(".claude/agents") / (name + ".md")
         return relative_path, output
