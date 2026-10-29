@@ -18,6 +18,8 @@
 - Earlier Windows host targeted tests: 13 worktree and 13 Codex adapter tests; strict isolated host verification integration passed. Live account Codex catalog import worked, and standalone Luna/Low read-only requests returned `CODEX_OK` (5s; input 19718, cached 12672, output 7) and `CONFIG_ISOLATED_OK` (4s; input 16643, cached 11776, output 9).
 - Live synthetic Windows model task: Codex Luna/Low actually changed `calc.py` in `%TEMP%\autopilot-23-codex-e2e-20261025`; trusted host ran **2/2 tests**, committed only the approved edit (`262b83e`), landed in synthetic checkout (`e7e1975`), accepted the ticket and released its worktree. The now-implemented host `worktree finalize` command was independently validated in tests, not in that live paid task.
 - The initial Windows CLI hang resulted from unclosed stdin in the remote test; prompt sent via stdin+EOF fixed it. The Windows Codex sandbox backend needed explicit `windows.sandbox="elevated"` while preserving `--sandbox read-only|workspace-write`; it could edit source but not access shared Git `index.lock` or `python` inside the sandbox. **Never disable sandboxing to make the test pass.**
+**Router critical tier (T04):** `model_router.py` now has a fourth tier `critical` (Anthropic sonnet/xhigh, OpenAI equal to strong) for tickets scoring risk >= 10 and algorithm >= 20; opus stays restricted and hosts without `xhigh` are blocked fail-closed.
+
 
 ## Current installation on owner's Windows PC
 
