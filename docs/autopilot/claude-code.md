@@ -1,10 +1,22 @@
 # Claude Code support in Autopilot 2.3.0
 
-**Qualification level:** agent profiles and PreToolUse guard are tested offline with Python/subprocess fixtures. No Claude Code CLI is currently installed on the tested Windows Aibo host, so **native Claude Code subagent execution, actual model, effort, cwd and subscription billing have not been verified**. The Codex limited 2.3.0 release does **not** claim these results.
+**Qualification level:** agent profiles and PreToolUse guard are tested offline with Python/subprocess fixtures. No Claude Code CLI is currently installed on the tested Windows <HOST> host, so **native Claude Code subagent execution, actual model, effort, cwd and subscription billing have not been verified**. The Codex limited 2.3.0 release does **not** claim these results.
 
 ## Why Claude Code is a good target
 
-Official Claude Code supports custom project agents in `.claude/agents/<name>.md`. Each agent can specify `model: haiku|sonnet` and `effort: low|medium|high`. Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Strong/critical jobs use Sonnet/high; simpler jobs can use Haiku/low. Opus and Fable remain forbidden executor defaults.
+Claude Code project agents live in `.claude/agents/<name>.md`. Relevant frontmatter:
+- `model`: `sonnet`, `opus`, `haiku`, `fable`, a full model ID, or `inherit`.
+- `effort`: `low`, `medium`, `high`, `xhigh`, `max` (available levels depend on the model).
+- Effort precedence: `CLAUDE_CODE_EFFORT_LEVEL` > per-invocation `effort` (v2.1.292+) > frontmatter > session.
+- Model precedence: per-invocation `model` > frontmatter > `CLAUDE_CODE_SUBAGENT_MODEL` > main model. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` ignores frontmatter; an `availableModels` allowlist can substitute a model.
+- `/tasks` shows model and effort per running subagent (v2.1.242+).
+
+Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Tiers: cheap haiku/low · balanced sonnet/medium · strong sonnet/high · critical sonnet/xhigh (risk >= 10 and algorithm >= 20). Opus and Fable are not used as subagents by default.
+
+Tool rules per role (field names are case-sensitive; Claude Code silently ignores misspelled fields):
+- executor: `tools: Read, Grep, Glob, Bash, Edit, Write`.
+- reviewer and acceptance: `tools: Read, Grep, Glob, Bash` plus `disallowedTools: Edit, Write, Agent`, so they can run tests or install and run the project without edit rights. Acceptance also sets `omitClaudeMd: true` (blind acceptance, no project memory).
+- explorer: read-only (`Read, Grep, Glob`).
 
 Claude Code documentation: [Custom subagents](https://code.claude.com/docs/en/sub-agents), [Model configuration](https://code.claude.com/docs/en/model-config).
 
@@ -12,7 +24,7 @@ Claude Code documentation: [Custom subagents](https://code.claude.com/docs/en/su
 
 1. Claude Code is **not** the general Claude Desktop chat application. Install Claude Code from the [official setup instructions](https://code.claude.com/docs/en/setup), e.g. `winget install Anthropic.ClaudeCode` on Windows, only if authorized. Verify `claude --version`.
 2. Sign in via `claude` using the separate **Claude Pro or Max (or organization) subscription**. A ChatGPT/Codex Plus subscription **does not include Claude Code inference**. Avoid Claude Console API-key login. If `ANTHROPIC_API_KEY` is set, Claude Code can use it **instead of** the subscription and incur API charges. Decline extra **usage credits** when your plan limit is reached. Consult [Anthropic's subscription billing instructions](https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan).
-3. Confirm the Autopilot skill is reachable from `~/.claude/skills/autopilot/SKILL.md`. On Aibo the existing Junction points to the source checkout; do not reinstall the skill or overwrite global Claude settings.
+3. Confirm the Autopilot skill is reachable from `~/.claude/skills/autopilot/SKILL.md`. On <HOST> the existing Junction points to the source checkout; do not reinstall the skill or overwrite global Claude settings.
 4. Before starting any *new* run, confirm from the **actual Claude Code host** that the chosen models and effort levels are available and the agent can run under the subscription. Do not invent a `model-capabilities.json` just to enable `--apply`.
 
 ## New strict Claude Code run (after live host qualification)
@@ -46,7 +58,22 @@ Claude Code's own `isolation: worktree` starts from the default branch by defaul
 | Ticket model/effort selection | Offline algorithm + synthetic catalog tests |
 | Claude custom agents / YAML frontmatter | Generated and tested offline; documented officially |
 | PreToolUse strict guard | Offline and real Python subprocess tests |
-| Effective Claude Code subagent model / effort | **Not yet observed on Aibo** |
-| Subscription charge boundary | **Not yet observed on Aibo** |
+| Effective Claude Code subagent model / effort | **Not yet observed on <HOST>** |
+| Subscription charge boundary | **Not yet observed on <HOST>** |
 
 Do not call this a completed native Claude Code E2E until those last two rows have independently passing evidence.
+
+## Live probe (T08, 2026-10-29)
+
+Disposable strict run, one ticket routed `anthropic / haiku / low`, guard (T02) and attestation hooks (T06) installed, gate (T07) active.
+Host: Claude desktop app (Code tab) with bundled Claude Code 2.1.309 (the CLI on PATH was 2.1.302), Claude Pro subscription.
+
+1. **Foreground.** The desktop app launched every `Agent` call asynchronously, even without `run_in_background`; there is no observable foreground mode on this host. `PostToolUse` still carried `tool_response.resolvedModel` = `claude-haiku-5-5` with `status: "async_launched"`. Every tool call inside the subagent produced a `PreToolUse` line with `effort.level` = `low`. `modelsUsed` was never present; `effort` is absent on `PostToolUse`/`SubagentStop`.
+2. **Background.** Same evidence shape as (1): `async_launched`, `resolvedModel` set. The subagent transcript is `~/.claude/projects/<project>/<session>/subagents/agent-<agentId>.jsonl`; assistant entries carry `message.model` (`claude-haiku-5-5`) and top-level `requestedModel`, `effort`, `perTurnEffort` (`low`). The `output_file` returned by the Agent tool stayed empty. `claude_attest.py` does not yet record `agent_transcript_path`.
+3. **Fork.** In the desktop app `/subtask` creates a separate forked session, not an `Agent`/`Task` tool call. The `PreToolUse` guard did not fire and nothing was blocked; no attestation lines were written. **Strict mode cannot see or block `/subtask` on this host.**
+4. **`CLAUDE_CODE_FORK_SUBAGENT=0`.** No observable change: two `Agent` calls in one message still ran in parallel (both `PostToolUse` in the same second, interleaved subagent lines), still `async_launched`.
+5. **Versions.** See host line above.
+
+**T07 gate end-to-end:** after the subagent fixed the bug, `ap.py ticket 01 done` exited 0 and stored `attestation: {model: claude-haiku-5-5, effort: low, lines: 7}`. Async launches do not block the gate, because `resolvedModel` is present.
+
+Raw sanitized JSONL evidence stays with the owner; it is not tracked.
