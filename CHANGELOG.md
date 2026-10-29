@@ -10,6 +10,7 @@ npx skills update autopilot -g
 - **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 
 - Claude reviewer and acceptance profiles now get `Bash` (no `Edit`/`Write`/`Agent` via `disallowedTools`); acceptance also sets `omitClaudeMd: true`. Executor profile unchanged.
+- Claude agent profiles now set `maxTurns` (executor by ticket volume: ≤900 lines 60, ≤2000 120, else 200, no volume line 120; reviewer/acceptance/explorer 80) and role `color` (executor blue, reviewer purple, explorer cyan, acceptance green). Codex TOML unchanged.
 
 - **Claude forks in strict runs (F1):** the guard installer now also adds `Agent(fork)` to `permissions.deny`; owner-typed `/subtask`/`/fork` are documented as outside strict-run coverage.
 - **Claude guard fail-open fix:** `claude_agent_guard.py` resolves the project from `CLAUDE_PROJECT_DIR` (then payload `cwd`, then process cwd), so a hook started in a subdirectory or worktree no longer misses `.autopilot/state.js` and allows unapproved agents. `--install-hook` now writes an exec-form hook (absolute interpreter + `${CLAUDE_PROJECT_DIR}/.autopilot/claude_agent_guard.py`) with `onFailure: "block"` (Claude Code v2.1.295+) and replaces the legacy `python .autopilot/claude_agent_guard.py` entry. Re-run `--install-hook` to upgrade.

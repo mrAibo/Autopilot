@@ -1232,7 +1232,8 @@ def cmd_plan_models(state, opt):
                     die("plan-models: ссылки профиля запрещены")
                 expected_rel, expected_text = agent_profiles.definition(
                     provider, profile["agent_type"], "executor", route,
-                    os.path.relpath(candidates[0], ROOT).replace(chr(92), "/"))
+                    os.path.relpath(candidates[0], ROOT).replace(chr(92), "/"),
+                    raw.decode("utf-8"))
                 if expected_rel.as_posix() != relative:
                     die("plan-models: несовместимый профиль")
                 if os.path.lexists(path):
