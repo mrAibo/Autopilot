@@ -27,6 +27,10 @@
 - Installed official Codex CLI `0.165.0-alpha.1` via npm and logged in with ChatGPT, GUI Codex app installed. VPN off resolved HTTP provider availability (doctor 21 ok, 0 fail). Claude general desktop app is present; actual Claude Code CLI and GUI-native agents remain unverified.
 - Isolated GUI test folder `%TEMP%\autopilot-gui-skill-smoke-20261025` also has project-level Junctions to the same source; safe to reuse for validation.
 
+## Phase 5 split into shared + host files (T11)
+
+Phase 5 is now three files: `5-subagents.md` (host-neutral, routes to the others), `5-host-codex.md` (Codex capability discovery, GUI/CLI bridge, native-agent preflight) and `5-host-claude.md` (Claude Code; currently a stub because the only Claude paragraph also names Codex and stayed shared). Text was moved, not rewritten; `test_documentation_locales` guards every original line.
+
 ## Implemented in 2.3.0-dev
 
 1. Spec/requirement ledger; G1–G4 hard acceptance gates; strict task state, commit/test checks, state locking and bounded retry diagnosis.

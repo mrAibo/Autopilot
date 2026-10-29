@@ -141,8 +141,8 @@ class DocumentationLocalesTests(unittest.TestCase):
         for name in LOCALES:
             self.assertIn("docs/autopilot/sequential-host.md",
                           (ROOT / name).read_text(encoding="utf-8"))
-        phase = (ROOT / "skills/autopilot/phases/5-subagents.md").read_text(
-            encoding="utf-8")
+        phase = "".join((ROOT / "skills/autopilot/phases" / n).read_text(
+            encoding="utf-8") for n in ("5-subagents.md", "5-host-codex.md"))
         self.assertIn("unconditionally", phase)
         self.assertNotRegex(phase, r"(?m)^\\?`?python .autopilot/gui_bridge.py.*--execute")
         dashboard = (ROOT / "skills/autopilot/phases/dashboard-template.html").read_text(
@@ -165,6 +165,22 @@ class DocumentationLocalesTests(unittest.TestCase):
         # Live execution may be mentioned as explicitly denied, but must not
         # appear as a runnable PowerShell code line in the usage example.
         self.assertNotRegex(guide, r"(?m)^py -3\.13 .*--execute")
+
+    def test_phase5_split_keeps_every_original_line(self):
+        import subprocess
+        orig = subprocess.run(
+            ["git", "show", "3303291:skills/autopilot/phases/5-subagents.md"],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+            check=True).stdout
+        names = ("5-subagents.md", "5-host-claude.md", "5-host-codex.md")
+        texts = {n: (ROOT / "skills/autopilot/phases" / n).read_text(encoding="utf-8")
+                 for n in names}
+        have = {l.strip() for t in texts.values() for l in t.splitlines()}
+        missing = [l.strip() for l in orig.splitlines()
+                   if l.strip() and l.strip() not in have]
+        self.assertEqual(missing, [])
+        self.assertIn("Then read `5-host-claude.md` if running in Claude Code, "
+                      "`5-host-codex.md` if in Codex.", texts["5-subagents.md"])
 
 
 

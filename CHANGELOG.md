@@ -9,6 +9,8 @@ npx skills update autopilot -g
 ## 2.3.0 — Codex limited release (2026-10-26)
 
 - **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
+- **Phase 5 split (T11):** `phases/5-subagents.md` keeps the host-neutral rules; Codex-specific paragraphs moved verbatim to `phases/5-host-codex.md`, new `phases/5-host-claude.md` for Claude Code. No text removed; a guard test checks every original line survives.
+
 
 - Phase 4 now supports **batch automatic model+reasoning-Effort selection per ticket** via `ap.py plan-models --provider openai|anthropic`, with deterministic risk-sensitive scoring and advisory blocked states if host capabilities are unavailable. `--capabilities ... --apply` prevalidates every proposed model/Effort and native agent file, refuses an unsupported or conflicting member without applying the partial batch, then pins all per-ticket profiles/routes for Phase 5. No models are invoked and no provider usage/cost or actual GUI model choice is asserted. Added negative real-Git tests and EN/RU/DE documentation. Sequential host mode deliberately rejects named-agent batch routing.
 
