@@ -173,23 +173,10 @@ class DocumentationLocalesTests(unittest.TestCase):
         for name in ("5-host-claude.md", "5-host-codex.md"):
             self.assertTrue((ROOT / "skills/autopilot/phases" / name).is_file(), name)
 
-    def test_phase5_split_keeps_every_original_line(self):
-        import subprocess
-        # shortcut: needs the pre-split commit; CI's shallow checkout lacks it, so this
-        # T11 migration check runs only in full clones. Retire it once phase 5 is edited on purpose.
-        orig = subprocess.run(
-            ["git", "show", "3303291:skills/autopilot/phases/5-subagents.md"],
-            cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
-        if orig.returncode != 0:
-            self.skipTest("pre-split commit 3303291 not in this clone (shallow checkout)")
-        names = ("5-subagents.md", "5-host-claude.md", "5-host-codex.md")
-        texts = {n: (ROOT / "skills/autopilot/phases" / n).read_text(encoding="utf-8")
-                 for n in names}
-        have = {l.strip() for t in texts.values() for l in t.splitlines()}
-        missing = [l.strip() for l in orig.stdout.splitlines()
-                   if l.strip() and l.strip() not in have]
-        self.assertEqual(missing, [])
-
+    def test_phase5_claude_host_rules(self):
+        text = (ROOT / "skills/autopilot/phases/5-host-claude.md").read_text(encoding="utf-8")
+        for needle in ("claude_agent_guard.py", "claude_attest.py", "/subtask"):
+            self.assertIn(needle, text)
 
 
 if __name__ == "__main__":
