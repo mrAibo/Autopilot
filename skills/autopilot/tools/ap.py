@@ -415,7 +415,7 @@ def publish_tickets(state):
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
-                  "worktree", "retryAdvice"):
+                  "worktree", "retryAdvice", "attestation"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
