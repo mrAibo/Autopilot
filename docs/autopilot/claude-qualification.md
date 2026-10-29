@@ -47,7 +47,7 @@ G1, G2 (`tests 6/0`, `coverage found=0`), G3 (`check-plan`) and G4 (blind check 
 3. In OTel events, subagents appear as `query_source = agent:custom` with no `agent_id` (that needs v2.1.310+). Per-agent attribution is reliable in the metrics (`agent.name`), but in the events it can only be done by timing.
 4. The ticket field «Модель: обычная» is not checked against the route (follow-up F3). The route is enforced by the pinned profiles and by attestation.
 5. `finish` renames the run folder (drops `--wip`).
-6. Not covered by T13: the terminal CLI (only the desktop app was run). Parallel tickets and the worktree/fork rules are covered by T14 below.
+6. T13 ran only in the desktop app. Parallel tickets and the worktree/fork rules are covered by T14, and the terminal CLI (headless) by T15, below.
 
 ## T14 live probe: parallel tickets, isolation and fork rules (2026-10-29)
 
@@ -60,3 +60,12 @@ The same host (desktop app, subscription OAuth) ran a new strict run with `--iso
 - **Not run:** removing the guard entry while a run is active (auto mode refuses to edit project settings), and shared-tree parallel tickets.
 - Environment note: the desktop session exposes the owner's 27-character router placeholder as `ANTHROPIC_API_KEY`. It is not a credential; authentication is the host's OAuth.
 
+## T15 live probe: terminal CLI, headless (2026-10-29)
+
+The terminal CLI in headless mode (`claude -p`, Claude Code 2.1.302, subscription OAuth, no router) ran a strict run end to end with no human present: two tickets, 01 (haiku/low) and 02 (sonnet/medium, depending on 01). Command shape: `claude -p "..." --permission-mode acceptEdits --allowedTools "Read,Edit,Write,Glob,Grep,Agent,Bash(python *),Bash(py *),Bash(git *),Bash(ls *),Bash(cat *)" --max-turns 80 --output-format json`, with the router environment variables unset for the process.
+
+- **Result: PASS.** Agent calls returned `async_launched` (background) and completed through task notifications. Both `ticket done` calls exited 0 with a stored attestation; G1-G4 are ok. The run took 19 turns; the estimated cost is 1.20 USD (an OTel-style estimate from the CLI JSON, not a charge).
+- **Project hooks fire in `-p` mode.** The guard denied `general-purpose` with `Autopilot guard: Only explicitly configured Autopilot agents are allowed`. The attestation hook recorded per agent: 01 = 6 lines, claude-haiku-5-5 / low; 02 = 7 lines, claude-sonnet-5-5 / medium; one `SubagentStop` line each.
+- **Surprise 1:** a guard denial is shown as `PreToolUse:Agent hook error: [<interpreter> ...]: Autopilot guard: ...`, with the full interpreter path in the message. The denial itself is correct.
+- **Surprise 2:** every `ap.py` call warns that the briefing stage was never recorded when a run skips the Phase 2 bookkeeping. This is informational.
+- **Not covered:** shared-tree parallel tickets (use `--isolated-tickets`), `/subtask` and `/fork` (owner actions outside strict coverage), and runs with a custom `ANTHROPIC_BASE_URL` or `ANTHROPIC_MODEL`.

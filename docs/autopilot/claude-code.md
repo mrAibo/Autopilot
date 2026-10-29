@@ -1,6 +1,6 @@
-# Claude Code support in Autopilot 2.3.0
+# Claude Code support in Autopilot 2.4.0
 
-**Qualification level:** agent profiles and PreToolUse guard are tested offline with Python/subprocess fixtures. No Claude Code CLI is currently installed on the tested Windows <HOST> host, so **native Claude Code subagent execution, actual model, effort, cwd and subscription billing have not been verified**. The Codex limited 2.3.0 release does **not** claim these results.
+**Qualification level (2.4.0):** strict routing is live-qualified on a Claude subscription in the desktop app (T13, T14) and in the terminal CLI in headless mode (T15); see [claude-qualification.md](claude-qualification.md). Agent profiles and the PreToolUse guard are also covered by offline Python/subprocess tests. Not live-tested: parallel tickets in a shared tree (use `--isolated-tickets`).
 
 ## Why Claude Code is a good target
 
@@ -61,11 +61,11 @@ Claude Code's own `isolation: worktree` starts from the default branch by defaul
 |---|---|
 | Ticket model/effort selection | Offline algorithm + synthetic catalog tests |
 | Claude custom agents / YAML frontmatter | Generated and tested offline; documented officially |
-| PreToolUse strict guard | Offline and real Python subprocess tests |
-| Effective Claude Code subagent model / effort | **Not yet observed on <HOST>** |
-| Subscription charge boundary | **Not yet observed on <HOST>** |
+| PreToolUse strict guard | Offline and subprocess tests; live in desktop app (T13, T14) and headless CLI (T15) |
+| Effective Claude Code subagent model / effort | Observed live via hook attestation (`resolvedModel`, `effort.level`) and enforced by the strict `done` gate (T13–T15) |
+| Subscription charge boundary | Runs used subscription OAuth with no API key; OTel `cost.usage` is an estimate, not a charge (T13) |
 
-Do not call this a completed native Claude Code E2E until those last two rows have independently passing evidence.
+Native Claude Code E2E is qualified for strict routing; see the limits in [claude-qualification.md](claude-qualification.md).
 
 ## Live probe (T08, 2026-10-29)
 
