@@ -289,8 +289,9 @@ Subagentenmodelle und Reasoning-Stufen werden anhand lokaler
 Richtlinien und überprüfter Host-Fähigkeiten vorgeschlagen.
 **Wichtig:** Die Existenz einer Profil-Datei oder ein grüner
 Offline-Test beweist noch nicht, dass Codex GUI oder Claude Code
-diesen Subagenten tatsächlich gestartet hat. Das ist für
-`2.3.0-dev` weiterhin zu verifizieren.
+diesen Subagenten tatsächlich gestartet hat. Für Claude Code
+(Desktop-App) wurde das in der T13-Qualifikation live geprüft;
+für Codex GUI ist es weiterhin zu verifizieren.
 
 Weitere technische Details:
 [Modell-Routing](docs/autopilot/model-routing.md),

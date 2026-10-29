@@ -51,7 +51,8 @@ file; it does not automatically update inside existing projects.
 **What is ready:** the original skill stages, requirement gates,
 model-routing policy, Dashboard, Git isolation and trusted tests.
 **What remains unverified:** native named-agent execution in the owner's Codex
-GUI session, genuine Claude Code execution and benchmarked savings.
+GUI session, the Claude Code terminal CLI and parallel Claude tickets
+(the desktop app is qualified as beta), and benchmarked savings.
 The optional Codex CLI path does **not** currently launch paid models.
 
 Research-only API pilots and extra supervisors are **not required** to
