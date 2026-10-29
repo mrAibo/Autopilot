@@ -630,3 +630,7 @@ Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns foll
 ## OTel cost tools (2026-10-29)
 
 `tools/otel_sink.py` and `tools/otel_summary.py` make cost measurement a first-class tool: a stdlib-only local OTLP receiver and a summary of tokens and estimated USD per query_source × model × effort with the main-vs-subagent share. Fixes the T13 flaw where the main session's `sdk` api_request events were counted as subagent. Covered by `tests/test_otel_tools.py` on synthetic fixtures; not yet run against a live A/B (a Sonnet-routed vs Sonnet-flat probe is prepared outside the repo). Usage: `docs/autopilot/measuring-cost.md`.
+
+## 2026-10-29 — 2.4.1 prepared
+
+- Token-economy release: #60 spend-less docs, #61 OTel cost tools, #62 phase/prompt trim and report caps, #63 measured A/B. Version 2.4.1 in SKILL.md.
