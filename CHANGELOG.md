@@ -7,8 +7,8 @@ npx skills update autopilot -g
 ```
 
 ## Unreleased
-
 - **`ap.py` fixes, ported from upstream 2.2.1** (nick-vels/skills@f50d1b1): `--help`/`-h`/`help` print the usage and never touch `state.js`; `coverage` and `blind` refuse to record without all their numbers (a missing counter is not zero, `blind` no longer wipes recorded mismatches); `Зависит от` refs match ticket ids as written (`E34` is no longer turned into `34`) and a reference to a missing ticket fails `check-plan`.
+- **New logo:** own light/dark SVG logo (`assets/autopilot-logo-*.svg`) in all three READMEs; stale "2.3 DEV" heading replaced.
 
 ## 2.4.1 — Token economy (2026-10-29)
 

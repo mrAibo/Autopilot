@@ -1,4 +1,12 @@
-<h1 align="center">Autopilot 2.3 <sup>DEV</sup></h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/autopilot-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/autopilot-logo-light.svg">
+    <img src="assets/autopilot-logo-light.svg" alt="Autopilot" width="440">
+  </picture>
+</p>
+
+<h1 align="center">Autopilot 2.4</h1>
 
 <p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
