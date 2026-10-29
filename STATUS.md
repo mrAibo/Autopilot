@@ -12,6 +12,8 @@
 
 **Roadmap T09 (feat/t09-skill-allowed-tools):** `skills/autopilot/SKILL.md` frontmatter gained `allowed-tools` that pre-approves only `Bash(python|python3|py -3 .autopilot/ap.py *)` for Claude Code, so bookkeeping calls to `ap.py` no longer prompt. Guarded by `tests/test_skill_allowed_tools.py`. No wildcard Bash rule; Codex ignores the key. Live Claude Code permission behaviour is not verified here.
 
+**Docs (docs/phase5-host-claude):** the mixed model-routing paragraph in `phases/5-subagents.md` is split; Claude guard text and short orchestrator rules live in `phases/5-host-claude.md`, the Codex `spawn_agent` caveat in `5-host-codex.md`. The one-off `test_phase5_split_keeps_every_original_line` migration check is retired; a small test now guards the Claude host file.
+
 ## Verified QA / source
 
 - Feature HEAD `b3dee4d319a4145c8c8a9f74bde6335237347993` passed [Actions #40199093084](https://github.com/mrAibo/Autopilot/actions/runs/40199093084): **4/4 jobs green** (Ubuntu and Windows / Python 3.11 and 3.13), **144 Python tests** on Ubuntu 3.13, JavaScript syntax and headless Chrome dashboard smoke (desktop/narrow).
@@ -605,3 +607,7 @@ Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns foll
 
 - **`ticket done` is gated on attestation** for strict runs with an `anthropic` route (stacked on T06): `check_claude_attestation` reads `.autopilot/attestations.jsonl` for the routed `agentType` and requires a matching `resolved_model` (alias substring / full ID exact), no foreign model in `resolved_model` or `models_used`, and, unless the route says `effortEnforced: false`, only the route effort. Fail closed: missing, unreadable, symlinked or malformed-only evidence → exit 2, status unchanged; success stores `attestation: {model, effort, lines}`. Non-strict and OpenAI routes unchanged; existing spend_guard/G1–G4/test-evidence checks run first and are untouched. 9 new tests, 4 existing strict Anthropic lifecycle tests now write matching attestation fixtures; full local Windows Python 3.13 **360 tests OK (skipped=1)**, up from 351. Not verified against a live Claude Code session; background (`async_launched`) runs have no `resolved_model` and are therefore blocked until T08 decides how to attest them.
 - **Machine data removed (T01):** local user paths, host name and a device ID were replaced by placeholders (`<REPO_DIR>`, `<HOST>`) in tracked files; concrete values live only in the untracked `HANDOFF.local.md`. `tests/test_no_machine_data.py` now guards this. Old values remain in Git history; the owner decides about `git filter-repo`.
+
+## 2026-10-29 — F2 Claude attestation transcript path
+
+`claude_attest.py` now records `transcript_path` on `SubagentStop` lines, taken only from `agent_transcript_path` when it is a string, so the subagent transcript (per-message `message.model`) is kept as the evidence source for model checks. PreToolUse and PostToolUse lines carry `transcript_path: null`; the main session path and message content are never written, and the hook still always exits 0. Covered by 2 new tests in `tests/test_claude_attest.py`; not verified against a live Claude Code session.

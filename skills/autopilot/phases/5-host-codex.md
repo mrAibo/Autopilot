@@ -31,3 +31,5 @@ A quoted model reply, process exit 0 or supplied JSONL file does not prove
 the child runtime; diagnostic JSONL is deliberately not authorization.
 If strict named GUI agents are unavailable, use the explicit `--sequential-host` single-session mode with trusted host tests. The separately pinned Codex CLI worker is **disabled for real inference** by `spend_guard`; do not claim it is an available workaround. Never remove sandbox or
 silently charge the parent model. Keep actual GUI E2E as a release gate.
+
+**Dispatch guard:** On Codex the configuration pins a named custom agent but does not prevent an unrelated `spawn_agent` call; keep the default worker inexpensive and do not advertise this as a full security boundary.

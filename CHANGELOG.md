@@ -7,6 +7,7 @@ npx skills update autopilot -g
 ```
 
 ## 2.3.0 — Codex limited release (2026-10-26)
+- **Docs:** Phase 5 now has its own Claude Code host rules (`phases/5-host-claude.md`: guard and attestation hooks, routed agents only, no `/subtask`/`/fork`); the Codex `spawn_agent` caveat moved to `5-host-codex.md`. The one-off phase-5 split migration test was retired.
 - **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 - **CI fix:** the T11 phase-5 migration test no longer needs Git history (CI uses a shallow checkout); the routing check runs everywhere, the line-by-line check only in full clones.
 
@@ -17,6 +18,7 @@ npx skills update autopilot -g
 - **Claude guard fail-open fix:** `claude_agent_guard.py` resolves the project from `CLAUDE_PROJECT_DIR` (then payload `cwd`, then process cwd), so a hook started in a subdirectory or worktree no longer misses `.autopilot/state.js` and allows unapproved agents. `--install-hook` now writes an exec-form hook (absolute interpreter + `${CLAUDE_PROJECT_DIR}/.autopilot/claude_agent_guard.py`) with `onFailure: "block"` (Claude Code v2.1.295+) and replaces the legacy `python .autopilot/claude_agent_guard.py` entry. Re-run `--install-hook` to upgrade.
 
 - **Claude attestation hook (new, opt-in):** `claude_attest.py` appends metadata-only evidence lines (`effort`, `resolved_model`, `models_used`, `status`) to `.autopilot/attestations.jsonl` from `PreToolUse` (inside Autopilot subagents), `PostToolUse` on `Agent` and `SubagentStop`. It never blocks (always exit 0, no `onFailure`) and never stores prompts, messages or tool inputs; `--install-hook --root .` adds the three exec-form hooks. Recording only, nothing gates on it yet.
+- **Attestation transcript path:** `SubagentStop` lines now carry `transcript_path` from `agent_transcript_path` (the subagent transcript, the only per-message model evidence); PreToolUse/PostToolUse lines carry `null`. The main session's path is never recorded.
 
 - **Claude attestation gate:** in strict runs with an `anthropic` route, `ap.py ticket NN done` now requires `.autopilot/attestations.jsonl` evidence for the routed agent: a `resolved_model` matching the route (alias as substring, full ID exactly), no other model in `resolved_model`/`models_used`, and, when effort is enforced, only the route effort. Missing, unreadable, symlinked or mismatching evidence exits 2 and leaves the ticket unchanged; success stores `attestation: {model, effort, lines}`. Non-strict runs and OpenAI routes are unchanged. Install the attestation hook before running strict Claude tickets.
 
