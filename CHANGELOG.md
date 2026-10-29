@@ -6,6 +6,9 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased
+- **New logo:** own light/dark SVG logo (`assets/autopilot-logo-*.svg`) in all three READMEs; stale "2.3 DEV" heading replaced.
+
 ## 2.4.1 — Token economy (2026-10-29)
 
 Cheaper runs without new features: shorter always-read phase and prompt text, capped agent reports, cost measurement tools and a measured A/B of the main-session model and ticket routing.
