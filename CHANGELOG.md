@@ -1,12 +1,15 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.4.0` (Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.4.1` (token economy on top of 2.4.0 Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## Unreleased
+## 2.4.1 — Token economy (2026-10-29)
+
+Cheaper runs without new features: shorter always-read phase and prompt text, capped agent reports, cost measurement tools and a measured A/B of the main-session model and ticket routing.
+
 - **Measured savings:** A/B of the same run — Sonnet main session ≈53 % cheaper than Opus; ticket routing ≈55 % cheaper on subagents (`docs/autopilot/measuring-cost.md`).
 - **Cost measurement tools:** `tools/otel_sink.py` (local OTLP/HTTP-JSON receiver) and `tools/otel_summary.py` (tokens/cost per query_source × model × effort, main-vs-subagent share; the main session's `sdk` events no longer count as subagent); see `docs/autopilot/measuring-cost.md`.
 - **Docs:** "Spending less" section in all three READMEs and `model-routing.md` (run the main session on Sonnet, `ap.py budget`, `measure-run.py`; T13 measured the main session at ~96 % of the estimated cost), German "How it works" parity, one-line phase-0 hint.
