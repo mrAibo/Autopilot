@@ -1,4 +1,4 @@
-# Claude Code support in Autopilot 2.3.0
+# Claude Code support in Autopilot 2.4.0
 
 **Qualification level (2.4.0):** strict routing is live-qualified on a Claude subscription in the desktop app (T13, T14) and in the terminal CLI in headless mode (T15); see [claude-qualification.md](claude-qualification.md). Agent profiles and the PreToolUse guard are also covered by offline Python/subprocess tests. Not live-tested: parallel tickets in a shared tree (use `--isolated-tickets`).
 

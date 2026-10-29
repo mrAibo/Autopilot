@@ -80,7 +80,7 @@ class DocumentationLocalesTests(unittest.TestCase):
             self.assertIn("2.4.0", page)
             self.assertIn("docs/autopilot/claude-code.md", page)
         for claim in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
-                      "CLAUDE_CODE_EFFORT_LEVEL", "not been verified",
+                      "CLAUDE_CODE_EFFORT_LEVEL", "live-qualified",
                       "subscription", "model-capabilities.json"):
             self.assertIn(claim, claude)
         self.assertIn("limited sequential-host",
