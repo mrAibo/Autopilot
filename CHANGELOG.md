@@ -8,6 +8,7 @@ npx skills update autopilot -g
 
 ## Unreleased
 - **Cost measurement tools:** `tools/otel_sink.py` (local OTLP/HTTP-JSON receiver) and `tools/otel_summary.py` (tokens/cost per query_source × model × effort, main-vs-subagent share; the main session's `sdk` events no longer count as subagent); see `docs/autopilot/measuring-cost.md`.
+- **Docs:** "Spending less" section in all three READMEs and `model-routing.md` (run the main session on Sonnet, `ap.py budget`, `measure-run.py`; T13 measured the main session at ~96 % of the estimated cost), German "How it works" parity, one-line phase-0 hint.
 
 ## 2.4.0 — Claude Code support (2026-10-29)
 Adds Claude Code as a supported host for strict routing on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation rules.

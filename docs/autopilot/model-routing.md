@@ -206,6 +206,10 @@ When the GUI cannot prove named-subagent model/Effort selection, do **not** clai
 
 Default concurrency is two, with a hard policy maximum of three; never launch agents writing overlapping paths in the same checkout. For substantial parallel builds prefer independent Git worktrees; this is a planned improvement, not yet enforced by the present router.
 
+## Main session model
+
+Routing covers subagents only; the model of your main session is your choice and usually the biggest cost, because it lives through the whole run and re-reads its growing context at every step. Run `/autopilot` on Sonnet and, if you want Opus for briefing, spec and plan, switch with `/model` before the build phase. In one small measured run (T13, 3 tickets, Claude desktop app) the main session on Opus was about 1.40 USD and all three subagents together about 0.054 USD (~96 % of the estimate); a terminal run (T15, 2 tickets, Opus) came to about 1.20 USD. These are `cost.usage` estimates, not subscription charges, from small runs; larger projects shift the share toward subagents.
+
 ## Development status and limits
 
 The routing selector, native profile generator, integrity check and dashboard event recording are implemented. Harness-capability discovery and assurance that the orchestrator invokes only approved agent types are still **not** enforced by the Python code; the runtime can independently override profile settings (Claude Code also supports the `CLAUDE_CODE_EFFORT_LEVEL` override). Worktree isolation, automatic model cost telemetry, and empirical benchmark calibration remain future work. Treat unverified configuration as blocked, not as a successful test.
