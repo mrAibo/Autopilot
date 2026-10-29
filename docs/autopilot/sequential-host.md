@@ -27,7 +27,7 @@ py -3.13 .autopilot/ap.py execution sequential-host --no-serve
 
 This keeps the run ID, requirements, completed planning stages, and source unchanged, sets `strictRouting=false`, `sequentialHost=true`, `isolateTickets=true`, closes a pending `stop` notice, and records the decision. It refuses completed runs, launched or approved tasks, existing worktrees, applied native routing, or any evidence of earlier worker execution. It does **not** run a model, create a Git commit, or make dirty source safe. Run `git status --short --branch` first; if the source is dirty, `worktree prepare` remains blocked. Never automatically `git add -A` or discard unrelated user files just to make it pass.
 
-**Non-Python projects:** the released sequential workflow currently accepts only baseline-tracked Python `unittest`. Rust/Node-only projects are **not** accepted by this verifier. A Rust `cargo test` adapter requires a separate safe implementation with host-owned command allowlisting, baseline-tracked test evidence and regression coverage; until then stop before `worktree prepare` / acceptance rather than inventing Python proofs.
+**Other languages and post-release improvements:** the *published* `v2.3.0` release supports baseline-tracked Python `unittest` only. Post-release `main` additionally implements a narrowly allowlisted, frozen, offline **Rust Cargo integration-test pilot** with a pinned baseline manifest/lock/test and independent host rerun. See [trusted Cargo tests](trusted-cargo-tests.md). This does **not** authorize arbitrary Rust workspaces, dependencies, npm/Go commands, or model-supplied commands.
 
 ## Work one ticket at a time
 
@@ -41,7 +41,7 @@ py -3.13 .autopilot/ap.py ticket 01 start
 
 At this point the CLI has **only reserved a checkout**. Review the `worktree.cwd` in the recorded state. If the current GUI host can safely edit files **in that exact worktree**, an explicitly authorized **single-session** operation may implement only the assigned ticket; do not label it `autopilot-executor-01`, claim that a child agent was created, or claim that the model was enforced by Autopilot. **Do not invoke `codex_dispatch.py --execute`, `gui_bridge.py --execute`, arbitrary API clients or generic premium subagents.** The separate optional CLI bridge remains disabled by `spend_guard`.
 
-After edits and any real tests, have the **trusted host** use the existing fixed runner. The suite must be an unchanged baseline-tracked Python `unittest` module; it cannot be an arbitrary shell command, a freshly added self-approving test, pytest, JavaScript, or a manually supplied pass count.
+After edits, have the **trusted host** use a fixed runner. Choose exactly one unchanged baseline-tracked Python `unittest` module (`--suite test_calc.py`) or, on post-release `main` only, a restricted Rust integration suite (`--suite cargo:smoke`). The latter requires the manifest/lock/test baseline and independent operator approval. Neither permits arbitrary shell commands, a freshly added self-approving test, pytest, npm, Go, or a manually supplied pass count.
 
 ```powershell
 py -3.13 .autopilot/ap.py worktree 01 verify --suite test_calc.py

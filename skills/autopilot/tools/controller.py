@@ -62,7 +62,7 @@ def safe_zone_list(ticket):
 def verified_tests(ticket):
     record = ticket.get("testEvidence")
     if (not isinstance(record, dict) or record.get("status") != "verified"
-            or record.get("runner") != "python-unittest"
+            or record.get("runner") not in ("python-unittest", "cargo-test")
             or type(record.get("passed")) is not int
             or record["passed"] < 1 or record.get("failed") != 0):
         return None
@@ -242,7 +242,7 @@ def advance(root, suite=None, *, execute=False):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root", type=Path, default=Path.cwd())
-    p.add_argument("--suite", help="Operator-approved baseline-tracked Python unittest module")
+    p.add_argument("--suite", help="Operator-approved tracked unittest.py or cargo:integration-test name")
     p.add_argument("--advance", action="store_true",
                    help="Apply exactly one safe host step; never launch a model")
     args = p.parse_args(argv)

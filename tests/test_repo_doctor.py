@@ -2,6 +2,7 @@
 from pathlib import Path
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -88,7 +89,9 @@ class DoctorTests(unittest.TestCase):
         report = doctor.inspect(self.root)
         self.assertEqual(report["status"], "blocked")
         self.assertTrue(any("Rust" in w for w in report["warnings"]))
-        self.assertEqual(report["test_runners"]["available"], ["python-unittest"])
+        self.assertIn("python-unittest", report["test_runners"]["available"])
+        self.assertEqual("cargo-test" in report["test_runners"]["available"],
+                         bool(shutil.which("cargo")))
 
     def test_wrong_root_and_unborn_repo_fail_closed(self):
         with self.assertRaises(doctor.DoctorError):

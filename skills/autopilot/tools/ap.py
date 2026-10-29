@@ -1505,7 +1505,7 @@ def cmd_ticket(state, pos, opt):
 def cmd_worktree(state, pos, opt):
     """Plan-aware, explicit isolation lifecycle; no automatic agent spawning."""
     if len(pos) != 2 or pos[1] not in ("prepare", "status", "verify", "finalize", "land", "release", "recover"):
-        die("worktree <ticket-id> prepare|status|verify|finalize|land|release|recover [--tests N/0]")
+        die("worktree <ticket-id> prepare|status|verify|finalize|land|release|recover [--tests N/0]; verify --suite test.py|cargo:name")
     ident, action = pos
     known = {t["id"]: t for t in state.get("tickets") or []}
     tk = known.get(ident)

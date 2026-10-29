@@ -31,12 +31,13 @@ discard untracked data or quietly switch the source baseline. In a repository
 with no first commit, make a deliberately reviewed initial baseline first.
 
 The standalone diagnostic never executes language-specific test scripts.
-Autopilot currently accepts host-owned **baseline-tracked Python unittest**
-proofs for strict isolated ticket acceptance. Detecting `Cargo.toml`,
-`package.json` or `go.mod` prints a warning that Cargo, JavaScript/TypeScript
-and Go are **not yet accepted by the trusted host verifier**. It does not
-pretend that lint, build success, or an arbitrary test command proves
-acceptance.
+For trusted strict ticket acceptance, the published `v2.3.0` supports pinned
+Python unittest only. Post-release `main` also offers a **limited offline Cargo
+integration-test verifier** for standalone dependency-free Rust crates: see
+[Cargo verification](trusted-cargo-tests.md). Detecting `Cargo.toml`,
+`package.json` or `go.mod` does not itself prove the project is supported.
+JavaScript/TypeScript, Go, complex Cargo workspaces and arbitrary test
+commands remain unverified; lint and build success do not attest acceptance.
 
 This facility belongs to Autopilot itself; no other product's work plan or
 application-specific requirements are imported by running it.
