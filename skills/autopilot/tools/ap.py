@@ -34,7 +34,7 @@
 пройденные этапы закрыты, снимок вписан в dashboard.html, сервер жив. Время
 ставит сам скрипт, с секундами и поясом, — агент его не пишет никогда.
 
-Флаги: --check-update (сверить версию навыка с GitHub), --no-serve, --stop.
+Флаги: --check-update (сверить версию навыка с GitHub), --no-serve, --stop, --help.
 Работает на macOS, Linux и Windows (в том числе из Git Bash).
 """
 
@@ -391,12 +391,22 @@ def parse_ticket(path):
     return {
         "id": tid, "title": title,
         "requirements": ids(get("требования", "requirements")),
-        "blockedBy": [x.zfill(2) for x in re.findall(r"\d+", get("зависит от", "blocked by"))],
+        "blockedBy": re.findall(r"[A-Za-z]*\d+[a-z]?", get("зависит от", "blocked by")),
         "wave": int(wave.group()) if wave else None,
         "zone": re.findall(r"`([^`]+)`", get("зона", "zone")),
         "review": get("ревью", "review") or None,
         "model": get("модель", "model") or None,
     }
+
+
+def dep_id(ref, ids):
+    """Ссылка из «Зависит от» → id таска. `2`, `02`, `T2` — это таск 02; ссылка, которая
+    сама есть id таска (`F1`, `E34`), остаётся как есть; любая другая — тоже как есть,
+    и check-plan назовёт её несуществующей. Цифры из чужой ссылки не вынимаются никогда."""
+    if ref in ids:
+        return ref
+    m = re.match(r"^[Tt]?(\d+)$", ref)
+    return m.group(1).zfill(2) if m else ref
 
 
 def publish_tickets(state):
@@ -422,6 +432,9 @@ def publish_tickets(state):
         t.setdefault("retries", 0)
         t.setdefault("repairs", 0)
         out.append(t)
+    known = {t["id"] for t in out}
+    for t in out:
+        t["blockedBy"] = [dep_id(b, known) for b in t["blockedBy"]]
     state["tickets"] = out
     rows = dict(manifest_rows(state) or [])
     where = {}
@@ -1856,12 +1869,25 @@ def cmd_add(state, pos):
         log(state, "add", key=key, n=len(fresh))
 
 
+NUMBERS = {"coverage": ("found", "fixed", "deferred"), "blind": ("checked", "matched")}
+
+
 def cmd_numbers(state, name, pos, multi):
+    """Гейт решают числа: без всех чисел ничего не пишем — пропавший счётчик не ноль."""
+    keys = NUMBERS[name]
+    usage = "%s %s" % (name, " ".join(k + "=N" for k in keys))
     d = {}
     for p in pos:
-        k, _, v = p.partition("=")
-        d[k] = int(v) if v.isdigit() else v
+        k, eq, v = p.partition("=")
+        if not eq or k not in keys or not v.isdigit():
+            die("%s: не понял «%s» — пишется так: %s" % (name, p, usage))
+        d[k] = int(v)
+    missing = [k for k in keys if k not in d]
+    if missing:
+        die("%s: нет %s — пишется так: %s" % (name, ", ".join(missing), usage))
     if name == "blind":
+        if d["matched"] > d["checked"]:
+            die("blind: matched=%d больше checked=%d" % (d["matched"], d["checked"]))
         d["mismatches"] = multi.get("mismatch", [])
         state[name] = d
         valid = (isinstance(d.get("checked"), int) and d["checked"] > 0
@@ -2020,6 +2046,10 @@ def cmd_commits(state):
 
 def main():
     argv = sys.argv[1:]
+    # Справка ничего не трогает: ни state.js, ни гейты, ни сервер.
+    if "--help" in argv or "-h" in argv or argv[:1] == ["help"]:
+        print(__doc__.strip())
+        return
     if "--stop-now" in argv:
         i = argv.index("--stop-now")
         if len(argv) <= i + 2:
