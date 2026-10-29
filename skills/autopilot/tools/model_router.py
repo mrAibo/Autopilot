@@ -31,11 +31,13 @@ DEFAULT_POLICY = {
             "cheap": {"model": "gpt-6-luna", "effort": "low"},
             "balanced": {"model": "gpt-6-luna", "effort": "high"},
             "strong": {"model": "gpt-6.1-sol", "effort": "high"},
+            "critical": {"model": "gpt-6.1-sol", "effort": "high"},
         },
         "anthropic": {
             "cheap": {"model": "haiku", "effort": "low"},
             "balanced": {"model": "sonnet", "effort": "medium"},
             "strong": {"model": "sonnet", "effort": "high"},
+            "critical": {"model": "sonnet", "effort": "xhigh"},
         },
     },
 }
@@ -125,6 +127,8 @@ def assess_scores(scores):
         profile = "balanced"
     if scores["risk"] >= 10 or scores["algorithm"] >= 20:
         profile = "strong"
+    if scores["risk"] >= 10 and scores["algorithm"] >= 20:
+        profile = "critical"
     return score, profile
 
 

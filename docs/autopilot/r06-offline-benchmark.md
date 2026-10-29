@@ -15,7 +15,7 @@ unmatched 1.x/2.0 observations in [benchmark.md](benchmark.md).
   `25b5fbada50742f1b6a900a5a92800759e5c74d4`.
 - Current development candidate measured: **2.3.0-dev**, Git
   `3eb5ecbfc05524d0095c6b53044c5d1e3f105560`.
-- Runner: user-owned Windows host Aibo, Python **3.13**, fresh local Git
+- Runner: user-owned Windows host <HOST>, Python **3.13**, fresh local Git
   repositories under the OS temporary folder.
 - Inputs: byte-identical synthetic manifest, two ticket descriptions with
   traced requirements, planned dependencies and zones. Same CLI commands,

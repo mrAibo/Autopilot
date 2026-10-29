@@ -1079,6 +1079,66 @@ def verified_host_required(state):
         state.get("strictRouting") or state.get("sequentialHost")))
 
 
+def check_claude_attestation(state, ticket, root):
+    """Strict Claude run: hook evidence (claude_attest.py) must show the routed model/effort.
+
+    Returns (ok, message). Not gated (ok) unless strictRouting and an anthropic route.
+    On success stores ticket["attestation"] = {"model", "effort", "lines"}.
+    """
+    route = ticket.get("routing") or {}
+    if state.get("strictRouting") is not True or route.get("provider") != "anthropic":
+        return True, ""
+    agent, model, effort = route.get("agentType"), route.get("model"), route.get("effort")
+    if not all(isinstance(x, str) and x for x in (agent, model, effort)):
+        return False, "в маршруте нет agentType/model/effort"
+    path = os.path.join(root, ".autopilot", "attestations.jsonl")
+    if os.path.islink(path) or os.path.islink(os.path.dirname(path)):
+        return False, "attestations.jsonl не может быть ссылкой"
+    try:
+        with open(path, encoding="utf-8") as stream:
+            raw = stream.read().splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        return False, "нет читаемого .autopilot/attestations.jsonl (%s)" % type(exc).__name__
+    lines = []
+    for text in raw:
+        try:
+            item = json.loads(text)
+        except ValueError:
+            continue  # a malformed line is not evidence
+        if isinstance(item, dict) and item.get("agent_type") == agent:
+            lines.append(item)
+    if not lines:
+        return False, "в attestations.jsonl нет строк агента " + agent
+
+    def fits(name):  # alias ("haiku") matches as substring, a full ID exactly
+        return isinstance(name, str) and (name == model if "-" in model else model in name)
+
+    seen = []
+    for item in lines:
+        used = item.get("models_used")
+        if used is not None and not isinstance(used, list):
+            return False, "повреждённое поле models_used"
+        seen += [item.get("resolved_model")] if item.get("resolved_model") is not None else []
+        seen += used or []
+    resolved = [x["resolved_model"] for x in lines if fits(x.get("resolved_model"))]
+    if not resolved:
+        return False, "нет resolved_model, совпадающего с моделью маршрута " + model
+    wrong = sorted(set(str(m) for m in seen if not fits(m)))
+    if wrong:
+        return False, "аттестована чужая модель: " + ", ".join(wrong)
+    efforts = [x["effort"] for x in lines if x.get("effort") is not None]
+    if route.get("effortEnforced") is not False:  # legacy routes without the flag enforced effort
+        if effort not in efforts:
+            return False, "нет строки с effort=" + effort
+        other = sorted(set(str(e) for e in efforts) - {effort})
+        if other:
+            return False, "аттестован другой effort: " + ", ".join(other)
+    ticket["attestation"] = {"model": resolved[-1],
+                             "effort": efforts[-1] if efforts else None,
+                             "lines": len(lines)}
+    return True, ""
+
+
 def sequential_occupied(state, ticket_id):
     """Block second prepared/running task in sequential fallback."""
     return any(t.get("id") != ticket_id and (
@@ -1308,6 +1368,10 @@ def cmd_ticket(state, pos, opt):
             if any(not commit_descends_from(rev, b.get("resolutionCommit"))
                    for b in resolved):
                 die("таск %s: коммит сдачи не включает проверенное исправление блокера" % i)
+            ok, why = check_claude_attestation(state, tk, ROOT)
+            if not ok:
+                print("ошибка: таск %s: строгий Claude-прогон требует аттестации — %s" % (i, why))
+                sys.exit(2)
         if act == "retry" and state.get("isolateTickets") and not tk.get("worktree"):
             die("таск %s: сначала подготовь worktree для повтора" % i)
         if act in ("retry", "repair"):
