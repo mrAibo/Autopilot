@@ -9,6 +9,7 @@ npx skills update autopilot -g
 ## Unreleased
 
 - **Docs:** "Spending less" section in all three READMEs and `model-routing.md` (run the main session on Sonnet, `ap.py budget`, `measure-run.py`; T13 measured the main session at ~96 % of the estimated cost), German "How it works" parity, one-line phase-0 hint.
+- **Token trim:** phases 3/4/5/8/9 and the executor/reviewer prompts are 10–12 % shorter with every rule, command, flag and gate kept; executor and point-review reports are capped at 15 lines / 1,200 characters (branch review 40 lines / 4,000), executor reports gain a `COMMIT` field.
 
 ## 2.4.0 — Claude Code support (2026-10-29)
 Adds Claude Code as a supported host for strict routing on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation rules.
