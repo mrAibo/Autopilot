@@ -10,6 +10,8 @@
 **Version:** `metadata.version = 2.3.0`; **Codex limited sequential-host release published**, one Git worktree ticket and trusted host unittest at a time. Native Codex GUI named model/Effort agents, paid CLI/API automatic dispatch and Claude Code live native subagents remain **outside released support**, not silently enabled.
 **Specification:** `brief.md`. Read this STATUS first when resuming work; update it after every milestone.
 
+**Roadmap T09 (feat/t09-skill-allowed-tools):** `skills/autopilot/SKILL.md` frontmatter gained `allowed-tools` that pre-approves only `Bash(python|python3|py -3 .autopilot/ap.py *)` for Claude Code, so bookkeeping calls to `ap.py` no longer prompt. Guarded by `tests/test_skill_allowed_tools.py`. No wildcard Bash rule; Codex ignores the key. Live Claude Code permission behaviour is not verified here.
+
 ## Verified QA / source
 
 - Feature HEAD `b3dee4d319a4145c8c8a9f74bde6335237347993` passed [Actions #40199093084](https://github.com/mrAibo/Autopilot/actions/runs/40199093084): **4/4 jobs green** (Ubuntu and Windows / Python 3.11 and 3.13), **144 Python tests** on Ubuntu 3.13, JavaScript syntax and headless Chrome dashboard smoke (desktop/narrow).
