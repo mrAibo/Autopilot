@@ -22,7 +22,7 @@ Autopilot — фреймворк разработки, skill, который б�
 
 > **Границы релиза:** [матрица R01–R06](docs/autopilot/release-readiness.md) — последовательный режим Codex выпущен с ограничениями; нативные субагенты GUI и исполнение Claude Code ещё не подтверждены.
 
-> **Autopilot 2.3.0 — ограниченный релиз для Codex.** Поддержан [последовательный режим](docs/autopilot/sequential-host.md): одна задача, отдельный Git-worktree, независимый запуск Python unittest. **Не подтверждены:** именованные субагенты Codex GUI, фактические модель/Effort и оплата токенов; CLI/API-автозапуск отключён. Для [Claude Code](docs/autopilot/claude-code.md) предусмотрены профили с model/Effort и проверенные офлайн-защиты, но живой запуск на Aibo пока не проверен. См. [ограничения релиза](docs/autopilot/release-readiness.md) и [STATUS.md](STATUS.md).
+> **Autopilot 2.3.0 — ограниченный релиз для Codex.** Поддержан [последовательный режим](docs/autopilot/sequential-host.md): одна задача, отдельный Git-worktree, независимый запуск Python unittest. **Не подтверждены:** именованные субагенты Codex GUI, фактические модель/Effort и оплата токенов; CLI/API-автозапуск отключён. Для [Claude Code](docs/autopilot/claude-code.md) предусмотрены профили с model/Effort и проверенные офлайн-защиты, но живой запуск на <HOST> пока не проверен. См. [ограничения релиза](docs/autopilot/release-readiness.md) и [STATUS.md](STATUS.md).
 
 <p align="center">
   <a href="assets/ru/dashboard-31-desktop.png"><img src="assets/ru/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1 — широкий экран, демонстрационные данные"></a>
@@ -54,7 +54,7 @@ Autopilot — фреймворк разработки, skill, который б�
 
 ## Установка
 
-> **Установка на Aibo:** глобальные пути навыка Codex и Claude уже привязаны к исходникам через Windows Junction. Повторно устанавливать навык не нужно. После объединения релизной ветки команды ниже установят версию 2.3.0 из опубликованного репозитория. Не заменяй Junction командой `npx skills update -g`.
+> **Установка на <HOST>:** глобальные пути навыка Codex и Claude уже привязаны к исходникам через Windows Junction. Повторно устанавливать навык не нужно. После объединения релизной ветки команды ниже установят версию 2.3.0 из опубликованного репозитория. Не заменяй Junction командой `npx skills update -g`.
 
 ### Не хотите открывать терминал
 
