@@ -1,8 +1,8 @@
 # Phase 8 — Acceptance
 
-`ap.py stage final`. Three subagents, no contact between them, each answering a different question. The blind checker and the ADR agent go out **in one message**; the memory agent goes out when the blind checker has returned, because it needs the commands the checker proved:
+`ap.py stage final`. Three isolated subagents, one question each. The blind checker and the ADR agent go out **in one message**; the memory agent after the blind checker returns — it needs the commands the checker proved.
 
-**Model authorization applies to all three, not just code executors.** Prepare a small role-specific Markdown routing brief outside `tickets/` for each (blind acceptance, ADR, memory), call `model_router.py` with verified host capabilities and, if needed, explicit six-factor scores. Do not spawn without a ready verdict or allow the host to inherit Astra/Fable from the main session. A cheap model normally suffices for memory/ADR; blind acceptance may need balanced or strong by risk.
+**Model authorization applies to all three.** For each, write a small role-specific Markdown routing brief outside `tickets/` and call `model_router.py` with verified host capabilities (and explicit six-factor scores if needed). Never spawn without a ready verdict or let the host inherit Astra/Fable from the main session. Memory/ADR normally need a cheap model; blind acceptance may need balanced or strong by risk.
 
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|
@@ -12,9 +12,9 @@
 
 ## 1. Blind acceptance — gate G4
 
-Every check so far measured the build against the spec — your own paraphrase of the brief. If a requirement was lost on the way into it, everything downstream faithfully confirmed that loss. **So this check does not get the spec.**
+Every earlier check measured the build against the spec — your paraphrase of the brief. **So this check does not get the spec.**
 
-It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополнения` included**, and the repository. `.autopilot/` is committed and sits right there, so **not sending the spec is not enough — the prohibition goes in the prompt**:
+It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополнения` included**, and the repository. `.autopilot/` is committed and sits right there, so **the prohibition goes in the prompt**:
 
 > Прочитай приложенные файлы брифа — это задача, которую поставил заказчик,
 > по порядку дат. Разделы «Дополнения» — сказанное по ходу работы, часть задачи
@@ -27,18 +27,17 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 > **Склонируй репозиторий во временную папку** (`git clone <репозиторий> <tmp>`)
 > и работай там: поставь зависимости с нуля по тому, что лежит в репозитории.
 > Если для запуска нужен `.env`, скопируй его в клон, не открывая. Всё, что
-> в клоне не поднимается, а в рабочей папке поднималось бы, — это находка:
+> в клоне не поднимается, а в рабочей папке поднималось бы, — находка:
 > незаписанная зависимость, незакоммиченный файл, шаг, который знает только эта машина.
 >
 > **Запусти проект** и пройди основной сценарий так, как прошёл бы заказчик.
-> Чтение кода показывает намерение, запуск — результат. Не поднимается или
-> сценарий обрывается — это главная находка, первым пунктом. Запустить нельзя
-> вообще (нужен аккаунт, ключ, внешний сервис) — скажи прямо, что помешало,
-> и не выдавай чтение кода за проверку.
+> Не поднимается или сценарий обрывается — главная находка, первым пунктом.
+> Запустить нельзя вообще (нужен аккаунт, ключ, внешний сервис) — скажи прямо,
+> что помешало, и не выдавай чтение кода за проверку.
 >
 > По каждому требованию из брифа: реализовано / частично / нет — и одна строка,
-> где это видно. Требование выполнено формально, а по сути не работает (данные
-> сохраняются, но пользователю не показываются) — это «частично».
+> где это видно. Выполнено формально, а по сути не работает (данные
+> сохраняются, но пользователю не показываются) — «частично».
 >
 > Отдельно верни **команды, которыми ты поднимал проект, и их результат** — дословно:
 > их ждёт агент, который пишет память проекта.
@@ -55,17 +54,17 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 | `dropped` / `deferred` | нет | expected — in the report as not built |
 | — | реализовано, но не из брифа | scope that grew without a parent — reported |
 
-Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. A drift found here is the run working; hiding it is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot be run here at all, that goes to «Что нужно от тебя», not into the accepted column.
+Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. Hiding a drift is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot run here at all, that goes to «Что нужно от тебя», not into the accepted column.
 
 ## 2. Memory and ADRs
 
-**Read `phases/9-memory.md` before spawning them** — Moments 3 and 4 there are their whole brief, the glossary included. When the memory file is the user's own, the memory agent writes `memory-proposal.md` instead of touching it.
+**Read `phases/9-memory.md` before spawning them** — Moments 3 and 4 there are their whole brief, glossary included. When the memory file is the user's own, the memory agent writes `memory-proposal.md` instead of touching it.
 
 ## 3. The final report
 
-Run the check once more first, truncated, and record it — `ap.py tests N/M`. Then write, in the user's language, plain, no jargon.
+Run the check once more first, truncated, and record it — `ap.py tests N/M`. Then write in the user's language, plain, no jargon.
 
-**Build it from the files, re-read now, not from memory.** By this phase your context is the most polluted of the run, and memory gets the report wrong in one direction: a `deferred` requirement reported as done, a placeholder vanishing, an `A##` nobody ordered turning up as though they had asked.
+**Build it from the files, re-read now, never from memory** — your context is now the most polluted of the run: a `deferred` requirement turns «done», a placeholder vanishes, an unordered `A##` looks asked for.
 
 | Section | Read from |
 |---|---|
@@ -100,22 +99,12 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 |---|---|
 | Уведомления на SMS | ты сказал «SMS не надо, только телега» |
 
-## Что я добавил сверх заказанного
-
-| Что добавил | Ради чего |
-|---|---|
-| Номер заявки в подтверждении | чтобы клиент мог на неё сослаться |
-
-## Что пошло не по плану
-
-| Что не сработало | Как сделано |
-|---|---|
-| Одна заявка на один адрес — у половины клиентов их два | Адреса вынесены в список |
+## Что я добавил сверх заказанного  ← таблица «Что добавил | Ради чего»
+## Что пошло не по плану  ← таблица «Что не сработало | Как сделано»
 
 ## Открытые вопросы
 
-<Расхождения слепой приёмки — прямо, без смягчения: «Требование "клиент видит статус"
-я считал готовым, независимая проверка показала, что статус нигде не отображается».>
+<Расхождения слепой приёмки — прямо, без смягчения.>
 
 ## Где что лежит
 
@@ -130,11 +119,11 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 - **«Что не вошло» пишется всегда**, даже когда вошло всё — одной строкой.
 - **Секреты — только именами.**
 - **Не приукрашивать.** Упавшее, недоделанное, найденное расхождение — прямо, с тем, что нужно для починки.
-- Без диффов, имён файлов кода и названий тестов. A section with nothing in it, except the two above, is omitted.
+- Без диффов, имён файлов кода и названий тестов. Any other empty section is omitted.
 
 ## 4. The progress file
 
-`.autopilot/PROGRESS.md` — where the work stands when this run lands, for whoever comes next: the next run reads it first (`phases/0-preflight.md` §5), and a plain session fixing a small bug reads it because the memory file says to (`phases/0-memory.md`). **You write it, from files re-read now**, like the report — never from memory of the dialogue. It is rewritten whole at every landing; nothing in it is lost, because the run read the previous one into `carried.md` at preflight.
+`.autopilot/PROGRESS.md` — where the work stands at landing: the next run reads it first (`phases/0-preflight.md` §5), a plain session because the memory file says to (`phases/0-memory.md`). **You write it, from files re-read now**, never from memory of the dialogue. Rewritten whole at every landing; preflight already read the previous one into `carried.md`.
 
 ```markdown
 <!-- autopilot:progress -->
@@ -145,12 +134,10 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 ## Договорились — не пересматривать
 
 - «SMS не надо, только телега» — R03, отказ пользователя
-- Цены не трогать в коде — их меняет сам пользователь в таблице
 
 ## Не доделано
 
 - Корзина — отложена: «корзину потом» (R08)
-- Ночные уведомления — таск упал: нет доступа к SMTP
 
 ## Известные баги
 
@@ -166,18 +153,18 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 | Договорились | `dropped` rows with their quotes; lasting preferences from the briefs' `## Дополнения`; assumptions the user confirmed; `carried.md` → «Договорились» still true. **Not** what an ADR already holds — a pointer at most |
 | Не доделано | `deferred` rows with their quotes, failed tickets, `coverage` items not built; from `carried.md`, everything this run did not take |
 | Известные баги | 🔴 blind mismatches, `state.js` → `concerns` and `report` left unfixed; from `carried.md`, those this run did not fix |
-| Правки без автопилота | empty. Each entry `carried.md` brought in is now in «Договорились», in «Не доделано», or gone — a fix git already holds needs no line |
+| Правки без автопилота | empty: each entry from `carried.md` moved to «Договорились» or «Не доделано», or is gone (a fix git holds needs no line) |
 
-Placeholders and empty variables are not repeated here — they are in the report's «Что нужно от тебя» and in `.env.example`. A section with nothing in it reads «—». Every line one thought, with the requirement number where there is one; the whole file under about sixty lines — past that, it is a backlog for the tracker, and the report says so in one line.
+Placeholders and empty variables are not repeated here (they are in «Что нужно от тебя» and `.env.example`). An empty section reads «—». One thought per line, with the requirement number where there is one; the whole file under about sixty lines — past that it is a tracker backlog, and the report says so in one line.
 
 ## 5. Landing
 
+**Before landing:** `finish` refuses any open `blockingFindings` (including those from `ticket NN repair --note`), legacy `repairFindings` without blocker reconciliation, and resolved fixes whose commits left Git history. Resolve with `ap.py blocker resolve --id BNN --commit SHA --tests N/0 --note "independent re-review verdict"` — only when the fix commit, passing tests and independent review really exist. Nonblocking `concerns` and `report` entries stay reportable, not blocking. `finish` also checks requirements and tickets against the verified G3 plan and all gates, and independently revalidates the plan. If it reports a stale or missing G3 contract (including an unfinished 2.3-dev run resumed from before this check existed), run `ap.py check-plan`, investigate unowned/duplicate requirements or changed tickets, and redo G1/G2/G4 if the plan changed. Never just rewrite `state.js` or mark a new requirement `done` to bypass this gate.
+
 In this order, so the report names paths that exist:
 
-**Before landing:** `finish` refuses any open `blockingFindings` (including those generated by `ticket NN repair --note`), as well as legacy `repairFindings` without blocker reconciliation or resolved fixes whose commits left Git history. `ap.py blocker resolve --id BNN --commit SHA --tests N/0 --note "independent re-review verdict"` records resolution; a new fix commit, passing tests and independent review must actually exist. Nonblocking `concerns` and `report` entries remain reportable, not blocking. `finish` also compares the requirements and ticket files with the verified G3 plan, checks all gates and independently revalidates the plan. If it reports a stale or missing G3 contract (including an unfinished 2.3-dev run resumed from before this check existed), run `ap.py check-plan`, investigate any unowned/duplicate requirement or changed ticket, and repeat G1/G2/G4 validation when the plan has changed. Never just rewrite `state.js` or mark a new requirement as `done` to bypass this gate.
-
 1. The memory file (or its proposal), the ADRs, the glossary and the progress file are written.
-2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and puts the server out twelve seconds later, after the page has fetched the final picture. A `!` line about the rename means the name was taken or the index dirty: leave it, the run is not undone by a cosmetic suffix.
+2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and stops the server twelve seconds later, after the page fetched the final picture. A `!` line about the rename (name taken, index dirty): leave it — the suffix is cosmetic.
 3. **The final commit** — exactly what this skill wrote since the plan commit, never the rest of the tree, where the user may have work of their own:
 
    ```bash
@@ -185,7 +172,7 @@ In this order, so the report names paths that exist:
      && git commit -qm "Autopilot: сборка сдана" --trailer "Autopilot-Run: <папка>" -- .autopilot AGENTS.md CLAUDE.md docs/architecture.md docs/adr CONTEXT.md GLOSSARY.md .env.example .gitignore
    ```
 
-   Leave out of both lists any path that does not exist, and the memory file if it is the user's own. **The subject stays exactly «Autopilot: сборка сдана»** — the next run and every plain session find the landing by it. The code itself went in ticket by ticket. `git status` afterwards: a changed file outside everything any ticket owned is not committed by you — it goes in the report as «осталось незакоммиченным».
+   Omit from both lists any missing path, and the memory file if it is the user's own. **The subject stays exactly «Autopilot: сборка сдана»** — the next run and every plain session find the landing by it. `git status` afterwards: a changed file outside everything any ticket owned is not committed by you — it goes in the report as «осталось незакоммиченным».
 4. The report.
 
-The dashboard freezes on the final numbers and carries them inside the page, so it reopens by double-click long after the server is gone. Say nothing about any of this.
+The dashboard freezes the final numbers inside the page and reopens by double-click. Say nothing about any of this.

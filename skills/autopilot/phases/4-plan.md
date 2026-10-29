@@ -2,25 +2,23 @@
 
 `ap.py stage plan`. Cut the spec into tickets, each built by its own subagent in a fresh context.
 
-**Every ticket boundary is a cold start** — read the interfaces, explore the code, find the commands: 60–80K tokens of context in a new repo, well over 100K in a large existing one, and a dozen steps before a line is written, plus the orchestrator's own turns to launch and land it. **Fewer, denser tickets beat more, thinner ones** — but only down to what one context can hold.
+**Every ticket boundary is a cold start** — 60–80K tokens of context in a new repo, well over 100K in a large existing one, before a line is written, plus your own turns to launch and land it. **Fewer, denser tickets beat more, thinner ones** — but only down to what one context can hold. Measurements: `docs/autopilot/design.md`.
 
 ## Size — read from the volume of code, never from the length of the spec
 
-**One executor builds about 3,000 lines** — changed lines, tests included. That is where its context gets heavy: every step re-reads all of it from the cache, so each step costs more than the last. Measured: an 11-ticket run of ~29K lines ended its executors at 300–420K; a single dialogue of ~1,300 lines in a large existing codebase used two thirds of its window.
+**One executor builds about 3,000 changed lines, tests included** — past that its context gets heavy and every step costs more than the last.
 
-**Estimate the volume first**, from the spec and, in existing code, from `notes.md`: how many screens, endpoints, tables, flows, and how much of the existing code each one changes. One line to yourself — «~8K строк: чат ~3K, приглашения ~2K, лимиты ~1,5K, остальное ~1,5K» — then:
+**Estimate the volume first**, from the spec and, in existing code, from `notes.md`: screens, endpoints, tables, flows, and how much existing code each changes. One line to yourself — «~8K строк: чат ~3K, приглашения ~2K, лимиты ~1,5K, остальное ~1,5K» — then:
 
 | Volume | Tickets | Tier |
 |---|---|---|
-| **up to ~3K lines** | **one** — one executor gets the whole spec and builds it in one fresh context, start to finish. No waves, no point review | **T0** |
+| **up to ~3K lines** | **one** — one executor gets the whole spec and builds it in one fresh context. No waves, no point review | **T0** |
 | ~3–6K | 2 | **T1** |
 | ~6–18K | 3–6, one per ~3K | **T2** |
 | ~18–36K | 7–12, one per ~3K | **T3** |
 | more | **not allowed** — split into two runs | |
 
-**T0 is the default for a list of edits in existing code** — eighteen fixes across a codebase are usually under 3K lines, however many files they touch. The executor works through them in one context, like a single dialogue, and the whole-branch review checks the result.
-
-A `deep` spec for a landing page is a long document about one page: still T0. State the volume, tier and count in one line to the user; `ap.py set tier=T2`.
+**T0 is the default for a list of edits in existing code** — eighteen fixes across a codebase are usually under 3K lines, however many files they touch; the whole-branch review checks the result. A `deep` spec for a landing page is still T0. State volume, tier and count in one line to the user; `ap.py set tier=T2`.
 
 ## How to cut
 
@@ -28,35 +26,35 @@ A `deep` spec for a landing page is a long document about one page: still T0. St
 - **The shell, the schema, the shared primitives are ticket 01, alone.** Nothing parallelises with it.
 - Groundwork that makes later tickets easy goes early. Tickets closing `R` go before tickets closing only `A`.
 - Number from `01` in dependency order; each ticket names what it depends on.
-- **The size test.** Merge neighbours that together stay under ~3K lines, even ones that would fly side by side — that trades a little clock time for a whole cold start. Split only a ticket that would run past ~3K lines, or one with a long debugging loop ahead of it — an unfamiliar integration.
-- **The payback test:** would its executor spend more flying in than building? Merge it into its neighbour. **The neighbour test:** under three acceptance criteria and the same files as an adjacent ticket? It is a checklist item there.
-- **The merge pass**, mandatory, before any file is written: merge adjacent tickets on the same files, thin tickets with a natural parent, and chains where A alone demos nothing. A draft of 12 tickets for ~18K lines was T2 cut too thin. A wide change below is the one chain the merge pass leaves alone.
+- **The size test.** Merge neighbours that together stay under ~3K lines, even ones that would fly side by side — a little clock time for a whole cold start. Split only a ticket past ~3K lines, or one with a long debugging loop ahead (an unfamiliar integration).
+- **The payback test:** its executor would spend more flying in than building → merge it into its neighbour. **The neighbour test:** under three acceptance criteria and the same files as an adjacent ticket → a checklist item there.
+- **The merge pass**, mandatory, before any file is written: merge adjacent tickets on the same files, thin tickets with a natural parent, and chains where A alone demos nothing. 12 tickets for ~18K lines is T2 cut too thin. A wide change below is the one chain the merge pass leaves alone.
 
 ## A wide change — new beside old
 
-In existing code a requirement can change **one shared thing that many zones use**: rename a field, change the type of money, split a name, swap a library. A vertical slice never turns green on it — the first ticket changes the shared thing, every zone it did not touch breaks, and the check stays red. One ticket for all of it overflows its executor. Cut it in three steps, each green on its own:
+In existing code a requirement can change **one shared thing that many zones use** — rename a field, change the money type, split a name, swap a library. A vertical slice never turns green on it (every untouched zone breaks), and one ticket for all of it overflows its executor. Cut it in three steps, each green on its own:
 
-1. **Expand** — the new thing appears **next to** the old one, and the old one keeps working: both fields, with the data copied and kept in sync; the new function, with the old one delegating to it. `Ревью: да — фундамент`, `сильная`.
-2. **Migrate** — one ticket per zone moves its callers to the new thing. The old one is still there, so the zones not yet moved stay green; tickets on different zones fly in one wave. Criterion: «в `<зона>` не осталось обращений к `<старое>`».
-3. **Contract** — once nothing calls the old thing, it is removed. Dropping a column with user data in it is `Ревью: да — удаление данных`.
+1. **Expand** — the new thing appears **next to** the old one, which keeps working: both fields, data copied and kept in sync; the new function, the old one delegating to it. `Ревью: да — фундамент`, `сильная`.
+2. **Migrate** — one ticket per zone moves its callers to the new thing; unmoved zones stay green, and tickets on different zones fly in one wave. Criterion: «в `<зона>` не осталось обращений к `<старое>`».
+3. **Contract** — once nothing calls the old thing, it is removed. Dropping a column with user data is `Ревью: да — удаление данных`.
 
-Every ticket of the chain carries the same requirement. It applies when the change crosses more zones than one ticket owns; a shared thing used in one zone is an ordinary ticket. In a project built from scratch there is nothing to migrate — this never comes up.
+Every ticket of the chain carries the same requirement. Use it only when the change crosses more zones than one ticket owns; a shared thing used in one zone is an ordinary ticket, and a new project never needs it.
 
 ## Waves and zones
 
-**`wave = 1 + max(wave of what it depends on)`**, no dependencies → wave 1. Then **split each wave by zones**: two tickets writing the same files cannot fly together — the later one moves to the next wave. Every ticket names its **zone** — the directories and modules it owns, tests included. Waves are *discovered* in the dependency graph, never manufactured by splitting a ticket; a wave of one is a normal answer. A wave number, once written, is not renumbered — a real re-cut is said to the user in a line.
+**`wave = 1 + max(wave of what it depends on)`**, no dependencies → wave 1. Then **split each wave by zones**: two tickets writing the same files cannot fly together — the later one moves to the next wave. Every ticket names its **zone** — the directories and modules it owns, tests included. Waves are *discovered* in the dependency graph, never manufactured by splitting a ticket; a wave of one is normal. A written wave number is never renumbered — a real re-cut is told to the user in a line.
 
 ## Review and model — decided per ticket, here
 
-**Review** — whether the ticket gets a point review after its commit (`phases/6-review.md`). It never holds up the build: the next tickets fly while it runs. **Every ticket is reviewed once at the end anyway**, as part of the whole branch — a point review is only for what is worth catching earlier.
+**Review** — whether the ticket gets a point review after its commit (`phases/6-review.md`). It never holds up the build. **Every ticket is reviewed once at the end anyway** with the whole branch; a point review is only for what is worth catching earlier.
 
-- `да — фундамент` — ticket 01, when later tickets build on it, and the expand step of a wide change. Nothing else is foundation.
-- `да — <риск>` — a ticket whose **own code** is one of these: sign-in, passwords, sessions, 2FA; keys and secrets; money; deleting or migrating user data. A ticket that only checks permissions inside an ordinary feature is not a risk ticket — the whole-branch review covers it. Most tickets in a product with access rights touch them; marking them all is how a run reviews 12 tickets of 15.
-- `нет` — the rest. Most tickets. **At T0 the one ticket is `нет` too**: the whole-branch review is its review, and a point review would read the same diff twice.
+- `да — фундамент` — ticket 01 when later tickets build on it, and the expand step of a wide change. Nothing else.
+- `да — <риск>` — a ticket whose **own code** is: sign-in, passwords, sessions, 2FA; keys and secrets; money; deleting or migrating user data. Only checking permissions inside an ordinary feature is not a risk ticket — marking all of those is how a run reviews 12 tickets of 15.
+- `нет` — most tickets. **At T0 the one ticket is `нет` too**: the whole-branch review is its review.
 
-**Model AND reasoning effort are automatically calculated for EVERY ticket in Phase 4 (planning), not guessed by the executor at launch.** The legacy ticket header `**Модель:** сильная/обычная` is only descriptive and must not override this decision. The provider (`openai` for Codex or `anthropic` for Claude Code) is chosen from the actual host, not guessed from the orchestrator's model.
+**Model AND reasoning effort are automatically calculated for EVERY ticket in Phase 4 (planning), not guessed by the executor at launch.** The legacy header `**Модель:** сильная/обычная` is descriptive only and must not override it. The provider (`openai` for Codex, `anthropic` for Claude Code) comes from the actual host, not from the orchestrator's model.
 
-After `ap.py tickets` and `ap.py check-plan`, compute the entire ticket matrix **with one command**:
+After `ap.py tickets` and `ap.py check-plan`, compute the whole ticket matrix **with one command**:
 
 ```bash
 # Advisory plan, no model calls, no native profiles or host entitlement claims:
@@ -67,15 +65,15 @@ python3 .autopilot/ap.py plan-models --provider openai \
   --capabilities .autopilot/model-capabilities.json --apply
 ```
 
-- For each ticket, the deterministic `model_router.py` scores algorithm (25), coupling (20), uncertainty (15), context (15), tests (15), risk (10). It chooses `cheap`/`balanced`/`strong` and the **exact model + reasoning Effort** from the provider policy; critical risk can force `strong`. See [adaptive routing](../../../docs/autopilot/model-routing.md).
-- `plan-models` saves `plannedRouting` on each ticket and returns JSON showing ticket, category, score, model, Effort, reason, and `ready/blocked`. Without capabilities it is **advisory only**: no agent launched, no false host verification. With `--apply`, **all** tickets must be supported **and the latest G3 `check-plan` snapshot must match the current requirement contract, ticket bytes and manifest statuses**. A missing, failed or stale G3 check blocks batch application before profile creation. Re-run `tickets` / `check-plan` and inspect changes rather than bypassing the guard.
-- The applied route is an authorized **configuration**, not evidence of an actual child/model/Effort. Phase 5 must still check profile hashes, runtime dispatch capabilities and the exact effective selected agent. On an unsupported GUI, **do not use `--apply` as a workaround**; use [`--sequential-host`](../../../docs/autopilot/sequential-host.md) instead and do not claim named subagents.
-- No automatic use of Astra/Fable/Opus, no inheriting the expensive parent model, no model call or paid API tokens during the plan. Task changes require republishing tickets, rechecking G3 and recalculating routes; retries with changed risk/complexity require reapproval.
-- Rebalance independent ticket sizes to avoid cold-start costs; one ticket does not imply several reviewers.
+- The deterministic `model_router.py` scores algorithm (25), coupling (20), uncertainty (15), context (15), tests (15), risk (10), picks `cheap`/`balanced`/`strong` and the **exact model + reasoning Effort** from the provider policy; critical risk can force `strong`. See [adaptive routing](../../../docs/autopilot/model-routing.md).
+- `plan-models` saves `plannedRouting` on each ticket and returns JSON: ticket, category, score, model, Effort, reason, `ready/blocked`. Without capabilities it is **advisory only**: no agent launched, no false host verification. With `--apply`, **all** tickets must be supported **and the latest G3 `check-plan` snapshot must match the current requirement contract, ticket bytes and manifest statuses**; a missing, failed or stale G3 blocks application before any profile is created. Re-run `tickets` / `check-plan` and inspect changes — never bypass the guard.
+- The applied route is an authorized **configuration**, not evidence of an actual child/model/Effort; Phase 5 still checks profile hashes, runtime dispatch capabilities and the exact selected agent. On an unsupported GUI, **do not use `--apply` as a workaround**; use [`--sequential-host`](../../../docs/autopilot/sequential-host.md) and do not claim named subagents.
+- No automatic Astra/Fable/Opus, no inheriting the expensive parent model, no model call or paid API tokens during the plan. Changed tasks require republishing tickets, rechecking G3 and recalculating routes; retries with changed risk/complexity require reapproval.
+- Rebalance independent ticket sizes against cold-start cost; one ticket does not imply several reviewers.
 
 ## The ticket file
 
-`.autopilot/<dir>/tickets/NN-<slug>.md`. The header lines are read by `ap.py` — keep their names:
+`.autopilot/<dir>/tickets/NN-<slug>.md`. `ap.py` reads the header lines — keep their names:
 
 ```markdown
 # 03 — Приём заявки от клиента
@@ -90,8 +88,7 @@ python3 .autopilot/ap.py plan-models --provider openai \
 ## Что должно заработать
 
 Клиент пишет боту, отвечает на три вопроса — что сломалось, адрес, телефон —
-и получает подтверждение с номером заявки. Если сеть отвалилась на середине,
-следующее сообщение продолжает с того же места.
+и получает подтверждение с номером заявки.
 
 ## Из брифа, дословно
 
@@ -105,38 +102,37 @@ python3 .autopilot/ap.py plan-models --provider openai \
 
 - [ ] Диалог из трёх шагов доходит до подтверждения
 - [ ] Номер заявки уникален и виден клиенту
-- [ ] Прерванный диалог продолжается, а не сбрасывается
 - [ ] Незаполненный телефон даёт понятную ошибку, а не падение
 ```
 
-- **The verbatim brief quotes are not decoration** — they are the last thing standing between a fresh context and a plausible reinterpretation, and the point reviewer judges the Manifest axis from them.
-- **Every criterion is checkable and false at the commit the executor starts from.** A criterion already true tests nothing; the executor proves each one red before building it (`prompts/executor.md`).
+- **The verbatim brief quotes are load-bearing** — they guard a fresh context against reinterpretation, and the point reviewer judges the Manifest axis from them.
+- **Every criterion is checkable and false at the commit the executor starts from** — the executor proves each one red before building it (`prompts/executor.md`).
 - No file paths or code snippets except a structure prose states worse — a schema, a state machine.
 - `Зависит от` lists ticket numbers only — `01, 02`, or `—`.
 
 ## Before the first ticket flies
 
-**`interfaces.md` carries more than the boundaries** Phase 3 wrote there. Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched. **Ticket 01 installs every dependency «Решения по реализации» names**; any other one comes back from an executor as `BLOCKED` (`phases/5-repair.md`).
+**`interfaces.md` carries more than Phase 3's boundaries.** Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched. **Ticket 01 installs every dependency «Решения по реализации» names**; any other comes back as `BLOCKED` (`phases/5-repair.md`).
 
 ## Gate G3, publishing, and the plan commit
 
-`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every live requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect the dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again. Successful G3 binds the exact wording/rationale of manifest requirements and every planned ticket file. If those change after G3, a fresh `check-plan` invalidates the earlier G1/G2/G4 approvals: inspect the changed specification, redo coverage and blind acceptance; do **not** treat the renewed G3 alone as permission to finish.
+`python3 .autopilot/ap.py tickets` publishes every ticket to the dashboard and moves their manifest rows to `in-ticket`; `python3 .autopilot/ap.py check-plan` is the gate. It checks both directions — every live requirement in some ticket, every ticket tracing to a requirement — and that every ticket has a zone and a wave, waves respect dependencies, and no two tickets in one wave write the same zone. Each `!` line is a plan defect: fix the ticket files and run both again. A passing G3 binds the exact wording/rationale of manifest requirements and every planned ticket file; if they change afterwards, a fresh `check-plan` invalidates earlier G1/G2/G4 approvals: inspect the changed specification, redo coverage and blind acceptance — a renewed G3 alone is **not** permission to finish.
 
-**Then the plan commit** — the run's first, and the base every later diff is measured from. Run the redaction gate over `.autopilot/` (`phases/1-manifest.md`), then commit exactly the files this skill wrote so far — never anything else in the tree:
+**Then the plan commit** — the run's first, the base every later diff is measured from. Run the redaction gate over `.autopilot/` (`phases/1-manifest.md`), then commit exactly the files this skill wrote so far — never anything else in the tree:
 
 ```bash
 git add -A -- .autopilot .gitignore AGENTS.md CLAUDE.md .env.example && git commit -qm "Autopilot: план сборки" --trailer "Autopilot-Run: <папка>" -- .autopilot .gitignore AGENTS.md CLAUDE.md .env.example \
   && python3 .autopilot/ap.py set baseCommit="$(git rev-parse --short HEAD)"
 ```
 
-Leave out of both lists any file that does not exist, and the memory file if it is the user's own. `<папка>` is `dir` without `--wip`, the same in every commit of the run.
+Omit from both lists any missing file, and the memory file if it is the user's own. `<папка>` is `dir` without `--wip`, the same in every commit of the run.
 
-A ticket that exists only in the dialogue is not a ticket — the user is shown a summary of files already on disk.
+A ticket that exists only in the dialogue is not a ticket — the user sees a summary of files already on disk.
 
 ## Showing the plan
 
-**Parallelism gets one line, and only if it is true**: «6 тасков в 4 волны, часть пойдёт параллельно».
+**Parallelism gets one line, and only if true**: «6 тасков в 4 волны, часть пойдёт параллельно».
 
-- **semi, interview** — one screen, one plain line per ticket saying what the user will be able to do when it lands, then «Показываю план и начинаю. Скажи "стоп", если что-то не так» — and start. Never promise a countdown you cannot hold.
+- **semi, interview** — one screen, one plain line per ticket saying what the user can do when it lands, then «Показываю план и начинаю. Скажи "стоп", если что-то не так» — and start. Never promise a countdown you cannot hold.
 - **full** — the same screen as a notification.
 - **manual** — a gate: `ap.py ask plan`, then technical detail, granularity and order discussed, an explicit «ок» before Phase 5.
