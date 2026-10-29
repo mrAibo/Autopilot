@@ -7,6 +7,7 @@ npx skills update autopilot -g
 ```
 
 ## 2.3.0 — Codex limited release (2026-10-26)
+- **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 
 - **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
 
