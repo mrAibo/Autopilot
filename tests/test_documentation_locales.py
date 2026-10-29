@@ -74,10 +74,10 @@ class DocumentationLocalesTests(unittest.TestCase):
     def test_230_scoped_codex_release_and_claude_limits(self):
         skill = (ROOT / "skills/autopilot/SKILL.md").read_text(encoding="utf-8")
         claude = (ROOT / "docs/autopilot/claude-code.md").read_text(encoding="utf-8")
-        self.assertIn('version: "2.4.0-rc.1"', skill)
+        self.assertIn('version: "2.4.0"', skill)
         for name in LOCALES:
             page = (ROOT / name).read_text(encoding="utf-8")
-            self.assertIn("2.4.0-rc.1", page)
+            self.assertIn("2.4.0", page)
             self.assertIn("docs/autopilot/claude-code.md", page)
         for claim in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
                       "CLAUDE_CODE_EFFORT_LEVEL", "not been verified",

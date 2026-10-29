@@ -1,14 +1,16 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current pre-release is `2.4.0-rc.1` (Claude Code beta); the last stable release is the scoped Codex release `2.3.0`; historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.4.0` (Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## 2.4.0-rc.1 — Claude Code beta (2026-10-29)
-Pre-release adding Claude Code as a supported host for strict routing in the Claude desktop app on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation denial. Live qualification T13 gave GO for this path.
-Status: **beta**. Known limits: run tickets one at a time (parallel not yet live-tested); the terminal CLI is not yet qualified; do not use `/subtask` or `/fork` during strict tickets; a custom `ANTHROPIC_BASE_URL` router changes what attestation sees. Codex behavior is unchanged from 2.3.0; the 2.3.0 section below is the tagged Codex release.
+## 2.4.0 — Claude Code support (2026-10-29)
+Adds Claude Code as a supported host for strict routing on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation rules.
+Status: **stable**; qualified live in the Claude desktop app (T13, T14 parallel isolated tickets) and in the terminal CLI in headless `claude -p` mode (T15). Known limits: shared-tree parallel tickets are not live-tested (use `--isolated-tickets`); `/subtask` and `/fork` are owner actions outside strict coverage; a custom `ANTHROPIC_BASE_URL`/`ANTHROPIC_MODEL` changes what runs and what attestation sees. Codex behavior is unchanged from 2.3.0; the 2.3.0 section below is the tagged Codex release.
+
+- **T15 qualification (terminal CLI, headless):** a two-ticket strict run through `claude -p` (Claude Code 2.1.302, subscription OAuth) passed: background agents, project hooks fired, guard denied `general-purpose`, attestation per agent (haiku/low, sonnet/medium), both `ticket done` calls exit 0, G1-G4 ok. See `docs/autopilot/claude-qualification.md`.
 
 - **G3 rejects unknown manifest statuses:** a typo such as `ticket` for `in-ticket` used to hide the requirement from every gate count; `check-plan` now fails on it (found in the T14 live probe).
 - **Docs:** Phase 5 now has its own Claude Code host rules (`phases/5-host-claude.md`: guard and attestation hooks, routed agents only, no `/subtask`/`/fork`); the Codex `spawn_agent` caveat moved to `5-host-codex.md`. The one-off phase-5 split migration test was retired.
