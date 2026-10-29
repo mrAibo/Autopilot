@@ -61,6 +61,8 @@ answered questions, or run `init` on an unfinished run.
    reconstruction and execution; the user should not be asked to
    edit `.autopilot/` or resend the whole brief.
 
+**Plan approved, build not started** (`plan` active or done, `baseCommit` set, no ticket started, `build` pending — typical after a plan-then-new-chat handoff on a cheaper model): go straight to Phase 5. Re-read `spec.md`, `interfaces.md` and the ticket files, run `check-plan` (must be green), then `ap.py stage build` and `phases/5-subagents.md`. No re-briefing, no re-planning, no second plan commit; only a red `check-plan` sends you back to `phases/4-plan.md`.
+
 **Concurrency gate:** if `state.js` and `serve.pid` show a recently
 updated run still served by another live window, do not claim it has
 crashed and do not start a second writer. Follow

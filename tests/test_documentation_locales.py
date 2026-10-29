@@ -178,6 +178,19 @@ class DocumentationLocalesTests(unittest.TestCase):
         for needle in ("claude_agent_guard.py", "claude_attest.py", "/subtask"):
             self.assertIn(needle, text)
 
+    def test_plan_then_new_chat_handoff(self):
+        phases = ROOT / "skills/autopilot/phases"
+        plan = (phases / "4-plan.md").read_text(encoding="utf-8")
+        self.assertIn("fresh chat", plan)
+        self.assertIn("/autopilot", plan)
+        self.assertIn("never a new stop", plan)
+        resume = (phases / "0-resume.md").read_text(encoding="utf-8")
+        self.assertIn("Plan approved, build not started", resume)
+        self.assertIn("stage build", resume)
+        for name in LOCALES:
+            self.assertIn("claude --model sonnet",
+                          (ROOT / name).read_text(encoding="utf-8"), name)
+
 
 if __name__ == "__main__":
     unittest.main()
