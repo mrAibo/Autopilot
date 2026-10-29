@@ -539,6 +539,150 @@ class Run(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("строгая маршрутизация", out)
 
+    # ── strict Claude runs: attestation gate on done ───────────────────────
+    def routed_ticket(self, strict=True, provider="anthropic", enforced=True):
+        """Route and start ticket 01; return its routed agent name."""
+        self.plan(strict=strict)
+        self.ap("tickets")
+        model = "haiku" if provider == "anthropic" else "gpt-6-luna"
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": provider, "model_selection": True,
+                       "effort_selection": enforced, "models": {model: ["low"]}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", provider,
+                            "--model", model, "--effort", "low", "--reason", "simple",
+                            "--capabilities", caps)
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "start")
+        self.assertEqual(code, 0, out)
+        return self.state()["tickets"][0]["routing"]["agentType"]
+
+    def attest(self, *lines):
+        with open(os.path.join(self.a, "attestations.jsonl"), "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write((line if isinstance(line, str) else json.dumps(line)) + "\n")
+
+    def attest_routes(self):
+        """Matching hook evidence for every routed (alias) ticket, so strict done passes."""
+        lines = []
+        for tk in self.state()["tickets"]:
+            route = tk.get("routing")
+            if route:
+                lines += [self.post(route["agentType"], "claude-%s-5-5" % route["model"]),
+                          self.pre(route["agentType"], route["effort"])]
+        self.attest(*lines)
+
+    @staticmethod
+    def post(agent, model="claude-haiku-5-5", used=None):
+        return {"event": "PostToolUse", "agent_type": agent, "agent_id": "a1",
+                "effort": None, "resolved_model": model, "models_used": used,
+                "status": "completed"}
+
+    @staticmethod
+    def pre(agent, effort="low"):
+        return {"event": "PreToolUse", "agent_type": agent, "agent_id": "a1",
+                "effort": effort, "resolved_model": None, "models_used": None,
+                "status": None}
+
+    def finish_01(self):
+        return self.ap("ticket", "01", "done", "--tests", "1/0",
+                       "--commit", self.commit("T01"), "--placeholder", "R05")
+
+    def assert_blocked(self, needle):
+        code, out = self.finish_01()
+        self.assertEqual(code, 2, out)
+        self.assertIn(needle, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual(tk["status"], "in-progress")
+        self.assertNotIn("attestation", tk)
+
+    def test_strict_claude_done_blocked_without_attestation(self):
+        agent = self.routed_ticket()
+        self.assert_blocked("attestations.jsonl")
+        # Malformed lines and another agent's evidence are not evidence either.
+        self.attest("{", "[]", self.post("autopilot-executor-02-priem"),
+                    self.pre("autopilot-executor-02-priem"))
+        self.assert_blocked(agent)
+
+    def test_strict_claude_done_blocked_on_wrong_model(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent, "claude-sonnet-5-5"), self.pre(agent))
+        self.assert_blocked("haiku")
+
+    def test_strict_claude_done_blocked_when_models_used_has_other_model(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent, used=["claude-haiku-5-5", "claude-sonnet-5-5"]),
+                    self.pre(agent))
+        self.assert_blocked("claude-sonnet-5-5")
+
+    def test_strict_claude_done_blocked_on_wrong_effort(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent, "high"))
+        self.assert_blocked("effort")
+        self.attest(self.post(agent), self.pre(agent), self.pre(agent, "high"))
+        self.assert_blocked("high")
+
+    def test_strict_claude_done_allowed_with_matching_attestation(self):
+        agent = self.routed_ticket()
+        # Route alias "haiku" matches the resolved full ID claude-haiku-5-5.
+        self.attest(self.post(agent, used=["claude-haiku-5-5"]), self.pre(agent))
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual(tk["status"], "done")
+        self.assertEqual(tk["attestation"],
+                         {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
+
+    def test_strict_claude_full_model_id_requires_exact_match(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        full = "claude-haiku-5-5"
+        caps = os.path.join(self.a, "model-capabilities.json")
+        with open(caps, "w", encoding="utf-8") as target:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {full: ["low"]}}, target)
+        policy = os.path.join(self.a, "model-policy.json")
+        with open(policy, "w", encoding="utf-8") as target:
+            json.dump({"providers": {"anthropic": {
+                "cheap": {"model": full, "effort": "low"}}}}, target)
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", full, "--effort", "low", "--reason", "full id",
+                            "--capabilities", caps, "--policy", policy)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.ap("ticket", "01", "start")[0], 0)
+        agent = self.state()["tickets"][0]["routing"]["agentType"]
+        self.attest(self.post(agent, full + "-20261001"), self.pre(agent))
+        self.assert_blocked(full)
+        self.attest(self.post(agent, full), self.pre(agent))
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["attestation"]["model"], full)
+
+    def test_model_only_route_ignores_effort_lines(self):
+        agent = self.routed_ticket(enforced=False)
+        self.attest(self.post(agent), self.pre(agent, "high"))
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual(tk["status"], "done")
+        self.assertEqual(tk["attestation"]["model"], "claude-haiku-5-5")
+
+    def test_non_strict_run_unchanged(self):
+        self.routed_ticket(strict=False)
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual(tk["status"], "done")
+        self.assertNotIn("attestation", tk)
+
+    def test_openai_route_unchanged(self):
+        self.routed_ticket(provider="openai")
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual(tk["status"], "done")
+        self.assertNotIn("attestation", tk)
+
     def test_route_custom_policy_is_applied_and_mutation_blocks_strict_start(self):
         self.plan(strict=True)
         self.ap("tickets")
@@ -1085,6 +1229,7 @@ class Run(unittest.TestCase):
                                 "--model", "haiku", "--effort", "low",
                                 "--reason", "synthetic", "--capabilities", caps)
             self.assertEqual(code, 0, msg)
+        self.attest_routes()
         self.git("config", "user.email", "test@example.invalid")
         self.git("config", "user.name", "Autopilot Controller Test")
         os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
@@ -1193,6 +1338,7 @@ class Run(unittest.TestCase):
                             "--model", "haiku", "--effort", "low",
                             "--reason", "synthetic", "--capabilities", caps)
         self.assertEqual(code, 0, out)
+        self.attest_routes()
         self.git("config", "user.email", "test@example.invalid")
         self.git("config", "user.name", "Autopilot Test")
         os.makedirs(os.path.join(self.root, "src", "core"), exist_ok=True)
