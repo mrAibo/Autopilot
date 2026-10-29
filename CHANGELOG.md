@@ -1,18 +1,20 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The scoped Codex release is `2.3.0`; historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current pre-release is `2.4.0-rc.1` (Claude Code beta); the last stable release is the scoped Codex release `2.3.0`; historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## 2.3.0 — Codex limited release (2026-10-26)
+## 2.4.0-rc.1 — Claude Code beta (2026-10-29)
+Pre-release adding Claude Code as a supported host for strict routing in the Claude desktop app on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation denial. Live qualification T13 gave GO for this path.
+Status: **beta**. Known limits: run tickets one at a time (parallel not yet live-tested); the terminal CLI is not yet qualified; do not use `/subtask` or `/fork` during strict tickets; a custom `ANTHROPIC_BASE_URL` router changes what attestation sees. Codex behavior is unchanged from 2.3.0; the 2.3.0 section below is the tagged Codex release.
+
 - **Docs:** Phase 5 now has its own Claude Code host rules (`phases/5-host-claude.md`: guard and attestation hooks, routed agents only, no `/subtask`/`/fork`); the Codex `spawn_agent` caveat moved to `5-host-codex.md`. The one-off phase-5 split migration test was retired.
 - **Claude worktree isolation denied in strict runs (T12, option B):** the guard refuses Agent calls with `isolation` and `autopilot-*` profiles that declare it; Autopilot keeps owning ticket worktrees. No `WorktreeCreate` hook (see `docs/autopilot/claude-worktree-hook.md`).
 - **Attestation evidence kept:** a done ticket's `attestation` summary is no longer dropped when tickets are re-published from their files (found in the T13 live qualification run).
 - **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 - **CI fix:** the T11 phase-5 migration test no longer needs Git history (CI uses a shallow checkout); the routing check runs everywhere, the line-by-line check only in full clones.
-
 - Claude reviewer and acceptance profiles now get `Bash` (no `Edit`/`Write`/`Agent` via `disallowedTools`); acceptance also sets `omitClaudeMd: true`. Executor profile unchanged.
 - Claude agent profiles now set `maxTurns` (executor by ticket volume: ≤900 lines 60, ≤2000 120, else 200, no volume line 120; reviewer/acceptance/explorer 80) and role `color` (executor blue, reviewer purple, explorer cyan, acceptance green). Codex TOML unchanged.
 
@@ -27,9 +29,11 @@ npx skills update autopilot -g
 - Claude Code: `SKILL.md` frontmatter now pre-approves only `Bash(... .autopilot/ap.py *)` bookkeeping commands via `allowed-tools` (no wildcard Bash; Codex ignores the key).
 
 - **Docs hygiene:** machine-specific paths, host name and device ID removed from tracked files and replaced by placeholders; new test `tests/test_no_machine_data.py` and `*.local.md` in `.gitignore`.
-- **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
 - **Phase 5 split (T11):** `phases/5-subagents.md` keeps the host-neutral rules; Codex-specific paragraphs moved verbatim to `phases/5-host-codex.md`, new `phases/5-host-claude.md` for Claude Code. No text removed; a guard test checks every original line survives.
 
+## 2.3.0 — Codex limited release (2026-10-26)
+
+- **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
 
 - Phase 4 now supports **batch automatic model+reasoning-Effort selection per ticket** via `ap.py plan-models --provider openai|anthropic`, with deterministic risk-sensitive scoring and advisory blocked states if host capabilities are unavailable. `--capabilities ... --apply` prevalidates every proposed model/Effort and native agent file, refuses an unsupported or conflicting member without applying the partial batch, then pins all per-ticket profiles/routes for Phase 5. No models are invoked and no provider usage/cost or actual GUI model choice is asserted. Added negative real-Git tests and EN/RU/DE documentation. Sequential host mode deliberately rejects named-agent batch routing.
 

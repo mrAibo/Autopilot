@@ -24,7 +24,13 @@ aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 
 > **Release-Freigabe:** [Prüfmatrix R01–R06](docs/autopilot/release-readiness.md) mit tatsächlichen Nachweisen, offenen GUI-Einschränkungen und den Bedingungen für die stabile Version.
 
-> **Autopilot 2.3.0 — eingeschränkter Codex-Release:** unterstützt wird der sequenzielle Modus mit Git-Worktrees und hostseitigen Python-Unittests; **nicht** garantiert sind native GUI-Subagenten, tatsächliche Modell-/Effort-Durchsetzung oder Abrechnung. [Claude Code](docs/autopilot/claude-code.md): Profile und Offline-Sicherheitsprüfungen vorhanden, echte Laufzeit noch nicht getestet.
+> **Autopilot 2.3.0 — eingeschränkter Codex-Release:** unterstützt wird der sequenzielle Modus mit Git-Worktrees und hostseitigen Python-Unittests; **nicht** garantiert sind native GUI-Subagenten, tatsächliche Modell-/Effort-Durchsetzung oder Abrechnung.
+
+> **Autopilot 2.4.0-rc.1 — Claude-Code-Beta (Vorabversion).** Claude Code (Desktop-App, Abonnement) wird im strikten Routing-Modus als **Beta** unterstützt: siehe [claude-code.md](docs/autopilot/claude-code.md) und das [Qualifikationsergebnis](docs/autopilot/claude-qualification.md). Bekannte Grenzen:
+> - Tickets einzeln ausführen; parallele Tickets sind noch nicht live getestet;
+> - die Terminal-CLI ist noch nicht qualifiziert;
+> - `/subtask` und `/fork` nicht während strikter Tickets verwenden;
+> - ein eigener `ANTHROPIC_BASE_URL`-Router ändert, was die Attestierung sieht.
 > Der Zustand ist in [STATUS.md](STATUS.md) dokumentiert. Die ursprünglichen
 > Anforderungen dieser Weiterentwicklung stehen in [brief.md](brief.md).
 > Die korrekte Ausführung namentlich zugewiesener Subagenten in der
@@ -283,8 +289,9 @@ Subagentenmodelle und Reasoning-Stufen werden anhand lokaler
 Richtlinien und überprüfter Host-Fähigkeiten vorgeschlagen.
 **Wichtig:** Die Existenz einer Profil-Datei oder ein grüner
 Offline-Test beweist noch nicht, dass Codex GUI oder Claude Code
-diesen Subagenten tatsächlich gestartet hat. Das ist für
-`2.3.0-dev` weiterhin zu verifizieren.
+diesen Subagenten tatsächlich gestartet hat. Für Claude Code
+(Desktop-App) wurde das in der T13-Qualifikation live geprüft;
+für Codex GUI ist es weiterhin zu verifizieren.
 
 Weitere technische Details:
 [Modell-Routing](docs/autopilot/model-routing.md),
