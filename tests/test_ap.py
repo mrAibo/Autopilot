@@ -633,6 +633,15 @@ class Run(unittest.TestCase):
         self.assertEqual(tk["attestation"],
                          {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
 
+    def test_attestation_survives_ticket_republish(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.assertEqual(self.finish_01()[0], 0)
+        # Any later call that re-publishes tickets from files must keep the evidence.
+        self.assertEqual(self.ap("tickets")[0], 0)
+        self.assertEqual(self.state()["tickets"][0]["attestation"],
+                         {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
+
     def test_strict_claude_full_model_id_requires_exact_match(self):
         self.plan(strict=True)
         self.ap("tickets")
