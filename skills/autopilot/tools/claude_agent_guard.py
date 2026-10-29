@@ -171,8 +171,18 @@ def install_hook(root):
         "args": ["${CLAUDE_PROJECT_DIR}/.autopilot/claude_agent_guard.py"],
         "onFailure": "block",                        # hook crash/timeout = deny (v2.1.295+)
     }]}
-    if hook in current:
+    permissions = content.setdefault("permissions", {})
+    if not isinstance(permissions, dict):
+        raise ValueError("permissions must be an object")
+    deny = permissions.setdefault("deny", [])
+    if not isinstance(deny, list):
+        raise ValueError("permissions.deny must be a list")
+    # Settings-level layer for Claude-started forks, independent of this hook.
+    fork_denied = "Agent(fork)" in deny
+    if hook in current and fork_denied:
         return settings, False
+    if not fork_denied:
+        deny.append("Agent(fork)")
 
     def outdated(entry):
         # Legacy relative/bare-python hook, or ours with another interpreter.
