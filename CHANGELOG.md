@@ -7,11 +7,24 @@ npx skills update autopilot -g
 ```
 
 ## 2.3.0 — Codex limited release (2026-10-26)
+- **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 
 - Claude reviewer and acceptance profiles now get `Bash` (no `Edit`/`Write`/`Agent` via `disallowedTools`); acceptance also sets `omitClaudeMd: true`. Executor profile unchanged.
 - Claude agent profiles now set `maxTurns` (executor by ticket volume: ≤900 lines 60, ≤2000 120, else 200, no volume line 120; reviewer/acceptance/explorer 80) and role `color` (executor blue, reviewer purple, explorer cyan, acceptance green). Codex TOML unchanged.
 
+- **Claude forks in strict runs (F1):** the guard installer now also adds `Agent(fork)` to `permissions.deny`; owner-typed `/subtask`/`/fork` are documented as outside strict-run coverage.
+- **Claude guard fail-open fix:** `claude_agent_guard.py` resolves the project from `CLAUDE_PROJECT_DIR` (then payload `cwd`, then process cwd), so a hook started in a subdirectory or worktree no longer misses `.autopilot/state.js` and allows unapproved agents. `--install-hook` now writes an exec-form hook (absolute interpreter + `${CLAUDE_PROJECT_DIR}/.autopilot/claude_agent_guard.py`) with `onFailure: "block"` (Claude Code v2.1.295+) and replaces the legacy `python .autopilot/claude_agent_guard.py` entry. Re-run `--install-hook` to upgrade.
+
+- **Claude attestation hook (new, opt-in):** `claude_attest.py` appends metadata-only evidence lines (`effort`, `resolved_model`, `models_used`, `status`) to `.autopilot/attestations.jsonl` from `PreToolUse` (inside Autopilot subagents), `PostToolUse` on `Agent` and `SubagentStop`. It never blocks (always exit 0, no `onFailure`) and never stores prompts, messages or tool inputs; `--install-hook --root .` adds the three exec-form hooks. Recording only, nothing gates on it yet.
+
+- **Claude attestation gate:** in strict runs with an `anthropic` route, `ap.py ticket NN done` now requires `.autopilot/attestations.jsonl` evidence for the routed agent: a `resolved_model` matching the route (alias as substring, full ID exactly), no other model in `resolved_model`/`models_used`, and, when effort is enforced, only the route effort. Missing, unreadable, symlinked or mismatching evidence exits 2 and leaves the ticket unchanged; success stores `attestation: {model, effort, lines}`. Non-strict runs and OpenAI routes are unchanged. Install the attestation hook before running strict Claude tickets.
+
+- Claude Code: `SKILL.md` frontmatter now pre-approves only `Bash(... .autopilot/ap.py *)` bookkeeping commands via `allowed-tools` (no wildcard Bash; Codex ignores the key).
+
+- **Docs hygiene:** machine-specific paths, host name and device ID removed from tracked files and replaced by placeholders; new test `tests/test_no_machine_data.py` and `*.local.md` in `.gitignore`.
 - **Release scope:** supported Codex sequential host workflow only (one isolated ticket, independently re-run trusted Python unittest). Native GUI named children and exact runtime model/Effort or billing are not guaranteed; GUI→CLI/API execution remains disabled by spend guard. Claude Code profile/hook support is offline-tested only until the genuine CLI runtime and separate Claude subscription are verified. No provider model/API calls in release qualification.
+- **Phase 5 split (T11):** `phases/5-subagents.md` keeps the host-neutral rules; Codex-specific paragraphs moved verbatim to `phases/5-host-codex.md`, new `phases/5-host-claude.md` for Claude Code. No text removed; a guard test checks every original line survives.
+
 
 - Phase 4 now supports **batch automatic model+reasoning-Effort selection per ticket** via `ap.py plan-models --provider openai|anthropic`, with deterministic risk-sensitive scoring and advisory blocked states if host capabilities are unavailable. `--capabilities ... --apply` prevalidates every proposed model/Effort and native agent file, refuses an unsupported or conflicting member without applying the partial batch, then pins all per-ticket profiles/routes for Phase 5. No models are invoked and no provider usage/cost or actual GUI model choice is asserted. Added negative real-Git tests and EN/RU/DE documentation. Sequential host mode deliberately rejects named-agent batch routing.
 

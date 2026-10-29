@@ -106,6 +106,7 @@ class LoopRealGitTests(unittest.TestCase):
                               "--reason", "offline-worktree-test",
                               "--capabilities", str(capabilities))
             self.assertEqual(rc, 0, output)
+        h.attest_routes()
         h.git("config", "user.email", "test@example.invalid")
         h.git("config", "user.name", "Autopilot Offline Host Loop")
         for folder, source, fn, broken, expected in (

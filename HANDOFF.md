@@ -5,8 +5,8 @@
 **Date:** 2026-10-26 (Europe/Berlin)
 **Product stage:** [`v2.3.0`](https://github.com/mrAibo/Autopilot/releases/tag/v2.3.0) **officially published**, Codex limited sequential-host support. Tag points to product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5` (PR #32, full release PR CI 4/4 green and local Python 316/316). Native Codex GUI named-agent/model/Effort not included; Claude Code profile/guard offline-tested only, pending separate subscription and live CLI.
 **Repository:** https://github.com/mrAibo/Autopilot
-**Windows host:** Aibo
-**Checkout:** `C:\Users\crown\Downloads\Projects\Autopilot`
+**Windows host:** <HOST>
+**Checkout:** `<REPO_DIR>`
 **Branch:** `main`, clean and tracking `origin/main` at handoff preparation.
 **Last fully tested pre-handoff HEAD:** `ec740a7c7555d09e62f3f6039700b3fdf3ea0f64`; a documentation-only handoff commit may advance HEAD. Always check `git rev-parse HEAD` and `git status --short --branch` first.
 **Final pre-handoff CI:** [Actions #40352034156](https://github.com/mrAibo/Autopilot/actions/runs/40352034156): **4/4 succeeded** (Ubuntu and Windows, Python 3.11 and 3.13) on exact SHA `ec740a7`. Local Windows Python 3.13 **308/308** passed.
@@ -60,7 +60,7 @@ Code/test acceptance, real browser smoke, model-policy planning, native agent pr
 
 ## 5. Remaining blockers and next pragmatic work
 
-**Priority P0 — native host runtime proof:** On Aibo, last observed standalone Codex CLI `0.165.0-alpha.1` and GUI-bundled Codex CLI `0.164.0-alpha.11.1` both advertise `multi_agent=true`, `multi_agent_v2=false`. An actual earlier named custom subagent probe in Codex GUI was negative. Claude **Desktop** was present but genuine Claude **Code** CLI (`claude`/`claude-code`) absent. Thus **no verified named subagent identity + enforced actual model/Effort/cwd**. First perform **read-only** current host capability discovery; do not retry a known-negative or token-intensive agent test unless a meaningful capability/version change justifies it.
+**Priority P0 — native host runtime proof:** On <HOST>, last observed standalone Codex CLI `0.165.0-alpha.1` and GUI-bundled Codex CLI `0.164.0-alpha.11.1` both advertise `multi_agent=true`, `multi_agent_v2=false`. An actual earlier named custom subagent probe in Codex GUI was negative. Claude **Desktop** was present but genuine Claude **Code** CLI (`claude`/`claude-code`) absent. Thus **no verified named subagent identity + enforced actual model/Effort/cwd**. First perform **read-only** current host capability discovery; do not retry a known-negative or token-intensive agent test unless a meaningful capability/version change justifies it.
 
 **Priority P1 — user-facing plan UX and trust boundary:** Inspect applied vs advisory model/Effort rows in an actual GUI session when supported; present a visible **blocked** reason if the model catalog is missing, and avoid claiming model selection was applied. Consider test fixtures around recovery/replanning, task edits, profile collision and batch rollback as future hardening. Keep `--sequential-host` available for a real host-owned safe one-session workflow; it must not claim that it runs a named agent or pins the current GUI model.
 
@@ -73,13 +73,13 @@ Code/test acceptance, real browser smoke, model-policy planning, native agent pr
 - **Only AI model requests included in the existing ChatGPT/Codex subscription.** **No separately billed tokens, API credits, purchases, keys, or external pay-as-you-go calls.** Older user notes may say paid tokens are okay; **the latest restrictive decision controls**.
 - `gui_bridge.py --execute` and `codex_dispatch.py --execute` are **intentionally blocked** by `spend_guard`. ChatGPT sign-in, soft token budget and an owner's general approval do **not** supply a hard provider-side per-call cost cap. A previous CLI worker consumed **53,187 input tokens** despite a soft 2,000-token target; never silently bypass this guard.
 - Preserve existing progress, rights, license attribution and EN/RU/DE documentation. No faked named subagents or model/Effort attestations. Avoid needlessly heavy orchestrators for trivial tasks.
-- Remote Desktop Commander can access the authorized Aibo filesystem/terminal. Do **not** assume it supplies interactive mouse/keyboard control of Codex GUI; a separate Computer Use / Work session requires actual supported user authorization.
+- Remote Desktop Commander can access the authorized <HOST> filesystem/terminal. Do **not** assume it supplies interactive mouse/keyboard control of Codex GUI; a separate Computer Use / Work session requires actual supported user authorization.
 - No background work implied merely by this handoff. Continue only from active user request in the new chat.
 
 ## 7. Commands for next session
 
 ```powershell
-cd C:\Users\crown\Downloads\Projects\Autopilot
+cd <REPO_DIR>
 git status --short --branch
 git rev-parse HEAD
 git log -5 --oneline
@@ -96,4 +96,4 @@ py -3.13 .autopilot\ap.py plan-models --provider openai --capabilities .autopilo
 
 For new chats, paste:
 
-> Продолжи развитие Autopilot 2.3 из `C:\Users\crown\Downloads\Projects\Autopilot`. Прочитай `HANDOFF.md`, `STATUS.md`, `brief.md`, `skills/autopilot/SKILL.md`, `docs/autopilot/model-routing.md` и `docs/autopilot/release-readiness.md`. Проверь реальный `main` HEAD, чистоту Git и последний CI, затем **продолжай текущий этап без повторного планирования**. Последний выполненный этап — PR #27: автоматический расчёт модели и reasoning Effort для каждого таска на стадии планирования, с честным разделением advisory, pinned и actual runtime. Приоритет — безопасно подтвердить возможности настоящих GUI-именованных агентов или явно сохранить их как неподдерживаемые; не имитируй model/Effort/child. Только запросы в пределах подписки, без платных API/кредитов. Сделай конкретные изменения/тесты в отдельной ветке, PR, CI, обнови `STATUS.md`. Не выпускай stable `2.3.0` без подлинной проверки.
+> Продолжи развитие Autopilot 2.3 из `<REPO_DIR>`. Прочитай `HANDOFF.md`, `STATUS.md`, `brief.md`, `skills/autopilot/SKILL.md`, `docs/autopilot/model-routing.md` и `docs/autopilot/release-readiness.md`. Проверь реальный `main` HEAD, чистоту Git и последний CI, затем **продолжай текущий этап без повторного планирования**. Последний выполненный этап — PR #27: автоматический расчёт модели и reasoning Effort для каждого таска на стадии планирования, с честным разделением advisory, pinned и actual runtime. Приоритет — безопасно подтвердить возможности настоящих GUI-именованных агентов или явно сохранить их как неподдерживаемые; не имитируй model/Effort/child. Только запросы в пределах подписки, без платных API/кредитов. Сделай конкретные изменения/тесты в отдельной ветке, PR, CI, обнови `STATUS.md`. Не выпускай stable `2.3.0` без подлинной проверки.
