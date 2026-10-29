@@ -79,6 +79,9 @@ def decision(payload, root):
     fields = parse_frontmatter(agent)
     if fields.get("name") != name:
         return False, "Agent profile name mismatch"
+    # Autopilot owns ticket worktrees (T12 option B); Claude's isolation would bypass them.
+    if fields.get("isolation") or args.get("isolation"):
+        return False, "Claude worktree isolation is not allowed in strict runs"
     model, effort = fields.get("model"), fields.get("effort")
     if not model or model == "inherit":
         return False, "Agent model must be pinned"

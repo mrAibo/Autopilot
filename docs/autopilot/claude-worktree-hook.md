@@ -1,6 +1,6 @@
 # Claude Code `WorktreeCreate` hook (T12 design note)
 
-**Status:** proposal, awaiting owner decision; no code until approved.
+**Status:** decided 2026-10-29: option B, implemented (guard denies `isolation` in strict Agent calls and in `autopilot-*` profiles). A and C rejected for now.
 
 ## Problem
 
@@ -53,7 +53,7 @@ The hook sees a slug (`name`) and `cwd`; it does not see a ticket id. Nothing ti
 
 ## Owner decision
 
-- [ ] B Keep own worktrees; forbid `isolation: worktree` in generated profiles and in guarded Agent calls (recommended)
+- [x] B Keep own worktrees; forbid `isolation: worktree` in generated profiles and in guarded Agent calls (recommended)
 - [ ] Probe for C: run the live payload/name check above, then decide
 - [ ] A Implement the card proposal (hook + fallback + remove hook)
 - [ ] Do nothing beyond this note

@@ -56,6 +56,20 @@ class HookGuardTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("Only explicitly", why)
 
+    def test_worktree_isolation_in_call_is_denied(self):
+        # T12 option B: Autopilot owns ticket worktrees; Claude's own isolation bypasses them.
+        ok, why = guard.decision(self.payload(isolation="worktree"), self.root)
+        self.assertFalse(ok)
+        self.assertIn("isolation", why)
+
+    def test_worktree_isolation_in_profile_is_denied(self):
+        profile = self.root / ".claude" / "agents" / (self.name + ".md")
+        text = profile.read_text(encoding="utf-8")
+        profile.write_text(text.replace("---\n", "---\nisolation: worktree\n", 1), encoding="utf-8")
+        ok, why = guard.decision(self.payload(), self.root)
+        self.assertFalse(ok)
+        self.assertIn("isolation", why)
+
     def test_premium_or_inherited_model_is_denied(self):
         self.file.write_text(self.file.read_text(encoding="utf-8").replace("haiku", "fable"), encoding="utf-8")
         ok, why = guard.decision(self.payload(), self.root)

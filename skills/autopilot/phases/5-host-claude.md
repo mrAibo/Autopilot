@@ -9,3 +9,4 @@ Rules for the orchestrator (see `docs/autopilot/claude-code.md`, `docs/autopilot
 - In strict runs `ticket NN done` needs the subagent's attestation (`resolvedModel`).
 - In the desktop app Agent calls run asynchronously; this does not block the gate.
 - Never start or suggest `/subtask` or `/fork` during strict tickets: they bypass the guard and write no attestation.
+- Never pass `isolation` to Agent calls: ticket worktrees belong to Autopilot (`ap.py` / `worktrees.py`); the guard denies Claude's own worktree isolation.

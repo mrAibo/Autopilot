@@ -8,6 +8,7 @@ npx skills update autopilot -g
 
 ## 2.3.0 — Codex limited release (2026-10-26)
 - **Docs:** Phase 5 now has its own Claude Code host rules (`phases/5-host-claude.md`: guard and attestation hooks, routed agents only, no `/subtask`/`/fork`); the Codex `spawn_agent` caveat moved to `5-host-codex.md`. The one-off phase-5 split migration test was retired.
+- **Claude worktree isolation denied in strict runs (T12, option B):** the guard refuses Agent calls with `isolation` and `autopilot-*` profiles that declare it; Autopilot keeps owning ticket worktrees. No `WorktreeCreate` hook (see `docs/autopilot/claude-worktree-hook.md`).
 - **Attestation evidence kept:** a done ticket's `attestation` summary is no longer dropped when tickets are re-published from their files (found in the T13 live qualification run).
 - **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
 - **CI fix:** the T11 phase-5 migration test no longer needs Git history (CI uses a shallow checkout); the routing check runs everywhere, the line-by-line check only in full clones.

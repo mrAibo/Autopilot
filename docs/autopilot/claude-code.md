@@ -47,6 +47,8 @@ The generated project-local `.claude/agents/*.md` always pin `model` and restric
 
 **Forks in strict runs:** `--install-hook` also adds `"Agent(fork)"` to `permissions.deny`, and the guard denies any Agent call without an `autopilot-…` name, so Claude cannot fork on its own. A fork **you** start with `/subtask` or `/fork` is not an Agent call: the guard does not see it and no attestation is written. Do not fork while strict tickets are in progress. See `claude-fork-policy.md`.
 
+**Worktrees in strict runs:** ticket worktrees are created and landed by Autopilot itself. The guard denies Agent calls that pass `isolation` and `autopilot-*` profiles that declare it; no `WorktreeCreate` hook is installed (see `claude-worktree-hook.md`). An owner-started `--worktree` session is outside this rule.
+
 **Important runtime limitations:** in newer Claude Code versions, an Agent invocation can override frontmatter `model` / `effort`; `CLAUDE_CODE_EFFORT_LEVEL` overrides even both; a forced model override can ignore pinned profiles; organization allowlists may substitute another model. The guard is an additional protection, **not** evidence of the effective spawned model. The owner must check `/tasks` while an agent is running (where available), the agent identity, cwd and actual tool activity before calling the path qualified.
 
 Claude Code's own `isolation: worktree` starts from the default branch by default; it is **not automatically the same worktree** as an Autopilot prepared ticket. Do not silently combine the two. Keep the ticket restricted to its explicitly approved Autopilot worktree.
