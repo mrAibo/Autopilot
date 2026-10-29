@@ -310,6 +310,16 @@ class Run(unittest.TestCase):
         self.assertIn("повторяются ID требований", out)
         self.assertFalse(self.state()["gates"]["G3"]["ok"])
 
+    def test_check_plan_blocks_unknown_manifest_status(self):
+        # A typo like «ticket» for «in-ticket» used to hide the row from every gate count.
+        self.plan()
+        self.write("manifest.md", MANIFEST.replace("| R02 | «складывает в таблицу» | in-spec |",
+                                                   "| R02 | «складывает в таблицу» | ticket |"))
+        code, out = self.ap("check-plan")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("неизвестный статус «ticket» у R02", out)
+        self.assertFalse(self.state()["gates"]["G3"]["ok"])
+
     def test_check_plan_catches_a_requirement_in_no_ticket(self):
         self.plan()
         self.write("manifest.md", MANIFEST + "| G01 | «отмена» | in-spec | — | spec §5 |\n")

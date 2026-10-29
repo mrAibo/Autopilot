@@ -452,6 +452,8 @@ def check_plan(state):
     named = {r for t in tickets for r in t["requirements"]}
     base = {r.split(".")[0] for r in named}
     for rid, st in rows:
+        if st not in STATUS_KEY and st != "open":  # a typo would hide the row from every gate count
+            problems.append("неизвестный статус «%s» у %s" % (st, rid))
         if st in ("in-spec", "in-ticket", "placeholder", "done") and not rid.startswith("D") and rid not in base:
             problems.append("требование %s (%s) не попало ни в один таск" % (rid, st))
     known = {rid for rid, _ in rows}
