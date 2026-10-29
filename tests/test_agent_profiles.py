@@ -43,6 +43,81 @@ class ProfileTests(unittest.TestCase):
         self.assertIn("tools: Read, Grep, Glob, Bash, Edit, Write", text)
         self.assertFalse(result["host_execution_verified"])
 
+    def _claude_text(self, role):
+        self.capabilities()
+        result = agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,
+                                        role, scores=self.easy(), install=True)
+        return (self.root / result["agent_file"]).read_text(encoding="utf-8")
+
+    def test_acceptance_profile_has_bash_but_no_edit(self):
+        text = self._claude_text("acceptance")
+        self.assertIn("tools: Read, Grep, Glob, Bash\n", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent\n", text)
+        self.assertIn("omitClaudeMd: true\n", text)
+
+    def test_reviewer_profile_has_bash_but_no_edit(self):
+        text = self._claude_text("reviewer")
+        self.assertIn("tools: Read, Grep, Glob, Bash\n", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent\n", text)
+        self.assertNotIn("omitClaudeMd", text)
+
+    def test_executor_profile_unchanged(self):
+        text = self._claude_text("executor")
+        self.assertIn("tools: Read, Grep, Glob, Bash, Edit, Write\n", text)
+        self.assertNotIn("disallowedTools", text)
+        self.assertNotIn("omitClaudeMd", text)
+
+    def _claude_with_volume(self, role, volume_line=""):
+        self.capabilities()
+        # Unique ticket per volume so repeated subtests never hit the overwrite guard.
+        ticket = self.root / ".autopilot" / "run" / "tickets" / (
+            "vol-" + role + "-" + ("".join(c for c in volume_line if c.isdigit()) or "none") + ".md")
+        ticket.write_text("# T01\n**Zone:** `docs/`\n" + volume_line +
+                          "Small documentation edit", encoding="utf-8")
+        result = agent_profiles.prepare(self.root, ticket, "anthropic", self.caps,
+                                        role, scores=self.easy(), install=True)
+        return (self.root / result["agent_file"]).read_text(encoding="utf-8")
+
+    def test_claude_color_executor_blue(self):
+        self.assertIn("color: blue\n", self._claude_text("executor"))
+
+    def test_claude_color_reviewer_purple(self):
+        self.assertIn("color: purple\n", self._claude_text("reviewer"))
+
+    def test_claude_color_explorer_cyan(self):
+        self.assertIn("color: cyan\n", self._claude_text("explorer"))
+
+    def test_claude_color_acceptance_green(self):
+        self.assertIn("color: green\n", self._claude_text("acceptance"))
+
+    def test_executor_max_turns_by_ticket_volume(self):
+        cases = ((1, 60), (900, 60), (901, 120), (2000, 120), (2001, 200), (5000, 200))
+        for volume, turns in cases:
+            with self.subTest(volume=volume):
+                text = self._claude_with_volume("executor", "**Volume:** %d\n" % volume)
+                self.assertIn("maxTurns: %d\n" % turns, text)
+
+    def test_executor_max_turns_accepts_russian_volume_label(self):
+        text = self._claude_with_volume("executor", "**Объём:** 2500\n")
+        self.assertIn("maxTurns: 200\n", text)
+
+    def test_executor_max_turns_without_volume_line_is_120(self):
+        self.assertIn("maxTurns: 120\n", self._claude_with_volume("executor"))
+
+    def test_non_executor_max_turns_fixed_80(self):
+        for role in ("reviewer", "acceptance", "explorer"):
+            with self.subTest(role=role):
+                text = self._claude_with_volume(role, "**Volume:** 5000\n")
+                self.assertIn("maxTurns: 80\n", text)
+
+    def test_codex_profile_has_no_claude_turns_or_color(self):
+        self.capabilities("openai", "gpt-6-luna", "low")
+        result = agent_profiles.prepare(self.root, self.ticket, "openai", self.caps,
+                                        "executor", scores=self.easy(), install=True)
+        text = (self.root / result["agent_file"]).read_text(encoding="utf-8")
+        self.assertNotIn("maxTurns", text)
+        self.assertNotIn("color", text)
+
     def test_codex_profile_is_valid_toml(self):
         self.capabilities("openai", "gpt-6-luna", "low")
         result = agent_profiles.prepare(self.root, self.ticket, "openai", self.caps,
@@ -136,7 +211,8 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(result["model"], "sonnet")
         self.assertEqual(result["effort"], "high")
         text = (self.root / result["agent_file"]).read_text(encoding="utf-8")
-        self.assertNotIn("tools: Read, Grep, Glob, Bash", text)
+        self.assertNotIn("tools: Read, Grep, Glob, Bash, Edit, Write", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent", text)
 
 
 if __name__ == "__main__":

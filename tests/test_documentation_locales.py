@@ -141,8 +141,8 @@ class DocumentationLocalesTests(unittest.TestCase):
         for name in LOCALES:
             self.assertIn("docs/autopilot/sequential-host.md",
                           (ROOT / name).read_text(encoding="utf-8"))
-        phase = (ROOT / "skills/autopilot/phases/5-subagents.md").read_text(
-            encoding="utf-8")
+        phase = "".join((ROOT / "skills/autopilot/phases" / n).read_text(
+            encoding="utf-8") for n in ("5-subagents.md", "5-host-codex.md"))
         self.assertIn("unconditionally", phase)
         self.assertNotRegex(phase, r"(?m)^\\?`?python .autopilot/gui_bridge.py.*--execute")
         dashboard = (ROOT / "skills/autopilot/phases/dashboard-template.html").read_text(
@@ -165,6 +165,30 @@ class DocumentationLocalesTests(unittest.TestCase):
         # Live execution may be mentioned as explicitly denied, but must not
         # appear as a runnable PowerShell code line in the usage example.
         self.assertNotRegex(guide, r"(?m)^py -3\.13 .*--execute")
+
+    def test_phase5_routes_to_host_files(self):
+        shared = (ROOT / "skills/autopilot/phases/5-subagents.md").read_text(encoding="utf-8")
+        self.assertIn("Then read `5-host-claude.md` if running in Claude Code, "
+                      "`5-host-codex.md` if in Codex.", shared)
+        for name in ("5-host-claude.md", "5-host-codex.md"):
+            self.assertTrue((ROOT / "skills/autopilot/phases" / name).is_file(), name)
+
+    def test_phase5_split_keeps_every_original_line(self):
+        import subprocess
+        # shortcut: needs the pre-split commit; CI's shallow checkout lacks it, so this
+        # T11 migration check runs only in full clones. Retire it once phase 5 is edited on purpose.
+        orig = subprocess.run(
+            ["git", "show", "3303291:skills/autopilot/phases/5-subagents.md"],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+        if orig.returncode != 0:
+            self.skipTest("pre-split commit 3303291 not in this clone (shallow checkout)")
+        names = ("5-subagents.md", "5-host-claude.md", "5-host-codex.md")
+        texts = {n: (ROOT / "skills/autopilot/phases" / n).read_text(encoding="utf-8")
+                 for n in names}
+        have = {l.strip() for t in texts.values() for l in t.splitlines()}
+        missing = [l.strip() for l in orig.stdout.splitlines()
+                   if l.strip() and l.strip() not in have]
+        self.assertEqual(missing, [])
 
 
 

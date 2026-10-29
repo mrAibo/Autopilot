@@ -4,7 +4,7 @@ Autopilot is a **skill and project-state protocol**, not a command-line-only app
 
 ## Read-only runtime qualification, 2026-10-26 (not GUI E2E)
 
-The connected Windows host `Aibo` was inspected without invoking an AI
+The connected Windows host `<HOST>` was inspected without invoking an AI
 model or changing host installations. The repository was clean at
 `main` commit `be1833b` before this qualification. `codex --version`
 reports `codex-cli 0.165.0-alpha.1`; `codex features list` reports
@@ -79,14 +79,14 @@ subagents or authenticated human consent from a CLI flag alone.
 |---|---|---|---|
 | Codex desktop app / graphical interface | Shared Autopilot skill instructions, project files and dashboard | Native named subagents **not available in the user-tested GUI session**; safe host-side fallback: explicitly selected `--sequential-host` with one task and trusted Git/tests; real pinned CLI worker execution currently blocked | **GUI test performed 2026-10-25: fail-closed, no named child**; full GUI end-to-end still unverified |
 | Codex CLI | Same skill instructions and project files | Explicit `codex exec` model/effort process via `codex_dispatch.py`, with isolated worktree and JSON usage | CLI 0.165.0-alpha.1 login, real Luna Low inference and a disposable code-edit / host-tested / accepted worktree E2E verified on Windows; GUI host remains unverified |
-| Claude Code (terminal or supported graphical host) | Same skill instructions loaded from `.claude/skills/` | Native pinned `.claude/agents/*.md`, model/effort fields and optional strict `PreToolUse` guard; see [Claude Code qualification](claude-code.md) | Offline profile + guard tests only; **native CLI/GUI behavior and subscription billing unverified on Aibo** |
+| Claude Code (terminal or supported graphical host) | Same skill instructions loaded from `.claude/skills/` | Native pinned `.claude/agents/*.md`, model/effort fields and optional strict `PreToolUse` guard; see [Claude Code qualification](claude-code.md) | Offline profile + guard tests only; **native CLI/GUI behavior and subscription billing unverified on <HOST>** |
 | Claude general chat app without code execution / filesystem tools | Can read project docs if attached, but cannot run the local workflow | No supported local dispatch guarantee | **Not equivalent to Claude Code** |
 
 **Do not claim one CLI smoke validates a graphical host.** GUI applications may have their own model availability, tool restrictions and approval flows. Account catalog entries do not attest a model used in a given session.
 
 ## Existing installations: no second copies
 
-As approved by the owner on 2026-10-25, the old global Autopilot 2.2 directory was removed. Three global skill discovery paths now point by Windows Junction **directly to the one development checkout** `C:\Users\crown\Downloads\Projects\Autopilot\skills\autopilot`: `C:\Users\crown\.agents\skills\autopilot`, `C:\Users\crown\.claude\skills\autopilot`, and `C:\Users\crown\.codex\skills\autopilot`. After the scoped release update, each Junction exposes the same real `SKILL.md` with `metadata.version: "2.3.0"` (previously `2.3.0-dev`). The obsolete global installer lock entry for `nick-vels/skills` was removed without altering the other skills. This proves working filesystem links, **not** live GUI discovery; restart a host session and verify.
+As approved by the owner on 2026-10-25, the old global Autopilot 2.2 directory was removed. Three global skill discovery paths now point by Windows Junction **directly to the one development checkout** `<REPO_DIR>\skills\autopilot`: `<USER_HOME>\.agents\skills\autopilot`, `<USER_HOME>\.claude\skills\autopilot`, and `<USER_HOME>\.codex\skills\autopilot`. After the scoped release update, each Junction exposes the same real `SKILL.md` with `metadata.version: "2.3.0"` (previously `2.3.0-dev`). The obsolete global installer lock entry for `nick-vels/skills` was removed without altering the other skills. This proves working filesystem links, **not** live GUI discovery; restart a host session and verify.
 
 The `mrAibo/Autopilot` repository has two tracked Git symlinks:
 - `.agents/skills/autopilot` → `../../skills/autopilot`
@@ -94,7 +94,7 @@ The `mrAibo/Autopilot` repository has two tracked Git symlinks:
 
 When Git is checked out on Windows with `core.symlinks=false`, the two tracked **repository-local** skill links can be plain-text placeholders rather than loadable skill directories. The separately verified **global Junctions** above bypass that issue without any copied skill files; the disposable GUI test workspace also uses Junctions to the same source.
 
-For this development checkout, first check the repository is clean, then use `git -C C:\Users\crown\Downloads\Projects\Autopilot pull --ff-only` to update the working branch. The global Junctions expose changes immediately to new host sessions. Do **not** run `npx skills update autopilot -g` on this developer-linked preview: it may replace it with the published main-branch release. For a separate clean installation, use the supported `npx skills add mrAibo/Autopilot` workflow after the release has been merged. The global Junctions on Aibo should remain untouched.
+For this development checkout, first check the repository is clean, then use `git -C <REPO_DIR> pull --ff-only` to update the working branch. The global Junctions expose changes immediately to new host sessions. Do **not** run `npx skills update autopilot -g` on this developer-linked preview: it may replace it with the published main-branch release. For a separate clean installation, use the supported `npx skills add mrAibo/Autopilot` workflow after the release has been merged. The global Junctions on <HOST> should remain untouched.
 
 ## Owner's actual graphical Codex named-agent test (2026-10-25)
 
@@ -166,7 +166,7 @@ Only after `ap.py init` created `.autopilot`. This writes `.autopilot/model-capa
 
 Project Dashboards are **copies** of the skill template, not Junctions. The installed skill can be version 2.3 while an existing project still serves 2.2 HTML until explicitly refreshed. Use:
 
-    py -3.13 C:\Users\crown\Downloads\Projects\Autopilot\skills\autopilot\tools\dashboard_upgrade.py --project C:\Users\crown\Downloads\Projects\WEG_HomeManager
+    py -3.13 <REPO_DIR>\skills\autopilot\tools\dashboard_upgrade.py --project <OTHER_PROJECT_DIR>
 
 The standalone upgrader requires a valid existing .autopilot/state.js, refuses mismatched project identity, backs up the old Dashboard under the user's temporary directory, and atomically replaces only the HTML while embedding the current snapshot. Reload the browser tab. It never changes an active application or task ledger. This was confirmed on the synthetic test suite and the real WEG_HomeManager local Dashboard (rev 41, two tickets) with a successful headless Chrome DOM read.
 

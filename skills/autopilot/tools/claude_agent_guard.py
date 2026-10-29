@@ -134,6 +134,15 @@ def decision(payload, root):
                   else "Approved pinned model; effort unverified/advisory")
 
 
+def project_root(payload):
+    """Prefer Claude's project dir; never trust an arbitrary cwd silently."""
+    env = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
+    if env:
+        return env
+    cwd = payload.get("cwd") if isinstance(payload, dict) else None
+    return cwd if isinstance(cwd, str) and cwd else os.getcwd()
+
+
 def install_hook(root):
     """Opt-in install: merge a project hook, preserving unrelated Claude settings."""
     root = Path(root).resolve()
@@ -155,10 +164,35 @@ def install_hook(root):
     current = hooks.setdefault("PreToolUse", [])
     if not isinstance(current, list):
         raise ValueError("hooks.PreToolUse must be a list")
-    hook = {"matcher": "Agent|Task", "hooks": [
-        {"type": "command", "command": "python .autopilot/claude_agent_guard.py"}]}
-    if hook in current:
+    interpreter = str(Path(sys.executable).resolve())
+    hook = {"matcher": "Agent|Task", "hooks": [{
+        "type": "command",
+        "command": interpreter,                      # exec form: no shell, no PATH lookup
+        "args": ["${CLAUDE_PROJECT_DIR}/.autopilot/claude_agent_guard.py"],
+        "onFailure": "block",                        # hook crash/timeout = deny (v2.1.295+)
+    }]}
+    permissions = content.setdefault("permissions", {})
+    if not isinstance(permissions, dict):
+        raise ValueError("permissions must be an object")
+    deny = permissions.setdefault("deny", [])
+    if not isinstance(deny, list):
+        raise ValueError("permissions.deny must be a list")
+    # Settings-level layer for Claude-started forks, independent of this hook.
+    fork_denied = "Agent(fork)" in deny
+    if hook in current and fork_denied:
         return settings, False
+    if not fork_denied:
+        deny.append("Agent(fork)")
+
+    def outdated(entry):
+        # Legacy relative/bare-python hook, or ours with another interpreter.
+        inner = entry.get("hooks") if isinstance(entry, dict) else None
+        return isinstance(inner, list) and any(
+            isinstance(h, dict) and (
+                h.get("command") == "python .autopilot/claude_agent_guard.py"
+                or h.get("args") == hook["hooks"][0]["args"])
+            for h in inner)
+    current[:] = [e for e in current if not outdated(e)]
     current.append(hook)
     temp = settings.with_suffix(".json.tmp")
     try:
@@ -191,7 +225,7 @@ def main():
     except (ValueError, TypeError):
         print("Autopilot guard: invalid hook JSON", file=sys.stderr)
         return 2
-    ok, why = decision(payload, os.getcwd())
+    ok, why = decision(payload, project_root(payload))
     if not ok:
         print("Autopilot guard: " + why, file=sys.stderr)
         return 2

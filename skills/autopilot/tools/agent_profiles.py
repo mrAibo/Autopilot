@@ -35,8 +35,22 @@ def role_description(role):
     }[role]
 
 
-def definition(provider, name, role, route, ticket):
-    """Render approved model; effort is omitted if the host cannot enforce it."""
+def claude_max_turns(role, text):
+    if role != "executor":
+        return 80
+    # Same volume line as model_router.assess_ticket; keep the two in sync.
+    match = re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text)
+    if not match:
+        return 120
+    lines = int(match.group(1))
+    return 60 if lines <= 900 else 120 if lines <= 2000 else 200
+
+
+def definition(provider, name, role, route, ticket, text=""):
+    """Render approved model; effort is omitted if the host cannot enforce it.
+
+    `text` is the task brief body, used only for Claude's ticket-size maxTurns.
+    """
     model, effort = route["model"], route["effort"]
     effort_enforced = route.get("effort_enforced", True)
     for candidate in (name, model, effort):
@@ -53,15 +67,26 @@ def definition(provider, name, role, route, ticket):
     )
     if provider == "anthropic":
         # Model and effort frontmatter are documented Claude Code settings.
-        allowed_tools = ("Read, Grep, Glob, Bash, Edit, Write" if role == "executor"
-                         else "Read, Grep, Glob")
+        if role == "executor":
+            allowed_tools, extra = "Read, Grep, Glob, Bash, Edit, Write", ""
+        elif role in ("reviewer", "acceptance"):
+            allowed_tools = "Read, Grep, Glob, Bash"
+            extra = "disallowedTools: Edit, Write, Agent\n"
+            if role == "acceptance":
+                extra += "omitClaudeMd: true\n"   # blind acceptance: no project memory
+        else:  # explorer
+            allowed_tools, extra = "Read, Grep, Glob", ""
         output = (
             "---\nname: " + name + "\n"
             "description: " + role_description(role) + "\n"
             "model: " + model + "\n"
             + ("effort: " + effort + "\n" if effort_enforced else "")
             + "tools: " + allowed_tools + "\n"
-            "---\n\n" + instructions
+            + "maxTurns: " + str(claude_max_turns(role, text)) + "\n"
+            + "color: " + {"executor": "blue", "reviewer": "purple",
+                           "explorer": "cyan", "acceptance": "green"}[role] + "\n"
+            + extra
+            + "---\n\n" + instructions
         )
         relative_path = Path(".claude/agents") / (name + ".md")
         return relative_path, output
@@ -106,7 +131,7 @@ def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None
         raise ProfileError("Task name must be 1–58 safe characters")
     name = "autopilot-" + role + "-" + safe_slug
     relative_ticket = ticket.relative_to(root).as_posix()
-    relative_path, content = definition(provider, name, role, result, relative_ticket)
+    relative_path, content = definition(provider, name, role, result, relative_ticket, text)
     destination = root / relative_path
     if not within(destination, root):
         raise ProfileError("Agent destination escapes the project")
