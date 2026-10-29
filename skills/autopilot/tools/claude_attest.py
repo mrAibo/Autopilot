@@ -32,7 +32,8 @@ def record(payload, root):
     response = payload.get("tool_response")
     response = response if isinstance(response, dict) else {}
     line = {"event": event, "agent_type": None, "agent_id": _str(payload.get("agent_id")),
-            "effort": None, "resolved_model": None, "models_used": None, "status": None}
+            "effort": None, "resolved_model": None, "models_used": None, "status": None,
+            "transcript_path": None}
     if event == "PreToolUse":
         effort = payload.get("effort")
         line["agent_type"] = _str(payload.get("agent_type"))
@@ -50,6 +51,8 @@ def record(payload, root):
             line["models_used"] = [m for m in used if isinstance(m, str)]
     elif event == "SubagentStop":
         line["agent_type"] = _str(payload.get("agent_type"))
+        # Subagent transcript only (per-message model evidence); never the main session's.
+        line["transcript_path"] = _str(payload.get("agent_transcript_path"))
     else:
         return None
     if not line["agent_type"] or not AGENT.fullmatch(line["agent_type"]):

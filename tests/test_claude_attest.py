@@ -75,6 +75,17 @@ class AttestTests(unittest.TestCase):
         self.assertEqual(self.lines()[0]["event"], "SubagentStop")
         self.assertNotIn("private", self.log.read_text(encoding="utf-8"))
 
+    def test_subagent_stop_records_transcript_path(self):
+        self.assertEqual(self.run_hook(STOP).returncode, 0)
+        (line,) = self.lines()
+        self.assertEqual(line["transcript_path"], "/t/a1.jsonl")
+        self.assertNotIn("private", self.log.read_text(encoding="utf-8"))
+
+    def test_pre_and_post_lines_have_null_transcript_path(self):
+        self.assertEqual(self.run_hook(PRE_INSIDE).returncode, 0)
+        self.assertEqual(self.run_hook(POST_AGENT).returncode, 0)
+        self.assertEqual([line["transcript_path"] for line in self.lines()], [None, None])
+
     def test_non_autopilot_agent_ignored(self):
         pre = dict(PRE_INSIDE, agent_type="Explore")
         self.assertEqual(self.run_hook(pre).returncode, 0)
