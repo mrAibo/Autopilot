@@ -1,6 +1,6 @@
 # Claude Code forks in strict runs (F1 design note)
 
-**Status:** proposal, awaiting owner decision. No code until approved.
+**Status:** decided 2026-10-29: options 1 + 2 (implemented in #48); option 3 rejected after a live check; option 4 skipped.
 
 ## Problem
 
@@ -41,9 +41,15 @@ So the gap is an **owner action**, not an orchestrator escape. Its real risk: th
 - 3 is the only real block for the owner path, but it is worth building only if the live check shows `UserPromptSubmit` fires for `/subtask`. Probe: in `autopilot-t08-probe`, install a `UserPromptSubmit` hook that logs the payload, type `/subtask say hello`, check for a line.
 - 4 adds complexity for a weak guarantee: attestation proves the routed agent ran, not who typed each line.
 
+## Live check (2026-10-29, desktop app, Claude Code 2.1.302)
+
+- `/subtask say hello` and `/fork say hello` each fired one `UserPromptSubmit` and **no** `UserPromptExpansion`. The hook's `prompt` was `say hello`, with the command already stripped (for `/fork`, after a prepended `<system-reminder>` block). A hook cannot tell a fork request from a normal message, so option 3 cannot work.
+- Both commands start a new session (new session id). That session inherits the project hooks, so the `PreToolUse` guard still applies to Agent calls made inside the fork; the fork's own edits on the main model are not covered.
+- `Agent` with `subagent_type: "fork"` was denied by the guard: `Autopilot guard: Only explicitly configured Autopilot agents are allowed`. Because the guard fires first, the run does not show whether `Agent(fork)` in `permissions.deny` blocks it on its own.
+
 ## Owner decision
 
-- [ ] 1 Document only
-- [ ] 2 `Agent(fork)` deny on guard install
-- [ ] 3 `UserPromptSubmit` block for `/subtask` / `/fork` (after live check)
-- [ ] 4 Post-hoc zone/attestation-age check
+- [x] 1 Document only
+- [x] 2 `Agent(fork)` deny on guard install
+- [ ] 3 `UserPromptSubmit` block for `/subtask` / `/fork` (rejected: the hook never sees the command)
+- [ ] 4 Post-hoc zone/attestation-age check (skipped)
