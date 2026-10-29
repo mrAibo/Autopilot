@@ -43,6 +43,30 @@ class ProfileTests(unittest.TestCase):
         self.assertIn("tools: Read, Grep, Glob, Bash, Edit, Write", text)
         self.assertFalse(result["host_execution_verified"])
 
+    def _claude_text(self, role):
+        self.capabilities()
+        result = agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,
+                                        role, scores=self.easy(), install=True)
+        return (self.root / result["agent_file"]).read_text(encoding="utf-8")
+
+    def test_acceptance_profile_has_bash_but_no_edit(self):
+        text = self._claude_text("acceptance")
+        self.assertIn("tools: Read, Grep, Glob, Bash\n", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent\n", text)
+        self.assertIn("omitClaudeMd: true\n", text)
+
+    def test_reviewer_profile_has_bash_but_no_edit(self):
+        text = self._claude_text("reviewer")
+        self.assertIn("tools: Read, Grep, Glob, Bash\n", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent\n", text)
+        self.assertNotIn("omitClaudeMd", text)
+
+    def test_executor_profile_unchanged(self):
+        text = self._claude_text("executor")
+        self.assertIn("tools: Read, Grep, Glob, Bash, Edit, Write\n", text)
+        self.assertNotIn("disallowedTools", text)
+        self.assertNotIn("omitClaudeMd", text)
+
     def test_codex_profile_is_valid_toml(self):
         self.capabilities("openai", "gpt-6-luna", "low")
         result = agent_profiles.prepare(self.root, self.ticket, "openai", self.caps,
@@ -136,7 +160,8 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(result["model"], "sonnet")
         self.assertEqual(result["effort"], "high")
         text = (self.root / result["agent_file"]).read_text(encoding="utf-8")
-        self.assertNotIn("tools: Read, Grep, Glob, Bash", text)
+        self.assertNotIn("tools: Read, Grep, Glob, Bash, Edit, Write", text)
+        self.assertIn("disallowedTools: Edit, Write, Agent", text)
 
 
 if __name__ == "__main__":

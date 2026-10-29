@@ -45,6 +45,10 @@ Phase 5 is now three files: `5-subagents.md` (host-neutral, routes to the others
 6. Dashboard 3.0 (model assignments, worktree/recovery state, gates, recorded tokens and threshold), responsive Chrome smoke. Optional `codex_dispatch.py --optimization lean` instructions inspired by Ponytail (OFF by default; original Ponytail plugin NOT installed or benchmarked).
 7. English/Russian READMEs display 4 **actual current Dashboard 3.0 Chrome screenshots** generated from synthetic state (desktop/narrow). Retired 14 obsolete 2.2 screenshots and imported old `skills-lock.json`. README only credits *Inspired by*; required original MIT copyright remains in `LICENSE`. No old Telegram-channel promotion observed. See `docs/autopilot/gui-clients.md`, `worktrees.md`, `codex-cli.md`, `optimization.md`, `model-routing.md`.
 
+## Claude reviewer/acceptance tool grant (T03)
+
+Claude Code reviewer and acceptance profiles previously received only `Read, Grep, Glob`, so blind acceptance could not install or run the project. They now receive `Read, Grep, Glob, Bash` with `disallowedTools: Edit, Write, Agent`; acceptance additionally sets `omitClaudeMd: true`. Executor and explorer profiles are unchanged. The existing security-routing test was updated to assert the new no-edit contract instead of the old no-Bash one. Offline tests only; no live Claude Code run was performed.
+
 ## Current presentation and GitHub upstream status (2026-10-25)
 
 - User noticed earlier README images still displayed inherited original branding. Fixed the *actual dashboard template*, not just screenshot names: removed the embedded old PNG logo, replaced both headers (including error state) with text-only \`Autopilot / 2.3 DEV\`. Removed the two inherited README logo PNG assets and header references.
