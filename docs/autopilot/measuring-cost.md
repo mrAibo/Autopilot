@@ -45,3 +45,20 @@ on your disk. Nothing leaves the machine, but do not publish or commit those fil
 
 Limits: assumes delta temporality (the Claude Code default); a protobuf/gzip exporter is recorded only as a
 marker line, so keep `http/json`.
+
+## Measured: main-session model and ticket routing (2026-10-29)
+
+Same 3-ticket strict run in all three cases (Claude desktop app, subscription OAuth, OTel `cost.usage` estimates in USD, not charges). All runs were VALID: 3/3 tickets done through the attestation gate, G1–G4 ok.
+
+| Run | Main session | Ticket routes | Main | Subagents | Total |
+|---|---|---|---:|---:|---:|
+| T13 | Opus / medium | haiku/low ×2, sonnet/medium | 1.40 | 0.054 | ≈1.45 |
+| A | Sonnet / medium | haiku/low ×2, sonnet/medium | 0.63 | 0.050 | ≈0.68 |
+| B | Sonnet / medium | sonnet/medium ×3 | 0.44 | 0.111 | ≈0.56 |
+
+What this shows, and what it does not:
+- **Main-session model is the biggest lever.** Opus → Sonnet cut the total by about 53 % (T13 → A) with the same subagent work.
+- **Ticket routing halves subagent cost.** Subagents cost 0.050 with routing versus 0.111 without (A vs B), about 55 % less.
+- **On a run this small, routing does not show up in the total.** B came out cheaper overall than A because its main session was cheaper (0.44 vs 0.63; mostly cache creation, 58K vs 106K tokens). That is run-to-run noise in the orchestrator, larger than the whole subagent bill here.
+- One run per variant, three tiny tickets: treat these numbers as direction, not precision. Larger projects shift the share toward subagents, where routing matters more.
+

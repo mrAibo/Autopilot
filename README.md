@@ -58,7 +58,7 @@ Research-only API pilots and extra supervisors are **not required** to
 use `/autopilot`. See [scope and experimental components](docs/autopilot/scope-and-labs.md), [test details](STATUS.md) and
 [host-side tools](docs/autopilot/controller.md).
 
-For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](docs/autopilot/r06-offline-benchmark.md). It measures host-only Git/CLI checks with no model calls. **Real AI token savings have not been established.**
+For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](docs/autopilot/r06-offline-benchmark.md). It measures host-only Git/CLI checks with no model calls. **2.2 vs 2.3 AI token savings have not been established**; what the main-session model and ticket routing save is measured in [measuring-cost.md](docs/autopilot/measuring-cost.md).
 
 ## Installation
 
@@ -394,7 +394,7 @@ The other end has a limit too. Every step of an agent re-reads its whole context
 
 ### Spending less
 
-- **Main session model.** Run `/autopilot` on Sonnet. Use Opus only if you want it for briefing, spec and plan, and switch with `/model` before the build phase. The main conversation lives through the whole run and re-reads its growing context at every step, so it is the biggest cost. In one small measured run (3 tickets, Claude desktop app, OpenTelemetry estimate) the main session on Opus was about 1.40 USD and all three subagents together about 0.054 USD, roughly 96 % of the estimate; a second run (2 tickets, terminal CLI, Opus) came to about 1.20 USD. These are `cost.usage` estimates, not subscription charges, from two small runs; larger projects shift the share toward subagents.
+- **Main session model.** Run `/autopilot` on Sonnet. Use Opus only if you want it for briefing, spec and plan, and switch with `/model` before the build phase. The main conversation lives through the whole run and re-reads its growing context at every step, so it is the biggest cost. In one small measured run (3 tickets, Claude desktop app, OpenTelemetry estimate) the main session on Opus was about 1.40 USD and all three subagents together about 0.054 USD, roughly 96 % of the estimate; a second run (2 tickets, terminal CLI, Opus) came to about 1.20 USD. These are `cost.usage` estimates, not subscription charges, from two small runs; larger projects shift the share toward subagents. An A/B of the same 3-ticket run with the main session on **Sonnet** came to about 0.68 USD instead of about 1.45 USD on Opus — about 53 % less. Details: [measuring-cost.md](docs/autopilot/measuring-cost.md).
 - **Budget.** `python3 .autopilot/ap.py budget --tokens N` stops new tickets from starting once the known input and output tokens reach N.
 - **Measure.** `python3 skills/autopilot/tools/measure-run.py <project dir>` reads the Claude Code logs; the dashboard shows token usage too.
 - **Keep tasks big.** Don't ask for a review after every task, and avoid parallel runs in one shared tree: they cost more than they save.

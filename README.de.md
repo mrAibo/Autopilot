@@ -331,7 +331,7 @@ Auch am anderen Ende gibt es eine Grenze. Bei jedem Schritt liest ein Agent sein
 
 ### Sparsamer arbeiten
 
-- **Modell der Hauptsitzung.** Starten Sie `/autopilot` mit Sonnet. Opus nur nach Wunsch für Briefing, Spezifikation und Plan; vor der Bauphase mit `/model` zurückwechseln. Die Hauptsitzung läuft den ganzen Durchlauf und liest bei jedem Schritt ihren wachsenden Kontext neu, sie ist deshalb der größte Kostenposten. In einem kleinen gemessenen Lauf (3 Tickets, Claude-Desktop-App, OpenTelemetry-Schätzung) kostete die Hauptsitzung auf Opus etwa 1,40 USD, alle drei Subagenten zusammen etwa 0,054 USD, also rund 96 % der Schätzung; ein zweiter Lauf (2 Tickets, Terminal, Opus) kam auf etwa 1,20 USD. Das sind `cost.usage`-Schätzungen, keine Abrechnung des Abos, aus zwei kleinen Läufen; bei größeren Projekten wächst der Anteil der Subagenten.
+- **Modell der Hauptsitzung.** Starten Sie `/autopilot` mit Sonnet. Opus nur nach Wunsch für Briefing, Spezifikation und Plan; vor der Bauphase mit `/model` zurückwechseln. Die Hauptsitzung läuft den ganzen Durchlauf und liest bei jedem Schritt ihren wachsenden Kontext neu, sie ist deshalb der größte Kostenposten. In einem kleinen gemessenen Lauf (3 Tickets, Claude-Desktop-App, OpenTelemetry-Schätzung) kostete die Hauptsitzung auf Opus etwa 1,40 USD, alle drei Subagenten zusammen etwa 0,054 USD, also rund 96 % der Schätzung; ein zweiter Lauf (2 Tickets, Terminal, Opus) kam auf etwa 1,20 USD. Das sind `cost.usage`-Schätzungen, keine Abrechnung des Abos, aus zwei kleinen Läufen; bei größeren Projekten wächst der Anteil der Subagenten. Ein A/B-Vergleich desselben 3-Ticket-Laufs mit der Hauptsitzung auf **Sonnet** kam auf etwa 0,68 USD statt etwa 1,45 USD auf Opus — rund 53 % weniger. Details: [measuring-cost.md](docs/autopilot/measuring-cost.md).
 - **Budget.** `python3 .autopilot/ap.py budget --tokens N` verhindert den Start neuer Tickets, sobald die bekannten Ein- und Ausgabe-Tokens N erreichen.
 - **Messen.** `python3 skills/autopilot/tools/measure-run.py <Projektordner>` liest die Claude-Code-Logs; das Dashboard zeigt den Token-Verbrauch ebenfalls.
 - **Aufgaben groß lassen.** Keine Prüfung nach jedem Ticket verlangen und keine parallelen Läufe im gemeinsamen Arbeitsbaum: Sie kosten mehr, als sie sparen.
@@ -388,7 +388,7 @@ verglich historische Version 2.2 mit dem Entwicklungsstand 2.3 auf
 identischen, kleinen Git-/CLI-Szenarien. Dabei wies 2.3 eine fehlerhafte
 Abnahme zurück, die 2.2 noch zuließ.
 
-**Das sind keine gemessenen Einsparungen bei LLM-Tokens oder API-Kosten.**
+**Das sind keine gemessenen Einsparungen bei LLM-Tokens oder API-Kosten zwischen 2.2 und 2.3.** Was Hauptsitzungsmodell und Ticket-Routing sparen, ist in [measuring-cost.md](docs/autopilot/measuring-cost.md) gemessen.
 Echte End-to-End-Abläufe mit namentlich zugewiesenen Subagenten und
 deren Modellverbrauch sind gesondert zu validieren. Zusätzliche
 kostenpflichtige API-Experimente sind **keine Voraussetzung** der
