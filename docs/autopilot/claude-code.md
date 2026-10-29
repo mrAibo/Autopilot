@@ -62,3 +62,18 @@ Claude Code's own `isolation: worktree` starts from the default branch by defaul
 | Subscription charge boundary | **Not yet observed on <HOST>** |
 
 Do not call this a completed native Claude Code E2E until those last two rows have independently passing evidence.
+
+## Live probe (T08, 2026-10-29)
+
+Disposable strict run, one ticket routed `anthropic / haiku / low`, guard (T02) and attestation hooks (T06) installed, gate (T07) active.
+Host: Claude desktop app (Code tab) with bundled Claude Code 2.1.309 (the CLI on PATH was 2.1.302), Claude Pro subscription.
+
+1. **Foreground.** The desktop app launched every `Agent` call asynchronously, even without `run_in_background`; there is no observable foreground mode on this host. `PostToolUse` still carried `tool_response.resolvedModel` = `claude-haiku-5-5` with `status: "async_launched"`. Every tool call inside the subagent produced a `PreToolUse` line with `effort.level` = `low`. `modelsUsed` was never present; `effort` is absent on `PostToolUse`/`SubagentStop`.
+2. **Background.** Same evidence shape as (1): `async_launched`, `resolvedModel` set. The subagent transcript is `~/.claude/projects/<project>/<session>/subagents/agent-<agentId>.jsonl`; assistant entries carry `message.model` (`claude-haiku-5-5`) and top-level `requestedModel`, `effort`, `perTurnEffort` (`low`). The `output_file` returned by the Agent tool stayed empty. `claude_attest.py` does not yet record `agent_transcript_path`.
+3. **Fork.** In the desktop app `/subtask` creates a separate forked session, not an `Agent`/`Task` tool call. The `PreToolUse` guard did not fire and nothing was blocked; no attestation lines were written. **Strict mode cannot see or block `/subtask` on this host.**
+4. **`CLAUDE_CODE_FORK_SUBAGENT=0`.** No observable change: two `Agent` calls in one message still ran in parallel (both `PostToolUse` in the same second, interleaved subagent lines), still `async_launched`.
+5. **Versions.** See host line above.
+
+**T07 gate end-to-end:** after the subagent fixed the bug, `ap.py ticket 01 done` exited 0 and stored `attestation: {model: claude-haiku-5-5, effort: low, lines: 7}`. Async launches do not block the gate, because `resolvedModel` is present.
+
+Raw sanitized JSONL evidence stays with the owner; it is not tracked.
