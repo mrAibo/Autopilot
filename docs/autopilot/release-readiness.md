@@ -52,6 +52,10 @@ This is an **evidence register**, not a claim that GitHub CI certifies real AI-a
 5. **P1 — R06: measured claims.** For any public assertion of model-token or monetary savings, require matched successful real-provider A/B runs on the same baseline, with provider-reported usage, cache, model/Effort, reviewer-approved Git/test acceptance, actual retries and attributable cost. In the absence of such evidence, publish **N/A** and rely only on explicitly labeled offline host measurements. Do not add paid API experiments to the core product to fill a table.
 6. **Expansion sign-off.** Any later native-agent release requires green CI, real host model/cwd/effort evidence, true subscription boundary and an updated support matrix. A green Codex limited release does not qualify other providers.
 
+## Claude Code qualification (T13, 2026-10-29)
+
+**GO for Claude Code strict routing on a subscription (desktop app)**, see [`claude-qualification.md`](claude-qualification.md). Results: 3/3 tickets were accepted by the attestation gate with the routed model and effort (haiku/low ×2, sonnet/medium ×1); G1–G4 are ok; the guard blocked a generic agent; there were non-zero subagent OTel counters (≈0.054 USD estimated). Caveats: auth type not confirmed via `/status`; terminal CLI, parallel tickets and worktree isolation not covered; the attestation summary persistence bug is fixed in #54. This supersedes the Claude Code part of R03 "not installed / unverified" above for the desktop-app path only.
+
 ## Operator constraints and next handoff
 
 **No new experiments are authorized by this document.** Prior actual GUI Codex named-agent probe returned no child; a previous one-shot Codex CLI worker consumed 53,187 input + 341 output tokens despite a 2,000-token **soft** threshold and returned `incomplete` for the bridge. There has separately been a successful Codex CLI synthetic code-edit acceptance (documented in [`STATUS.md`](../../STATUS.md)), which is **not GUI-native named-subagent evidence**. Those runs are different; do not conflate them.
