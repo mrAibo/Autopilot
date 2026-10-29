@@ -25,6 +25,12 @@ class BrandingSmoke(unittest.TestCase):
         for name in ("README.md", "README.ru.md"):
             with self.subTest(readme=name):
                 markdown = (ROOT / name).read_text(encoding="utf-8")
+                # Upstream's inherited PNG wordmarks must not come back; our own SVG logo is allowed.
+                self.assertNotIn("autopilot-logo-light.png", markdown)
+                self.assertNotIn("autopilot-logo-dark.png", markdown)
+                for logo in ("assets/autopilot-logo-light.svg", "assets/autopilot-logo-dark.svg"):
+                    self.assertIn(logo, markdown)
+                    self.assertTrue((ROOT / logo).is_file(), logo)
                 self.assertIn("dashboard-31-models.png", markdown)
                 self.assertIn("dashboard-31-desktop.png", markdown)
                 self.assertNotIn("dashboard-3-desktop.png", markdown)
