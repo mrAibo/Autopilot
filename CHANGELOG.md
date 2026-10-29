@@ -8,6 +8,7 @@ npx skills update autopilot -g
 
 ## 2.3.0 — Codex limited release (2026-10-26)
 - **Router:** new `critical` tier (Anthropic `sonnet`/`xhigh`; OpenAI mirrors `strong`) selected when `risk >= 10` and `algorithm >= 20`; blocked unless the host advertises `xhigh`. Other thresholds unchanged.
+- **CI fix:** the T11 phase-5 migration test no longer needs Git history (CI uses a shallow checkout); the routing check runs everywhere, the line-by-line check only in full clones.
 
 - Claude reviewer and acceptance profiles now get `Bash` (no `Edit`/`Write`/`Agent` via `disallowedTools`); acceptance also sets `omitClaudeMd: true`. Executor profile unchanged.
 - Claude agent profiles now set `maxTurns` (executor by ticket volume: ≤900 lines 60, ≤2000 120, else 200, no volume line 120; reviewer/acceptance/explorer 80) and role `color` (executor blue, reviewer purple, explorer cyan, acceptance green). Codex TOML unchanged.
