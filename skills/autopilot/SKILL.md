@@ -3,6 +3,7 @@ name: autopilot
 description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run.
 disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md"
+allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *)
 metadata:
   version: "2.3.0"
 ---
