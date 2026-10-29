@@ -2,3 +2,5 @@
 node_modules/
 *.log
 __pycache__/
+HANDOFF.local.md
+*.local.md
