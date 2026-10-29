@@ -4,20 +4,20 @@
 
 **Date:** 2026-10-26 (Europe/Berlin)
 **Repository:** https://github.com/mrAibo/Autopilot
-**Workstation:** Aibo, `C:\Users\crown\Downloads\Projects\Autopilot`
+**Workstation:** <HOST>, `<REPO_DIR>`
 **Published baseline:** `v2.3.0`, product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5`. **Post-release fix already merged on main:** `54d8ca32d191aa98ed11246ad0fd86b2d5f76590` ([PR #33](https://github.com/mrAibo/Autopilot/pull/33), 4/4 GitHub CI; Windows Python 3.13 local 320/320). Do not change the published tag.
-**Continue from:** clean, synchronized `main` on Aibo. The strict-to-sequential switch is **already implemented and applied** to FBreaderREA; next work is host-attested Rust tests and safe dirty-repo onboarding, not another switch rewrite.
+**Continue from:** clean, synchronized `main` on <HOST>. The strict-to-sequential switch is **already implemented and applied** to FBreaderREA; next work is host-attested Rust tests and safe dirty-repo onboarding, not another switch rewrite.
 **Mandatory reading:** `STATUS.md`, `brief.md`, `HANDOFF.md`, `docs/autopilot/release-readiness.md`, `docs/autopilot/sequential-host.md`, `skills/autopilot/phases/0-resume.md`.
 
 ## 1. What is released and what remains unverified
 
 Codex 2.3.0 is a **limited sequential-host release**: one isolated Git ticket, pre-existing host-owned Python unittest evidence, conservative acceptance. Codex GUI **does not prove native named subagent model/effort/cwd**, so fail closed instead of inventing a worker or replacing it with a generic one.
 
-Claude Desktop and Claude Code CLI are installed on Aibo (Desktop `3.6556.2.0`, CLI `2.1.302`), the global `~/.claude/skills/autopilot` Junction exists, and the CLI is logged in via OAuth; subscription entitlement and actual child model/effort remain unverified. No extra paid API calls should be made for smoke testing without explicit approval and a subscription-only cost boundary. `ANTHROPIC_API_KEY` was not present.
+Claude Desktop and Claude Code CLI are installed on <HOST> (Desktop `3.6556.2.0`, CLI `2.1.302`), the global `~/.claude/skills/autopilot` Junction exists, and the CLI is logged in via OAuth; subscription entitlement and actual child model/effort remain unverified. No extra paid API calls should be made for smoke testing without explicit approval and a subscription-only cost boundary. `ANTHROPIC_API_KEY` was not present.
 
 ## 2. Actual Codex failure reported by owner
 
-In `C:\Users\crown\Downloads\Projects\FBreaderREA`, branch `research/native-fbreader`, Git HEAD `723416d7a9be579135cb998cef97bbd588127c39`, the run was initialized as `strictRouting=true, sequentialHost=false, isolateTickets=false`. Codex GUI couldn't spawn a named profile with independently observed model/effort, so it wrote a stop/waiting notice rather than starting a generic worker.
+In `<OTHER_PROJECT_DIR>`, branch `research/native-fbreader`, Git HEAD `723416d7a9be579135cb998cef97bbd588127c39`, the run was initialized as `strictRouting=true, sequentialHost=false, isolateTickets=false`. Codex GUI couldn't spawn a named profile with independently observed model/effort, so it wrote a stop/waiting notice rather than starting a generic worker.
 
 **Run ledger:** `FBreaderREA\.autopilot\state.js`, run folder `.autopilot\2026-10-26-audit-fixes--wip`. 15 requirement rows R01–R15 are recorded in `manifest.md`; `PLAN.md` and `host-blocker.md` exist. Phase `manifest` active; published tickets 0, no executable Autopilot worktree or executor commit. **Do not re-run `init`** or discard these documents.
 
@@ -44,4 +44,4 @@ Read the original `brief.md` and current `STATUS.md` before broad changes. Do no
 
 ## Copy-ready request to the next client
 
-> Continue `mrAibo/Autopilot` on Aibo from `HANDOFF_NEXT_CLIENT_2026-10-26.md`. Read its required documents and inspect Git/CI first. The fail-closed mid-run switch was already merged in PR #33 and applied to `FBreaderREA`. Its working tree remains dirty, with 15 open requirements and no published tickets. Do not re-init, switch again, or commit unknown source. Next tackle independently verified Rust tests and dirty-project onboarding in separately reviewed changes. No independently billed API calls. Explain the exact supported actions and blockers instead of impersonating subagents.
+> Continue `mrAibo/Autopilot` on <HOST> from `HANDOFF_NEXT_CLIENT_2026-10-26.md`. Read its required documents and inspect Git/CI first. The fail-closed mid-run switch was already merged in PR #33 and applied to `FBreaderREA`. Its working tree remains dirty, with 15 open requirements and no published tickets. Do not re-init, switch again, or commit unknown source. Next tackle independently verified Rust tests and dirty-project onboarding in separately reviewed changes. No independently billed API calls. Explain the exact supported actions and blockers instead of impersonating subagents.
