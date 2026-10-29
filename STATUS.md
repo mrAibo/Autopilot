@@ -12,6 +12,8 @@
 
 **Roadmap T09 (feat/t09-skill-allowed-tools):** `skills/autopilot/SKILL.md` frontmatter gained `allowed-tools` that pre-approves only `Bash(python|python3|py -3 .autopilot/ap.py *)` for Claude Code, so bookkeeping calls to `ap.py` no longer prompt. Guarded by `tests/test_skill_allowed_tools.py`. No wildcard Bash rule; Codex ignores the key. Live Claude Code permission behaviour is not verified here.
 
+**Docs (docs/phase5-host-claude):** the mixed model-routing paragraph in `phases/5-subagents.md` is split; Claude guard text and short orchestrator rules live in `phases/5-host-claude.md`, the Codex `spawn_agent` caveat in `5-host-codex.md`. The one-off `test_phase5_split_keeps_every_original_line` migration check is retired; a small test now guards the Claude host file.
+
 ## Verified QA / source
 
 - Feature HEAD `b3dee4d319a4145c8c8a9f74bde6335237347993` passed [Actions #40199093084](https://github.com/mrAibo/Autopilot/actions/runs/40199093084): **4/4 jobs green** (Ubuntu and Windows / Python 3.11 and 3.13), **144 Python tests** on Ubuntu 3.13, JavaScript syntax and headless Chrome dashboard smoke (desktop/narrow).
