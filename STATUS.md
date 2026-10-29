@@ -586,6 +586,9 @@ Phase 5 is now three files: `5-subagents.md` (host-neutral, routes to the others
 
 - **Fixed two fail-open paths** in the Claude `PreToolUse` guard: the hook resolved the project from the process cwd (subdirectory/worktree cwd → no state → allowed), and the installed hook used a relative path with bare `python` (start failure → non-blocking error → allowed). Now `CLAUDE_PROJECT_DIR` wins, the hook is exec-form with an absolute interpreter and `onFailure: "block"`, and legacy entries are replaced. 5 new regression tests; full local Windows Python 3.13 **343 tests OK (skipped=1)**, up from 338. Not verified against a live Claude Code session (needs v2.1.295+ for `onFailure`); existing installs must re-run `--install-hook`.
 
+## 2026-10-29 — F1 Claude forks in strict runs
+
+- `--install-hook` now also adds `Agent(fork)` to `permissions.deny` (idempotent; added to existing installs on re-run; malformed `permissions` rejected). Claude-started forks were already denied by the guard; this is an independent settings layer. Owner-typed `/subtask` / `/fork` stay outside strict coverage and are documented as such (design note `docs/autopilot/claude-fork-policy.md`, #47). 3 new tests. Not verified live.
 ## 2026-10-29 — T06 Claude attestation hook
 
 - **Added `claude_attest.py`** (stacked on the T02 guard fix): a recording-only Claude Code hook that writes metadata lines (agent type/id, `effort.level`, `resolvedModel`, `modelsUsed`, status) to `.autopilot/attestations.jsonl` for Autopilot agents in runs that have `state.js`; never blocks, never stores prompts/messages/tool inputs, `--install-hook` registers PreToolUse `*`, PostToolUse `Agent`, SubagentStop `autopilot-.*` without `onFailure`. Phase 0 copies it next to the guard. 8 new tests; `ap.py` unchanged and nothing gates on the evidence yet. Not verified against a live Claude Code session; background (`async_launched`) runs carry no model.

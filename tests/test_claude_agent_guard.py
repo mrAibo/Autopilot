@@ -166,6 +166,33 @@ class HookGuardTests(unittest.TestCase):
         self.assertTrue(hook["args"][0].startswith("${CLAUDE_PROJECT_DIR}"))
         self.assertEqual(hook["onFailure"], "block")
 
+    def test_installer_denies_claude_started_forks(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text(json.dumps({"permissions": {"deny": ["Bash(rm *)"]}}),
+                            encoding="utf-8")
+        guard.install_hook(self.root)
+        guard.install_hook(self.root)
+        deny = json.loads(settings.read_text(encoding="utf-8"))["permissions"]["deny"]
+        self.assertEqual(deny, ["Bash(rm *)", "Agent(fork)"])
+
+    def test_installer_adds_fork_deny_to_existing_hook_install(self):
+        guard.install_hook(self.root)
+        settings = self.root / ".claude" / "settings.json"
+        content = json.loads(settings.read_text(encoding="utf-8"))
+        content["permissions"]["deny"].remove("Agent(fork)")
+        settings.write_text(json.dumps(content), encoding="utf-8")
+        _, installed = guard.install_hook(self.root)
+        self.assertTrue(installed)
+        self.assertIn("Agent(fork)",
+                      json.loads(settings.read_text(encoding="utf-8"))["permissions"]["deny"])
+
+    def test_installer_rejects_invalid_permissions_shape(self):
+        settings = self.root / ".claude" / "settings.json"
+        settings.write_text(json.dumps({"permissions": {"deny": "Agent(fork)"}}),
+                            encoding="utf-8")
+        with self.assertRaises(ValueError):
+            guard.install_hook(self.root)
+
     def test_installer_replaces_legacy_relative_hook(self):
         settings = self.root / ".claude" / "settings.json"
         legacy = {"matcher": "Agent|Task", "hooks": [
