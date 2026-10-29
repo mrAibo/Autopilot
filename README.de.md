@@ -27,7 +27,7 @@ aus der ursprünglichen Beschreibung nicht unterwegs verloren gehen.
 > **Autopilot 2.3.0 — eingeschränkter Codex-Release:** unterstützt wird der sequenzielle Modus mit Git-Worktrees und hostseitigen Python-Unittests; **nicht** garantiert sind native GUI-Subagenten, tatsächliche Modell-/Effort-Durchsetzung oder Abrechnung.
 
 > **Autopilot 2.4.0-rc.1 — Claude-Code-Beta (Vorabversion).** Claude Code (Desktop-App, Abonnement) wird im strikten Routing-Modus als **Beta** unterstützt: siehe [claude-code.md](docs/autopilot/claude-code.md) und das [Qualifikationsergebnis](docs/autopilot/claude-qualification.md). Bekannte Grenzen:
-> - Tickets einzeln ausführen; parallele Tickets sind noch nicht live getestet;
+> - parallele Tickets sind nur mit `--isolated-tickets` (Autopilot-Worktrees) live getestet; im gemeinsamen Baum einzeln ausführen;
 > - die Terminal-CLI ist noch nicht qualifiziert;
 > - `/subtask` und `/fork` nicht während strikter Tickets verwenden;
 > - ein eigener `ANTHROPIC_BASE_URL`-Router ändert, was die Attestierung sieht.

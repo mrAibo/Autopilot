@@ -27,7 +27,7 @@ It works on its own: nothing else to install.
 > **Autopilot 2.3.0 — Codex limited release.** Supported workflow: explicit [sequential-host](docs/autopilot/sequential-host.md) with one Git-isolated ticket at a time and independent host Python unittest verification. **Not included:** guaranteed native Codex GUI named subagents, enforced GUI model/Effort, verified subscription billing, or automatic CLI/API inference. See [release scope](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md), and [brief.md](brief.md).
 
 > **Autopilot 2.4.0-rc.1 — Claude Code beta (pre-release).** Claude Code (desktop app, subscription) is supported in strict routing mode as **beta**: see [claude-code.md](docs/autopilot/claude-code.md) and the live [qualification result](docs/autopilot/claude-qualification.md). Known limits:
-> - run tickets one at a time; parallel tickets are not yet live-tested;
+> - parallel tickets are live-tested only with `--isolated-tickets` (Autopilot-owned worktrees); in a shared tree run them one at a time;
 > - the terminal CLI is not yet qualified;
 > - do not use `/subtask` or `/fork` during strict tickets;
 > - a custom `ANTHROPIC_BASE_URL` router changes what attestation sees.
@@ -51,8 +51,8 @@ file; it does not automatically update inside existing projects.
 **What is ready:** the original skill stages, requirement gates,
 model-routing policy, Dashboard, Git isolation and trusted tests.
 **What remains unverified:** native named-agent execution in the owner's Codex
-GUI session, the Claude Code terminal CLI and parallel Claude tickets
-(the desktop app is qualified as beta), and benchmarked savings.
+GUI session, the Claude Code terminal CLI (the desktop app is qualified as
+beta, including parallel isolated tickets), and benchmarked savings.
 The optional Codex CLI path does **not** currently launch paid models.
 
 Research-only API pilots and extra supervisors are **not required** to
