@@ -22,9 +22,15 @@ It works on its own: nothing else to install.
 
 > **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.
 
-> **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement and Claude Code execution remain unverified.
+> **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement remain unverified; Claude Code strict routing is beta in 2.4.0-rc.1.
 
-> **Autopilot 2.3.0 — Codex limited release.** Supported workflow: explicit [sequential-host](docs/autopilot/sequential-host.md) with one Git-isolated ticket at a time and independent host Python unittest verification. **Not included:** guaranteed native Codex GUI named subagents, enforced GUI model/Effort, verified subscription billing, or automatic CLI/API inference. [Claude Code native subagents](docs/autopilot/claude-code.md) have model/Effort profile and offline guard support but are **unverified on this Windows host**. See [release scope](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md), and [brief.md](brief.md).
+> **Autopilot 2.3.0 — Codex limited release.** Supported workflow: explicit [sequential-host](docs/autopilot/sequential-host.md) with one Git-isolated ticket at a time and independent host Python unittest verification. **Not included:** guaranteed native Codex GUI named subagents, enforced GUI model/Effort, verified subscription billing, or automatic CLI/API inference. See [release scope](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md), and [brief.md](brief.md).
+
+> **Autopilot 2.4.0-rc.1 — Claude Code beta (pre-release).** Claude Code (desktop app, subscription) is supported in strict routing mode as **beta**: see [claude-code.md](docs/autopilot/claude-code.md) and the live [qualification result](docs/autopilot/claude-qualification.md). Known limits:
+> - run tickets one at a time; parallel tickets are not yet live-tested;
+> - the terminal CLI is not yet qualified;
+> - do not use `/subtask` or `/fork` during strict tickets;
+> - a custom `ANTHROPIC_BASE_URL` router changes what attestation sees.
 
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, desktop layout using synthetic data"></a>

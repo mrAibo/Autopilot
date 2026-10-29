@@ -24,7 +24,13 @@ Autopilot — фреймворк разработки, skill, который б�
 
 > **Границы релиза:** [матрица R01–R06](docs/autopilot/release-readiness.md) — последовательный режим Codex выпущен с ограничениями; нативные субагенты GUI и исполнение Claude Code ещё не подтверждены.
 
-> **Autopilot 2.3.0 — ограниченный релиз для Codex.** Поддержан [последовательный режим](docs/autopilot/sequential-host.md): одна задача, отдельный Git-worktree, независимый запуск Python unittest. **Не подтверждены:** именованные субагенты Codex GUI, фактические модель/Effort и оплата токенов; CLI/API-автозапуск отключён. Для [Claude Code](docs/autopilot/claude-code.md) предусмотрены профили с model/Effort и проверенные офлайн-защиты, но живой запуск на <HOST> пока не проверен. См. [ограничения релиза](docs/autopilot/release-readiness.md) и [STATUS.md](STATUS.md).
+> **Autopilot 2.3.0 — ограниченный релиз для Codex.** Поддержан [последовательный режим](docs/autopilot/sequential-host.md): одна задача, отдельный Git-worktree, независимый запуск Python unittest. **Не подтверждены:** именованные субагенты Codex GUI, фактические модель/Effort и оплата токенов; CLI/API-автозапуск отключён. См. [ограничения релиза](docs/autopilot/release-readiness.md) и [STATUS.md](STATUS.md).
+
+> **Autopilot 2.4.0-rc.1 — бета Claude Code (пре-релиз).** Claude Code (десктопное приложение, подписка) поддержан в строгом режиме маршрутизации как **бета**: см. [claude-code.md](docs/autopilot/claude-code.md) и [результат квалификации](docs/autopilot/claude-qualification.md). Известные ограничения:
+> - запускайте таски по одному; параллельные запуски пока не проверены вживую;
+> - терминальный CLI ещё не квалифицирован;
+> - не используйте `/subtask` и `/fork` во время строгих тасков;
+> - собственный роутер через `ANTHROPIC_BASE_URL` меняет то, что видит аттестация.
 
 <p align="center">
   <a href="assets/ru/dashboard-31-desktop.png"><img src="assets/ru/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1 — широкий экран, демонстрационные данные"></a>
