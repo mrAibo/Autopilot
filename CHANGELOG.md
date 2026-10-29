@@ -13,6 +13,8 @@ npx skills update autopilot -g
 
 - **Claude attestation hook (new, opt-in):** `claude_attest.py` appends metadata-only evidence lines (`effort`, `resolved_model`, `models_used`, `status`) to `.autopilot/attestations.jsonl` from `PreToolUse` (inside Autopilot subagents), `PostToolUse` on `Agent` and `SubagentStop`. It never blocks (always exit 0, no `onFailure`) and never stores prompts, messages or tool inputs; `--install-hook --root .` adds the three exec-form hooks. Recording only, nothing gates on it yet.
 
+- **Claude attestation gate:** in strict runs with an `anthropic` route, `ap.py ticket NN done` now requires `.autopilot/attestations.jsonl` evidence for the routed agent: a `resolved_model` matching the route (alias as substring, full ID exactly), no other model in `resolved_model`/`models_used`, and, when effort is enforced, only the route effort. Missing, unreadable, symlinked or mismatching evidence exits 2 and leaves the ticket unchanged; success stores `attestation: {model, effort, lines}`. Non-strict runs and OpenAI routes are unchanged. Install the attestation hook before running strict Claude tickets.
+
 - Claude Code: `SKILL.md` frontmatter now pre-approves only `Bash(... .autopilot/ap.py *)` bookkeeping commands via `allowed-tools` (no wildcard Bash; Codex ignores the key).
 
 - **Docs hygiene:** machine-specific paths, host name and device ID removed from tracked files and replaced by placeholders; new test `tests/test_no_machine_data.py` and `*.local.md` in `.gitignore`.
