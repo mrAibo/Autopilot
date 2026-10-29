@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="128" viewBox="0 0 560 128" role="img" aria-label="Autopilot">
+  <title>Autopilot</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#g)"/>
+  <path d="M30 92 C 46 92, 50 70, 64 70 S 82 50, 96 40" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 11"/>
+  <circle cx="30" cy="92" r="7" fill="#FFFFFF"/>
+  <circle cx="64" cy="70" r="7" fill="#FFFFFF"/>
+  <circle cx="96" cy="40" r="17" fill="#FFFFFF"/>
+  <path d="M88 40.5 l5.5 5.5 l10 -11" fill="none" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="144" y="84" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="58" letter-spacing="-1"><tspan fill="#F9FAFB" font-weight="400">auto</tspan><tspan fill="#67E8F9" font-weight="700">pilot</tspan></text>
+  <text x="147" y="110" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" letter-spacing="3" fill="#9CA3AF">IDEA · TASKS · VERIFIED BUILD</text>
+</svg>
