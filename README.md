@@ -392,6 +392,16 @@ The other end has a limit too. Every step of an agent re-reads its whole context
 | A failed task — a retry, then an attempt another way | If that fails too, the agent stops and explains in plain words |
 | A plan that diverged from the code is corrected out loud | If it turns out along the way that the plan doesn't work, the agent fixes the plan and tells you in one line — instead of quietly building something else |
 
+### Spending less
+
+- **Main session model.** Run `/autopilot` on Sonnet. Use Opus only if you want it for briefing, spec and plan, and switch with `/model` before the build phase. The main conversation lives through the whole run and re-reads its growing context at every step, so it is the biggest cost. In one small measured run (3 tickets, Claude desktop app, OpenTelemetry estimate) the main session on Opus was about 1.40 USD and all three subagents together about 0.054 USD, roughly 96 % of the estimate; a second run (2 tickets, terminal CLI, Opus) came to about 1.20 USD. These are `cost.usage` estimates, not subscription charges, from two small runs; larger projects shift the share toward subagents.
+- **Budget.** `python3 .autopilot/ap.py budget --tokens N` stops new tickets from starting once the known input and output tokens reach N.
+- **Measure.** `python3 skills/autopilot/tools/measure-run.py <project dir>` reads the Claude Code logs; the dashboard shows token usage too.
+- **Keep tasks big.** Don't ask for a review after every task, and avoid parallel runs in one shared tree: they cost more than they save.
+- Model routing applies to subagents only, not to the model you chose for the main session.
+
+---
+
 ---
 
 ## When to use it, and when not

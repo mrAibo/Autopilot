@@ -297,6 +297,48 @@ Weitere technische Details:
 [Git-Worktrees](docs/autopilot/worktrees.md),
 [Qualitäts- und Produktumfang](docs/autopilot/scope-and-labs.md).
 
+### Zur Aufteilung in Tickets
+
+Jedes Ticket ist ein eigener Agent, der sich neu in das Projekt einarbeiten muss: Verträge lesen, Code studieren, den Stack verstehen. Das ist teuer. Autopilot teilt deshalb nach Codeumfang auf, nicht nach „je kleiner, desto sicherer“: Ein Agent schreibt etwa 3.000 Zeilen samt Tests.
+
+| Umfang | Anzahl Tickets |
+|---|---|
+| Bis ca. 3.000 Zeilen: Landingpage, Formular, Skript, Änderungsliste für ein bestehendes Projekt | **eines.** Ein Agent baut alles in einem Durchgang, wie in einem normalen Dialog |
+| ca. 3–6.000 | 2 |
+| ca. 6–18.000 | 3–6, eines pro ca. 3.000 Zeilen |
+| ca. 18–36.000 | 7–12 |
+
+Mehr als 12 sind nicht erlaubt: Die Arbeit wird auf zwei Läufe verteilt. Feine Aufteilung kauft keine Zuverlässigkeit, sondern Kosten.
+
+Auch am anderen Ende gibt es eine Grenze. Bei jedem Schritt liest ein Agent seinen gesamten Kontext neu aus dem Cache, ein Ticket wird pro Schritt also teurer, je länger es läuft. Etwa 3.000 Zeilen entsprechen grob 300–400.000 Token Kontext: Danach ist ein frischer Agent günstiger als ein langer.
+
+### Zur Entwicklung
+
+| Was Autopilot tut | Warum |
+|---|---|
+| Jedes Ticket bearbeitet ein eigener Agent | Er verliert sich nicht im angesammelten Kontext und zerstört nichts, was funktionierte |
+| Gibt dem nächsten Agenten die Verträge früherer Tickets mit | Sonst erfindet Ticket sechs neu, was Ticket drei gebaut hat |
+| Unabhängige Tickets laufen parallel, mehrere Agenten gleichzeitig | Auf Unabhängiges nacheinander zu warten kostet Stunden |
+| Ein Commit pro Ticket | Ihre Rücksetzpunkte |
+| Tickets mit gemeinsamen Dateien laufen nacheinander | Sonst überschreiben sich zwei Agenten gegenseitig |
+| Vollständige Prüfung nach jedem Ticket: Tests, Typen, Linter | Eine Regression kostet eine Minute, nicht einen Abend |
+| Routineaufgaben gehen an ein günstigeres Modell, Fundament und riskante Teile an ein starkes | Das starke Modell wird dort bezahlt, wo es etwas ändert |
+| Review am Ende; separat nur Fundament und eine enge Liste von Risiken, parallel, ohne den Bau zu stoppen, höchstens eine Nachprüfung | Das Review fraß früher bis zur Hälfte der Kosten, und eine Prüfung nach jedem Ticket hielt den Bau 15–40 Minuten auf; die früh lohnenden Fehler liegen im Fundament und im Code für Anmeldung, Schlüssel, Geld und Löschen |
+| Korrekturen nach dem Review macht derselbe Agent, der den Code schrieb | Er weiß, warum der Code so ist; ein anderer behandelt das Symptom und zerstört die Ursache |
+| Die Hauptsitzung schreibt gar keinen Code, sie verteilt und prüft nur | Ihr Kontext ist einer für den ganzen Lauf und wird nie erneuert: Jeder bei Ticket zwei gelesene Diff stört bei Ticket acht |
+| Gescheitertes Ticket: Wiederholung, dann ein anderer Weg | Scheitert auch das, hält der Agent an und erklärt es in einfachen Worten |
+| Ein vom Code abweichender Plan wird laut korrigiert | Zeigt sich unterwegs, dass der Plan nicht trägt, korrigiert der Agent ihn und sagt es in einer Zeile, statt still etwas anderes zu bauen |
+
+### Sparsamer arbeiten
+
+- **Modell der Hauptsitzung.** Starten Sie `/autopilot` mit Sonnet. Opus nur nach Wunsch für Briefing, Spezifikation und Plan; vor der Bauphase mit `/model` zurückwechseln. Die Hauptsitzung läuft den ganzen Durchlauf und liest bei jedem Schritt ihren wachsenden Kontext neu, sie ist deshalb der größte Kostenposten. In einem kleinen gemessenen Lauf (3 Tickets, Claude-Desktop-App, OpenTelemetry-Schätzung) kostete die Hauptsitzung auf Opus etwa 1,40 USD, alle drei Subagenten zusammen etwa 0,054 USD, also rund 96 % der Schätzung; ein zweiter Lauf (2 Tickets, Terminal, Opus) kam auf etwa 1,20 USD. Das sind `cost.usage`-Schätzungen, keine Abrechnung des Abos, aus zwei kleinen Läufen; bei größeren Projekten wächst der Anteil der Subagenten.
+- **Budget.** `python3 .autopilot/ap.py budget --tokens N` verhindert den Start neuer Tickets, sobald die bekannten Ein- und Ausgabe-Tokens N erreichen.
+- **Messen.** `python3 skills/autopilot/tools/measure-run.py <Projektordner>` liest die Claude-Code-Logs; das Dashboard zeigt den Token-Verbrauch ebenfalls.
+- **Aufgaben groß lassen.** Keine Prüfung nach jedem Ticket verlangen und keine parallelen Läufe im gemeinsamen Arbeitsbaum: Sie kosten mehr, als sie sparen.
+- Das Modell-Routing gilt nur für Subagenten, nicht für das Modell Ihrer Hauptsitzung.
+
+---
+
 ## Dashboard und Projektgedächtnis
 
 Die lokale `.autopilot/dashboard.html` zeigt Phasen, Aufgaben,

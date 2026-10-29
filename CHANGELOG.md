@@ -6,6 +6,10 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased
+
+- **Docs:** "Spending less" section in all three READMEs and `model-routing.md` (run the main session on Sonnet, `ap.py budget`, `measure-run.py`; T13 measured the main session at ~96 % of the estimated cost), German "How it works" parity, one-line phase-0 hint.
+
 ## 2.4.0 — Claude Code support (2026-10-29)
 Adds Claude Code as a supported host for strict routing on a subscription: fail-closed agent guard, reviewer/acceptance profiles, `critical` tier, attestation hooks with a strict done gate, and fork/worktree-isolation rules.
 Status: **stable**; qualified live in the Claude desktop app (T13, T14 parallel isolated tickets) and in the terminal CLI in headless `claude -p` mode (T15). Known limits: shared-tree parallel tickets are not live-tested (use `--isolated-tickets`); `/subtask` and `/fork` are owner actions outside strict coverage; a custom `ANTHROPIC_BASE_URL`/`ANTHROPIC_MODEL` changes what runs and what attestation sees. Codex behavior is unchanged from 2.3.0; the 2.3.0 section below is the tagged Codex release.
