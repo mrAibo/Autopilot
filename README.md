@@ -133,6 +133,17 @@ and puts them into a Google Sheet
 
 Autopilot starts **only on this command**. It never starts by itself, even if you write "just build it": it creates a repository, writes code and commits, and that should only begin when you say so.
 
+### In Claude Code: two passes — plan, then build
+
+A project (new or existing) takes **two chats** in the same folder:
+
+1. **Plan.** Open a chat in the project folder. Pick the model: **Sonnet** for ordinary work, **Opus** only if the idea is big or still fuzzy. Type `/autopilot` with your idea or a file (`/autopilot brief.md`). Answer the questions. Autopilot writes the spec and the task list, registers the build agents and **stops** with: *"The build agents are registered… open a new chat in this folder and type `/autopilot`"*.
+2. **Build.** Open a **new** chat in the same folder, pick **Sonnet**, type just `/autopilot`. It picks up the plan and builds the project to the end: no questions again, the dashboard shows the progress, a report comes at the end.
+
+Why two chats: Claude Code only sees agents that existed when the chat started, so the build cannot run in the planning chat. And a fresh chat on Sonnet is the cheaper way to build (in our measurement about half the cost of running everything on Opus).
+
+Terminal: `claude --model opus` (or `sonnet`) → `/autopilot …`; then a new `claude --model sonnet` → `/autopilot`. If a chat breaks off at any point, open a new one in the folder and type `/autopilot` — the run continues where it stopped. **Codex** works in one pass, as before.
+
 **If the task is big, put it in a file.** A detailed description doesn't fit in one chat line, and you shouldn't cut it short: the more you tell, the less has to be guessed for you. Create a file next to the project — any name, `brief.md`, `idea.txt`, `task.md` — and describe everything in free form: what the project is, who it's for, what it must do, what you dislike about competitors, any budget and deadline constraints. Then just point to it:
 
 ```
