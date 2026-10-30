@@ -1595,7 +1595,7 @@ function render(lang){
   ${rail}
   <main class="cockpit-content">
   <header class="top">
-    <div class="brand" aria-label="Autopilot 2.3.0 dev"><span class="brand-name">Autopilot</span><span class="brand-version">2.3 DEV</span></div>
+    <div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div>
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
       <div class="tabs" role="group" aria-label="${L.themeLabel}">
@@ -1633,6 +1633,8 @@ function render(lang){
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
   </footer>
   </main>`;
+  const bv = document.getElementById('brand-version'); // textContent only: state is untrusted
+  if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
     const replacement = focusAttr
       ? [...app.querySelectorAll('button, a[href]')].find(node =>
@@ -1689,7 +1691,7 @@ function bootFail(why){
   const app = document.getElementById('app');
   if (!app) return;
   const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
-  app.innerHTML = `<header class="top"><div class="brand" aria-label="Autopilot 2.3.0 dev"><span class="brand-name">Autopilot</span><span class="brand-version">2.3 DEV</span></div></header>
+  app.innerHTML = `<header class="top"><div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div></header>
     <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
     <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
 }

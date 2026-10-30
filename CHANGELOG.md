@@ -7,6 +7,7 @@ npx skills update autopilot -g
 ```
 
 ## Unreleased
+- **Dashboard shows the installed skill version:** `ap.py init` records `skillVersion` (from `SKILL.md`) in state and the header badge renders it as text instead of the hardcoded "2.3 DEV"; no badge when absent.
 - **`ap.py` fixes, ported from upstream 2.2.1** (nick-vels/skills@f50d1b1): `--help`/`-h`/`help` print the usage and never touch `state.js`; `coverage` and `blind` refuse to record without all their numbers (a missing counter is not zero, `blind` no longer wipes recorded mismatches); `Зависит от` refs match ticket ids as written (`E34` is no longer turned into `34`) and a reference to a missing ticket fails `check-plan`.
 - **New logo:** own light/dark SVG logo (`assets/autopilot-logo-*.svg`) in all three READMEs; stale "2.3 DEV" heading replaced.
 - **Plan on a strong model, build in a fresh cheaper chat:** Phase 4 now ends with a one-line offer (an informational line only in semi, interview and full), `phases/0-resume.md` handles "plan approved, build not started" by going straight to Phase 5, and the READMEs and `model-routing.md` describe the three-step scenario.

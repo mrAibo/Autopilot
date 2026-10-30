@@ -19,7 +19,9 @@ class BrandingSmoke(unittest.TestCase):
         self.assertIn('class="spotlight"', dashboard)
         self.assertIn('href="#models"', dashboard)
         self.assertIn('.cockpit-rail{display:none}', dashboard)
-        self.assertIn('class="brand-version">2.3 DEV', dashboard)
+        self.assertNotIn("2.3 DEV", dashboard)
+        self.assertIn('class="brand-version" id="brand-version"', dashboard)
+        self.assertIn("bv.textContent = typeof v === 'string'", dashboard)
 
     def test_readmes_have_only_actual_current_screenshots(self):
         for name in ("README.md", "README.ru.md"):
