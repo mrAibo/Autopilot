@@ -28,7 +28,7 @@ It works on its own: nothing else to install.
 
 > **Automatic model choice during planning:** `ap.py plan-models` selects model and reasoning Effort **per ticket** by complexity/risk. `--apply` registers all profiles only with host-supported capabilities. See [adaptive routing](docs/autopilot/model-routing.md). This does not attest actual GUI execution.
 
-> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.
+> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing. If Codex stopped on a not-yet-started run because of the subagent check, `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` switches it without `init`. It needs a verified Git baseline; the published 2.3.0 accepts Python unittest, and later development added a bounded Cargo test adapter.
 
 > **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement remain unverified; Claude Code strict routing is stable in 2.4.0 (desktop app and terminal CLI).
 

@@ -48,6 +48,14 @@ class DocumentationLocalesTests(unittest.TestCase):
         self.assertIn("## Resume when an agent or chat is interrupted",
                       (ROOT / "README.md").read_text(encoding="utf-8"))
 
+    def test_readmes_have_same_heading_structure(self):
+        counts = {}
+        for name in LOCALES:
+            text = (ROOT / name).read_text(encoding="utf-8")
+            counts[name] = (len(re.findall(r"(?m)^## ", text)),
+                            len(re.findall(r"(?m)^### ", text)))
+        self.assertEqual(len(set(counts.values())), 1, counts)
+
     def test_local_german_links_refer_to_actual_files(self):
         text = (ROOT / "README.de.md").read_text(encoding="utf-8")
         links = re.findall(r"\]\(([^)]+)\)", text)
