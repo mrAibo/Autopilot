@@ -639,3 +639,7 @@ Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns foll
 ## 2026-10-29 — 2.4.1 prepared
 
 - Token-economy release: #60 spend-less docs, #61 OTel cost tools, #62 phase/prompt trim and report caps, #63 measured A/B. Version 2.4.1 in SKILL.md.
+
+## 2026-10-30 — 2.5.0 prepared
+
+- Release of #66–#71: upstream 2.2.1 fixes, new logo, dashboard version from SKILL.md, strict Claude agents registered before the build with a required fresh session (T16), pre-registered repair executor (T17), plan-strong/build-cheap hint. Live T16/T17 headless runs passed gates.
