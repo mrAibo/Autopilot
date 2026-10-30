@@ -2,7 +2,7 @@
 
 `ap.py stage final`. Three isolated subagents, one question each. The blind checker and the ADR agent go out **in one message**; the memory agent after the blind checker returns — it needs the commands the checker proved.
 
-**Model authorization applies to all three.** For each, write a small role-specific Markdown routing brief outside `tickets/` and call `model_router.py` with verified host capabilities (and explicit six-factor scores if needed). Never spawn without a ready verdict or let the host inherit Astra/Fable from the main session. Memory/ADR normally need a cheap model; blind acceptance may need balanced or strong by risk.
+**Model authorization applies to all three.** For each, write a small role-specific Markdown routing brief outside `tickets/` and call `model_router.py` with verified host capabilities (and explicit six-factor scores if needed). Never spawn without a ready verdict or let the host inherit Astra/Fable from the main session. Memory/ADR normally need a cheap model; blind acceptance may need balanced or strong by risk. Strict Claude Code: no new brief — use `roleAgents` from Phase 4 (`5-host-claude.md`).
 
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|

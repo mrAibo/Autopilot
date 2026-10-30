@@ -1168,8 +1168,35 @@ def sequential_occupied(state, ticket_id):
         for t in state.get("tickets") or [])
 
 
+# Fixed router inputs for the run-level Claude roles: reviewer strong (whole-branch
+# review), blind acceptance balanced, read-only explorer cheap.
+ROLE_SCORES = {
+    "reviewer": {"algorithm": 20, "coupling": 0, "uncertainty": 0,
+                 "context": 0, "testing": 0, "risk": 0},
+    "acceptance": {"algorithm": 5, "coupling": 10, "uncertainty": 0,
+                   "context": 10, "testing": 10, "risk": 0},
+    "explorer": {"algorithm": 0, "coupling": 0, "uncertainty": 0,
+                 "context": 0, "testing": 0, "risk": 0},
+}
+ROLE_BRIEF = """# Autopilot role agents of this run
+
+One profile per role, shared by the whole run. The orchestrator's launch prompt
+names the task, the files to read and the limits; follow it.
+
+- reviewer: point review, repair re-review and whole-branch review. No edits.
+- acceptance: blind acceptance against the brief files. No edits.
+- explorer: read-only reading tasks (coverage reader, memory and ADR drafts);
+  return text, write nothing.
+"""
+
+
 def cmd_plan_models(state, opt):
-    """Phase 4: plan all ticket models; --apply atomically installs profiles."""
+    """Phase 4: plan all ticket models; --apply atomically installs profiles.
+
+    A strict Claude Code apply also installs the run's reviewer, acceptance and
+    explorer profiles: Claude Code loads agents at session start, so every
+    profile the build needs must exist before the build session opens.
+    """
     if state.get("sequentialHost"):
         die("plan-models: sequential-host не создаёт нативных субагентов")
     provider = opt.get("provider")
@@ -1267,6 +1294,15 @@ def cmd_plan_models(state, opt):
         if apply and blocked:
             die("plan-models: blocked — " + "; ".join(
                 p["ticket"]["id"] + ": " + p["route"]["error"] for p in blocked))
+        roles = {}
+        claude_roles = apply and provider == "anthropic" and state.get("strictRouting") is True
+        if claude_roles:
+            for role, scores in ROLE_SCORES.items():
+                route = router.choose_route(provider, scores, policy, caps)
+                if route["status"] != "ready":
+                    die("plan-models: blocked — %s: %s" % (role, route["error"]))
+            run_id = re.sub(r"--wip$", "", state["dir"])[:58].rstrip("-")
+            role_brief = os.path.join(run_dir(state), "roles", run_id + ".md")
         if apply:
             created = []
             try:
@@ -1276,6 +1312,23 @@ def cmd_plan_models(state, opt):
                                            "executor", policy_path, p["scores"], True)
                     if not existed:
                         created.append(p["profilePath"])
+                if claude_roles:
+                    os.makedirs(os.path.dirname(role_brief), exist_ok=True)
+                    with open(role_brief, "w", encoding="utf-8", newline="\n") as stream:
+                        stream.write(ROLE_BRIEF)
+                    for role, scores in ROLE_SCORES.items():
+                        profile = agent_profiles.prepare(ROOT, role_brief, provider, cap_path,
+                                                         role, policy_path, scores, True)
+                        path = os.path.join(ROOT, profile["agent_file"])
+                        if profile["action"] == "created":
+                            created.append(path)
+                        with open(path, "rb") as stream:
+                            digest = hashlib.sha256(stream.read()).hexdigest()
+                        roles[role] = {"agentType": profile["agent_type"],
+                                       "agentFile": profile["agent_file"],
+                                       "model": profile["model"], "effort": profile["effort"],
+                                       "effortEnforced": profile["effort_enforced"],
+                                       "profileSha": digest}
             except (OSError, ValueError, TypeError) as exc:
                 for path in created:
                     os.unlink(path)
@@ -1298,11 +1351,14 @@ def cmd_plan_models(state, opt):
                 }
                 if policy_relative is not None:
                     tk["routing"].update(policyFile=policy_relative, policySha=policy_sha)
+        result = {"status": "applied" if apply else "advisory", "provider": provider,
+                  "modelCalls": 0, "hostExecutionVerified": False,
+                  "tickets": [p["proposal"] for p in plans]}
+        if roles:
+            state["roleAgents"] = result["roleAgents"] = roles
         log(state, "plan-models", provider=provider, applied=apply, tickets=len(plans),
             blocked=len(blocked))
-        return {"status": "applied" if apply else "advisory", "provider": provider,
-                "modelCalls": 0, "hostExecutionVerified": False,
-                "tickets": [p["proposal"] for p in plans]}
+        return result
     except (ValueError, OSError, TypeError, ImportError) as exc:
         die("plan-models: " + str(exc))
 
@@ -1486,6 +1542,8 @@ def cmd_ticket(state, pos, opt):
                              "reason": reason, "verified": True,
                              "agentType": profile["agent_type"],
                              "agentFile": filename, "profileSha": digest}
+            # `routing` is authoritative; a Phase-4 advisory beside it only misleads (T16).
+            tk.pop("plannedRouting", None)
             if policy_relative is not None:
                 tk["routing"].update(policyFile=policy_relative,
                                      policySha=policy_digest)

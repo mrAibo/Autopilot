@@ -19,7 +19,7 @@ Merged or ranked together, one axis masks another. **Which axis a finding belong
 
 ## Point review
 
-**One fresh subagent per review** — never a reviewer kept alive across tickets. **Do not inherit the orchestrator model**: route this reviewer through `model_router.py` and verified host capabilities. A security-sensitive reviewer normally needs strong; a routine targeted review can be balanced. A blocked route means no spawn, not a fallback to Astra/Fable.
+**One fresh subagent per review** — never a reviewer kept alive across tickets. **Do not inherit the orchestrator model**: route this reviewer through `model_router.py` and verified host capabilities. A security-sensitive reviewer normally needs strong; a routine targeted review can be balanced. A blocked route means no spawn, not a fallback to Astra/Fable. Strict Claude Code: the run's `roleAgents.reviewer` from Phase 4 (`5-host-claude.md`).
 
 **Launch it in the background right after the commit** — `ap.py ticket NN review`, then the subagent — and go on with the build: launch the next wave, land other tickets. Waiting on a point review is never a reason to hold a wave.
 

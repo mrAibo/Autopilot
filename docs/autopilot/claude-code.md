@@ -41,7 +41,12 @@ If live host **model and named-agent** support is independently established and 
 ```powershell
 py -3 .autopilot/ap.py plan-models --provider anthropic --capabilities .autopilot/model-capabilities.json --apply
 py -3 .autopilot/claude_agent_guard.py --install-hook --root .
+py -3 .autopilot/claude_attest.py --install-hook --root .
 ```
+
+In a strict run the same `--apply` also writes the run's role profiles — `autopilot-reviewer-<run>` (strong), `autopilot-acceptance-<run>` (balanced) and `autopilot-explorer-<run>` (cheap), recorded in `state.js` → `roleAgents` — so point and branch review, blind acceptance and read-only readers never borrow an executor profile. Phase 4 does all of this at its end and then **requires a new session** before the build (next paragraph).
+
+**Agents load at session start.** Claude Code reads `.claude/agents/` and the project hooks when a session starts. A profile written later in that session answers `Agent type not found` (T16, Claude Code 2.1.302: the first agent file in a new `.claude/agents/` directory); the current Claude Code documentation says new files in a directory that already existed are picked up within seconds, but Autopilot does not rely on it. Strict routing forbids falling back to `general-purpose`, so a strict run registers every profile and both hooks at the end of Phase 4 and stops: the owner opens a new chat in the project folder (Sonnet is cheaper) and types `/autopilot`; the run resumes at the build (`phases/0-resume.md`). In autonomous modes this is a stop too. A profile created during the build (the F1 fix ticket) may need the same restart.
 
 The generated project-local `.claude/agents/*.md` always pin `model` and restricted `tools`; they pin `effort` **only when the host advertises enforceable effort selection**. With a verified model-only catalog (`effort_selection:false`), the effort recommendation stays advisory and no profile effort field is written. The optional `PreToolUse` guard refuses unapproved agent types, modified profile hashes, **model** overrides and globally forced `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`. It additionally refuses conflicting per-call/environment **effort** only for routes that declare `effortEnforced:true`. Model-only mode never claims effort enforcement.
 
@@ -49,7 +54,7 @@ The generated project-local `.claude/agents/*.md` always pin `model` and restric
 
 **Worktrees in strict runs:** ticket worktrees are created and landed by Autopilot itself. The guard denies Agent calls that pass `isolation` and `autopilot-*` profiles that declare it; no `WorktreeCreate` hook is installed (see `claude-worktree-hook.md`). An owner-started `--worktree` session is outside this rule.
 
-**Important runtime limitations:** in newer Claude Code versions, an Agent invocation can override frontmatter `model` / `effort`; `CLAUDE_CODE_EFFORT_LEVEL` overrides even both; a forced model override can ignore pinned profiles; organization allowlists may substitute another model. The guard is an additional protection, **not** evidence of the effective spawned model. The owner must check `/tasks` while an agent is running (where available), the agent identity, cwd and actual tool activity before calling the path qualified.
+**Important runtime limitations:** agents and hooks load at session start (above). In newer Claude Code versions, an Agent invocation can override frontmatter `model` / `effort`; `CLAUDE_CODE_EFFORT_LEVEL` overrides even both; a forced model override can ignore pinned profiles; organization allowlists may substitute another model. The guard is an additional protection, **not** evidence of the effective spawned model. The owner must check `/tasks` while an agent is running (where available), the agent identity, cwd and actual tool activity before calling the path qualified.
 
 Claude Code's own `isolation: worktree` starts from the default branch by default; it is **not automatically the same worktree** as an Autopilot prepared ticket. Do not silently combine the two. Keep the ticket restricted to its explicitly approved Autopilot worktree.
 

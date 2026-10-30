@@ -190,6 +190,32 @@ class DocumentationLocalesTests(unittest.TestCase):
         for name in LOCALES:
             self.assertIn("claude --model sonnet",
                           (ROOT / name).read_text(encoding="utf-8"), name)
+        self.assertIn("never at T0", plan)
+
+    def test_strict_claude_registers_agents_then_requires_new_chat(self):
+        # T16: agents created mid-session are "Agent type not found" in Claude Code.
+        phases = ROOT / "skills/autopilot/phases"
+        plan = (phases / "4-plan.md").read_text(encoding="utf-8")
+        section = plan.split("## Strict Claude Code run", 1)[1].split("\n## ", 1)[0]
+        for needle in ("plan-models --provider anthropic", "--apply",
+                       "claude_agent_guard.py --install-hook", "claude_attest.py --install-hook",
+                       "roleAgents", "ask stop", "required", "new session",
+                       "/autopilot", "general-purpose", "full"):
+            self.assertIn(needle, section)
+        resume = (phases / "0-resume.md").read_text(encoding="utf-8")
+        for needle in ("Strict Claude Code run", "roleAgents", "Agent type not found",
+                       "general-purpose", "ticket NN reset"):
+            self.assertIn(needle, resume)
+        host = (phases / "5-host-claude.md").read_text(encoding="utf-8")
+        for role in ("roleAgents.reviewer", "roleAgents.acceptance", "roleAgents.explorer"):
+            self.assertIn(role, host)
+        for name in ("6-review.md", "8-final.md"):
+            self.assertIn("roleAgents", (phases / name).read_text(encoding="utf-8"), name)
+        guide = (ROOT / "docs/autopilot/claude-code.md").read_text(encoding="utf-8")
+        self.assertIn("session start", guide)
+        for name in LOCALES:
+            self.assertIn("/autopilot", (ROOT / name).read_text(encoding="utf-8"))
+        self.assertIn("required", (ROOT / "README.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
