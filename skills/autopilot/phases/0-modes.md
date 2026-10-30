@@ -2,6 +2,8 @@
 
 Read in Phase 0 with `phases/0-preflight.md`. Both dials are decided once, from what the user typed, announced in one block, and only *applied* from then on.
 
+**`audit` first** («аудит», «Audit») is not a mode or a depth: it routes to `phases/audit.md` before this file and Phase 0 ever run.
+
 Everything after `/autopilot` splits into **the mode** (`full`, `semi`, `interview`, `manual`), **the depth** (`strict`, `deep`) and **the brief** — everything else. Bare words, any order, both optional; anything unrecognised is brief. `/autopilot full deep интернет-магазин керамики` — full mode, deep elaboration.
 
 ## Mode — how much the user is asked
