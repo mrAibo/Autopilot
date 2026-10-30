@@ -121,7 +121,14 @@ def decision(payload, root):
     except (OSError, ValueError, AttributeError, TypeError):
         return False, "Host capability advertisement missing/invalid"
     if name.startswith("autopilot-executor-"):
-        known = [t.get("routing") or {} for t in state.get("tickets") or []]
+        tickets = state.get("tickets") or []
+        repair = state.get("repairAgent")
+        if isinstance(repair, dict) and repair.get("agentType") == name:
+            # The run's repair executor serves fix tickets one at a time: only the
+            # one fix ticket being built or repaired right now may call it.
+            tickets = [t for t in tickets if isinstance(t, dict)
+                       and t.get("status") in ("in-progress", "repair")]
+        known = [t.get("routing") or {} for t in tickets]
         matching = [r for r in known if r.get("agentType") == name and
                     r.get("verified") and r.get("provider") == "anthropic" and
                     r.get("model") == model and

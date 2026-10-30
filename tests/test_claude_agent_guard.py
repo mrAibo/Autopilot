@@ -328,6 +328,46 @@ class HookGuardTests(unittest.TestCase):
         result = self.run_real_hook(self.payload())
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def repair_run(self, *statuses):
+        """Fix tickets F1, F2… share the run's pre-registered repair executor (T17)."""
+        name = "autopilot-executor-repair-2026-10-30-run"
+        profile = self.agents / (name + ".md")
+        profile.write_text(self.file.read_text(encoding="utf-8").replace(self.name, name),
+                           encoding="utf-8")
+        route = {"agentType": name, "provider": "anthropic", "model": "haiku",
+                 "effort": "low", "verified": True,
+                 "profileSha": hashlib.sha256(profile.read_bytes()).hexdigest()}
+        self.state["repairAgent"] = dict(route)
+        self.state["tickets"] += [{"id": "F%d" % n, "status": status, "routing": dict(route)}
+                                  for n, status in enumerate(statuses, 1)]
+        self.save()
+        return name
+
+    def test_repair_executor_allowed_only_for_the_active_fix_ticket(self):
+        for statuses in (("in-progress",), ("done", "in-progress"), ("repair",)):
+            with self.subTest(statuses=statuses):
+                self.setUp()
+                ok, why = guard.decision(self.payload(agent=self.repair_run(*statuses)),
+                                         self.root)
+                self.assertTrue(ok, why)
+
+    def test_repair_executor_denied_without_one_active_fix_ticket(self):
+        for statuses in ((), ("pending",), ("done",), ("review",), ("failed", "pending"),
+                         ("in-progress", "in-progress")):
+            with self.subTest(statuses=statuses):
+                self.setUp()
+                ok, why = guard.decision(self.payload(agent=self.repair_run(*statuses)),
+                                         self.root)
+                self.assertFalse(ok)
+                self.assertIn("approved Autopilot task", why)
+
+    def test_shared_executor_without_repair_registration_stays_denied(self):
+        name = self.repair_run("done", "in-progress")
+        del self.state["repairAgent"]
+        self.save()
+        ok, why = guard.decision(self.payload(agent=name), self.root)
+        self.assertFalse(ok)
+
     def test_real_hook_subprocess_allows_unrelated_project(self):
         (self.ap / "state.js").unlink()
         result = self.run_real_hook(self.payload(agent="Explore"))
