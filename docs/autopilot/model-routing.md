@@ -171,7 +171,7 @@ python3 .autopilot/agent_profiles.py --root . \
   --role executor --install
 ```
 
-For Codex use `--provider openai`; it writes `.codex/agents/<name>.toml` with `name`, `description`, `developer_instructions`, `model`, `model_reasoning_effort`. Claude writes `.claude/agents/<name>.md` with `model` and `effort` frontmatter. Agents are named `autopilot-executor-...` and must be launched by that **exact name**. Existing files are left untouched unless identical (idempotent). The active host may need restarting to discover new agents. Project/managed configuration and environment variables may override lower-priority settings; confirm host behavior.
+For Codex use `--provider openai`; it writes `.codex/agents/<name>.toml` with `name`, `description`, `developer_instructions`, `model`, `model_reasoning_effort`. Claude writes `.claude/agents/<name>.md` with `model` and `effort` frontmatter. Agents are named `autopilot-executor-...` and must be launched by that **exact name**. Existing files are left untouched unless identical (idempotent). Claude Code sees only agents that existed when its session started, so a strict Claude run creates every profile at the end of Phase 4 and continues in a new session (`claude-code.md`). Once a ticket has `routing`, that record is authoritative: `ticket NN route` drops the ticket's earlier advisory `plannedRouting`. Project/managed configuration and environment variables may override lower-priority settings; confirm host behavior.
 
 When `ap.py ticket NN route ...` runs, it generates the executor profile, saves `agentType`, `agentFile` and a SHA256 hash; strict `start` checks this hash. This validates the project file, **not** the actual model chosen by an external process.
 

@@ -1191,6 +1191,80 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertEqual(self.state()["tickets"][0]["status"], "in-progress")
 
+    def write_anthropic_caps(self):
+        cap = os.path.join(self.a, "model-capabilities.json")
+        with open(cap, "w", encoding="utf-8") as out:
+            json.dump({"provider": "anthropic", "model_selection": True,
+                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+        return cap
+
+    def test_plan_models_strict_claude_apply_registers_role_agents(self):
+        # T16: Claude Code loads agents at session start, so Phase 4 must create
+        # the reviewer, blind-acceptance and explorer profiles with the executors.
+        import hashlib
+        self.plan(strict=True)
+        self.ap("tickets")
+        self.ap("check-plan")
+        cap = self.write_anthropic_caps()
+        code, payload = self.ap("plan-models", "--provider", "anthropic",
+                                "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, payload)
+        roles = self.state()["roleAgents"]
+        self.assertEqual(json.loads(payload)["roleAgents"], roles)
+        run_id = self.state()["dir"].replace("--wip", "")
+        expected = {"reviewer": ("sonnet", "high"), "acceptance": ("sonnet", "medium"),
+                    "explorer": ("haiku", "low")}
+        self.assertEqual(sorted(roles), sorted(expected))
+        sys.path.insert(0, self.a)
+        shutil.copy(os.path.join(SKILL, "tools", "claude_agent_guard.py"), self.a)
+        try:
+            import claude_agent_guard
+        finally:
+            sys.path.remove(self.a)
+        for role, (model, effort) in expected.items():
+            with self.subTest(role=role):
+                agent = roles[role]
+                self.assertEqual(agent["agentType"], "autopilot-%s-%s" % (role, run_id))
+                self.assertEqual((agent["model"], agent["effort"]), (model, effort))
+                with open(os.path.join(self.root, agent["agentFile"]), "rb") as f:
+                    self.assertEqual(hashlib.sha256(f.read()).hexdigest(), agent["profileSha"])
+                ok, why = claude_agent_guard.decision(
+                    {"tool_name": "Agent", "tool_input": {"subagent_type": agent["agentType"]}},
+                    self.root)
+                self.assertTrue(ok, why)
+        code, again = self.ap("plan-models", "--provider", "anthropic",
+                              "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, again)
+        self.assertEqual(self.state()["roleAgents"], roles)
+
+    def test_plan_models_role_agents_only_in_strict_runs(self):
+        self.plan(strict=False)
+        self.ap("tickets")
+        self.ap("check-plan")
+        cap = self.write_anthropic_caps()
+        code, payload = self.ap("plan-models", "--provider", "anthropic",
+                                "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, payload)
+        self.assertNotIn("roleAgents", self.state())
+        self.assertEqual(sorted(os.listdir(os.path.join(self.root, ".claude", "agents"))),
+                         ["autopilot-executor-01-karkas.md", "autopilot-executor-02-priem.md"])
+
+    def test_route_replaces_stale_advisory_planned_routing(self):
+        # T16: an advisory `blocked` plan stayed beside the verified route.
+        self.plan(strict=True)
+        self.ap("tickets")
+        code, out = self.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["plannedRouting"]["status"], "blocked")
+        cap = self.write_anthropic_caps()
+        code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low", "--reason", "simple",
+                            "--capabilities", cap)
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertTrue(tk["routing"]["verified"])
+        self.assertNotIn("plannedRouting", tk)
+
     def test_plan_models_apply_twice_keeps_volume_maxturns(self):
         # Re-applying must regenerate the same executor profile, including
         # the brief-derived maxTurns (500 lines -> 60), without a content mismatch.
@@ -1235,6 +1309,8 @@ class Run(unittest.TestCase):
             text = read(os.path.join(self.root, route["agentFile"]))
             self.assertTrue(route["agentFile"].endswith(suffix))
             self.assertNotIn(marker, text)
+        if provider == "openai":  # Codex path unchanged: no Claude role profiles
+            self.assertNotIn("roleAgents", self.state())
         code, output = self.ap("ticket", "01", "start")
         self.assertEqual(code, 0, output)
 
