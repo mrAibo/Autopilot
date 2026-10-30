@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h1 align="center">Autopilot 2.5</h1>
+<h1 align="center">Autopilot 2.6</h1>
 
 <p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
@@ -172,6 +172,18 @@ Du kannst jederzeit wechseln, sag einfach:
 ```
 
 Fragen kommen in **Runden**: mehrere auf einmal, nummeriert, jeweils mit der Antwort, die der Agent selbst wählen würde. Bist du mit allen einverstanden — antworte „ok“; bei einer nicht — „2 — eine Tabelle, der Rest ok“.
+
+### Typische Szenarien
+
+| Du willst … | Durchgang 1 (Plan) | Durchgang 2 (Bau) |
+|---|---|---|
+| **Ein neues Projekt bauen** | Leerer Ordner, Sonnet (Opus bei großer oder unscharfer Idee): `/autopilot <Idee>` oder `/autopilot brief.md`, Fragen beantworten | Neuer Chat, Sonnet: `/autopilot` |
+| **Eine Funktion zu einem vorhandenen Projekt hinzufügen** | Projektwurzel, Sonnet: `/autopilot füge CSV-Export hinzu, API und Daten unverändert lassen` | Neuer Chat, Sonnet: `/autopilot` |
+| **Probleme in einem Projekt finden** | Projektwurzel, Sonnet: `/autopilot Audit` (oder `Audit: Sicherheit`) — nur lesend, schreibt `.autopilot/audits/<Datum>-audit.md` | — |
+| **Gefundenes aus dem Audit beheben** | Befunde im Bericht mit `[x]` anhaken, dann `/autopilot .autopilot/audits/<Datum>-audit.md` | Neuer Chat, Sonnet: `/autopilot` |
+| **Nach einer Pause oder einem abgebrochenen Chat weitermachen** | — | Neuer Chat im selben Ordner: `/autopilot` — macht an derselben Stelle weiter |
+
+In **Codex** ist jedes Szenario ein Durchgang, ohne zweiten Chat. Den Fortschritt zeigt das Dashboard, das der Agent selbst öffnet; am Ende kommt ein Bericht in einfachen Worten.
 
 ---
 

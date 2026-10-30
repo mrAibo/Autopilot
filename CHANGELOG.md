@@ -1,12 +1,16 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.5.0` (plan on a strong model, build in a fresh cheaper session; builds on 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.6.0` (read-only audit mode; plan on a strong model, build in a fresh cheaper session; builds on 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## Unreleased
+## 2.6.0 — Audit mode (2026-10-30)
+
+New read-only audit of existing projects with a verified findings report and a bridge to a build; READMEs explain the two passes and are now identical in EN/RU/DE.
+
+- **README: typical scenarios** — one table in EN/RU/DE: new project, feature in an existing project, audit, fixing audit findings, resuming after a break; pass 1 / pass 2 commands for each, Codex as one pass.
 - **Docs: Git Bash headless `/autopilot`:** `MSYS_NO_PATHCONV=1` needed, otherwise the slash command is rewritten into a path (found in live audit probe T18).
 - **Read-only audit mode:** `/autopilot audit[: focus]` (`phases/audit.md`, `prompts/audit.md`, `docs/autopilot/audit.md`) — cheap parallel explorers per lens, one strong verifier, a findings report in `.autopilot/audits/` with ids and checkboxes; nothing else is written, no run is created, and `/autopilot <report>` builds only the ticked items.
 - **README.de.md rebuilt as a section-by-section translation of README.md** (same 17 sections, tables, examples and images; old DE-only text dropped), RU gained two missing phrases in the existing-project section, and a test now pins equal `##`/`###` heading counts in all three READMEs.
