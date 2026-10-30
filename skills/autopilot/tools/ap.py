@@ -425,7 +425,7 @@ def publish_tickets(state):
             prev = {}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
-                  "worktree", "retryAdvice", "attestation"):
+                  "worktree", "retryAdvice", "attestation", "attestFrom"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -1120,6 +1120,12 @@ def check_claude_attestation(state, ticket, root):
             raw = stream.read().splitlines()
     except (OSError, UnicodeDecodeError) as exc:
         return False, "нет читаемого .autopilot/attestations.jsonl (%s)" % type(exc).__name__
+    if agent == repair_agent_type(state):
+        # Shared repair executor: count only lines appended since this ticket's start.
+        start = ticket.get("attestFrom")
+        if type(start) is not int or start < 0 or start > len(raw):
+            return False, "нет отметки начала таска в attestations.jsonl (attestFrom)"
+        raw = raw[start:]
     lines = []
     for text in raw:
         try:
@@ -1188,6 +1194,21 @@ names the task, the files to read and the limits; follow it.
 - explorer: read-only reading tasks (coverage reader, memory and ADR drafts);
   return text, write nothing.
 """
+REPAIR_BRIEF = """# Autopilot repair executor of this run
+
+One executor profile for every fix ticket (F1, F2, …) the whole-branch review
+creates; registered in Phase 4 because Claude Code sees only agents that existed
+at session start. The orchestrator's launch prompt names the fix ticket file:
+read it and build exactly that ticket, inside its zone, with its checks.
+"""
+# Fix tickets are built strong (phases/6-review.md: `Модель: сильная`), like the branch review.
+REPAIR_SCORES = ROLE_SCORES["reviewer"]
+ACTIVE_EXECUTOR = ("in-progress", "review", "repair")
+
+
+def repair_agent_type(state):
+    entry = state.get("repairAgent")
+    return entry.get("agentType") if isinstance(entry, dict) else None
 
 
 def cmd_plan_models(state, opt):
@@ -1303,6 +1324,8 @@ def cmd_plan_models(state, opt):
                     die("plan-models: blocked — %s: %s" % (role, route["error"]))
             run_id = re.sub(r"--wip$", "", state["dir"])[:58].rstrip("-")
             role_brief = os.path.join(run_dir(state), "roles", run_id + ".md")
+            repair_brief = os.path.join(run_dir(state), "roles",
+                                        "repair-" + run_id[:51].rstrip("-") + ".md")
         if apply:
             created = []
             try:
@@ -1329,6 +1352,22 @@ def cmd_plan_models(state, opt):
                                        "model": profile["model"], "effort": profile["effort"],
                                        "effortEnforced": profile["effort_enforced"],
                                        "profileSha": digest}
+                    with open(repair_brief, "w", encoding="utf-8", newline="\n") as stream:
+                        stream.write(REPAIR_BRIEF)
+                    profile = agent_profiles.prepare(ROOT, repair_brief, provider, cap_path,
+                                                     "executor", policy_path, REPAIR_SCORES, True)
+                    path = os.path.join(ROOT, profile["agent_file"])
+                    if profile["action"] == "created":
+                        created.append(path)
+                    with open(path, "rb") as stream:
+                        digest = hashlib.sha256(stream.read()).hexdigest()
+                    repair = {"agentType": profile["agent_type"],
+                              "agentFile": profile["agent_file"],
+                              "model": profile["model"], "effort": profile["effort"],
+                              "effortEnforced": profile["effort_enforced"],
+                              "profileSha": digest}
+                    if policy_relative is not None:
+                        repair.update(policyFile=policy_relative, policySha=policy_sha)
             except (OSError, ValueError, TypeError) as exc:
                 for path in created:
                     os.unlink(path)
@@ -1356,6 +1395,9 @@ def cmd_plan_models(state, opt):
                   "tickets": [p["proposal"] for p in plans]}
         if roles:
             state["roleAgents"] = result["roleAgents"] = roles
+            state["repairAgent"] = result["repairAgent"] = repair
+            # Phase 4 ends here with a new-chat stop: the state must read plan done, build pending.
+            cmd_stage(state, ["plan", "done"], {})
         log(state, "plan-models", provider=provider, applied=apply, tickets=len(plans),
             blocked=len(blocked))
         return result
@@ -1421,6 +1463,24 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
         if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
+        shared = repair_agent_type(state)
+        on_repair = shared is not None and (tk.get("routing") or {}).get("agentType") == shared
+        if act in ("start", "retry") and on_repair:
+            busy = [x["id"] for x in state.get("tickets") or [] if x.get("id") != i
+                    and x.get("status") in ACTIVE_EXECUTOR
+                    and (x.get("routing") or {}).get("agentType") == shared]
+            if busy:
+                die("таск %s: агент ремонта занят таском %s" % (i, ", ".join(busy)))
+        if act == "start" and on_repair:
+            # The agent is shared: only evidence appended after this start is this ticket's.
+            try:
+                with open(os.path.join(ROOT, ".autopilot", "attestations.jsonl"),
+                          encoding="utf-8") as stream:
+                    tk["attestFrom"] = len(stream.read().splitlines())
+            except FileNotFoundError:
+                tk["attestFrom"] = 0
+            except (OSError, UnicodeDecodeError) as exc:
+                die("таск %s: attestations.jsonl не читается (%s)" % (i, type(exc).__name__))
         if act == "done" and verified_host_required(state):
             recorded = tk.get("tests")
             evidence = tk.get("testEvidence")
@@ -1500,6 +1560,26 @@ def cmd_ticket(state, pos, opt):
                 policy_relative = os.path.relpath(policy_path, root_path).replace("\\", "/")
                 with open(policy_path, "rb") as policy_stream:
                     policy_digest = hashlib.sha256(policy_stream.read()).hexdigest()
+            repair = state.get("repairAgent")
+            if (provider == "anthropic" and state.get("strictRouting") is True
+                    and re.fullmatch(r"F\d+", i) and isinstance(repair, dict)):
+                # A profile created now is invisible to this Claude session (T17):
+                # fix tickets go to the repair executor registered in Phase 4.
+                if not isinstance(reason, str) or not reason.strip():
+                    die("route требует --reason")
+                if model not in (None, repair.get("model")) or effort not in (None, repair.get("effort")):
+                    die("route: таск %s идёт на агента ремонта (%s/%s)" %
+                        (i, repair.get("model"), repair.get("effort")))
+                if len(glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % i))) != 1:
+                    die("route: не удалось однозначно найти файл таска %s" % i)
+                tk["routing"] = dict({k: repair[k] for k in (
+                    "agentType", "agentFile", "model", "effort", "effortEnforced",
+                    "profileSha", "policyFile", "policySha") if k in repair},
+                    provider="anthropic", reason=reason, verified=True)
+                if not profile_ok(tk):
+                    die("route: профиль агента ремонта отсутствует или изменён")
+                tk.pop("plannedRouting", None)
+                continue
             if provider not in ("openai", "anthropic") or not all(
                     isinstance(x, str) and x.strip() for x in (model, effort, reason)):
                 die("route требует --provider --model --effort --reason")

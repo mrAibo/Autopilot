@@ -1249,6 +1249,100 @@ class Run(unittest.TestCase):
         self.assertEqual(sorted(os.listdir(os.path.join(self.root, ".claude", "agents"))),
                          ["autopilot-executor-01-karkas.md", "autopilot-executor-02-priem.md"])
 
+    # ── strict Claude runs: one pre-registered repair executor for fix tickets (T17) ──
+    def applied_strict_claude_plan(self):
+        self.plan(strict=True)
+        self.ap("tickets")
+        self.ap("check-plan")
+        cap = self.write_anthropic_caps()
+        code, payload = self.ap("plan-models", "--provider", "anthropic",
+                                "--capabilities", cap, "--apply")
+        self.assertEqual(code, 0, payload)
+        return cap, json.loads(payload)
+
+    def fix_ticket(self, tid, cap):
+        self.write("tickets/%s-branch-fix.md" % tid, ticket(
+            tid, "Ремонт ветки", "R01", "—", ["src/core/"], 3, "да — ремонт ветки", "сильная"))
+        self.assertEqual(self.ap("tickets")[0], 0)
+        code, out = self.ap("ticket", tid, "route", "--provider", "anthropic",
+                            "--reason", "fix-now", "--capabilities", cap)
+        self.assertEqual(code, 0, out)
+
+    def append_attest(self, *lines):
+        with open(os.path.join(self.a, "attestations.jsonl"), "a", encoding="utf-8") as f:
+            for line in lines:
+                f.write(json.dumps(line) + "\n")
+
+    def finish(self, tid):
+        return self.ap("ticket", tid, "done", "--tests", "1/0", "--commit", self.commit(tid))
+
+    def test_strict_claude_apply_registers_repair_executor_and_closes_plan(self):
+        import hashlib
+        _, payload = self.applied_strict_claude_plan()
+        state = self.state()
+        repair = state["repairAgent"]
+        self.assertEqual(payload["repairAgent"], repair)
+        run_id = state["dir"].replace("--wip", "")
+        self.assertEqual(repair["agentType"], "autopilot-executor-repair-" + run_id)
+        self.assertEqual((repair["model"], repair["effort"]), ("sonnet", "high"))
+        text = read(os.path.join(self.root, repair["agentFile"]))
+        self.assertIn("tools: Read, Grep, Glob, Bash, Edit, Write\n", text)
+        with open(os.path.join(self.root, repair["agentFile"]), "rb") as f:
+            self.assertEqual(hashlib.sha256(f.read()).hexdigest(), repair["profileSha"])
+        # T17: the Phase-4 stop leaves plan done and build pending.
+        self.assertEqual(self.stage("plan")["status"], "done")
+        self.assertEqual(self.stage("build")["status"], "pending")
+
+    def test_fix_ticket_routes_to_repair_executor_without_new_profile(self):
+        cap, _ = self.applied_strict_claude_plan()
+        agents = os.path.join(self.root, ".claude", "agents")
+        before = sorted(os.listdir(agents))
+        self.fix_ticket("F1", cap)
+        self.assertEqual(sorted(os.listdir(agents)), before)
+        repair = self.state()["repairAgent"]
+        route = next(t for t in self.state()["tickets"] if t["id"] == "F1")["routing"]
+        for key in ("agentType", "agentFile", "profileSha", "model", "effort"):
+            self.assertEqual(route[key], repair[key])
+        self.assertTrue(route["verified"])
+        # A mismatching model is refused, not silently replaced.
+        code, out = self.ap("ticket", "F1", "route", "--provider", "anthropic",
+                            "--model", "haiku", "--effort", "low", "--reason", "x",
+                            "--capabilities", cap)
+        self.assertNotEqual(code, 0, out)
+
+    def test_repair_executor_evidence_is_attributed_per_fix_ticket(self):
+        cap, _ = self.applied_strict_claude_plan()
+        agent = self.state()["repairAgent"]["agentType"]
+        good = (self.post(agent, "claude-sonnet-5-5"), self.pre(agent, "high"))
+        self.fix_ticket("F1", cap)
+        self.append_attest(*good)              # older than F1's start: not its evidence
+        self.assertEqual(self.ap("ticket", "F1", "start")[0], 0)
+        code, out = self.finish("F1")
+        self.assertEqual(code, 2, out)
+        self.append_attest(*good)
+        code, out = self.finish("F1")
+        self.assertEqual(code, 0, out)
+        f1 = next(t for t in self.state()["tickets"] if t["id"] == "F1")
+        self.assertEqual(f1["attestation"]["lines"], 2)
+        # F2 on the same agent needs its own fresh evidence; F1's lines do not count.
+        self.fix_ticket("F2", cap)
+        self.assertEqual(self.ap("ticket", "F2", "start")[0], 0)
+        code, out = self.finish("F2")
+        self.assertEqual(code, 2, out)
+        self.append_attest(*good)
+        code, out = self.finish("F2")
+        self.assertEqual(code, 0, out)
+
+    def test_only_one_fix_ticket_runs_on_repair_executor(self):
+        cap, _ = self.applied_strict_claude_plan()
+        self.fix_ticket("F1", cap)
+        self.fix_ticket("F2", cap)
+        self.assertEqual(self.ap("ticket", "F1", "start")[0], 0)
+        code, out = self.ap("ticket", "F2", "start")
+        self.assertNotEqual(code, 0, out)
+        self.assertEqual(next(t for t in self.state()["tickets"]
+                              if t["id"] == "F2")["status"], "pending")
+
     def test_route_replaces_stale_advisory_planned_routing(self):
         # T16: an advisory `blocked` plan stayed beside the verified route.
         self.plan(strict=True)
