@@ -62,3 +62,21 @@ What this shows, and what it does not:
 - **On a run this small, routing does not show up in the total.** B came out cheaper overall than A because its main session was cheaper (0.44 vs 0.63; mostly cache creation, 58K vs 106K tokens). That is run-to-run noise in the orchestrator, larger than the whole subagent bill here.
 - One run per variant, three tiny tickets: treat these numbers as direction, not precision. Larger projects shift the share toward subagents, where routing matters more.
 
+
+## Measured: does a local code graph make `/autopilot audit` cheaper? (2026-10-30)
+
+Question: would [graphify](https://github.com/Graphify-Labs/graphify) (Apache-2.0, local tree-sitter code graph, no LLM, no cloud) cut the cost of an audit? Project: a copy of a real Python repo, ~92k lines / 274 source files (graph: 7,079 nodes, 19,685 edges, built in 17 s with `graphify update .`). Headless `claude -p "/autopilot audit" --model sonnet --output-format json`, one run per variant, so direction, not precision (`total_cost_usd`, list-price estimates).
+
+| Run | Total USD | Sonnet | Haiku | Turns | Findings | Graph actually queried |
+|---|---:|---:|---:|---:|---:|---|
+| No graph | 1.91 | 1.29 | 0.62 | 6 | 19 | n/a |
+| Graph present, hinted in `CLAUDE.md` | 1.74 | 1.37 | 0.37 | 6 | 14 | **never** |
+| Graph present, use mandated in `CLAUDE.md` | 1.51 | 1.09 | 0.43 | 4 | 14 | some explorers; one said it skipped it |
+
+What this shows, and what it does not:
+- **A hint is ignored.** With the graph only mentioned, no agent called `graphify` once; the 9 % difference to the baseline is run-to-run noise.
+- **Mandated use saved ~21 %** (1.91 → 1.51), but on a single run, with fewer findings (14 vs 19), and not all explorers obeyed. That is inside the noise seen between the first two runs, so it is not a reproducible saving.
+- **The main session is not helped.** Sonnet (main session plus the strong-tier verifier) stayed at 1.1–1.4 USD, about 65–70 % of every run; the graph can only touch the cheap Haiku explorers (0.4–0.6 USD).
+- **Quality was not lost on the top items.** The two most severe findings (a module imported but missing from the repo; a Windows process-liveness probe that always returns False) were confirmed in all runs and re-checked against the code. The graph run did not find anything the baseline missed.
+
+Decision: **not integrated.** The possible gain (a fraction of the Haiku explorer bill) is small, unproven, and depends on agents obeying an instruction they ignore by default; the cost is an external dependency, a stale-graph risk and docs in three languages. Revisit if an audit on a much larger project (200k+ lines) shows the explorer share dominating the bill.
