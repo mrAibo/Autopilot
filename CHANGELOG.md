@@ -7,6 +7,7 @@ npx skills update autopilot -g
 ```
 
 ## Unreleased
+- **README.de.md rebuilt as a section-by-section translation of README.md** (same 17 sections, tables, examples and images; old DE-only text dropped), RU gained two missing phrases in the existing-project section, and a test now pins equal `##`/`###` heading counts in all three READMEs.
 - **README: how to use it now:** a step-by-step "two passes — plan, then build" block in EN/RU/DE usage sections (was only mentioned under "Spending less").
 
 ## 2.5.0 — Plan strong, build cheap (2026-10-30)
