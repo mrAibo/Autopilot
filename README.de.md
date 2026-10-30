@@ -137,6 +137,17 @@ Fassung der Anforderung für die spätere unabhängige Prüfung auf.
 Fragen zu echten Entscheidungsalternativen stellt er in Runden;
 in der Standardeinstellung sind es nur die notwendigen.
 
+### In Claude Code: zwei Durchgänge — Plan, dann Bau
+
+Ein Projekt (neu oder vorhanden) braucht **zwei Chats** im selben Ordner:
+
+1. **Plan.** Öffne einen Chat im Projektordner. Modell: **Sonnet** für normale Aufgaben, **Opus** nur bei einer großen oder noch unscharfen Idee. Gib `/autopilot` mit der Idee oder einer Datei ein (`/autopilot brief.md`). Beantworte die Fragen. Autopilot schreibt Spezifikation und Aufgabenliste, registriert die Bau-Agenten und **hält an** mit: *„Die Bau-Agenten sind registriert … öffne einen neuen Chat in diesem Ordner und gib `/autopilot` ein“*.
+2. **Bau.** Öffne einen **neuen** Chat im selben Ordner, wähle **Sonnet**, gib nur `/autopilot` ein. Er übernimmt den Plan und baut das Projekt fertig: keine weiteren Fragen, der Fortschritt steht im Dashboard, am Ende kommt ein Bericht.
+
+Warum zwei Chats: Claude Code sieht nur Agenten, die beim Öffnen des Chats schon existierten; im Planungs-Chat kann der Bau deshalb nicht laufen. Und der Bau in einem frischen Chat mit Sonnet ist deutlich günstiger (in unserer Messung etwa die Hälfte gegenüber Opus auf dem ganzen Weg).
+
+Im Terminal: `claude --model opus` (oder `sonnet`) → `/autopilot …`; danach ein neues `claude --model sonnet` → `/autopilot`. Bricht ein Chat ab, öffne einen neuen im Ordner und gib `/autopilot` ein — der Lauf geht an derselben Stelle weiter. **Codex** arbeitet wie bisher in einem Durchgang.
+
 ## Ein vorhandenes Projekt weiterentwickeln
 
 **Ein bestehendes Repository muss nicht neu aufgebaut werden.**

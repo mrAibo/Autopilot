@@ -6,6 +6,9 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased
+- **README: how to use it now:** a step-by-step "two passes — plan, then build" block in EN/RU/DE usage sections (was only mentioned under "Spending less").
+
 ## 2.5.0 — Plan strong, build cheap (2026-10-30)
 
 Strict Claude Code runs now register every agent before the build and hand over to a fresh session, which can be a cheaper model; fix tickets from review run in that same session. Plus fixes ported from upstream 2.2.1, the dashboard shows the real skill version, and a new logo.
