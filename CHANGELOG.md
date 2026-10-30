@@ -1,12 +1,15 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.4.1` (token economy on top of 2.4.0 Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.5.0` (plan on a strong model, build in a fresh cheaper session; builds on 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## Unreleased
+## 2.5.0 — Plan strong, build cheap (2026-10-30)
+
+Strict Claude Code runs now register every agent before the build and hand over to a fresh session, which can be a cheaper model; fix tickets from review run in that same session. Plus fixes ported from upstream 2.2.1, the dashboard shows the real skill version, and a new logo.
+
 - **Strict Claude Code: fix tickets run in the same build session (T17):** a strict `plan-models --provider anthropic --apply` also registers one repair executor per run (`autopilot-executor-repair-<run>`, strong; `state.js` → `repairAgent`) and marks `plan` done; `ticket F1 route` assigns it instead of writing a mid-session profile, the guard admits it only for the one fix ticket `in-progress`/`repair`, `ticket start` refuses a second one, and the strict `done` gate counts only attestation lines appended since that ticket's `start`.
 - **Strict Claude Code: agents and hooks before the build, then a required new chat (T16):** Claude Code only sees agents that exist at session start, so a strict `plan-models --provider anthropic --apply` now also writes the run's reviewer, acceptance and explorer profiles (`state.js` → `roleAgents`), Phase 4 installs both hooks and stops with a required "open a new chat and type `/autopilot`" step, the resume checks the profiles and never falls back on "Agent type not found", and `ticket NN route` drops a stale advisory `plannedRouting`.
 - **Dashboard shows the installed skill version:** `ap.py init` records `skillVersion` (from `SKILL.md`) in state and the header badge renders it as text instead of the hardcoded "2.3 DEV"; no badge when absent.
