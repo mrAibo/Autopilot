@@ -1,8 +1,8 @@
 ---
 name: autopilot
-description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run.
+description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run; /autopilot audit writes a read-only findings report for an existing project.
 disable-model-invocation: true
-argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md"
+argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md | audit[: фокус]"
 allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *)
 metadata:
   version: "2.5.0"
@@ -28,6 +28,8 @@ worktrees and tests before dispatch. Never invent recovered agent work.
 A finished run is a new feature or an explicitly requested `reopen`.
 See `phases/0-preflight.md` and the three language READMEs.
 
+**Audit is not a build.** When the first word after `/autopilot` is `audit` in any language («аудит», «Audit»), optionally with a focus after it, read [`phases/audit.md`](phases/audit.md) **instead of every phase below**: read-only, no `init`, no run, one report in `.autopilot/audits/`. A path to an audit report (`/autopilot .autopilot/audits/<file>.md`) is an ordinary build whose brief is the ticked findings (`phases/1-manifest.md`).
+
 **Product scope:** keep the original brief → manifest → briefing → spec → plan → build → review → acceptance experience intact. The development-only offline subprocess and Responses API toy pilots are **not phases or prerequisites** of `/autopilot`; do not install, launch, or request extra API credentials for them during the normal workflow. Optional host controllers and GUI-to-CLI fallbacks must not replace a verified native host workflow. Where the GUI cannot prove named-child model/Effort, a new run may explicitly select **`--sequential-host`**: one host-operated task at a time, Git-isolated with mandatory baseline-tracked host tests, **no claimed child/model enforcement**. Read [sequential host safety contract](../../docs/autopilot/sequential-host.md) before choosing it. The paid CLI bridge remains disabled. See [product scope and labs](../../docs/autopilot/scope-and-labs.md).
 
 ## Reading this skill
@@ -45,6 +47,7 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 | 6 Review | `phases/6-review.md` — at the first point review, and for the whole-branch review | reviewed code |
 | 8 Final | `phases/8-final.md`, and `phases/9-memory.md` before spawning | blind acceptance, memory, progress file, report |
 | — | `phases/0-resume.md` — instead of preflight, when resuming | |
+| — | `phases/audit.md` — instead of all phases, on `/autopilot audit` | `.autopilot/audits/<YYYY-MM-DD>-audit.md`, nothing else |
 | — | `phases/5-repair.md` — when a ticket comes back anything but a clean `DONE` | |
 | — | `phases/9-memory.md` — also in Phase 5, when a ticket discovered something worth keeping | |
 | — | `phases/rationalizations.md` — on a failed gate, on catching yourself excusing something, once before the report | |
@@ -113,6 +116,7 @@ Binding on every phase; the phases do not restate it.
 │   ├── carried.md              what the last run left, read at preflight — after a landed run only
 │   ├── memory-proposal.md      what to add to the user's own memory file, if it is theirs
 │   └── tickets/NN-<slug>.md
+├── audits/<YYYY-MM-DD>-audit.md   a read-only audit report — tick findings, then build from it
 ├── README.md        how to read this folder, and the register of runs
 ├── PROGRESS.md       where the work stands between runs — read by the next run and by plain sessions
 ├── state.js         the run state — written only by ap.py

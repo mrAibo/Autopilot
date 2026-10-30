@@ -43,6 +43,8 @@ The redacted brief, **word for word**, into `.autopilot/<dir>/<YYYY-MM-DD>-brief
 - **Everything counts as brief** — asides, constraints, «и ещё хорошо бы», a stack preference, a deadline mentioned in passing.
 - **The text above never changes; the file keeps growing.** Everything the user says later — a cancellation, an addition, a reversal at ticket four — is appended under `## Дополнения`, dated and verbatim. This matters because **both independent checks read the brief and are forbidden the manifest**: a change that reached the manifest but not this file does not exist for G2 and G4.
 - A brief dictated on a **later day** is a new file with that day's date, in the same run directory.
+- **A path instead of words** (`/autopilot docs/brief.md`): the file's text is the brief, word for word, as if dictated.
+- **An audit report** (`.autopilot/audits/*-audit.md`, `phases/audit.md`): the brief is **only the ticked items** — every `- [x] **A##**` / `- [x] **I##**` line with its sub-lines, verbatim, ids kept — followed by one line `Вне рамок (не отмечено в аудите): A02, A05, I01`. Unticked items are **out of scope**: no manifest row, no ticket; the spec's «Вне рамок» names them. Nothing ticked → ask which findings to fix, in one line; never pick them yourself.
 
 ## 3. Atomise into requirements
 

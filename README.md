@@ -203,6 +203,8 @@ To extend the **same completed run** rather than create a separate one,
 the skill has a documented `reopen` path. Neither case calls for
 rebuilding the project from scratch.
 
+> **Audit an existing project.** `/autopilot audit` (or `/autopilot audit: security and performance`) reads the project and writes one report to `.autopilot/audits/<date>-audit.md`, and changes nothing else: no edits, commits, installs or network access. Cheap parallel explorers each check one area (correctness, security, performance, tests, dead code, docs, dependencies), and one stronger reviewer keeps only findings it can confirm in the code with a concrete failure scenario. Each finding has an id (`A01`…) and a checkbox. Tick what to fix, then run `/autopilot .autopilot/audits/<file>.md`: the build takes only the ticked items. Details: [docs/autopilot/audit.md](docs/autopilot/audit.md).
+
 ## Resume when an agent or chat is interrupted
 
 **Nothing restarts itself in the background.** After a crash, context limit,

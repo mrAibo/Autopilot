@@ -7,6 +7,7 @@ npx skills update autopilot -g
 ```
 
 ## Unreleased
+- **Read-only audit mode:** `/autopilot audit[: focus]` (`phases/audit.md`, `prompts/audit.md`, `docs/autopilot/audit.md`) — cheap parallel explorers per lens, one strong verifier, a findings report in `.autopilot/audits/` with ids and checkboxes; nothing else is written, no run is created, and `/autopilot <report>` builds only the ticked items.
 - **README.de.md rebuilt as a section-by-section translation of README.md** (same 17 sections, tables, examples and images; old DE-only text dropped), RU gained two missing phrases in the existing-project section, and a test now pins equal `##`/`###` heading counts in all three READMEs.
 - **README: how to use it now:** a step-by-step "two passes — plan, then build" block in EN/RU/DE usage sections (was only mentioned under "Spending less").
 

@@ -202,6 +202,8 @@ Um **denselben abgeschlossenen Lauf** zu erweitern, statt einen eigenen anzulege
 gibt es im Skill den dokumentierten Weg `reopen`. In keinem der beiden Fälle muss
 das Projekt von Grund auf neu gebaut werden.
 
+> **Ein vorhandenes Projekt prüfen.** `/autopilot Audit` (oder `/autopilot Audit: Sicherheit und Performance`) liest das Projekt und schreibt einen Bericht nach `.autopilot/audits/<Datum>-audit.md` – sonst ändert es nichts: keine Änderungen, keine Commits, keine Installationen, kein Netzwerk. Günstige Explorer prüfen parallel je einen Bereich (Korrektheit, Sicherheit, Performance, Tests, toter Code, Doku, Abhängigkeiten), und ein stärkerer Prüfer behält nur, was er im Code mit einem konkreten Fehlerszenario bestätigt. Jeder Befund hat eine ID (`A01`…) und ein Kästchen. Hake an, was behoben werden soll, und starte `/autopilot .autopilot/audits/<Datei>.md` – der Build übernimmt nur die angehakten Punkte. Details: [docs/autopilot/audit.md](docs/autopilot/audit.md).
+
 ## Fortsetzen, wenn ein Agent oder Chat unterbrochen wurde
 
 **Nichts startet sich im Hintergrund von selbst neu.** Öffne nach einem Absturz, Kontextlimit,
