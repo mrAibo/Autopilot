@@ -906,6 +906,12 @@ def cmd_init(opt):
             os.replace(STATE, os.path.join(A, dst))
         notes.append("прошлый прогон убран в архив: %s" % dst)
     state = fresh_state(opt)
+    try:  # версия навыка для шапки дашборда; нечитаемый SKILL.md — просто без неё
+        v = _version(open(os.path.join(state["skillDir"] or "", "SKILL.md"), encoding="utf-8").read())
+        if v:
+            state["skillVersion"] = ".".join(map(str, v))
+    except OSError:
+        pass
     log(state, "init")
     os.makedirs(os.path.join(run_dir(state), "tickets"), exist_ok=True)
     save(state)

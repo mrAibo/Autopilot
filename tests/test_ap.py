@@ -213,6 +213,20 @@ class Run(unittest.TestCase):
         self.assertIn(".autopilot/offline-test-consent", read(os.path.join(self.root, ".gitignore")))
         self.assertIn("window.STATE={", read(os.path.join(self.a, "dashboard.html")))
 
+    def test_init_records_skill_version(self):
+        self.init()
+        m = re.search(r"^\s+version:\s*[\"']?([\d.]+)", read(os.path.join(SKILL, "SKILL.md")), re.M)
+        self.assertEqual(self.state()["skillVersion"], m.group(1))
+
+    def test_init_omits_skill_version_without_one(self):
+        fake = os.path.join(self.root, "fake-skill")
+        os.makedirs(fake)
+        with open(os.path.join(fake, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write("---\nname: x\n---\n")
+        code, out = self.ap("init", "--slug", "no-ver", "--skill-dir", fake)
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("skillVersion", self.state())
+
     def test_init_refuses_on_live_run(self):
         self.init()
         code, out = self.ap("init", "--slug", "other")
