@@ -86,3 +86,5 @@ Host: Claude desktop app (Code tab) with bundled Claude Code 2.1.309 (the CLI on
 **T07 gate end-to-end:** after the subagent fixed the bug, `ap.py ticket 01 done` exited 0 and stored `attestation: {model: claude-haiku-5-5, effort: low, lines: 7}`. Async launches do not block the gate, because `resolvedModel` is present.
 
 Raw sanitized JSONL evidence stays with the owner; it is not tracked.
+
+**Windows / Git Bash, headless:** Git Bash rewrites a leading `/` in arguments into a Windows path, so `claude -p "/autopilot audit"` arrives as `C:/Program Files/Git/autopilot audit` and the skill is never invoked. Prefix the command with `MSYS_NO_PATHCONV=1` (e.g. `MSYS_NO_PATHCONV=1 claude -p "/autopilot audit" --model sonnet …`) or run it from PowerShell/cmd. Typing `/autopilot` inside an interactive chat is not affected.
