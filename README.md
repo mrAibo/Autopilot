@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h1 align="center">Autopilot 2.5</h1>
+<h1 align="center">Autopilot 2.6</h1>
 
 <p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 
@@ -173,6 +173,18 @@ You can switch at any time, just say:
 ```
 
 Questions come in **rounds**: several at once, numbered, each with the answer the agent would pick itself. Agree with all — reply "ok"; disagree with one — "2 — a spreadsheet, the rest ok".
+
+### Typical scenarios
+
+| You want to… | Pass 1 (plan) | Pass 2 (build) |
+|---|---|---|
+| **Build a new project** | Empty folder, Sonnet (Opus for a big/fuzzy idea): `/autopilot <idea>` or `/autopilot brief.md`, answer the questions | New chat, Sonnet: `/autopilot` |
+| **Add a feature to an existing project** | Project root, Sonnet: `/autopilot add CSV export, keep the API and data` | New chat, Sonnet: `/autopilot` |
+| **Find problems in a project** | Project root, Sonnet: `/autopilot audit` (or `audit: security`) — read-only, writes `.autopilot/audits/<date>-audit.md` | — |
+| **Fix what the audit found** | Tick `[x]` the findings in the report, then `/autopilot .autopilot/audits/<date>-audit.md` | New chat, Sonnet: `/autopilot` |
+| **Continue after a break or a crashed chat** | — | New chat in the same folder: `/autopilot` — it resumes where it stopped |
+
+In **Codex** every scenario is one pass: there is no second chat. Watch progress on the dashboard the agent opens itself; at the end you get a report in plain words.
 
 ---
 

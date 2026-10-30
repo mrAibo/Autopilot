@@ -82,7 +82,7 @@ class DocumentationLocalesTests(unittest.TestCase):
     def test_230_scoped_codex_release_and_claude_limits(self):
         skill = (ROOT / "skills/autopilot/SKILL.md").read_text(encoding="utf-8")
         claude = (ROOT / "docs/autopilot/claude-code.md").read_text(encoding="utf-8")
-        self.assertIn('version: "2.5.0"', skill)
+        self.assertIn('version: "2.6.0"', skill)
         for name in LOCALES:
             page = (ROOT / name).read_text(encoding="utf-8")
             self.assertIn("2.4.0", page)

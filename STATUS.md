@@ -644,3 +644,7 @@ Claude Code agent profiles now carry `maxTurns` and `color`. Executor turns foll
 ## 2026-10-30 — 2.5.0 prepared
 
 - Release of #66–#71: upstream 2.2.1 fixes, new logo, dashboard version from SKILL.md, strict Claude agents registered before the build with a required fresh session (T16), pre-registered repair executor (T17), plan-strong/build-cheap hint. Live T16/T17 headless runs passed gates.
+
+## 2026-10-30 — 2.6.0 prepared
+
+- Release of #73–#76: two-pass usage block, German README parity, read-only audit mode (live T18 PASS), Git Bash headless note.
