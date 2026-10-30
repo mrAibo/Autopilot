@@ -46,3 +46,5 @@ That starts a normal build on existing code. Its brief is **only the ticked item
 - Findings are model judgement verified by a second model, not proof. Security findings name a reproduction; check critical ones yourself before acting on them.
 - Offline only: vulnerable-version claims need `npm audit`, `pip-audit` or similar, which the report lists for you to run.
 - If the host cannot route a subagent to the cheap model, the agent says so and works the lenses itself at the small-project scale.
+
+**Windows / Git Bash, headless:** Git Bash rewrites a leading `/` in arguments into a Windows path, so `claude -p "/autopilot audit"` arrives as `C:/Program Files/Git/autopilot audit` and the skill is never invoked. Prefix the command with `MSYS_NO_PATHCONV=1` (e.g. `MSYS_NO_PATHCONV=1 claude -p "/autopilot audit" --model sonnet …`) or run it from PowerShell/cmd. Typing `/autopilot` inside an interactive chat is not affected.
