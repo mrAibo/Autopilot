@@ -28,7 +28,7 @@ It works on its own: nothing else to install.
 
 > **Automatic model choice during planning:** `ap.py plan-models` selects model and reasoning Effort **per ticket** by complexity/risk. `--apply` registers all profiles only with host-supported capabilities. See [adaptive routing](docs/autopilot/model-routing.md). This does not attest actual GUI execution.
 
-> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing.
+> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing. If Codex stopped on a not-yet-started run because of the subagent check, `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` switches it without `init`. It needs a verified Git baseline; the published 2.3.0 accepts Python unittest, and later development added a bounded Cargo test adapter.
 
 > **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement remain unverified; Claude Code strict routing is stable in 2.4.0 (desktop app and terminal CLI).
 
@@ -202,6 +202,8 @@ A completed run stays in the history; a new feature can start a new run.
 To extend the **same completed run** rather than create a separate one,
 the skill has a documented `reopen` path. Neither case calls for
 rebuilding the project from scratch.
+
+> **Audit an existing project.** `/autopilot audit` (or `/autopilot audit: security and performance`) reads the project and writes one report to `.autopilot/audits/<date>-audit.md`, and changes nothing else: no edits, commits, installs or network access. Cheap parallel explorers each check one area (correctness, security, performance, tests, dead code, docs, dependencies), and one stronger reviewer keeps only findings it can confirm in the code with a concrete failure scenario. Each finding has an id (`A01`…) and a checkbox. Tick what to fix, then run `/autopilot .autopilot/audits/<file>.md`: the build takes only the ticked items. Details: [docs/autopilot/audit.md](docs/autopilot/audit.md).
 
 ## Resume when an agent or chat is interrupted
 
