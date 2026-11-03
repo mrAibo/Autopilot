@@ -50,7 +50,8 @@ def is_protected(target, root):
     path = os.path.normcase(os.path.realpath(os.path.join(root, target)))
     if os.path.commonpath((path, real_root)) != real_root:
         return False
-    parts = path[len(real_root):].strip("\\/").replace("\\", "/").split("/")
+    # casefold: .Autopilot and .AUTOPILOT are the same folder on macOS and Windows
+    parts = path[len(real_root):].strip("\\/").replace("\\", "/").casefold().split("/")
     if parts[0] == ".autopilot":
         # top-level .py files are the verifiers themselves (ap, guard, gate_sign, ...)
         return len(parts) == 2 and (parts[1] in (
@@ -60,6 +61,19 @@ def is_protected(target, root):
         return (parts[1] == "agents" and len(parts) > 2) or (
             len(parts) == 2 and fnmatch.fnmatch(parts[1], "settings*.json"))
     return False
+
+
+def forged_run(state, root):
+    """Reason to deny when state.js disagrees with the signed record outside the project, else None.
+
+    Checked before any "no active strict run" shortcut: a forged `strictRouting: false`
+    or `finishedAt` is exactly how a downgrade would look.
+    """
+    if gate_sign.run_status(state, root) != "forged":
+        return None
+    if gate_sign.load_key() is None:
+        return gate_sign.MISSING_KEY_MESSAGE
+    return "Run signature marker missing or invalid"
 
 
 def write_decision(payload, root):
@@ -78,6 +92,9 @@ def write_decision(payload, root):
     state = read_state(root)
     if state is None:
         return False, "Existing Autopilot state is unreadable or malformed"
+    forged = forged_run(state, root)
+    if forged:
+        return False, forged
     if state.get("strictRouting") and not state.get("finishedAt"):
         return False, "Autopilot run files are protected in strict runs"
     return True, "No active strict run"
@@ -105,6 +122,9 @@ def decision(payload, root):
     strict = state.get("strictRouting")
     if strict is not None and not isinstance(strict, bool):
         return False, "Autopilot strictRouting flag is malformed"
+    forged = forged_run(state, root)
+    if forged:
+        return False, forged
     # Opt-in safeguard, active only during strict Autopilot flights.
     if not strict or state.get("finishedAt"):
         return True, "No active strict run"
@@ -178,7 +198,7 @@ def decision(payload, root):
                     (not effort_enforced or r.get("effort") == effort)]
         if len(matching) != 1:
             return False, "Executor does not match an approved Autopilot task"
-        status = gate_sign.run_status(state)
+        status = gate_sign.run_status(state, root)
         if status != "unsigned":
             if gate_sign.load_key() is None:
                 return False, gate_sign.MISSING_KEY_MESSAGE

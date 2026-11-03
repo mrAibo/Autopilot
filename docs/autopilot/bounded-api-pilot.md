@@ -55,7 +55,7 @@ Use a separate OpenAI API credential in the *process environment*
 a PR or a Git-tracked file. The first read-only command uses no tokens:
 
 ```powershell
-py -3.13 skills/autopilot/tools/bounded_api_pilot.py --root TEMP_FIXTURE --ticket 01
+py -3 skills/autopilot/tools/bounded_api_pilot.py --root TEMP_FIXTURE --ticket 01
 ```
 
 Only when the environment and **specific synthetic task** are approved,

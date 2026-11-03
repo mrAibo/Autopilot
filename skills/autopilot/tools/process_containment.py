@@ -155,8 +155,10 @@ def run_contained(cmd, *, timeout, env=None, cwd=None):
             job.assign(proc)
             out, err = proc.communicate(timeout=timeout)
         except BaseException as exc:
-            job.terminate()
-            proc.kill()
+            try:
+                job.terminate()
+            finally:  # a failed terminate must not leave the child running
+                proc.kill()
             try:
                 out, err = proc.communicate(timeout=5)
             except subprocess.TimeoutExpired:      # a descendant escaped and holds the pipe

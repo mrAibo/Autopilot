@@ -66,8 +66,8 @@ normally checks out a shallow history, so run this explicitly on a full
 developer checkout):
 
 ```powershell
-py -3.13 tools/benchmark-r06.py --repeat 5 --output r06-fresh.json
-py -3.13 -m unittest discover -s tests -p test_r06_benchmark.py -v
+py -3 tools/benchmark-r06.py --repeat 5 --output r06-fresh.json
+py -3 -m unittest discover -s tests -p test_r06_benchmark.py -v
 ```
 
 The script reads committed source from the two Git revisions, prepares

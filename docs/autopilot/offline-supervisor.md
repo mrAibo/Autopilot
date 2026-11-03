@@ -26,16 +26,16 @@ tasks and does not generate provider usage tokens.
 
 ~~~powershell
 # Preview; read-only, does not create a receipt:
-py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --fixture calc-add
+py -3 .autopilot/offline_supervisor.py --root . --ticket 01 --fixture calc-add
 
 # Explicit one-shot offline operation; no AI calls:
-py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --fixture calc-add --execute --approve-offline-ticket 01
+py -3 .autopilot/offline_supervisor.py --root . --ticket 01 --fixture calc-add --execute --approve-offline-ticket 01
 
 # From a second shell while the supervisor is running:
-py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --cancel
+py -3 .autopilot/offline_supervisor.py --root . --ticket 01 --cancel
 
 # Reconcile by reading the saved receipt; never trusts a stale PID:
-py -3.13 .autopilot/offline_supervisor.py --root . --ticket 01 --status
+py -3 .autopilot/offline_supervisor.py --root . --ticket 01 --status
 ~~~
 
 A receipt is created with exclusive create + fsync **before** process

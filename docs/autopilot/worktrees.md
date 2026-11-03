@@ -188,7 +188,7 @@ python .autopilot/worktrees.py create 03 --root . --base HEAD
 python .autopilot/worktrees.py status 03 --root .
 
 # The orchestrator serializes integration, verifies tests and lands ONE commit:
-python .autopilot/worktrees.py land 03 --root . --base <base-commit-SHA>
+python .autopilot/worktrees.py land 03 --root . --base <base-commit-SHA> --zone <path>
 
 # Only after verifying the landed change, explicitly discard detached source:
 python .autopilot/worktrees.py remove 03 --root . --acknowledge-loss

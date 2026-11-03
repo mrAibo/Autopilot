@@ -14,10 +14,10 @@ Ponytail ([upstream](https://github.com/DietrichGebert/ponytail)) encourages und
 
 ```powershell
 # Baseline (unchanged default)
-py -3.13 .autopilot/codex_dispatch.py 01 --root . --optimization off
+py -3 .autopilot/codex_dispatch.py 01 --root . --optimization off
 
 # Lean instructions (still a dry run unless --execute is added)
-py -3.13 .autopilot/codex_dispatch.py 01 --root . --optimization lean
+py -3 .autopilot/codex_dispatch.py 01 --root . --optimization lean
 ```
 
 The lean rules ask the worker to understand relevant code/callers, reuse installed mechanisms and stdlib, make only the needed maintainable diff, and **never omit tests, validation, security, accessibility or error handling to save tokens**. The active mode appears in the dry-run JSON. There are no extra dependencies, network downloads or global Claude/Codex settings changed.

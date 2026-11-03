@@ -36,7 +36,7 @@ before the live call.
 After Phase 0 has copied `spend_guard.py` into `.autopilot`:
 
 ```powershell
-py -3.13 .autopilot/spend_guard.py --root . --ticket 01
+py -3 .autopilot/spend_guard.py --root . --ticket 01
 ```
 
 This inspects the local `.autopilot/state.js` usage ledger and

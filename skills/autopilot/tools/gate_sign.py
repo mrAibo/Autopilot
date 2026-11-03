@@ -24,8 +24,9 @@ def key_path():
 def ensure_key():
     """Create the key (0600) if absent. Only `init --strict-routing` calls this."""
     path = key_path()
-    if not path.exists():
+    if not path.exists() or path.stat().st_size == 0:  # an empty key would sign nothing
         path.parent.mkdir(parents=True, exist_ok=True)
+        path.unlink(missing_ok=True)
         try:
             fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         except FileExistsError:
@@ -68,19 +69,60 @@ def evidence_payload(ticket_id, evidence):
     return {"ticket": ticket_id, "evidence": {k: v for k, v in evidence.items() if k != "sig"}}
 
 
+def _run_id(state):
+    # No `dir`: finish renames it (drops --wip) and that must not break the mark.
+    return "%s|%s" % (state.get("slug"), state.get("startedAt"))
+
+
 def run_mark(state):
     """Signed marker that this run was started signed (stored as state["gateMark"])."""
-    return sign({"run": state.get("dir"), "startedAt": state.get("startedAt")})
+    return sign({"run": _run_id(state)})
 
 
-def run_status(state):
-    """signed | unsigned (pre-signing run, no key on this machine) | forged | downgraded.
+def record_path(root):
+    """Out-of-project record that a run was started signed: <home>/runs/<hash of the real root>.
 
-    A key on this machine plus a strict run without a valid marker is a downgrade
-    (someone removed it from state.js), never a pre-signing run.
+    A moved or renamed project hashes differently: its record is not found and the
+    run reads as unsigned (never forged); the owner re-inits to sign again.
+    """
+    real = os.path.normcase(os.path.realpath(root))
+    return key_path().parent / "runs" / hashlib.sha256(real.encode("utf-8")).hexdigest()
+
+
+def write_run_record(root, state):
+    """Record (or update) `slug|startedAt` and finished-ness for a signed run. Needs the key."""
+    path = record_path(root)
+    body = {"run": _run_id(state), "finished": bool(state.get("finishedAt"))}
+    body["sig"] = sign(body)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(body), encoding="utf-8")  # shortcut: not atomic, a torn file reads as forged
+
+
+def remove_run_record(root):
+    record_path(root).unlink(missing_ok=True)
+
+
+def run_status(state, root=None):
+    """signed | unsigned | forged.
+
+    With `root` the record outside the project decides: no record is unsigned; a record
+    the state disagrees with (strict off, mark missing/wrong, other run, finished without
+    a finish record) is forged. Without `root` (or without a key) only the in-state
+    mark counts.
     """
     mark = state.get("gateMark")
-    if mark is None:
-        return "downgraded" if state.get("strictRouting") and load_key() else "unsigned"
-    ok = verify({"run": state.get("dir"), "startedAt": state.get("startedAt")}, mark)
-    return "signed" if ok else "forged"
+    mark_ok = mark is not None and verify({"run": _run_id(state)}, mark)
+    if root is None or load_key() is None:
+        return "unsigned" if mark is None else ("signed" if mark_ok else "forged")
+    try:
+        record = json.loads(record_path(root).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return "unsigned"
+    except (OSError, ValueError):
+        return "forged"
+    if not isinstance(record, dict) or not verify(record, record.get("sig")):
+        return "forged"
+    agrees = (state.get("strictRouting") is True and mark_ok
+              and record.get("run") == _run_id(state)
+              and record.get("finished") is bool(state.get("finishedAt")))
+    return "signed" if agrees else "forged"

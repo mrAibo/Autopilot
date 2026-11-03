@@ -66,6 +66,12 @@ def normalize_model_name(name):
     return re.sub(r"-v\d+(:\d+)?$", "", value)
 
 
+def is_premium_model(name):
+    """Premium family anywhere in the raw or normalized name (`claude-opus-4/haiku` hides it from the latter)."""
+    raw = str(name).casefold()
+    return any(f in raw or f in normalize_model_name(name) for f in PREMIUM_FAMILIES)
+
+
 def is_allowed_subagent_model(name, policy=None):
     """True only for haiku/sonnet families that no policy list restricts.
 
@@ -74,7 +80,7 @@ def is_allowed_subagent_model(name, policy=None):
     if not isinstance(name, str) or not name.strip():
         return False
     normalized = normalize_model_name(name)
-    if any(family in normalized for family in PREMIUM_FAMILIES):
+    if is_premium_model(name):
         return False
     denied = [m.casefold() for m in (policy or DEFAULT_POLICY).get("restricted", {}).get("anthropic", [])]
     if name.strip().casefold() in denied or normalized in denied:
@@ -233,8 +239,7 @@ def choose_route(provider, scores, policy=None, capabilities=None):
     denied += [m.casefold() for m in denied_names]
     restricted = (model.lower() in denied or
                   (provider == "openai" and model.lower().startswith("gpt-6-astra")) or
-                  (provider == "anthropic" and any(
-                      family in normalize_model_name(model) for family in PREMIUM_FAMILIES)))
+                  (provider == "anthropic" and is_premium_model(model)))
     if restricted and policy.get("allow_restricted_subagents") is not True:
         raise PolicyError("restricted model %s may not run as a subagent" % model)
     parallel = policy.get("max_parallel", 2)

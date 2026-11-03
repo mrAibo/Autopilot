@@ -6,6 +6,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "autopilot" / "tools"))
 import process_containment
@@ -48,6 +49,22 @@ class RunContainedTests(unittest.TestCase):
             process_containment.run_contained(
                 [sys.executable, "-c", "import time; time.sleep(60)"], timeout=1)
         self.assertLess(time.monotonic() - started, 20)
+
+    def test_failing_terminate_still_kills_the_child_and_keeps_the_timeout_in_the_chain(self):
+        procs, real_popen = [], subprocess.Popen
+
+        def spy(*args, **kwargs):
+            procs.append(real_popen(*args, **kwargs))
+            return procs[-1]
+
+        boom = process_containment.ContainmentError("boom")
+        with mock.patch.object(process_containment.subprocess, "Popen", spy), \
+                mock.patch.object(process_containment.OwnedJob, "terminate", side_effect=boom),                 mock.patch.object(process_containment.OwnedJob, "close"):  # Job close would kill it on Windows
+            with self.assertRaises(process_containment.ContainmentError) as caught:
+                process_containment.run_contained(
+                    [sys.executable, "-c", "import time; time.sleep(60)"], timeout=1)
+        self.assertIsNotNone(procs[0].wait(timeout=10), "child survived a failing terminate")
+        self.assertIsInstance(caught.exception.__context__, subprocess.TimeoutExpired)
 
     @unittest.skipUnless(os.name == "posix" and os.path.isdir("/proc"),
                          "grandchild liveness check uses POSIX /proc")

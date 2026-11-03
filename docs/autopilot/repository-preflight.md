@@ -5,10 +5,10 @@ isolated ticket worktree, especially when attaching Autopilot to **any existing
 project**. It is not a migration tool and does not change project source.
 
 ```powershell
-py -3.13 C:\path\to\Autopilot\skills\autopilot\tools\repo_doctor.py --root C:\path\to\project
+py -3 C:\path\to\Autopilot\skills\autopilot\tools\repo_doctor.py --root C:\path\to\project
 ```
 
-Or, from the Autopilot checkout, invoke `py -3.13 skills/autopilot/tools/repo_doctor.py --root <repository-root>`.
+Or, from the Autopilot checkout, invoke `py -3 skills/autopilot/tools/repo_doctor.py --root <repository-root>`.
 
 The command produces JSON (exit 0 for basic Git readiness, exit 2 when blocked)
 and does **not** create state, run tests, start agents, stage changes, stash,

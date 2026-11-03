@@ -319,7 +319,8 @@ class SubagentAllowlistTests(unittest.TestCase):
         "vertex_ai/claude-opus-4-1@20250805", "opusplan", " OPUS ",
         "fable", "claude-fable-5", "us.anthropic.claude-fable-5-v1:0",
         "inherit", "", "   ", "gpt-6-luna", "some-host-model", "claude", "sonnet-opus",
-        "claude-sonnet-4-5; opus", None, 5)
+        "claude-sonnet-4-5; opus", None, 5,
+        "claude-opus-4-1/haiku", "anthropic.opus/sonnet", "bedrock/claude-fable-5/sonnet")
     ALLOWED = (
         "haiku", "sonnet", "Haiku", "SONNET", "claude-haiku-5-5", "claude-sonnet-4-5",
         "claude-sonnet-4-5-20250929", "claude-3-5-haiku-20241022", "claude-3-haiku",
@@ -348,6 +349,14 @@ class SubagentAllowlistTests(unittest.TestCase):
                          "claude-opus-4-1-20250805")
         self.assertEqual(router.normalize_model_name("vertex_ai/claude-sonnet-4@20250929"),
                          "claude-sonnet-4")
+
+    def test_route_refuses_opus_hidden_before_a_slash(self):
+        for model in ("claude-opus-4-1/haiku", "anthropic.opus/sonnet"):
+            with self.subTest(model=model):
+                policy = router.load_policy()
+                policy["providers"]["anthropic"]["cheap"] = {"model": model, "effort": "low"}
+                with self.assertRaises(router.PolicyError):
+                    router.choose_route("anthropic", {n: 0 for n in router.WEIGHTS}, policy=policy)
 
     def test_route_refuses_bedrock_style_opus(self):
         policy = router.load_policy()

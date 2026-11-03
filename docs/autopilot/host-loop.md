@@ -17,13 +17,13 @@ only after checking any local modifications; do not reinitialize the run.
 
 ```powershell
 # Shows the next allowed transition. No controller lock, no write.
-py -3.13 .autopilot/host_loop.py --root .
+py -3 .autopilot/host_loop.py --root .
 
 # Explicitly run at most eight host-side transitions, then stop.
-py -3.13 .autopilot/host_loop.py --root . --advance
+py -3 .autopilot/host_loop.py --root . --advance
 
 # Trust only specifically approved baseline-tracked unittest files.
-py -3.13 .autopilot/host_loop.py --root . --advance --max-steps 8 --suite 01=test_core.py --suite 02=test_bot.py
+py -3 .autopilot/host_loop.py --root . --advance --max-steps 8 --suite 01=test_core.py --suite 02=test_bot.py
 ```
 
 `--max-steps` ranges from 1 to 32. Each transition rechecks live Git/state

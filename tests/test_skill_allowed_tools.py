@@ -5,9 +5,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "autopilot" / "SKILL.md"
-DOC_FILES = ("README.md", "README.ru.md", "README.de.md",
-             "docs/autopilot/gui-clients.md", "docs/autopilot/worktrees.md",
-             "docs/autopilot/controller.md", "docs/autopilot/model-routing.md")
+
+
+def doc_files():
+    """README×3, every docs/autopilot page and every markdown under skills/ — not a hand-kept list."""
+    found = {ROOT / n for n in ("README.md", "README.ru.md", "README.de.md")}
+    found.update((ROOT / "docs" / "autopilot").glob("*.md"))
+    found.update((ROOT / "skills").rglob("*.md"))
+    return sorted(found)
 
 
 def frontmatter_lines():
@@ -42,6 +47,25 @@ class SkillAllowedToolsTests(unittest.TestCase):
     def test_no_wildcard_bash_rule(self):
         self.assertNotIn("Bash(*)", self.rules())
 
+    def test_doc_scan_covers_every_docs_page_and_the_resume_phase(self):
+        names = {p.relative_to(ROOT).as_posix() for p in doc_files()}
+        self.assertGreaterEqual(len(names), 20)
+        self.assertIn("docs/autopilot/sequential-host.md", names)
+        self.assertIn("skills/autopilot/phases/0-resume.md", names)
+
+    def test_worktrees_land_example_names_the_zone(self):
+        text = (ROOT / "docs" / "autopilot" / "worktrees.md").read_text(encoding="utf-8")
+        lands = [l for l in text.splitlines() if "worktrees.py land" in l]
+        self.assertTrue(lands)
+        for line in lands:
+            self.assertIn("--zone", line)
+
+    def test_claude_code_doc_states_key_per_machine_and_run_record_per_project(self):
+        text = (ROOT / "docs" / "autopilot" / "claude-code.md").read_text(encoding="utf-8")
+        for needle in ("belongs to the machine", "belongs to the project", "runs/<sha256",
+                       "moved or renamed", "reads as unsigned", "rewrite or delete the record"):
+            self.assertIn(needle, text)
+
     def test_every_documented_launch_is_covered_by_a_rule(self):
         rules = set(self.rules())
         # Both scripts under all three launchers must be pre-approved.
@@ -49,8 +73,9 @@ class SkillAllowedToolsTests(unittest.TestCase):
             for launcher in ("python", "python3", "py -3"):
                 self.assertIn("Bash(%s .autopilot/%s *)" % (launcher, script), rules)
         launch = re.compile(r"\b(python3?|py -3(?:\.\d+)?)\s+(\.autopilot/(?:ap|controller)\.py)\b")
-        for name in DOC_FILES:
-            text = (ROOT / name).read_text(encoding="utf-8")
+        for path in doc_files():
+            name = path.relative_to(ROOT).as_posix()
+            text = path.read_text(encoding="utf-8")
             self.assertNotIn("py -3.13", text, name)
             for launcher, script in launch.findall(text):
                 with self.subTest(doc=name, launch=launcher + " " + script):

@@ -9,7 +9,7 @@ language adapter, independent of any other application.
 From the target project's Git root, after its ticket is prepared and started:
 
 ```powershell
-py -3.13 .autopilot/ap.py worktree 01 verify --suite cargo:smoke --timeout 120 --no-serve
+py -3 .autopilot/ap.py worktree 01 verify --suite cargo:smoke --timeout 120 --no-serve
 ```
 
 Here `smoke` is a **fixed test target name**, not an executable command or a

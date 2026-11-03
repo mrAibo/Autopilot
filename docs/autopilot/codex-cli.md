@@ -48,7 +48,7 @@ failed CLI turns and usage/accounting uncertainty do **not** qualify.
 For a read-only diagnosis in an existing run (no model call or Git writes):
 
 ```powershell
-py -3.13 .autopilot/worker_outcome.py --root . --ticket 01
+py -3 .autopilot/worker_outcome.py --root . --ticket 01
 ```
 
 Both the normal GUI bridge and direct CLI remain **blocked from new

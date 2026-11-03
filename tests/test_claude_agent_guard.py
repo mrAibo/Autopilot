@@ -74,11 +74,54 @@ class HookGuardTests(unittest.TestCase):
         self.addCleanup(home.cleanup)
         with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
             gate_sign.ensure_key()
+            gate_sign.write_run_record(self.root, self.state)  # init --strict-routing wrote it
             self.state["tickets"][0]["id"] = "01"  # strictRouting run, key exists, no marker
             self.save()
             ok, why = guard.decision(self.payload(), self.root)
             self.assertFalse(ok)
             self.assertIn("marker", why)
+
+    def signed_run(self):
+        """Key + record like a real `init --strict-routing`; returns the env patch to enter."""
+        import gate_sign
+        from unittest import mock
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        env = mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name})
+        env.start()
+        self.addCleanup(env.stop)
+        gate_sign.ensure_key()
+        self.state.update(slug="s", startedAt="t0")
+        self.state["gateMark"] = gate_sign.run_mark(self.state)
+        gate_sign.write_run_record(self.root, self.state)
+        route = self.state["tickets"][0]["routing"]
+        self.state["tickets"][0]["id"] = "01"
+        route["sig"] = gate_sign.sign(gate_sign.routing_payload("01", route))
+        self.save()
+
+    def test_record_mismatch_is_denied_before_the_no_active_run_shortcut(self):
+        self.signed_run()
+        self.assertTrue(guard.decision(self.payload(), self.root)[0])  # honest signed run
+        for edit in ({"strictRouting": False}, {"finishedAt": "2026-11-03"}):
+            with self.subTest(edit=edit):
+                state = dict(self.state, **edit)
+                (self.ap / "state.js").write_text("window.STATE = " + json.dumps(state), encoding="utf-8")
+                ok, why = guard.decision(self.payload(), self.root)
+                self.assertFalse(ok)
+                self.assertIn("marker", why)
+                ok, why = self.write(self.root / ".autopilot" / "state.js")
+                self.assertFalse(ok)
+                self.assertIn("marker", why)
+
+    def test_is_protected_ignores_case_of_autopilot_and_claude_dirs(self):
+        from unittest import mock
+        # POSIX normcase keeps case; macOS and Windows file systems do not distinguish it.
+        with mock.patch("os.path.normcase", side_effect=lambda p: p):
+            for rel in (".Autopilot/state.js", ".AUTOPILOT/ATTESTATIONS.jsonl", ".Autopilot/AP.py",
+                        ".CLAUDE/settings.json", ".Claude/Settings.local.json", ".claude/Agents/x.md"):
+                with self.subTest(rel=rel):
+                    self.assertTrue(guard.is_protected(rel, str(self.root)))
+            self.assertFalse(guard.is_protected("src/.Autopilot/state.js", str(self.root)))
 
     def test_other_files_and_finished_or_non_strict_runs_are_writable(self):
         self.assertTrue(self.write(self.root / "src" / "app.py")[0])
@@ -110,6 +153,7 @@ class HookGuardTests(unittest.TestCase):
             self.assertEqual(guard.decision(self.payload(), self.root)[1], gate_sign.MISSING_KEY_MESSAGE)
             gate_sign.ensure_key()
             self.state["gateMark"] = gate_sign.run_mark(self.state)
+            gate_sign.write_run_record(self.root, self.state)
             self.save()
             self.assertIn("signature", guard.decision(self.payload(), self.root)[1])  # no sig yet
             route = self.state["tickets"][0]["routing"]

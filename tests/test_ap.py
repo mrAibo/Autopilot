@@ -5,6 +5,7 @@
 как оркестратор — отдельным процессом, без сервера (--no-serve).
 """
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -822,6 +823,111 @@ class Run(unittest.TestCase):
         st["tickets"][0]["routing"].pop("sig", None)
         with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
             f.write("window.STATE = " + json.dumps(st))
+
+    # ── out-of-project run record (B02) ────────────────────────────────────
+    def edit_state(self, **changes):
+        st = self.state()
+        st.update(changes)
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE = " + json.dumps(st))
+
+    def record_file(self):
+        digest = hashlib.sha256(os.path.normcase(os.path.realpath(self.root)).encode("utf-8")).hexdigest()
+        return os.path.join(self.home, "runs", digest)
+
+    def test_strict_init_writes_signed_record_outside_the_project(self):
+        self.routed_ticket()
+        record = json.loads(read(self.record_file()))
+        st = self.state()
+        self.assertEqual(record["run"], "%s|%s" % (st["slug"], st["startedAt"]))
+        self.assertIs(record["finished"], False)
+        self.assertTrue(gate_sign.verify(record, record["sig"]))
+        self.assertFalse(os.path.exists(os.path.join(self.a, "runs")))
+
+    def test_non_strict_init_and_sequential_switch_drop_the_record(self):
+        self.init(strict=True)
+        self.assertTrue(os.path.isfile(self.record_file()))
+        self.assertEqual(self.ap("execution", "sequential-host")[0], 0)
+        self.assertFalse(os.path.exists(self.record_file()))
+        self.assertEqual(self.ap("tickets")[0], 0)  # the switched run is not read as forged
+        self.assertEqual(self.ap("init", "--slug", "again", "--force", "--strict-routing")[0], 0)
+        self.assertTrue(os.path.isfile(self.record_file()))
+        self.assertEqual(self.ap("init", "--slug", "plain", "--force")[0], 0)
+        self.assertFalse(os.path.exists(self.record_file()))
+
+    def test_state_with_strict_switched_off_is_forged_when_the_record_says_signed(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.edit_state(strictRouting=False)  # keeps the mark and the route signature
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("маркер подписи", out)
+        self.assertNotEqual(self.state()["tickets"][0]["status"], "done")
+
+    def test_finished_state_without_a_finish_record_is_forged(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.edit_state(finishedAt="2026-11-03T00:00:00Z")
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("маркер подписи", out)
+
+    def test_old_unsigned_run_is_not_stopped_by_a_key_made_for_another_project(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.strip_signing()  # a run from before signing: strict, no mark, no sig ...
+        os.remove(self.record_file())  # ... and no record; the key exists (another project made it)
+        self.assertTrue(os.path.isfile(os.path.join(self.home, "gate.key")))
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        self.assertIn("без подписи гейтов", out)
+
+    def test_moved_project_reads_as_unsigned_not_forged(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        os.rename(self.record_file(), os.path.join(self.home, "runs", "old-location"))
+        code, out = self.finish_01()  # hash of the new root finds nothing
+        self.assertEqual(code, 0, out)
+        self.assertIn("без подписи гейтов", out)
+        self.assertNotIn("маркер подписи", out)
+
+    def test_run_stays_signed_after_the_wip_folder_is_renamed(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        old = self.state()["dir"]
+        new = old[:-len("--wip")]
+        os.rename(os.path.join(self.a, old), os.path.join(self.a, new))
+        self.edit_state(dir=new)  # what `finish` does to the folder
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("без подписи гейтов", out)
+
+    def test_strict_finish_and_reopen_keep_the_record_in_step(self):
+        self.routed_ticket()
+        self.attest_routes()
+        self.assertEqual(self.finish_01()[0], 0)
+        caps = os.path.join(self.a, "model-capabilities.json")
+        self.assertEqual(self.ap("ticket", "02", "route", "--provider", "anthropic", "--model", "haiku",
+                                 "--effort", "low", "--reason", "simple", "--capabilities", caps)[0], 0)
+        self.assertEqual(self.ap("ticket", "02", "start")[0], 0)
+        self.attest_routes()
+        code, out = self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", self.commit("T02"))
+        self.assertEqual(code, 0, out)
+        self.ap("stage", "spec")
+        self.ap("coverage", "found=0", "fixed=0", "deferred=0")
+        self.ap("check-plan")
+        self.ap("tests", "5/0")
+        self.ap("blind", "checked=4", "matched=4")
+        self.git("add", "-A")
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
+        code, out = self.ap("finish", "--result", "готово")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(self.state()["dir"].endswith("--wip"))
+        self.assertIs(json.loads(read(self.record_file()))["finished"], True)
+        self.assertEqual(gate_sign.run_status(self.state(), self.root), "signed")
+        self.assertEqual(self.ap("reopen")[0], 0)
+        self.assertIs(json.loads(read(self.record_file()))["finished"], False)
+        self.assertEqual(gate_sign.run_status(self.state(), self.root), "signed")
 
     def test_legacy_run_without_mark_and_key_is_accepted_with_warning(self):
         agent = self.routed_ticket()

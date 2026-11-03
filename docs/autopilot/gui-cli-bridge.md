@@ -21,14 +21,14 @@ From **that project's root**:
 
 ```powershell
 # Safe: read-only preview, no dispatch, no receipt, no charge.
-py -3.13 .autopilot/gui_bridge.py --root . --ticket 01
+py -3 .autopilot/gui_bridge.py --root . --ticket 01
 
 # Read-only host metadata check. This also never calls a model.
-py -3.13 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
+py -3 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
 
 # After a separately verified, independently host-tested worker output,
 # the controller can apply one authorized Git/state transition.
-py -3.13 .autopilot/controller.py --root . --suite test_calc.py --advance
+py -3 .autopilot/controller.py --root . --suite test_calc.py --advance
 ```
 
 **Execution is presently disabled on purpose.** The bridge and the underlying
@@ -53,7 +53,7 @@ to invoke a model. A wall-clock timeout cannot bound token usage.
 For an existing, prepared isolated ticket:
 
 ~~~powershell
-py -3.13 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
+py -3 .autopilot/gui_bridge.py --root . --ticket 01 --check-runtime --timeout 90
 ~~~
 
 The doctor performs the normal receipt-free ticket/profile/worktree and

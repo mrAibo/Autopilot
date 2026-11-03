@@ -929,6 +929,9 @@ def cmd_init(opt):
     state = fresh_state(opt)
     if state["gateSigned"]:
         state["gateMark"] = _gs().run_mark(state)
+        write_run_record(state)
+    else:
+        drop_run_record()
     try:  # версия навыка для шапки дашборда; нечитаемый SKILL.md — просто без неё
         v = _version(open(os.path.join(state["skillDir"] or "", "SKILL.md"), encoding="utf-8").read())
         if v:
@@ -979,6 +982,7 @@ def cmd_execution(state, pos, opt):
     if os.path.isdir(worktree_dir) and os.listdir(worktree_dir):
         die("execution: существуют worktrees — сначала разберись с ними")
     state["strictRouting"] = False
+    drop_run_record()
     state["sequentialHost"] = True
     state["isolateTickets"] = True
     if isinstance(state.get("waiting"), dict) and state["waiting"].get("kind") == "stop":
@@ -1123,12 +1127,36 @@ def _gs():
     return gate_sign
 
 
+def write_run_record(state):
+    """Record outside the project that this run started signed (see gate_sign.record_path)."""
+    try:
+        _gs().write_run_record(ROOT, state)
+    except (ValueError, OSError) as exc:
+        die("не удалось записать признак подписанного прогона: %s" % exc)
+
+
+def drop_run_record():
+    """A run that is not strict has nothing to protect; a stale record would read as forged."""
+    try:
+        _gs().remove_run_record(ROOT)
+    except ImportError:  # plain harness without gate_sign: it never wrote a record
+        pass
+    except OSError as exc:
+        die("не удалось убрать признак подписанного прогона: %s" % exc)
+
+
+def sync_run_record(state):
+    """finish/reopen of a signed run update its record; no record (old or moved run) means nothing to do."""
+    if state.get("gateMark") is not None and os.path.exists(_gs().record_path(ROOT)):
+        write_run_record(state)
+
+
 def gate_signed(state):
-    """True for a run started signed; a stripped or forged marker stops, never warns."""
+    """True for a run started signed; a forged state (vs the record outside the project) stops, never warns."""
     if state.get("gateMark") is not None and _gs().load_key() is None:
         die(_gs().MISSING_KEY_MESSAGE)
-    status = _gs().run_status(state)
-    if status in ("downgraded", "forged"):
+    status = _gs().run_status(state, ROOT)
+    if status == "forged":
         die("маркер подписи прогона отсутствует или неверен (state.js правили без ключа); "
             "запусти init заново или восстанови ~/.autopilot/gate.key")
     return status == "signed"
@@ -2173,6 +2201,8 @@ def cmd_ask(state, pos, opt):
 
 
 def cmd_finish(state, opt):
+    if state.get("gateMark") is not None:
+        gate_signed(state)  # never re-sign the record over a forged state
     pending_blockers = [b["id"] for b in blocker_ledger(state)
                         if b["status"] == "open"]
     if pending_blockers:
@@ -2253,12 +2283,15 @@ def cmd_finish(state, opt):
     state["finishedAt"] = t
     state["result"] = opt.get("result") if isinstance(opt.get("result"), str) else None
     register_row(state, "сдан", state["result"])
+    sync_run_record(state)
     log(state, "finish", result=state["result"])
     return notes
 
 
 def cmd_reopen(state):
     """Второй бриф в сданном прогоне: фазы 1–8 идут заново, прежние таски остаются."""
+    if state.get("gateMark") is not None:
+        gate_signed(state)
     if any(t.get("worktree") and t["worktree"].get("status") != "released"
            for t in state.get("tickets") or []):
         die("reopen заблокирован: незавершённые или неосвобождённые worktrees")
@@ -2275,6 +2308,7 @@ def cmd_reopen(state):
     stage(state, "manifest").update(status="active", startedAt=now())
     state["result"] = None
     state["gates"] = {}
+    sync_run_record(state)
     register_row(state, "в работе", None)
     log(state, "reopen")
 
