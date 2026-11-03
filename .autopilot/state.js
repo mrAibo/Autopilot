@@ -16,7 +16,7 @@ window.STATE =
   "skillDir": "/home/user/Autopilot/skills/autopilot",
   "baseCommit": null,
   "startedAt": "2026-11-03T16:24:15+00:00",
-  "updatedAt": "2026-11-03T16:25:03+00:00",
+  "updatedAt": "2026-11-03T16:26:05+00:00",
   "finishedAt": null,
   "stages": [
     {
@@ -33,12 +33,14 @@ window.STATE =
     },
     {
       "id": "briefing",
-      "status": "active",
-      "startedAt": "2026-11-03T16:24:47+00:00"
+      "status": "done",
+      "startedAt": "2026-11-03T16:24:47+00:00",
+      "finishedAt": "2026-11-03T16:26:05+00:00"
     },
     {
       "id": "spec",
-      "status": "pending"
+      "status": "active",
+      "startedAt": "2026-11-03T16:26:05+00:00"
     },
     {
       "id": "plan",
@@ -85,15 +87,19 @@ window.STATE =
     "2026-11-03T16:24:27+00:00",
     "2026-11-03T16:24:42+00:00",
     "2026-11-03T16:24:47+00:00",
-    "2026-11-03T16:25:03+00:00"
+    "2026-11-03T16:25:03+00:00",
+    "2026-11-03T16:26:04+00:00",
+    "2026-11-03T16:26:05+00:00"
   ],
-  "rev": 6,
-  "waiting": {
-    "kind": "briefing",
-    "since": "2026-11-03T16:25:03+00:00",
-    "note": "два вопроса по подписи гейтов (R17, R05): где хранить ключ и что делать со старыми прогонами"
-  },
-  "waits": [],
+  "rev": 8,
+  "waiting": null,
+  "waits": [
+    {
+      "kind": "briefing",
+      "from": "2026-11-03T16:25:03+00:00",
+      "to": "2026-11-03T16:26:04+00:00"
+    }
+  ],
   "log": [
     {
       "t": "2026-11-03T16:24:15+00:00",
@@ -116,6 +122,25 @@ window.STATE =
       "k": "ask",
       "kind": "briefing",
       "note": "два вопроса по подписи гейтов (R17, R05): где хранить ключ и что делать со старыми прогонами"
+    },
+    {
+      "t": "2026-11-03T16:26:04+00:00",
+      "k": "answered",
+      "kind": "briefing"
+    },
+    {
+      "t": "2026-11-03T16:26:05+00:00",
+      "k": "gate",
+      "g": "G1",
+      "ok": false,
+      "open": 18,
+      "total": 18
+    },
+    {
+      "t": "2026-11-03T16:26:05+00:00",
+      "k": "stage",
+      "id": "spec",
+      "act": "start"
     }
   ],
   "reqList": [
@@ -210,7 +235,14 @@ window.STATE =
       "status": "open"
     }
   ],
-  "gates": {},
+  "gates": {
+    "G1": {
+      "ok": false,
+      "at": "2026-11-03T16:26:05+00:00",
+      "open": 18,
+      "total": 18
+    }
+  },
   "result": null,
   "skillVersion": "2.6.0"
 }
