@@ -14,9 +14,9 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "/home/user/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "aea02cc",
   "startedAt": "2026-11-03T16:24:15+00:00",
-  "updatedAt": "2026-11-03T16:33:13+00:00",
+  "updatedAt": "2026-11-03T16:33:19+00:00",
   "finishedAt": null,
   "stages": [
     {
@@ -295,10 +295,15 @@ window.STATE =
     "2026-11-03T16:31:00+00:00",
     "2026-11-03T16:31:57+00:00",
     "2026-11-03T16:32:53+00:00",
-    "2026-11-03T16:33:13+00:00"
+    "2026-11-03T16:33:13+00:00",
+    "2026-11-03T16:33:19+00:00"
   ],
-  "rev": 18,
-  "waiting": null,
+  "rev": 20,
+  "waiting": {
+    "kind": "stop",
+    "since": "2026-11-03T16:33:19+00:00",
+    "note": "выбор режима исполнения: strict (нужен новый чат на вашей машине) или sequential-host (здесь, по одному таску)"
+  },
   "waits": [
     {
       "kind": "briefing",
@@ -408,6 +413,12 @@ window.STATE =
       "applied": false,
       "tickets": 3,
       "blocked": 3
+    },
+    {
+      "t": "2026-11-03T16:33:19+00:00",
+      "k": "ask",
+      "kind": "stop",
+      "note": "выбор режима исполнения: strict (нужен новый чат на вашей машине) или sequential-host (здесь, по одному таску)"
     }
   ],
   "reqList": [
