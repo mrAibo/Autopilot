@@ -158,6 +158,20 @@ class TemplateRuns(unittest.TestCase):
         self.assertIn("Built it", page("summary", "finished"))
         self.assertIn("class=\"spotlight\"", page("classic"))
 
+    def test_overview_shows_at_least_as_much_text_as_classic_and_no_duplicate_ids(self):
+        def text(html):
+            return len(" ".join(re.sub(r"<[^>]*>", " ", html).split()))
+        for name in ("empty", "running", "finished"):
+            for lang in ("ru", "en"):
+                over = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
+                classic = self.out["renders"]["%s/classic/%s" % (name, lang)]["html"]
+                with self.subTest(fixture=name, lang=lang):
+                    self.assertGreaterEqual(
+                        text(over), text(classic),
+                        "overview text %d chars, classic %d" % (text(over), text(classic)))
+                    for block in ("mission", "tasks", "models", "quality"):
+                        self.assertEqual(over.count(' id="%s"' % block), 1, block)
+
     def test_selected_view_is_stored_unknown_and_denied_storage_give_overview(self):
         self.assertEqual(self.out["stored"], {"none": "overview", "saved": "timeline",
                                               "bogus": "overview", "denied": "overview"})

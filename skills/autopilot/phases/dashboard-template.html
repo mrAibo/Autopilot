@@ -1179,9 +1179,10 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 const VIEWS = {
   overview: c => `
   <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
-  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}</div>
-  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.tasksCard}${c.reqSummary}</div>
-    <div id="quality" class="col" tabindex="-1">${c.gatesCard}${c.feedView}</div></div>`,
+  ${c.tiles}${c.trackCard}
+  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.resourceBlock}${c.isolationBlock}</div>
+  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.tasksCard}${c.reqSummary}${c.leftCol.join('')}</div>
+    <div id="quality" class="col" tabindex="-1">${c.rightCol.join('') || c.feedView}</div></div>`,
   timeline: c => `
   <div id="mission" class="vsec" tabindex="-1">${c.trackCard}</div>
   <div id="tasks" class="vsec" tabindex="-1">${c.timelineCard}</div>
