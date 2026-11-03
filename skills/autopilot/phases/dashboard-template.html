@@ -597,6 +597,221 @@
     .brandmark{width:28px;height:28px}
   }
 
+  /* Dashboard 3.3: палитра макетов. Рубильник — атрибут data-view на корне (его ставит render()):
+     «Классика» атрибута-исключения не получает и остаётся в прежних цветах. */
+  :root[data-view]:not([data-view="classic"]){
+    --bg:#EDF4F0; --card:#FFFFFF; --line:#D6E4DC; --line2:#C3D6CB;
+    --tx:#0F2A22; --tx2:#3F5A50; --mut:#5A7268; --quiet:#5A7268;
+    --done:#0A7D5A; --done-soft:#DDF3EA; --done-tx:#075E44; --on-done:#FFFFFF;
+    --now:#E8742A; --now-soft:#FDEBDD; --now-tx:#A8470F; --now-on:#2A1405; --hatch:#F6A56B;
+    --rev:#1B6FB8; --rev-soft:#E1EFFB; --rev-tx:#145A96; --on-rev:#FFFFFF;
+    --warn-bg:#FDF1E6; --warn-bd:#F0C9A6; --warn-tx:#7A3A0C;
+    --bad:#B42318; --bad-tx:#B42318; --bad-soft:#FDECEA; --on-bad:#FFFFFF;
+    --inset:#F3F8F5; --soft:#E3EDE7; --idle:#8FA89C; --accent:#0A7D5A;
+    --sh:0 1px 2px rgba(15,42,34,.05); --sh-raised:none;
+  }
+  :root[data-theme="dark"][data-view]:not([data-view="classic"]){
+    --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
+    --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
+    --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
+    --now:#FB923C; --now-soft:#4A2508; --now-tx:#FDBA74; --now-on:#1A0D06; --hatch:#D9742A;
+    --rev:#60A5FA; --rev-soft:#12294A; --rev-tx:#93C5FD; --on-rev:#0B1B33;
+    --warn-bg:#2A1A0B; --warn-bd:#6B4A12; --warn-tx:#FCD34D;
+    --bad:#F97066; --bad-tx:#F97066; --bad-soft:#3A1512; --on-bad:#3A1512;
+    --inset:#18243D; --soft:#1F2D4A; --idle:#566A8F; --accent:#34D399;
+    --sh:none; --sh-raised:none;
+  }
+  @media(prefers-color-scheme:dark){
+    :root:not([data-theme])[data-view]:not([data-view="classic"]){
+      --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
+      --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
+      --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
+      --now:#FB923C; --now-soft:#4A2508; --now-tx:#FDBA74; --now-on:#1A0D06; --hatch:#D9742A;
+      --rev:#60A5FA; --rev-soft:#12294A; --rev-tx:#93C5FD; --on-rev:#0B1B33;
+      --warn-bg:#2A1A0B; --warn-bd:#6B4A12; --warn-tx:#FCD34D;
+      --bad:#F97066; --bad-tx:#F97066; --bad-soft:#3A1512; --on-bad:#3A1512;
+      --inset:#18243D; --soft:#1F2D4A; --idle:#566A8F; --accent:#34D399;
+      --sh:none; --sh-raised:none;
+    }
+  }
+  /* Общие блоки в новой палитре — только вне «Классики». */
+  html:not([data-view="classic"]) :focus-visible{outline-color:var(--tx)}
+  html:not([data-view="classic"]) .card{border-radius:22px;box-shadow:var(--sh)}
+  html:not([data-view="classic"]) .title:before{color:var(--done-tx)}
+  html:not([data-view="classic"]) .brand-version{background:var(--done-soft);color:var(--done-tx)}
+  html:not([data-view="classic"]) .f-done,html:not([data-view="classic"]) .gi.ok{color:var(--on-done)}
+  html:not([data-view="classic"]) .f-rev{color:var(--on-rev)}
+  html:not([data-view="classic"]) .f-bad,html:not([data-view="classic"]) .gi.bad{color:var(--on-bad)}
+  html:not([data-view="classic"]) .tabs{border-color:var(--line);box-shadow:none}
+  html:not([data-view="classic"]) .tabs button,html:not([data-view="classic"]) .iconbtn{min-height:44px;min-width:44px}
+  html:not([data-view="classic"]) .iconbtn{width:44px;height:44px;box-shadow:none}
+  /* Шапка состояния у «Итога»: карточка в палитре вместо синего градиента. */
+  html:not([data-view="classic"]) .hero{--h-tx:var(--tx);--h-mut:var(--tx2);--h-track:var(--soft);
+    background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:var(--sh)}
+  html:not([data-view="classic"]) .hero:before{display:none}
+  html:not([data-view="classic"]) .hero.ask{background:var(--warn-bg);border-color:var(--warn-bd);--h-tx:var(--warn-tx);--h-mut:var(--warn-tx)}
+  html:not([data-view="classic"]) .hero.won{background:var(--done-soft);--h-tx:var(--done-tx);--h-mut:var(--done-tx)}
+  html:not([data-view="classic"]) .hero.bad{background:var(--bad-soft);--h-tx:var(--bad-tx);--h-mut:var(--bad-tx)}
+  html:not([data-view="classic"]) .hero .s-done .seg i,html:not([data-view="classic"]) .hero.won .s-done .seg i,
+  html:not([data-view="classic"]) .hero.bad .s-done .seg i,html:not([data-view="classic"]) .hero.ask .s-done .seg i{background:var(--done)}
+  html:not([data-view="classic"]) .hero .s-now .seg i,html:not([data-view="classic"]) .hero.ask .s-now .seg i{background-color:var(--now)}
+  html:not([data-view="classic"]) .hero .s-fail .seg i{background:var(--bad)}
+  html:not([data-view="classic"]) .hero .live{outline-color:var(--card)}
+  .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
+
+  /* Переключатель видов: цель нажатия не меньше 44 px, «нажато» — ещё и галочкой, не только цветом. */
+  .views button{min-height:44px;height:44px}
+  .views button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
+
+  /* «Обзор» */
+  .ovh{display:flex;flex-wrap:wrap;align-items:center;gap:28px 36px;padding:32px 34px;border-radius:28px}
+  .ring{--rs:210px;width:var(--rs);height:var(--rs);border-radius:50%;flex:none;display:grid;place-items:center}
+  .ring-in{width:76%;height:76%;border-radius:50%;background:var(--card);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:6px}
+  .ring-in b{font-size:calc(var(--rs) * .21);font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .ring-in b small{font-size:.55em;font-weight:600;color:var(--mut)}
+  .ring-in span{font-size:13px;color:var(--tx2);margin-top:6px;max-width:12ch;line-height:1.25}
+  .ring.sm{--rs:116px}
+  .ring.sm .ring-in span{font-size:11px;margin-top:3px}
+  .ovh-main{flex:1 1 400px;min-width:0}
+  .chip-state{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;
+    background:var(--now-soft);color:var(--now-tx)}
+  .chip-state i{width:8px;height:8px;border-radius:50%;background:var(--now);flex:none}
+  .ask .chip-state{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+  .won .chip-state{background:var(--done-soft);color:var(--done-tx)}
+  .won .chip-state i{background:var(--done)}
+  .bad .chip-state{background:var(--bad-soft);color:var(--bad-tx)}
+  .bad .chip-state i{background:var(--bad)}
+  .ovh h2{margin:14px 0 10px;font-size:clamp(26px,3vw,40px);line-height:1.1;font-weight:800;letter-spacing:-.02em;
+    text-wrap:balance;overflow-wrap:anywhere}
+  .ovh .lead{margin:0;font-size:17px;line-height:1.5;color:var(--tx2);max-width:64ch}
+  .ovh .hint{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+  .evnote{margin-top:16px;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--tx2);
+    background:var(--inset);border-radius:14px;padding:12px 14px;max-width:660px}
+  .evnote .mono{color:var(--tx);font-weight:500;flex:none}
+  .ovh-side{flex:0 1 290px;min-width:240px;display:flex;flex-direction:column;gap:14px}
+  .fc{display:flex;flex-direction:column;gap:2px}
+  .fc-k{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  .fc-v{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+  .fc-s{font-size:13px;color:var(--tx2)}
+  .kvs{display:flex;flex-direction:column;gap:6px;font-size:14px;border-top:1px solid var(--line);padding-top:12px}
+  .kv{display:flex;justify-content:space-between;gap:12px}
+  .kv span{color:var(--tx2)}
+  .kv b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+  .route{list-style:none;margin:0;padding:22px 28px 20px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));
+    background:var(--card);border:1px solid var(--line);border-radius:22px}
+  .rs{min-width:0;padding-right:6px}
+  .rs-top{display:flex;align-items:center;min-height:28px}
+  .rs-mark{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center}
+  .rs-line{flex:1;height:3px}
+  .rs.done .rs-mark{background:var(--done);color:var(--on-done)}
+  .rs.done .rs-line{background:var(--done)}
+  .rs.now .rs-mark{width:28px;height:28px;background:var(--now-soft);border:3px solid var(--now)}
+  .rs.now .rs-mark i{width:8px;height:8px;border-radius:50%;background:var(--now);display:block}
+  .rs.now .rs-line{background:repeating-linear-gradient(90deg,var(--now) 0 8px,var(--now-soft) 8px 14px)}
+  .rs.pend .rs-mark,.rs.skip .rs-mark{border:2px dashed var(--idle);color:var(--mut)}
+  .rs.pend .rs-line,.rs.skip .rs-line{background:var(--line)}
+  .rs.bad .rs-mark{background:var(--bad);color:var(--on-bad)}
+  .rs.bad .rs-line{background:var(--bad)}
+  .rs:last-child .rs-line{display:none}
+  .rs-name{display:block;margin-top:6px;font-size:13px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+  .rs.now .rs-name{font-weight:800;color:var(--now-tx)}
+  .rs.pend .rs-name,.rs.skip .rs-name{color:var(--mut)}
+  .rs-sub{display:block;font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);overflow-wrap:anywhere}
+  .rs.now .rs-sub{color:var(--now-tx)}
+
+  /* Диаграмма Ганта */
+  .gx{--cols:260px minmax(0,1fr) 150px;position:relative}
+  .gx-axis,.gx-row{display:grid;grid-template-columns:var(--cols);column-gap:12px}
+  .gx-axis{height:40px;border-bottom:1px solid var(--line)}
+  .gx-ticks{position:relative}
+  .gx-ticks span{position:absolute;bottom:6px;transform:translateX(-50%);font:11px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);white-space:nowrap}
+  .gx-ticks .gx-nowtag{bottom:auto;top:0;background:var(--now-tx);color:var(--card);border-radius:5px;padding:3px 7px;font-weight:700;z-index:3}
+  .gx-row{min-height:60px;align-items:center;border-bottom:1px solid var(--line)}
+  .gx-lab{display:flex;gap:12px;align-items:center;min-width:0}
+  .gx-lab>div{min-width:0}
+  .gx-lab b{display:block;font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+  .gx-lab small{display:block;font-size:12px;color:var(--mut);margin-top:2px}
+  .gx-id{font:13px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);width:24px;flex:none}
+  .gx-lane{position:relative;height:36px}
+  .gx-grid{position:absolute;top:-12px;bottom:-12px;width:1px;background:var(--line)}
+  .gx-nowline{position:absolute;top:-12px;bottom:-12px;width:2px;margin-left:-1px;background:var(--now-tx);z-index:2}
+  .gx-bar,.gx-tail{position:absolute;top:4px;height:28px;border-radius:8px;display:flex;align-items:center;gap:6px;
+    padding:0 9px;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;z-index:1}
+  .gx-done{background:var(--done);color:var(--on-done)}
+  .gx-now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px);color:var(--now-on)}
+  .gx-rev,.gx-fix{background:var(--rev-soft);color:var(--rev-tx);box-shadow:inset 0 0 0 2px var(--rev)}
+  .gx-bad{background:var(--bad);color:var(--on-bad)}
+  .gx-wait{box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2);background:var(--card);
+    background-image:repeating-linear-gradient(90deg,var(--card) 0 5px,transparent 5px 9px)}
+  .gx-tail{border:1.5px dashed var(--now);color:var(--now-tx);font-weight:600;font-size:12px}
+  .gx-mdl{min-width:0}
+  .mchip{display:inline-block;font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);
+    border-radius:7px;padding:2px 8px;background:var(--inset);color:var(--tx2);overflow-wrap:anywhere}
+  .gx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--tx2);justify-content:flex-end;max-width:520px}
+  .gx-legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:18px;height:11px;border-radius:3px;display:inline-block}
+  .sw-done{background:var(--done)}
+  .sw-now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px)}
+  .sw-rev{background:var(--rev-soft);box-shadow:inset 0 0 0 2px var(--rev)}
+  .sw-wait{border:1.5px dashed var(--idle)}
+  .gx.mini{--cols:minmax(0,1fr)}
+  .gx.mini .gx-pad,.gx.mini .gx-mdl{display:none}
+  .gx.mini .gx-row{min-height:0;padding:10px 0;row-gap:6px}
+  .gx.mini .gx-lab b{flex:1}
+  .gx.mini .gx-grid,.gx.mini .gx-nowline{top:0;bottom:0}
+  .gx.mini .gx-lane{height:30px;background:var(--inset);border-radius:8px}
+  .gx.mini .gx-bar,.gx.mini .gx-tail{top:3px;height:24px;font-size:12px;padding:0 6px}
+  .gx.mini+.gx-legend{justify-content:flex-start;margin-top:12px}
+
+  .ov3{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.9fr);gap:16px;align-items:start;scroll-margin-top:18px}
+  .ov3>.col:empty{display:none}
+  .ask-card>.card{background:var(--warn-bg);border-color:var(--warn-bd)}
+  .ask-card .wt,.ask-card .nh,.ask-card .nh span{color:var(--warn-tx)}
+  .ask-card .key{background:var(--card);border:1px solid var(--warn-bd)}
+
+  /* «Компактный» */
+  .cmp{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .cmp-hero{padding:20px}
+  .cmp-top{display:flex;align-items:center;gap:18px}
+  .cmp-side{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .cmp-hero .fc-v{font-size:34px}
+  .cmp-hero h2{margin:16px 0 0;font-size:20px;line-height:1.2;font-weight:800;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .cmp-hero .evnote{margin-top:14px;font-size:13px}
+  .ctiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+  .ctile{background:var(--inset);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .ctile span{font-size:12px;color:var(--mut)}
+  .ctile b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .cs-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap;font-size:15px}
+  .cs-sub{font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--now-tx)}
+  .cs-bar{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin:12px 0 10px}
+  .cs-bar i{height:10px;border-radius:4px;background:var(--soft)}
+  .cs-bar i.done{background:var(--done)}
+  .cs-bar i.now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px)}
+  .cs-bar i.bad{background:var(--bad)}
+  .cs-bar i.pend,.cs-bar i.skip{background:transparent;box-shadow:inset 0 0 0 1.5px var(--idle)}
+  .gchips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .gchip{padding:9px 12px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.3;background:var(--done-soft);color:var(--done-tx);overflow-wrap:anywhere}
+  .gchip.wait{background:transparent;box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2)}
+  .gchip.warn{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+
+  @media(max-width:1180px){.ov3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ov3>.col:last-child{grid-column:1/-1}}
+  @media(max-width:900px){
+    .ovh{padding:22px 20px;gap:20px}
+    .ring{--rs:170px}
+    .ovh-side{flex:1 1 100%}
+    .route{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 0;padding:18px 16px}
+    .gx{--cols:minmax(0,1fr)}
+    .gx-pad,.gx-mdl{display:none}
+    .gx-row{min-height:0;padding:10px 0;row-gap:6px}
+    .gx-lane{background:var(--inset);border-radius:8px}
+    .gx-grid,.gx-nowline{top:0;bottom:0}
+  }
+  @media(max-width:760px){.ov3{grid-template-columns:minmax(0,1fr)}}
+  @media(max-width:560px){.route{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:520px){.ctile b{font-size:15px}.cmp-hero{padding:16px}}
+  @media(max-width:360px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gchips{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -678,15 +893,18 @@ function applyTheme(t){
 
 // Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
 const VIEW_KEY = 'autopilot-view';
-const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','focus','quality'];
+const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','compact','quality'];
 // Какой пункт рейки подсвечен в теме: якорь её главного блока (в рейке он подписан названием темы).
 const VIEW_HOME = {overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
-  summary:'quality', classic:'mission', focus:'mission', quality:'quality'};
+  summary:'quality', classic:'mission', compact:'mission', quality:'quality'};
 function storedView(){
   try {
-    const v = localStorage.getItem(VIEW_KEY);
-    return VIEW_IDS.includes(v) ? v : VIEW_IDS[0];
-  } catch(e) { return VIEW_IDS[0]; }
+    let v = localStorage.getItem(VIEW_KEY);
+    if (v === 'focus') v = 'compact';  // до переименования «Фокус» хранился как focus
+    if (VIEW_IDS.includes(v)) return v;
+  } catch(e) {}
+  // Выбора нет: в узкой панели рядом с чатом — компактный вид, иначе первый (обзор).
+  return window.innerWidth > 0 && window.innerWidth <= 520 ? 'compact' : VIEW_IDS[0];
 }
 let VIEW = storedView();
 
@@ -804,14 +1022,19 @@ const I18N = {
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
     viewLabel:"Вид",
-    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",focus:"Фокус",quality:"Качество"},
+    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
       tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",tTimeline:"Таймлайн тасков",
       tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
       tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
       cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
-      notDone:"Сборка ещё не сдана — итог появится в конце."}},
+      notDone:"Сборка ещё не сдана — итог появится в конце.",
+      ringCap:"требований закрыто",ringNone:"требований пока нет",toEnd:"До конца",likely:"вероятно",till:"до",
+      kAgents:"Агентов работает",kTime:"Рабочее время",going:"идёт",waited:n=>`+ ${n} мин ждали вас`,
+      tGantt:"Ход сборки по времени",gSub:"Настоящие длительности; ждущие таски — пунктиром, после тех, от кого зависят",
+      lgPlan:"ждёт · прогноз",nowTag:"сейчас",after:l=>`после ${l.join(' ')}`,
+      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены"}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -910,14 +1133,19 @@ const I18N = {
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
     viewLabel:"View",
-    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",focus:"Focus",quality:"Quality"},
+    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
       tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",tTimeline:"Task timeline",
       tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
       tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
       cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
-      notDone:"The build is not done yet — the summary appears at the end."}}
+      notDone:"The build is not done yet — the summary appears at the end.",
+      ringCap:"requirements closed",ringNone:"no requirements yet",toEnd:"To go",likely:"likely",till:"by",
+      kAgents:"Agents working",kTime:"Work time",going:"running",waited:n=>`+ ${n} min waiting on you`,
+      tGantt:"Build timeline",gSub:"Real durations; waiting tickets are dashed, placed after the ones they depend on",
+      lgPlan:"waiting · forecast",nowTag:"now",after:l=>`after ${l.join(' ')}`,
+      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed"}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1180,13 +1408,16 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Функция только склеивает строки: STATE не читает и в DOM не пишет.
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
-  // Трек этапов — в hero, требования — в плитке, таски — одним списком по волнам (buildCard): блоки не повторяются.
+  // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки), модели внизу.
+  // Все карточки «Классики» остаются (тест); расход, рабочие копии и повторы — в блоке моделей и в шапке.
   overview: c => `
-  <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
-  ${c.tiles}
-  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.resourceBlock}${c.isolationBlock}</div>
-  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.buildCard || c.tasksEmpty}${c.leftCol.filter(x => x !== c.buildCard).join('')}</div>
-    <div id="quality" class="col" tabindex="-1">${c.rightCol.join('') || c.feedView}</div></div>`,
+  <div id="mission" class="vsec" tabindex="-1">${c.ovHero}</div>
+  ${c.route}
+  <div id="tasks" class="vsec" tabindex="-1">${c.gantt}${c.buildCard || c.tasksEmpty}</div>
+  <div id="quality" class="ov3" tabindex="-1"><div class="col">${c.wordsCard}${c.extras}</div>
+    <div class="col">${c.feedView}</div>
+    <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>
+  <div id="models" class="vsec" tabindex="-1">${c.resourceBlock}${c.isolationBlock}</div>`,
   timeline: c => `
   <div id="mission" class="vsec" tabindex="-1">${c.trackCard}</div>
   <div id="tasks" class="vsec" tabindex="-1">${c.timelineCard}</div>
@@ -1201,10 +1432,11 @@ const VIEWS = {
   ${c.tiles}
   <div id="quality" class="cols" tabindex="-1"><div class="col">${c.summaryCard}${c.blindCard}${c.reportCard}${c.concernsCard}</div>
     <div class="col">${c.debtCard}${c.addCard}</div></div>`,
-  focus: c => `
-  <div id="mission" class="spotlight one" tabindex="-1">${c.hero}</div>
-  <div id="tasks" class="vsec" tabindex="-1">${c.activeCard}${c.waitingCard}</div>
-  <div id="quality" class="vsec" tabindex="-1">${c.feedView}</div>`,
+  // Узкая панель: одна колонка, то же главное — кольцо, прогноз, фраза, плитки, полоса этапов, мини-Гант.
+  compact: c => `
+  <div class="cmp"><div id="mission" class="vsec" tabindex="-1">${c.cHero}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.cstrip}${c.miniGantt || c.tasksEmpty}</div>
+  <div id="quality" class="vsec" tabindex="-1">${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.gchips}${c.feedCompact}</div></div>`,
   quality: c => `
   <div id="quality" class="cols" tabindex="-1"><div class="col">${c.gatesCard}${c.blindView}${c.reviewView}</div>
     <div class="col">${c.wordsView}${c.debtCard}</div></div>`,
@@ -1770,12 +2002,129 @@ function render(lang){
   const summaryCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tSummary}</h3></div>${fin ? '' : `<p class="muted">${W.notDone}</p>`}${
     checks.map(([name, ok]) => `<div class="req"><p>${name}</p><span class="pill ${ok ? 'p-done' : 'p-mut'}">${ok ? W.have : (fin ? W.none : W.empty)}</span></div>`).join('')}</section>`;
 
+  // ——— Обзор и Компактный: кольцо, прогноз, маршрут этапов, диаграмма Ганта ———
+  // Блок без данных не рисуется. Прогноз — только когда есть готовые таски с началом и концом (median).
+  const fmtK = n => n >= 1000 ? Math.round(n / 1000) + 'k' : String(n);
+  const ringHTML = cls => {
+    const a = live ? Math.min(100, rk.done / live * 100) : 0, b = live ? Math.min(100 - a, rk.work / live * 100) : 0;
+    const label = live ? `${rk.done} ${L.of} ${live} ${W.ringCap}` : W.ringNone;
+    return `<div class="ring${cls}" role="img" aria-label="${esc(label)}" style="background:conic-gradient(var(--done) 0 ${a.toFixed(1)}%,var(--now) ${a.toFixed(1)}% ${(a + b).toFixed(1)}%,var(--line) ${(a + b).toFixed(1)}% 100%)"><div class="ring-in"><b>${live ? `${rk.done}<small> / ${live}</small>` : '—'}</b><span>${live ? W.ringCap : W.ringNone}</span></div></div>`;
+  };
+  const fore = eta && median ? {v: fmtDur(Math.round(left)),
+    range: eta[1] < 60 ? `${eta[0]}–${eta[1]} ${L.min}` : `${fmtDur(eta[0])} — ${fmtDur(eta[1])}`,
+    by: hhmm(new Date(Date.now() + left * 60000))} : null;
+  const foreBlock = fore
+    ? `<div class="fc"><span class="fc-k">${W.toEnd}</span><b class="fc-v">≈ ${fore.v}</b><span class="fc-s">${W.likely} ${fore.range}, ${W.till} ${fore.by}</span></div>`
+    : waiting ? `<div class="fc"><span class="fc-k">${L.waitState}</span><b class="fc-v"><span data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span></b><span class="fc-s">${L.waitBig}</span></div>` : '';
+  const lastEv = feedEvents.slice().reverse().map(e => [e, evText(e)]).find(x => x[1]);
+  const evNote = lastEv ? `<div class="evnote"><span class="mono">${hhmm(lastEv[0].t)}</span><span>${esc(lastEv[1])}</span></div>` : '';
+  const chipState = `<span class="chip-state"><i aria-hidden="true"></i>${esc(stateLine.replace(/<[^>]*>/g, ''))}</span>`;
+  const testsVal = tests ? `${esc(tests.passed)} · ${tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}` : '';
+  const timeVal = S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '';
+  const tokVal = usageEvents.length ? fmtK(countedTokens) : '';
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  const stats = [T.length ? kv(W.kAgents, activeWorkers.length) : '', testsVal && kv(L.tTests, testsVal), timeVal && kv(W.kTime, timeVal),
+    tokVal && kv(W.kTokens, tokVal + (budget ? ` ${L.of} ${fmtK(budget)}` : ''))].filter(Boolean).join('');
+  const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
+    <div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}${evNote}</div>
+    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
+  const ctile = (k, v) => `<div class="ctile"><span>${k}</span><b>${v}</b></div>`;
+  const ctiles = [testsVal && ctile(L.tTests, testsVal), timeVal && ctile(W.kTime, timeVal), tokVal && ctile(W.kTokens, tokVal)].filter(Boolean);
+  const cHero = `<section class="card cmp-hero w ${heroCls}" aria-live="polite"><div class="cmp-top">${ringHTML(' sm')}
+    <div class="cmp-side">${chipState}${foreBlock}</div></div><h2>${h2}</h2>${evNote}${ctiles.length ? `<div class="ctiles">${ctiles.join('')}</div>` : ''}</section>`;
+
+  // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
+  const rsInfo = s => {
+    if (s.status === 'done') {
+      const a = toMs(s.startedAt), b = toMs(s.finishedAt), w = a != null && b != null ? Math.round(waitedIn(a, b) / 60000) : 0;
+      return {cls: 'done', mark: ic('check', 'xs'), sub: a != null && b != null
+        ? `${Math.max(1, Math.round((activeMs(s.startedAt, s.finishedAt) || 0) / 60000))} ${L.min}${w >= 1 ? ' ' + W.waited(w) : ''}` : '—'};
+    }
+    if (s.status === 'active') return {cls: 'now', mark: '<i></i>',
+      sub: (waiting ? L.waitingSt : s.startedAt ? timerHTML(s.startedAt, null) : '—') + ' · ' + W.going};
+    if (s.status === 'failed') return {cls: 'bad', mark: ic('x', 'xs'), sub: L.failedSt};
+    if (s.status === 'skipped') return {cls: 'skip', mark: ic('chev', 'xs'), sub: L.skipped};
+    return {cls: 'pend', mark: '', sub: L.ahead};
+  };
+  const route = `<ol class="route">${stages.map(s => { const r = rsInfo(s);
+    return `<li class="rs ${r.cls}"><div class="rs-top"><span class="rs-mark">${r.mark}</span><span class="rs-line"></span></div><b class="rs-name">${esc(stName(s))}</b><span class="rs-sub">${r.sub}</span></li>`; }).join('')}</ol>`;
+  const curSt = activeStage || failedStage || stages.find(s => s.status === 'pending') || stages[stages.length - 1];
+  const curNo = stages.indexOf(curSt) + 1;
+  const stageOf = esc(W.cStage(curNo, stages.length, stName(curSt)));
+  const nextNames = stages.slice(curNo).filter(s => s.status === 'pending').slice(0, 2).map(stName);
+  const cstrip = `<section class="card w"><div class="cstrip"><div class="cs-head"><b>${stageOf}</b><span class="cs-sub">${rsInfo(curSt).sub}</span></div>
+    <div class="cs-bar" role="img" aria-label="${stageOf}">${stages.map(s => `<i class="${rsInfo(s).cls}"></i>`).join('')}</div>
+    ${nextNames.length ? `<p class="muted">${esc(W.cNext(nextNames.join(' → ')))}</p>` : fin ? `<p class="muted">${W.cDone}</p>` : ''}</div></section>`;
+
+  // Диаграмма Ганта: настоящие отрезки по startedAt/finishedAt; ждущие таски — пунктиром после тех, от кого зависят.
+  const GT = 60000, gNow = Date.now(), placed = {};
+  const place = (t, seen) => {
+    if (t.id in placed) return placed[t.id];
+    const a0 = toMs(t.startedAt), f0 = toMs(t.finishedAt);
+    let r = null;
+    if (t.status !== 'pending' && a0 != null) {
+      r = {a: a0, b: Math.max(f0 ?? gNow, a0), est: false,
+        tail: f0 == null && t.status === 'in-progress' && median ? Math.max(0, leftFor(t)) * GT : 0};
+    } else if (t.status === 'pending') {
+      const up = new Set(seen).add(t.id);
+      const ends = (t.blockedBy || []).filter(id => byId[id] && !up.has(id)).map(id => place(byId[id], up)).filter(Boolean).map(x => x.b + x.tail);
+      const a = Math.max(gNow, ...ends);
+      r = {a, b: a + (median || 10) * GT, tail: 0, est: true};
+    }
+    return placed[t.id] = r;
+  };
+  const gRows = T.slice().sort((x, y) => ((x.wave ?? 1) - (y.wave ?? 1)) || byTicketId(x, y))
+    .map(t => [t, place(t, new Set())]).filter(x => x[1]);
+  let gantt = '', miniGantt = '';
+  if (gRows.length) {
+    const gFrom = Math.min(...gRows.map(x => x[1].a), ...(fin ? [] : [gNow]));
+    const gTo = Math.max(...gRows.map(x => x[1].b + x[1].tail), ...(fin ? [] : [gNow]));
+    const gSpan = Math.max(gTo - gFrom, 10 * GT) * 1.02;
+    const pct = ms => ((ms - gFrom) / gSpan * 100).toFixed(2);
+    const step = [5, 10, 15, 30, 60, 120, 240, 720, 1440].map(m => m * GT).find(x => gSpan / x <= 7) || 1440 * GT;
+    const off = new Date(gFrom).getTimezoneOffset() * GT, ticks = [];
+    for (let x = Math.ceil((gFrom - off) / step) * step + off; x <= gFrom + gSpan && ticks.length < 12; x += step) ticks.push(x);
+    const grid = ticks.map(x => `<i class="gx-grid" style="left:${pct(x)}%"></i>`).join('')
+      + (fin ? '' : `<i class="gx-nowline" style="left:${pct(gNow)}%"></i>`);
+    const axis = `<div class="gx-axis"><span class="gx-pad"></span><div class="gx-ticks">${ticks.map(x => `<span style="left:${pct(x)}%">${hhmm(new Date(x))}</span>`).join('')}${
+      fin ? '' : `<span class="gx-nowtag" style="left:${pct(gNow)}%">${W.nowTag} ${hhmm(new Date(gNow))}</span>`}</div><span class="gx-pad"></span></div>`;
+    const gBar = (t, p, mini) => {
+      const k = p.est ? 'wait' : kindOf(t).k, left = pct(p.a), w = Math.max(1.4, pct(p.b) - left);
+      const m = t.status === 'done' && mins(t) ? mins(t) : Math.max(1, Math.round((p.b - p.a) / GT));
+      const dur = p.est ? (median ? `~${median} ${L.min}` : '') : `${m} ${L.min}`;
+      const tiny = mini && w < 14 && !p.est;  // узкий отрезок: только число минут, состояние — в плашке над ним
+      const label = tiny ? String(m) : mini ? (dur || L.chip.wait) : (w >= 14 || !dur) ? [L.chip[k], dur].filter(Boolean).join(' · ') : dur;
+      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${p.est || tiny ? '' : ic(kindOf(t).icon, 'xs')}${esc(label)}</span>`
+        + (p.tail ? `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%">~${Math.round(p.tail / GT)} ${L.min}</i>` : '');
+    };
+    const subOf = t => [L.wave(t.wave ?? 1), (t.blockedBy || []).length ? W.after(t.blockedBy) : ''].filter(Boolean).join(' · ');
+    const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
+      <div class="gx-lane">${grid}${gBar(t, p, false)}</div><div class="gx-mdl">${t.routing && t.routing.model
+        ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div></div>`;
+    const PILL = {done: 'p-done', now: 'p-now', rev: 'p-rev', fix: 'p-rev', bad: 'p-bad', wait: 'p-mut'};
+    const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILL[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
+      <div class="gx-lane">${grid}${gBar(t, p, true)}</div></div>`;
+    const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
+    gantt = `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
+      <div class="gx">${axis}${rowsList('gt', gRows.map(row), 12)}</div></section>`;
+    miniGantt = `<section class="card w"><div class="whead"><h3 class="wt">${W.tGantt}</h3></div>
+      <div class="gx mini">${axis}${rowsList('gtm', gRows.map(miniRow), 8)}</div>${legend}</section>`;
+  }
+  const gOk = g => G[g] && G[g].ok;
+  const gchips = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div><div class="gchips">${
+    ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}</span>`).join('')}</div></section>`;
+  const feedShort = feedEvents.slice(-5).reverse().map(feedRow).join('');
+  const feedCompact = feedShort ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3></div>${feedShort}</section>` : emptyCard(L.feed, W.empty);
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
   const leftCol = fin ? [needCard, blindCard, buildCard, wordsCard] : [wordsCard, needCard];
   const rightCol = fin ? [gatesCard, reportCard, asmCard, concernsCard, addCard, feedCard]
                     : [gatesCard, feedCard, reportCard, concernsCard, addCard];
+  // Остальные карточки «Классики» (слепая приёмка, отчёт, замечания…) — под «Твоими словами» в Обзоре.
+  const shown = [buildCard, wordsCard, feedCard, gatesCard, needCard];
+  const extras = leftCol.concat(rightCol).filter(x => x && !shown.includes(x)).join('');
   const when = S.startedAt ? (fin
     ? L.startedRange(new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}), hhmm(S.finishedAt))
     : L.started(new Date(S.startedAt).toDateString() === new Date().toDateString()
@@ -1783,6 +2132,7 @@ function render(lang){
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
   document.documentElement.lang = L.lang;
+  document.documentElement.setAttribute('data-view', VIEW);  // палитра макетов включается всем видам, кроме «Классики»
   const app = document.getElementById('app');
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
@@ -1798,7 +2148,8 @@ function render(lang){
     `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
   const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, timelineCard, feedAll, debtCard, routesCard, tokensCard,
-    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers});
+    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
+    ovHero, route, gantt, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.

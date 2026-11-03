@@ -11,12 +11,12 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "skills/autopilot/phases/dashboard-template.html"
 LOGO = ROOT / "assets/autopilot-logo-light.svg"
-VIEW_IDS = ["overview", "timeline", "requirements", "resources", "summary", "classic", "focus", "quality"]
+VIEW_IDS = ["overview", "timeline", "requirements", "resources", "summary", "classic", "compact", "quality"]
 NAMES = {"overview": "Overview", "timeline": "Timeline", "requirements": "Requirements", "resources": "Resources",
-         "summary": "Summary", "classic": "Classic", "focus": "Focus", "quality": "Quality"}
+         "summary": "Summary", "classic": "Classic", "compact": "Compact", "quality": "Quality"}
 # The rail link that stands for each theme (the anchor its main block carries).
 HOME = {"overview": "mission", "timeline": "tasks", "requirements": "quality", "resources": "models",
-        "summary": "quality", "classic": "mission", "focus": "mission", "quality": "quality"}
+        "summary": "quality", "classic": "mission", "compact": "mission", "quality": "quality"}
 NODE = shutil.which("node")
 
 # Runs the template's own <script> in a vm with a tiny DOM stub; prints JSON.
@@ -26,13 +26,13 @@ const html = fs.readFileSync(process.argv[2], 'utf8');
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const src = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1])
   .find(s => s.includes('const STAGE_IDS'));
-function env(state, store, denied) {
+function env(state, store, denied, width) {
   const app = {innerHTML: '', listeners: {}, classList: {add() {}, remove() {}},
     addEventListener(n, f) { this.listeners[n] = f; }, contains() { return false; },
     querySelectorAll() { return []; }};
   const doc = {getElementById: id => id === 'app' ? app : null, querySelectorAll: () => [],
     addEventListener() {}, createElement: () => ({remove() {}}), head: {appendChild() {}},
-    documentElement: {setAttribute() {}, removeAttribute() {}}, activeElement: null, title: ''};
+    documentElement: {attrs: {}, setAttribute(n, v) { this.attrs[n] = v; }, removeAttribute() {}}, activeElement: null, title: ''};
   const ls = {
     getItem: k => { if (denied) throw new Error('denied'); return k in store ? store[k] : null; },
     setItem: (k, v) => { if (denied) throw new Error('denied'); store[k] = String(v); },
@@ -41,6 +41,7 @@ function env(state, store, denied) {
     matchMedia: () => ({matches: false, addEventListener() {}}), setTimeout() { return 0; },
     clearTimeout() {}, setInterval() { return 0; }, addEventListener() {}, scrollTo() {}, scrollY: 0,
     STATE: state, Intl, Date, Math, JSON, console};
+  if (width) ctx.innerWidth = width;
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(src, ctx);
@@ -55,14 +56,17 @@ for (const [name, state] of Object.entries(input.fixtures)) {
     const key = name + '/' + id + '/' + lang;
     try {
       run(e, 'VIEW = ' + JSON.stringify(id) + '; render(' + JSON.stringify(lang) + ');');
-      out.renders[key] = {html: e.app.innerHTML};
+      out.renders[key] = {html: e.app.innerHTML, rootView: e.ctx.document.documentElement.attrs['data-view']};
     } catch (err) { out.renders[key] = {error: String(err && err.stack || err)}; }
   }
 }
-const probe = (store, denied) => run(env(input.fixtures.running, store, denied), 'storedView()');
+const probe = (store, denied, width) => run(env(input.fixtures.running, store, denied, width), 'storedView()');
 out.stored = {
   none: probe({}, false), saved: probe({'autopilot-view': 'timeline'}, false),
-  bogus: probe({'autopilot-view': 'bogus'}, false), denied: probe({}, true)};
+  bogus: probe({'autopilot-view': 'bogus'}, false), denied: probe({}, true),
+  narrow: probe({}, false, 440), narrowEdge: probe({}, false, 520), justWider: probe({}, false, 521),
+  narrowSaved: probe({'autopilot-view': 'timeline'}, false, 440), narrowDenied: probe({}, true, 440),
+  legacyFocus: probe({'autopilot-view': 'focus'}, false), legacyFocusNarrow: probe({'autopilot-view': 'focus'}, false, 1400)};
 const c = env(input.fixtures.running, {}, false);
 const press = view => c.app.listeners.click({target: {closest: () => ({dataset: {view}, hasAttribute: () => false})}});
 out.click.first = run(c, 'VIEW');
@@ -104,7 +108,7 @@ def _fixtures():
                "reqList": req_list, "gates": {"G1": {"ok": True, "total": 10}},
                "debt": {"emptyEnv": ["API_KEY"], "placeholders": ["a.py:3 - x"], "assumptions": ["y"]},
                "usageEvents": [{"input": 1000, "output": 200, "cacheRead": 5, "cacheWrite": 1}],
-               "budgetTokens": 5000, "skillVersion": "9.9"}
+               "tests": {"passed": 29, "failed": 0}, "budgetTokens": 5000, "skillVersion": "9.9"}
     done = dict(running, title="Finished build", finishedAt=t(40), result="Built it",
                 stages=[dict(s, status="done", finishedAt=t(30)) for s in stages + [{"id": "build", "startedAt": t(6)}]],
                 tickets=[dict(x, status="done", finishedAt=t(30)) for x in tickets],
@@ -112,7 +116,10 @@ def _fixtures():
                 blind={"matched": 9, "checked": 10, "mismatches": ["R03 - differs"]},
                 report=["q1"], concerns=["f.py:1 - note"], additions=["extra"],
                 gates={g: {"ok": True} for g in ("G1", "G2", "G3", "G4")})
-    return {"empty": empty, "running": running, "finished": done}
+    # nothing finished yet: no durations to forecast from
+    nodone = dict(running, title="Nothing done", tickets=[
+        dict(x, status="in-progress" if i == 0 else "pending", finishedAt=None) for i, x in enumerate(tickets)])
+    return {"empty": empty, "running": running, "finished": done, "nodone": nodone}
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -130,7 +137,7 @@ class TemplateRuns(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def test_every_view_renders_every_fixture_without_exceptions(self):
-        self.assertEqual(len(self.out["renders"]), 3 * len(VIEW_IDS) * 2)
+        self.assertEqual(len(self.out["renders"]), 4 * len(VIEW_IDS) * 2)
         for key, res in self.out["renders"].items():
             with self.subTest(key=key):
                 self.assertNotIn("error", res)
@@ -149,8 +156,7 @@ class TemplateRuns(unittest.TestCase):
 
     def test_views_show_the_composition_from_the_spec(self):
         page = lambda view, name="running": self.out["renders"]["%s/%s/en" % (name, view)]["html"]
-        for needle in ('class="hero', "Tokens", "Working now", "Worktrees", "Retries and repairs",
-                       'class="track"', "G1", "G4", "Requirements"):
+        for needle in ('class="ring"', 'class="route"', 'class="gx"', "G1", "G4", "Models & resources", "Retries: "):
             with self.subTest(view="overview", needle=needle):
                 self.assertIn(needle, page("overview"))
         self.assertIn("Task timeline", page("timeline"))
@@ -188,7 +194,7 @@ class TemplateRuns(unittest.TestCase):
             for lang in ("ru", "en"):
                 page = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
                 with self.subTest(fixture=name, lang=lang):
-                    self.assertLessEqual(page.count('class="track"'), 1)  # hero has it; no second stage card
+                    self.assertLessEqual(page.count('class="route"'), 1)  # one stage route; no second stage card
                     self.assertNotIn("Requirements summary", page)  # the requirements tile already says it
                     self.assertNotIn("Сводка требований", page)
                     heads = re.findall(r'<h3 class="wt">(.*?)</h3>', page)
@@ -223,11 +229,11 @@ class TemplateRuns(unittest.TestCase):
 
     def test_new_themes_compose_the_blocks_from_the_spec(self):
         page = lambda view, name="running", lang="en": self.out["renders"]["%s/%s/%s" % (name, view, lang)]["html"]
-        focus = page("focus")
-        for needle in ('class="hero', "In progress now", "Ticket 2", "Ticket 6", 'class="ev"'):
-            with self.subTest(view="focus", needle=needle):
+        focus = page("compact")
+        for needle in ('class="ring', "Ticket 2", "Ticket 6", 'class="ev"'):
+            with self.subTest(view="compact", needle=needle):
                 self.assertIn(needle, focus)
-        for tiled in ("<table", 'class="tiles"', "Models &amp; resources"):
+        for tiled in ("<table", 'class="tiles"', "Models & resources"):
             self.assertNotIn(tiled, focus)
         fin = page("quality", "finished")
         for needle in ("G1", "G4", "Blind acceptance", "R03", "Review notes", "Requirement 1", "Leftovers", 'data-filter="all"'):
@@ -235,7 +241,7 @@ class TemplateRuns(unittest.TestCase):
                 self.assertIn(needle, fin)
         for lang, text in (("en", "none yet"), ("ru", "ещё нет")):
             self.assertIn(text, page("quality", "empty", lang))
-            self.assertIn(text, page("focus", "empty", lang))
+            self.assertIn(text, page("compact", "empty", lang))
         rail = lambda html: re.findall(r'<a data-focus-key="nav-[a-z]+" href="#([a-z]+)"', html)
         self.assertEqual(rail(fin), ["quality"])  # only anchors this theme really has
         self.assertEqual(rail(focus), ["mission", "tasks", "quality"])
@@ -247,8 +253,9 @@ class TemplateRuns(unittest.TestCase):
                     self.assertLessEqual(res["html"].count(' id="%s"' % block), 1)
 
     def test_selected_view_is_stored_unknown_and_denied_storage_give_overview(self):
-        self.assertEqual(self.out["stored"], {"none": "overview", "saved": "timeline",
-                                              "bogus": "overview", "denied": "overview"})
+        stored = self.out["stored"]
+        self.assertEqual((stored["none"], stored["saved"], stored["bogus"], stored["denied"]),
+                         ("overview", "timeline", "overview", "overview"))
 
     def test_click_on_view_button_stores_and_rerenders(self):
         click = self.out["click"]
@@ -269,6 +276,66 @@ class TemplateRuns(unittest.TestCase):
                 for target in rail:
                     self.assertIn(target, ids)
 
+    def test_overview_has_ring_forecast_route_and_gantt(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
+        run = page("running")
+        ring = re.search(r'<div class="ring"[^>]*aria-label="([^"]*)"', run)
+        self.assertTrue(ring, "no ring")
+        for part in ("3", "10", "requirements closed"):
+            self.assertIn(part, ring.group(1))
+        self.assertIn("≈", run)  # tickets are done with start and finish times: a forecast exists
+        self.assertRegex(run, r"likely \d+–\d+ min")
+        route = re.search(r'<ol class="route">.*?</ol>', run, re.S).group(0)
+        self.assertEqual(route.count('<li class="rs '), 8)
+        self.assertIn("4 min", route)  # stage minutes
+        self.assertIn("ahead", route)
+        gantt = re.search(r'<div class="gx">.*', run, re.S).group(0)
+        bars = re.findall(r'<span class="gx-bar gx-(\w+)[^"]*"[^>]*>(.*?)</span>', gantt, re.S)
+        self.assertEqual({kind for kind, _ in bars}, {"done", "now", "rev", "fix", "bad", "wait"})
+        for kind, text in bars:  # every state has words, not only a colour
+            self.assertTrue(re.sub(r"<[^>]*>", "", text).strip(), kind)
+        self.assertIn('class="gx-nowline"', run)
+        ru = page("running", "ru")
+        self.assertIn("требований закрыто", ru)
+        self.assertRegex(ru, r"вероятно \d+–\d+ мин")
+
+    def test_forecast_needs_finished_tickets_with_times_and_empty_or_finished_builds_draw(self):
+        for name in ("nodone", "empty", "finished"):
+            for view in ("overview", "compact"):
+                with self.subTest(fixture=name, view=view):
+                    self.assertNotIn("≈", self.out["renders"]["%s/%s/en" % (name, view)]["html"])
+        empty = self.out["renders"]["empty/overview/en"]["html"]
+        self.assertNotIn('class="gx"', empty)  # no tickets, no chart
+        self.assertIn('class="ring"', empty)
+        self.assertIn("no requirements yet", empty)
+        fin = self.out["renders"]["finished/overview/en"]["html"]
+        self.assertIn("3", re.search(r'<div class="ring"[^>]*aria-label="([^"]*)"', fin).group(1))
+        self.assertNotIn("gx-bar gx-wait", fin)
+
+    def test_compact_is_one_column_with_the_blocks_from_the_spec(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/compact/%s" % (name, lang)]["html"]
+        run = page("running")
+        for needle in ('class="ring', "≈", 'class="ctile"', "Tests", "Work time", "Tokens", 'class="cstrip"',
+                       'class="gx mini"', "API_KEY", "G1", 'class="gchip', 'class="ev"', "Stage 6 of 8"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, run)
+        for banned in ('class="cols"', 'class="ov3"', "<table", 'class="tiles"', 'class="hero'):
+            self.assertNotIn(banned, run)
+        empty = page("empty")
+        self.assertNotIn('class="ctile"', empty)  # no data, no tile
+        self.assertNotIn('class="gx mini"', empty)
+        self.assertIn("Этап 6 из 8", page("running", "ru"))
+
+    def test_root_carries_the_view_so_the_palette_can_skip_classic(self):
+        for key, res in self.out["renders"].items():
+            self.assertEqual(res["rootView"], key.split("/")[1], key)
+
+    def test_narrow_window_defaults_to_compact_and_saved_choice_wins(self):
+        stored = self.out["stored"]
+        self.assertEqual((stored["narrow"], stored["narrowEdge"], stored["justWider"]), ("compact", "compact", "overview"))
+        self.assertEqual((stored["narrowSaved"], stored["narrowDenied"]), ("timeline", "compact"))
+        self.assertEqual((stored["legacyFocus"], stored["legacyFocusNarrow"]), ("compact", "compact"))
+
     def test_both_locales_have_same_keys_including_view_names(self):
         i18n = self.out["i18n"]
         for pair in i18n["top"], i18n["vw"], i18n["views"]:
@@ -284,7 +351,7 @@ class TemplateStrings(unittest.TestCase):
 
     def test_registry_and_storage_names(self):
         for text in ("const VIEW_KEY = 'autopilot-view'",
-                     "const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','focus','quality']",
+                     "const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','compact','quality']",
                      "function storedView()", "let VIEW = storedView()", "const VIEWS = {"):
             self.assertIn(text, self.html)
         for view in VIEW_IDS:
@@ -321,6 +388,68 @@ class TemplateStrings(unittest.TestCase):
         self.assertIn("${BRAND_SVG}", rail)
         self.assertNotIn(">A</span>", rail)
         self.assertNotIn(".png", self.html)
+
+    PALETTE = {  # role: (light, dark) from section 4 of the handoff
+        "bg": ("#EDF4F0", "#0B1220"), "card": ("#FFFFFF", "#121B2E"), "line": ("#D6E4DC", "#22304D"),
+        "tx": ("#0F2A22", "#E8EEF8"), "tx2": ("#3F5A50", "#C5D2E8"), "mut": ("#5A7268", "#9FB0CC"),
+        "done": ("#0A7D5A", "#34D399"), "done-soft": ("#DDF3EA", "#0F3D31"), "done-tx": ("#075E44", "#6EE7B7"),
+        "now": ("#E8742A", "#FB923C"), "now-soft": ("#FDEBDD", "#4A2508"), "now-tx": ("#A8470F", "#FDBA74"),
+        "rev": ("#1B6FB8", "#60A5FA"), "rev-soft": ("#E1EFFB", "#12294A"), "rev-tx": ("#145A96", "#93C5FD"),
+        "warn-bg": ("#FDF1E6", "#2A1A0B"), "warn-bd": ("#F0C9A6", "#6B4A12"), "warn-tx": ("#7A3A0C", "#FCD34D"),
+        "bad-tx": ("#B42318", "#F97066"), "bad-soft": ("#FDECEA", "#3A1512")}
+    SCOPE = ':root[data-view]:not([data-view="classic"])'
+    DARK_ATTR = ':root[data-theme="dark"][data-view]:not([data-view="classic"])'
+    DARK_AUTO = ':root:not([data-theme])[data-view]:not([data-view="classic"])'
+
+    def _palette(self, selector):
+        body = re.search(re.escape(selector) + r"\{([^}]*)\}", self.html)
+        self.assertTrue(body, selector)
+        return {k: v.upper() for k, v in re.findall(r"--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})\b", body.group(1))}
+
+    def test_palette_tokens_are_variables_scoped_away_from_classic(self):
+        for selector, side in ((self.SCOPE, 0), (self.DARK_ATTR, 1), (self.DARK_AUTO, 1)):
+            got = self._palette(selector)
+            for name, pair in self.PALETTE.items():
+                with self.subTest(selector=selector, token=name):
+                    self.assertEqual(got.get(name), pair[side])
+        self.assertEqual(self.html.count("#EDF4F0"), 1)  # the light palette lives only in the scoped rule
+        for old in ("--bg:#F5F7FB;--card:#fff", "--bg:#0E1729;--card:#19253C"):  # classic keeps its own colours
+            self.assertIn(old, self.html)
+
+    def test_text_contrast_is_at_least_4_5_in_both_themes(self):
+        def lum(hex_):
+            ch = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            ch = [c / 12.92 if c <= .03928 else ((c + .055) / 1.055) ** 2.4 for c in ch]
+            return .2126 * ch[0] + .7152 * ch[1] + .0722 * ch[2]
+        ratio = lambda a, b: (max(lum(a), lum(b)) + .05) / (min(lum(a), lum(b)) + .05)
+        pairs = [(t, b) for t in ("tx", "tx2", "mut") for b in ("card", "bg")] + [
+            ("done-tx", "done-soft"), ("now-tx", "now-soft"), ("rev-tx", "rev-soft"), ("warn-tx", "warn-bg"),
+            ("bad-tx", "bad-soft")]
+        for selector in (self.SCOPE, self.DARK_ATTR, self.DARK_AUTO):
+            got = self._palette(selector)
+            for fg, bg in pairs:
+                with self.subTest(selector=selector, fg=fg, bg=bg):
+                    self.assertGreaterEqual(ratio(got[fg], got[bg]), 4.5)
+
+    def test_view_buttons_are_44px_and_say_pressed_without_colour(self):
+        heights = [int(h) for rule in re.findall(r"\.views button\{([^}]*)\}", self.html)
+                   for h in re.findall(r"(?:min-)?height:(\d+)px", rule)]
+        self.assertTrue(heights)
+        self.assertGreaterEqual(min(heights), 44)
+        # later than the narrow-panel `.tabs button{height:30px}`, so it wins at equal specificity
+        self.assertGreater(self.html.rfind(".views button{"), self.html.rfind(".tabs button{height"))
+        self.assertIn('.views button[aria-pressed="true"]::before{content:"✓"', self.html)
+
+    def test_focus_is_renamed_to_compact_everywhere_but_the_legacy_storage_value(self):
+        self.assertNotRegex(self.html, r"\bfocus:\s*(?:c =>|['\"])")
+        self.assertIn('compact:"Компактный"', self.html)
+        self.assertIn('compact:"Compact"', self.html)
+        self.assertEqual(self.html.count("'focus'"), 1)  # the old saved value is read as compact
+
+    def test_no_network_requests_and_no_external_fonts(self):
+        for bad in ("<link", "@import", "googleapis", "gstatic", "fetch(", "XMLHttpRequest", "@font-face", "WebSocket"):
+            self.assertNotIn(bad, self.html)
+        self.assertNotRegex(self.html, r"""(?:src|href)=["']https?://""")
 
     def test_narrow_panel_wraps_theme_buttons_instead_of_hiding_them(self):
         rules = re.findall(r"\.views\{([^}]*)\}", self.html)
