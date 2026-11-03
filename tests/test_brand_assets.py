@@ -23,6 +23,14 @@ class BrandingSmoke(unittest.TestCase):
         self.assertIn('class="brand-version" id="brand-version"', dashboard)
         self.assertIn("bv.textContent = typeof v === 'string'", dashboard)
 
+    def test_dashboard_logo_is_inline_symbol_not_a_picture(self):
+        dashboard = (ROOT / "skills/autopilot/phases/dashboard-template.html").read_text(encoding="utf-8")
+        self.assertIn('<symbol id="ap-mark"', dashboard)
+        self.assertIn('class="brandmark"', dashboard)
+        self.assertIn('<span class="wordmark"><span>auto</span><b>pilot</b></span>', dashboard)
+        self.assertNotIn(".png", dashboard)
+        self.assertNotIn('class="rail-symbol"', dashboard)
+
     def test_readmes_have_only_actual_current_screenshots(self):
         for name in ("README.md", "README.ru.md"):
             with self.subTest(readme=name):

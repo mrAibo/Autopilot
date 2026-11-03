@@ -562,12 +562,57 @@
     .card{padding:17px}.cols{grid-template-columns:1fr}
   }
 
+  /* Dashboard 3.2 views: logo mark, theme switcher, blocks of the extra views. */
+  :root{--accent:#4F46E5;--rail-tx:#F8FAFF;--rail-accent:#7DD3FC}
+  :root[data-theme="dark"]{--accent:#8F94FF}
+  @media(prefers-color-scheme:dark){:root:not([data-theme]){--accent:#8F94FF}}
+  .brandmark{width:32px;height:32px;flex:0 0 auto;display:block}
+  .wordmark{font-size:22px;line-height:1.2;letter-spacing:-.045em}
+  .wordmark span{font-weight:400;color:var(--tx)}
+  .wordmark b{font-weight:700;color:var(--accent)}
+  .rail-brand .brandmark{width:42px;height:42px}
+  .rail-brand .wordmark span{color:var(--rail-tx)}
+  .rail-brand .wordmark b{color:var(--rail-accent)}
+  .views{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .views button{flex:0 0 auto;white-space:nowrap}
+  .spotlight.one{grid-template-columns:minmax(0,1fr)}
+  .vsec{display:flex;flex-direction:column;gap:13px;scroll-margin-top:18px;min-width:0}
+  .trackcard{--h-tx:var(--tx);--h-mut:var(--mut);--h-track:var(--soft)}
+  .trackcard .s-fail .seg i{background:var(--bad)}
+  .trackcard .s-done .seg i{background:var(--done)}
+  .trackcard .s-now .seg i{background-color:var(--now)}
+  .g-nm{font-size:13.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lane{position:relative;height:12px;margin-top:5px;border-radius:6px;background:var(--inset);overflow:hidden}
+  .lane i{position:absolute;top:0;bottom:0;border-radius:6px}
+  .tablewrap{overflow-x:auto}
+  .routes{width:100%;border-collapse:collapse;font-size:13.5px}
+  .routes th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:750;padding:0 12px 10px 0}
+  .routes td{padding:11px 12px 11px 0;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+  .flat{margin-top:0;padding-top:0;border-top:0}
+  @media(max-width:900px){
+    .tools{flex:1 1 100%}
+    .views{flex:1 1 100%}
+    .wordmark{font-size:19px}
+    .brandmark{width:28px;height:28px}
+  }
+
 </style>
 </head>
 <body>
 <!-- Плашка о потере связи живёт вне #app: render() переписывает #app целиком. -->
 <div class="lost" hidden><div id="link" role="status" hidden></div></div>
 <div class="wrap" id="app"></div>
+<!-- Знак логотипа (assets/autopilot-logo-light.svg): символ вне #app, чтобы render() и bootFail его не стирали. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="ap-mark" viewBox="8 8 112 112">
+  <linearGradient id="ap-mark-g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#ap-mark-g)"/>
+  <path d="M30 92 C 46 92, 50 70, 64 70 S 82 50, 96 40" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 11"/>
+  <circle cx="30" cy="92" r="7" fill="#FFFFFF"/>
+  <circle cx="64" cy="70" r="7" fill="#FFFFFF"/>
+  <circle cx="96" cy="40" r="17" fill="#FFFFFF"/>
+  <path d="M88 40.5 l5.5 5.5 l10 -11" fill="none" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol></defs></svg>
 
 <!-- Состояние приходит двумя путями, и порядок этих двух тегов — весь смысл.
      Сначала снимок, вписанный внутрь страницы: он есть всегда, поэтому дашборд
@@ -588,7 +633,10 @@ const STAGE_IDS = ['preflight','manifest','briefing','spec','plan','build','revi
 const POLL_MS = 10000;
 const IDLE_CAP_MS = 2700000;
 
-// Логотип — одна картинка: в тёмной теме её инвертирует CSS (--logo-filter).
+// Логотип: знак — символ #ap-mark в разметке страницы, слово — текст цветами темы.
+const BRAND_SVG = '<svg class="brandmark" viewBox="0 0 112 112" aria-hidden="true" focusable="false"><use href="#ap-mark"/></svg>';
+const BRAND_WORD = '<span class="wordmark"><span>auto</span><b>pilot</b></span>';
+const BRAND_MARK = BRAND_SVG + BRAND_WORD;
 
 const IC = {
   check: 'M20 6 9 17l-5-5',
@@ -626,6 +674,17 @@ function applyTheme(t){
   if (t) document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
 }
+
+// Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
+const VIEW_KEY = 'autopilot-view';
+const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic'];
+function storedView(){
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    return VIEW_IDS.includes(v) ? v : VIEW_IDS[0];
+  } catch(e) { return VIEW_IDS[0]; }
+}
+let VIEW = storedView();
 
 const plural = (n, one, few, many) => {
   const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
@@ -739,7 +798,16 @@ const I18N = {
     boot:"Дашборд ещё не прочитал состояние",
     bootWhy:"Состояния нет ни внутри страницы, ни в файле .autopilot/state.js рядом: прогон только начался, либо файл помялся.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
-    tabWait:"● Ждём ответа"},
+    tabWait:"● Ждём ответа",
+    viewLabel:"Вид",
+    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика"},
+    vw:{empty:"ещё нет",none:"нет",have:"есть",
+      kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
+      tActive:"В работе сейчас",tDone:"Готовые таски",tReq:"Сводка требований",tStages:"Этапы",tTimeline:"Таймлайн тасков",
+      tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
+      tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
+      cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
+      notDone:"Сборка ещё не сдана — итог появится в конце."}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -836,7 +904,16 @@ const I18N = {
     boot:"Dashboard has no state yet",
     bootWhy:"No state either inside the page or in .autopilot/state.js beside it: the run has just started, or the file got mangled.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
-    tabWait:"● Waiting for you"}
+    tabWait:"● Waiting for you",
+    viewLabel:"View",
+    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic"},
+    vw:{empty:"none yet",none:"none",have:"yes",
+      kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
+      tActive:"In progress now",tDone:"Done tickets",tReq:"Requirements summary",tStages:"Stages",tTimeline:"Task timeline",
+      tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
+      tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
+      cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
+      notDone:"The build is not done yet — the summary appears at the end."}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1095,6 +1172,46 @@ const REQ_KIND = {'done':'done', 'in-ticket':'work', 'in-spec':'work', 'open':'o
 const REQ_PILL = {done:'p-done', work:'p-mut', open:'p-mut', placeholder:'p-now', deferred:'p-mut', dropped:'p-mut'};
 const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 
+// Реестр тем: id → раскладка уже посчитанных в render() блоков (c = ctx).
+// Функция только склеивает строки: STATE не читает и в DOM не пишет.
+// Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
+const VIEWS = {
+  overview: c => `
+  <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
+  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}</div>
+  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.tasksCard}${c.reqSummary}</div>
+    <div id="quality" class="col" tabindex="-1">${c.gatesCard}${c.feedView}</div></div>`,
+  timeline: c => `
+  <div id="mission" class="vsec" tabindex="-1">${c.trackCard}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.timelineCard}</div>
+  <div id="quality" class="vsec" tabindex="-1">${c.feedAll}</div>`,
+  requirements: c => `
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.wordsView}</div>
+    <div class="col">${c.gatesCard}${c.reqSummary}${c.debtCard}</div></div>`,
+  resources: c => `
+  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.routesCard}${c.tokensCard}${c.isolationView}</div>`,
+  summary: c => `
+  <div id="mission" class="spotlight one" tabindex="-1">${c.hero}</div>
+  ${c.tiles}
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.summaryCard}${c.blindCard}${c.reportCard}${c.concernsCard}</div>
+    <div class="col">${c.debtCard}${c.addCard}</div></div>`,
+  classic: c => `
+  <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
+  ${c.sectionTitle('01',c.langRu ? 'Состояние работы' : 'Execution health',c.langRu ? 'Прогресс и проверки' : 'Progress and validation')}
+  ${c.tiles}
+  <div id="tasks" class="pipeline" tabindex="-1">
+    ${c.sectionTitle('02',c.langRu ? 'Поток задач' : 'Task pipeline',c.langRu ? 'Этапы и исполнители' : 'Waves and workers')}
+    ${c.fin ? '' : c.buildCard}
+  </div>
+  <div id="models" class="intelligence" tabindex="-1">
+    ${c.sectionTitle('03',c.langRu ? 'Модели и ресурсы' : 'Models & resources',c.langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
+    ${c.resourceBlock}
+    ${c.isolationBlock}
+  </div>
+  ${c.sectionTitle('04',c.langRu ? 'Качество и решения' : 'Quality & decisions',c.langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.leftCol.join('')}</div><div class="col">${c.rightCol.join('')}</div></div>`
+};
+
 function render(lang){
   const L = I18N[lang] || I18N.ru;
   CUR = L;
@@ -1238,10 +1355,11 @@ function render(lang){
   rk.open = Math.max(0, (R.total||0) - rk.done - rk.work - rk.ph - rk.def - rk.drop);
   const reqStack = `<div class="stack" aria-hidden="true">${[[rk.done,'f-done'],[rk.ph,'f-now'],[rk.work + rk.open,'f-idle'],[rk.def,'f-q']]
     .filter(x => x[0]).map(([n, c]) => `<i class="${c}" style="flex:${n}"></i>`).join('')}</div>`;
+  const reqPartsText = [L.reqParts.done, rk.work ? L.reqParts.work(rk.work) : '', rk.open ? L.reqParts.open(rk.open) : '', rk.ph ? L.reqParts.ph(rk.ph) : '',
+    rk.def ? L.reqParts.def(rk.def) : '', rk.drop ? L.reqParts.drop(rk.drop) : ''].filter(Boolean).join(' · ');
   const tileReq = `<section class="card tile w"><span class="tk">${L.tReqs}</span>${R.total
     ? `<span class="tv">${rk.done}<small>${L.of} ${live}</small></span>${reqStack}
-       <span class="ts">${[L.reqParts.done, rk.work ? L.reqParts.work(rk.work) : '', rk.open ? L.reqParts.open(rk.open) : '', rk.ph ? L.reqParts.ph(rk.ph) : '',
-         rk.def ? L.reqParts.def(rk.def) : '', rk.drop ? L.reqParts.drop(rk.drop) : ''].filter(Boolean).join(' · ')}</span>`
+       <span class="ts">${reqPartsText}</span>`
     : `<span class="tv dim">—</span><span class="ts">${L.reqLater}</span>`}</section>`;
   const retries = T.reduce((s,t) => s + (t.retries||0), 0), repairs = T.reduce((s,t) => s + (t.repairs||0), 0);
   const tileTk = `<section class="card tile w"><span class="tk">${L.tTickets}</span>${T.length
@@ -1270,6 +1388,22 @@ function render(lang){
   // ——— ход сборки ———
   // Полоса показывает СОСТОЯНИЕ, а не долю: горизонтальная заливка в списке
   // задач читается как прогресс всегда. Длительность — цифрой справа.
+  const taskTime = t => t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
+  const taskRow = t => {
+    const k = kindOf(t);
+    const time = taskTime(t);
+    const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
+    const note = t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
+      : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
+      : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
+    const extra = t.status === 'done' && (t.repairs || t.retries)
+      ? ' · ' + [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ') : '';
+    return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
+      <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
+        <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
+      <span class="tl-time ${k.on ? k.k : ''}">${time}</span>
+      ${note ? `<div class="tl-note ${note[0]}">${ic(KIND[t.status].icon)}<span>${esc(note[1])}</span></div>` : ''}</div>`;
+  };
   let buildCard = '';
   if (T.length) {
     const counts = {};
@@ -1283,21 +1417,7 @@ function render(lang){
       const blockers = [...new Set(inWave.flatMap(t => t.blockedBy || []))].filter(b => byId[b] && byId[b].status !== 'done');
       const sub = inWave.every(t => t.status === 'pending') && blockers.length ? L.waveWaits(blockers)
         : inWave.length > 1 ? L.waveSub(inWave.length) : '';
-      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(t => {
-        const k = kindOf(t);
-        const time = t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
-        const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
-        const note = t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
-          : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
-          : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
-        const extra = t.status === 'done' && (t.repairs || t.retries)
-          ? ' · ' + [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ') : '';
-        return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
-          <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
-            <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
-          <span class="tl-time ${k.on ? k.k : ''}">${time}</span>
-          ${note ? `<div class="tl-note ${note[0]}">${ic(KIND[t.status].icon)}<span>${esc(note[1])}</span></div>` : ''}</div>`;
-      }).join('');
+      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(taskRow).join('');
     }).join('');
     buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3><div class="legend">${legend}</div></div>${rows}</section>`;
   } else if (t0 && (activeStage?.id === 'build' || stage('build').status === 'done')) {
@@ -1389,13 +1509,15 @@ function render(lang){
     : e.k === 'ticket' ? ({done:['f-done','check'], review:['f-rev','clock'], repair:['f-fix','rotate'], fail:['f-bad','x']}[e.act] || ['','play'])
     : e.k === 'stage' ? ({done:['f-done','check'], fail:['f-bad','x'], skip:['','chev']}[e.act] || ['','play'])
     : e.k === 'tests' ? [e.failed ? 'f-bad' : 'f-done', e.failed ? 'x' : 'check'] : e.k === 'add' ? ['','plus'] : ['','list'];
-  const feedRows = (S.log || []).filter(e => e.k !== 'tier').slice(-12).reverse().map(e => {
+  const feedRow = e => {
     const text = evText(e);
     if (!text) return '';
     const [cls, icon] = evTone(e);
     return `<div class="ev"><span class="ei ${cls}">${ic(icon,'xs')}</span><span>${esc(text)}</span>${
       fin ? `<em>${hhmm(e.t)}</em>` : `<em data-ago-short="${esc(e.t)}">${agoShort(e.t)}</em>`}</div>`;
-  }).join('');
+  };
+  const feedEvents = (S.log || []).filter(e => e.k !== 'tier');
+  const feedRows = feedEvents.slice(-12).reverse().map(feedRow).join('');
   const feedCard = feedRows ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3>${fin ? '' :
     `<span data-ago="${esc(S.updatedAt || '')}">${S.updatedAt ? agoText(S.updatedAt) : ''}</span>`}</div>${feedRows}</section>` : '';
 
@@ -1488,10 +1610,7 @@ function render(lang){
       + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
       + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
     : '';
-  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
-    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
-    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
-    + (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
+  const routeNotes = (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
       (langRu ? 'Последовательный режим: один таск за раз, тесты проверяет хост. Модель и Effort текущей GUI-сессии не подтверждены Autopilot; субагент не создаётся.' :
       'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
       '</p>' : '')
@@ -1501,7 +1620,17 @@ function render(lang){
       ' task(s) without applied routes. Verify exact model and Effort support in the real host, then attest the capability catalog and run plan-models --apply. Do not spawn subagents until verified.') + '</p>' : '')
     + (routed.length ? '<p id="model-routing-runtime-notice" class="muted">' +
       (langRu ? 'Записанный маршрут или сохранённый профиль не подтверждает фактический запуск субагента, модель и Effort в GUI.' :
-      'A recorded route or saved profile does not attest actual GUI child execution, model or Effort.') + '</p>' : '')
+      'A recorded route or saved profile does not attest actual GUI child execution, model or Effort.') + '</p>' : '');
+  const resourceFooter = '<div class="resource-footer">' + (langRu ?
+      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
+      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
+      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
+      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
+    + '</div>';
+  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
+    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
+    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
+    + routeNotes
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
       (proposals.length ? '<p class="muted">' + (langRu ?
         'Модель и Effort рассчитаны на этапе планирования; профили не применены и реальный GUI не подтверждён.' :
@@ -1510,12 +1639,7 @@ function render(lang){
         'No per-task model assignments recorded yet.') + '</p>'))
     + (proposals.length ? '<div class="resource-list" id="planned-model-routes">' + proposalItems + '</div>' : '')
     + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
-    + '<div class="resource-footer">' + (langRu ?
-      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
-      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
-      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
-      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
-    + '</div></section>';
+    + resourceFooter + '</section>';
 
   // ——— Isolation & recovery; read-only health indicators ———
   const isolated = T.filter(t => t.worktree || t.retries || t.repairs);
@@ -1546,6 +1670,87 @@ function render(lang){
         : 'Statuses reflect the Autopilot ledger, not an independent check of external agent execution. Use worktree status to inspect checkout health.')
       + '</div></section>' : '';
 
+  // ——— блоки для тем (данные посчитаны выше; здесь только упаковка) ———
+  const W = L.vw;
+  const emptyBox = text => `<div class="empty">${ic('list','m')}<span>${text}</span></div>`;
+  const emptyCard = (title, text) => `<section class="card w"><div class="whead"><h3 class="wt">${title}</h3></div>${emptyBox(text)}</section>`;
+  const moreBtn = (key, hidden) => `<button type="button" class="btn-soft" data-more="${key}">${UI.open[key] ? L.collapse + ic('up') : L.more(hidden) + ic('chev')}</button>`;
+  const rowsList = (key, rows, n) => (UI.open[key] ? rows : rows.slice(0, n)).join('')
+    + (rows.length > n ? `<div class="more">${moreBtn(key, rows.length - n)}</div>` : '');
+  const tiles = `<div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>`;
+
+  const kpi = (title, value, sub, dim) => `<section class="card tile w"><span class="tk">${title}</span><span class="tv${dim ? ' dim' : ''}">${value}</span><span class="ts">${sub}</span></section>`;
+  const ofT = n => `${n}<small>${L.of} ${T.length}</small>`;
+  const trees = T.filter(t => t.worktree);
+  const treeStates = [...new Set(trees.map(t => t.worktree.status).filter(Boolean))];
+  const redo = retries + repairs;
+  const kpiRow = '<div class="tiles">'
+    + (usageEvents.length ? kpi(W.kTokens, numberFormat(countedTokens), `${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}`)
+      : kpi(W.kTokens, '—', W.empty, true))
+    + (T.length ? kpi(W.kActive, ofT(activeWorkers.length), activeWorkers.length ? esc(activeWorkers.map(t => t.id).join(', ')) : W.empty)
+      : kpi(W.kActive, '—', W.empty, true))
+    + (trees.length ? kpi(W.kTrees, ofT(trees.length), esc(treeStates.join(' · ')) || W.empty) : kpi(W.kTrees, '—', W.empty, true))
+    + (T.length ? kpi(W.kRetries, String(redo), redo ? [repairs ? L.tkParts.repair(repairs) : '', retries ? L.tkParts.retry(retries) : ''].filter(Boolean).join(' · ') : W.empty, !redo)
+      : kpi(W.kRetries, '—', W.empty, true))
+    + '</div>';
+
+  const trackCard = `<section class="card w trackcard"><div class="whead"><h3 class="wt">${W.tStages}</h3></div><div class="track" role="list">${segs}</div></section>`;
+  const attention = activeWorkers.concat(failedWorkers);
+  const none = `<p class="muted">${W.empty}</p>`;
+  const tasksCard = T.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tActive}</h3><span>${attention.length}</span></div>${attention.length ? rowsList('act', attention.map(taskRow), 4) : none}</section>`
+      + `<section class="card w"><div class="whead"><h3 class="wt">${W.tDone}</h3><span>${done.length}</span></div>${done.length ? rowsList('dn', done.slice().reverse().map(taskRow), 4) : none}</section>`
+    : emptyCard(L.build, t0 ? L.t0 : L.noTickets);
+  const reqSummary = R.total
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tReq}</h3><span>${rk.done} ${L.of} ${live}</span></div>${reqStack}
+        <p class="muted" style="margin-top:10px">${reqPartsText}</p>${T.length ? `<p class="muted" style="margin-top:6px">${L.g3ok(live, T.length)}</p>` : ''}</section>`
+    : emptyCard(W.tReq, L.reqLater);
+  const feedView = feedCard || emptyCard(L.feed, W.empty);
+  const wordsView = wordsCard || emptyCard(L.words, L.reqLater);
+
+  // Таймлайн: полоса каждого таска — по календарному времени от первого старта до последнего конца.
+  const timed = T.filter(t => toMs(t.startedAt) != null);
+  const gFrom = timed.length ? Math.min(...timed.map(t => toMs(t.startedAt))) : 0;
+  const gTo = timed.length ? Math.max(...timed.map(t => toMs(t.finishedAt) ?? Date.now())) : 0;
+  const gSpan = Math.max(1, gTo - gFrom);
+  const ganttRow = t => {
+    const k = kindOf(t), a = toMs(t.startedAt);
+    let bar = '';
+    if (a != null) {
+      const b = toMs(t.finishedAt) ?? Date.now();
+      const left = (a - gFrom) / gSpan * 100, width = Math.min(Math.max(1.5, (b - a) / gSpan * 100), 100 - left);
+      bar = `<i class="${k.bar}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%"></i>`;
+    }
+    return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
+      <div style="min-width:0"><div class="g-nm" title="${esc(t.title)}">${esc(t.title)}</div><div class="lane">${bar}</div></div>
+      <span class="tl-time ${k.on ? k.k : ''}">${taskTime(t)}</span></div>`;
+  };
+  const byTicketId = (a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true});
+  const timelineCard = T.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tTimeline}</h3>${timed.length ? `<span>${hhmm(new Date(gFrom))}–${hhmm(new Date(gTo))}</span>` : ''}</div>`
+      + [...new Set(T.map(t => t.wave ?? 1))].sort((a, b) => a - b).map(w =>
+        `<div class="wave">${esc(L.wave(w))}</div>` + T.filter(t => (t.wave ?? 1) === w).sort(byTicketId).map(ganttRow).join('')).join('')
+      + '</section>'
+    : emptyCard(W.tTimeline, t0 ? L.t0 : L.noTickets);
+  const feedItems = feedEvents.slice().reverse().map(feedRow).filter(Boolean);
+  const feedAll = feedItems.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tFeedAll}</h3><span>${feedItems.length}</span></div>${rowsList('feed', feedItems, 15)}</section>`
+    : emptyCard(W.tFeedAll, W.empty);
+
+  const debtCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tDebt}</h3><span>${env.length + ph.length + asm.length}</span></div>${keysBlock + phBlock + asmBlock || none}</section>`;
+
+  const routeRows = routed.map(t => [t, t.routing, '']).concat(proposals.map(t => [t, t.plannedRouting, t.plannedRouting.status === 'blocked' ? W.blocked : W.planned]));
+  const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
+    ? `<div class="tablewrap"><table class="routes"><thead><tr>${[W.cTask, W.cProvider, W.cModel, 'Effort', W.cScore, W.cWhy].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+      routeRows.map(([t, p, tag]) => `<tr><td>${esc(t.id + ' · ' + t.title)}</td><td>${esc(p.provider || '—')}</td><td>${esc(p.model || '—')}${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td><td>${esc(p.effort || '—')}</td><td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '—')}</td></tr>`).join('')
+      }</tbody></table></div>` : emptyBox(W.empty)}</section>`;
+  const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
+  const isolationView = isolationBlock || emptyCard(W.tIsolation, W.empty);
+
+  const checks = [[W.cResult, fin && S.result], [L.tTests, tests], [L.blind, B], [L.report, report.length], [L.assumptions, asm.length], [L.concerns, concerns.length]];
+  const summaryCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tSummary}</h3></div>${fin ? '' : `<p class="muted">${W.notDone}</p>`}${
+    checks.map(([name, ok]) => `<div class="req"><p>${name}</p><span class="pill ${ok ? 'p-done' : 'p-mut'}">${ok ? W.have : (fin ? W.none : W.empty)}</span></div>`).join('')}</section>`;
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
@@ -1563,7 +1768,7 @@ function render(lang){
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -1571,8 +1776,8 @@ function render(lang){
   const focusId = !focusAttr && active && typeof app.contains === 'function' && app.contains(active)
     && ['mission','tasks','models','quality'].includes(active.id) ? active.id : null;
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
-    <div class="rail-brand"><span class="rail-symbol" aria-hidden="true">A</span>
-      <span>Autopilot<small>CONTROL CENTER / 2.3</small></span></div>
+    <div class="rail-brand">${BRAND_SVG}
+      <span>${BRAND_WORD}<small>CONTROL CENTER / 2.3</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
       <a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
@@ -1595,9 +1800,12 @@ function render(lang){
   ${rail}
   <main class="cockpit-content">
   <header class="top">
-    <div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div>
+    <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
+      <div class="tabs views" role="group" aria-label="${L.viewLabel}">
+        ${VIEW_IDS.map(id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`).join('')}
+      </div>
       <div class="tabs" role="group" aria-label="${L.themeLabel}">
         <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${effectiveTheme()==='light'}">${ic('sun')}</button>
         <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}" aria-pressed="${effectiveTheme()==='dark'}">${ic('moon')}</button>
@@ -1613,20 +1821,9 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  <div id="mission" class="spotlight" tabindex="-1">${hero}${opsBlock}</div>
-  ${sectionTitle('01',langRu ? 'Состояние работы' : 'Execution health',langRu ? 'Прогресс и проверки' : 'Progress and validation')}
-  <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
-  <div id="tasks" class="pipeline" tabindex="-1">
-    ${sectionTitle('02',langRu ? 'Поток задач' : 'Task pipeline',langRu ? 'Этапы и исполнители' : 'Waves and workers')}
-    ${fin ? '' : buildCard}
-  </div>
-  <div id="models" class="intelligence" tabindex="-1">
-    ${sectionTitle('03',langRu ? 'Модели и ресурсы' : 'Models & resources',langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
-    ${resourceBlock}
-    ${isolationBlock}
-  </div>
-  ${sectionTitle('04',langRu ? 'Качество и решения' : 'Quality & decisions',langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
+  ${VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksCard, buildCard,
+    reqSummary, gatesCard, feedView, wordsView, timelineCard, feedAll, debtCard, routesCard, tokensCard, isolationView,
+    summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers})}
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
@@ -1670,6 +1867,10 @@ document.getElementById('app').addEventListener('click', e => {
     try { localStorage.setItem('autopilot-theme', t); } catch(err) {}
     applyTheme(t);
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
+  } else if (VIEW_IDS.includes(b.dataset.view)) {
+    VIEW = b.dataset.view;
+    try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
+    render(CUR.lang);
   } else if (b.hasAttribute('data-refresh')) {
     refreshNow(b);
   } else if (b.dataset.filter) {
@@ -1691,7 +1892,7 @@ function bootFail(why){
   const app = document.getElementById('app');
   if (!app) return;
   const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
-  app.innerHTML = `<header class="top"><div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div></header>
+  app.innerHTML = `<header class="top"><div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div></header>
     <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
     <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
 }
