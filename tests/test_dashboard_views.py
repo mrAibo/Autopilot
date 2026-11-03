@@ -169,6 +169,18 @@ class TemplateRuns(unittest.TestCase):
         self.assertEqual(click["unknown"], "summary")
         self.assertEqual(click["reload"], "summary")
 
+    def test_skip_link_and_rail_links_lead_to_existing_blocks_in_every_theme(self):
+        for key, res in self.out["renders"].items():
+            page = res["html"]
+            ids = set(re.findall(r' id="([^"]+)"', page))
+            skip = re.search(r'class="skip-link"[^>]*href="#([^"]+)"', page)
+            rail = re.findall(r'<a data-focus-key="nav-[a-z]+" href="#([a-z]+)"', page)
+            with self.subTest(key=key):
+                self.assertIn(skip.group(1), ids)
+                self.assertTrue(rail, "rail has no links at all")
+                for target in rail:
+                    self.assertIn(target, ids)
+
     def test_both_locales_have_same_keys_including_view_names(self):
         i18n = self.out["i18n"]
         for pair in i18n["top"], i18n["vw"], i18n["views"]:
@@ -220,8 +232,12 @@ class TemplateStrings(unittest.TestCase):
         self.assertNotIn(">A</span>", rail)
         self.assertNotIn(".png", self.html)
 
-    def test_narrow_panel_lets_switcher_wrap_or_scroll(self):
-        self.assertRegex(self.html, r"\.views\{[^}]*overflow-x:auto")
+    def test_narrow_panel_wraps_theme_buttons_instead_of_hiding_them(self):
+        rules = re.findall(r"\.views\{([^}]*)\}", self.html)
+        self.assertTrue(rules)
+        self.assertTrue(any("flex-wrap:wrap" in r for r in rules))
+        for rule in rules:  # a scroll strip hides "Summary"/"Classic" at ~400 px and resets on re-render
+            self.assertNotRegex(rule, r"overflow(-x)?:(auto|scroll|hidden)")
 
 
 if __name__ == "__main__":

@@ -573,7 +573,8 @@
   .rail-brand .brandmark{width:42px;height:42px}
   .rail-brand .wordmark span{color:var(--rail-tx)}
   .rail-brand .wordmark b{color:var(--rail-accent)}
-  .views{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .views{max-width:100%;flex-wrap:wrap;border-radius:18px} /* перенос строкой: в узкой панели видны все темы */
+  .cockpit-content:focus{outline:none}
   .views button{flex:0 0 auto;white-space:nowrap}
   .spotlight.one{grid-template-columns:minmax(0,1fr)}
   .vsec{display:flex;flex-direction:column;gap:13px;scroll-margin-top:18px;min-width:0}
@@ -1775,15 +1776,22 @@ function render(lang){
   const focusTag = focusAttr ? active.tagName : null;
   const focusId = !focusAttr && active && typeof app.contains === 'function' && app.contains(active)
     && ['mission','tasks','models','quality'].includes(active.id) ? active.id : null;
+  const sectionTitle = (number, title, sub) =>
+    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
+  const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksCard, buildCard,
+    reqSummary, gatesCard, feedView, wordsView, timelineCard, feedAll, debtCard, routesCard, tokensCard, isolationView,
+    summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers});
+  // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
+  const has = id => page.includes(`id="${id}"`);
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
     <div class="rail-brand">${BRAND_SVG}
       <span>${BRAND_WORD}<small>CONTROL CENTER / 2.3</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
-      <a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
-      <a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>
-      <a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>
-      <a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>
+      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>` : ''}
+      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>` : ''}
+      ${has('models') ? `<a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>` : ''}
+      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>` : ''}
     </nav>
     <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
       <b>${esc(nextTitle)}</b>
@@ -1793,12 +1801,10 @@ function render(lang){
       </div></div>
     <div class="rail-foot">AUTOPILOT ENGINE / 2.3.0</div>
   </aside>`;
-  const sectionTitle = (number, title, sub) =>
-    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
   app.innerHTML = `
-  <a class="skip-link" data-focus-key="skip" href="#mission">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>
+  <a class="skip-link" data-focus-key="skip" href="#content">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>
   ${rail}
-  <main class="cockpit-content">
+  <main class="cockpit-content" id="content" tabindex="-1">
   <header class="top">
     <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
     <div class="tools">
@@ -1821,9 +1827,7 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  ${VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksCard, buildCard,
-    reqSummary, gatesCard, feedView, wordsView, timelineCard, feedAll, debtCard, routesCard, tokensCard, isolationView,
-    summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers})}
+  ${page}
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
