@@ -61,6 +61,25 @@ class HookGuardTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertFalse(self.write(self.root / "src" / ".." / ".autopilot" / "state.js")[0])
 
+    def test_strict_run_blocks_writes_to_verifier_scripts(self):
+        for name in ("gate_sign.py", "claude_agent_guard.py", "claude_attest.py",
+                     "ap.py", "test_evidence.py"):
+            self.assertFalse(self.write(self.root / ".autopilot" / name)[0], name)
+        self.assertTrue(self.write(self.root / "src" / "ap.py")[0])
+
+    def test_signed_run_downgrade_is_denied_by_guard(self):
+        import gate_sign
+        from unittest import mock
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
+            gate_sign.ensure_key()
+            self.state["tickets"][0]["id"] = "01"  # strictRouting run, key exists, no marker
+            self.save()
+            ok, why = guard.decision(self.payload(), self.root)
+            self.assertFalse(ok)
+            self.assertIn("marker", why)
+
     def test_other_files_and_finished_or_non_strict_runs_are_writable(self):
         self.assertTrue(self.write(self.root / "src" / "app.py")[0])
         self.assertTrue(self.write(self.root / ".autopilot" / "notes.md")[0])
@@ -85,11 +104,13 @@ class HookGuardTests(unittest.TestCase):
         home = tempfile.TemporaryDirectory()
         self.addCleanup(home.cleanup)
         with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
-            self.state["gateSigned"] = True
+            self.state["gateMark"] = "placeholder"
             self.state["tickets"][0]["id"] = "01"
             self.save()
             self.assertEqual(guard.decision(self.payload(), self.root)[1], gate_sign.MISSING_KEY_MESSAGE)
             gate_sign.ensure_key()
+            self.state["gateMark"] = gate_sign.run_mark(self.state)
+            self.save()
             self.assertIn("signature", guard.decision(self.payload(), self.root)[1])  # no sig yet
             route = self.state["tickets"][0]["routing"]
             route["sig"] = gate_sign.sign(gate_sign.routing_payload("01", route))

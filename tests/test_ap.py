@@ -813,17 +813,41 @@ class Run(unittest.TestCase):
         self.assertIn("нет ключа подписи, запусти init заново", out)
         self.assertFalse(os.path.exists(os.path.join(self.home, "gate.key")))
 
-    def test_run_without_gate_mark_is_accepted_with_warning(self):
-        agent = self.routed_ticket()
+    def strip_signing(self, keep_mark=False):
+        """What a Bash-capable executor can do to state.js without the key."""
         st = self.state()
-        del st["gateSigned"]
-        del st["tickets"][0]["routing"]["sig"]
+        st["gateSigned"] = False
+        if not keep_mark:
+            st.pop("gateMark", None)
+        st["tickets"][0]["routing"].pop("sig", None)
         with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
             f.write("window.STATE = " + json.dumps(st))
+
+    def test_legacy_run_without_mark_and_key_is_accepted_with_warning(self):
+        agent = self.routed_ticket()
         self.attest(self.post(agent), self.pre(agent))
+        self.strip_signing()
+        os.remove(os.path.join(self.home, "gate.key"))  # no key on this machine: a pre-signing run
         code, out = self.finish_01()
         self.assertEqual(code, 0, out)
         self.assertIn("без подписи гейтов", out)
+
+    def test_signed_run_cannot_be_downgraded_by_editing_state(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.strip_signing()  # gateSigned=false, marker and route sig removed, key still exists
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("маркер подписи", out)
+        self.assertNotEqual(self.state()["tickets"][0]["status"], "done")
+
+    def test_false_gate_flag_with_valid_marker_still_enforces_signatures(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        self.strip_signing(keep_mark=True)  # the route sig is gone, the marker is intact
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("подпись маршрута", out)
 
     def test_attestation_survives_ticket_republish(self):
         agent = self.routed_ticket()

@@ -52,7 +52,10 @@ def is_protected(target, root):
         return False
     parts = path[len(real_root):].strip("\\/").replace("\\", "/").split("/")
     if parts[0] == ".autopilot":
-        return parts[1:] in (["state.js"], ["attestations.jsonl"], ["model-capabilities.json"])
+        # top-level .py files are the verifiers themselves (ap, guard, gate_sign, ...)
+        return len(parts) == 2 and (parts[1] in (
+            "state.js", "attestations.jsonl", "model-capabilities.json")
+            or parts[1].endswith(".py"))
     if parts[0] == ".claude" and len(parts) > 1:
         return (parts[1] == "agents" and len(parts) > 2) or (
             len(parts) == 2 and fnmatch.fnmatch(parts[1], "settings*.json"))
@@ -175,9 +178,12 @@ def decision(payload, root):
                     (not effort_enforced or r.get("effort") == effort)]
         if len(matching) != 1:
             return False, "Executor does not match an approved Autopilot task"
-        if state.get("gateSigned") is True:
+        status = gate_sign.run_status(state)
+        if status != "unsigned":
             if gate_sign.load_key() is None:
                 return False, gate_sign.MISSING_KEY_MESSAGE
+            if status != "signed":
+                return False, "Run signature marker missing or invalid"
             tid = next(i for i, r in known if r is matching[0])
             if not gate_sign.verify(gate_sign.routing_payload(tid, matching[0]),
                                     matching[0].get("sig")):

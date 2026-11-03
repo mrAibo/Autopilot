@@ -63,7 +63,7 @@ def record(payload, root):
     if state.is_symlink() or log.is_symlink() or not state.exists():
         return None
     line = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **line}
-    if (read_state(root) or {}).get("gateSigned") is True and gate_sign.load_key():
+    if gate_sign.run_status(read_state(root) or {}) == "signed":
         line["sig"] = gate_sign.sign(line)  # no key: the line stays unsigned and the gate rejects it
     with log.open("a", encoding="utf-8") as writer:
         writer.write(json.dumps(line, ensure_ascii=False) + "\n")

@@ -66,3 +66,21 @@ def routing_payload(ticket_id, routing):
 
 def evidence_payload(ticket_id, evidence):
     return {"ticket": ticket_id, "evidence": {k: v for k, v in evidence.items() if k != "sig"}}
+
+
+def run_mark(state):
+    """Signed marker that this run was started signed (stored as state["gateMark"])."""
+    return sign({"run": state.get("dir"), "startedAt": state.get("startedAt")})
+
+
+def run_status(state):
+    """signed | unsigned (pre-signing run, no key on this machine) | forged | downgraded.
+
+    A key on this machine plus a strict run without a valid marker is a downgrade
+    (someone removed it from state.js), never a pre-signing run.
+    """
+    mark = state.get("gateMark")
+    if mark is None:
+        return "downgraded" if state.get("strictRouting") and load_key() else "unsigned"
+    ok = verify({"run": state.get("dir"), "startedAt": state.get("startedAt")}, mark)
+    return "signed" if ok else "forged"

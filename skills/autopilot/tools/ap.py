@@ -927,6 +927,8 @@ def cmd_init(opt):
     if old:
         notes.append("прошлый прогон убран в архив: %s" % archive_old_state(old))
     state = fresh_state(opt)
+    if state["gateSigned"]:
+        state["gateMark"] = _gs().run_mark(state)
     try:  # версия навыка для шапки дашборда; нечитаемый SKILL.md — просто без неё
         v = _version(open(os.path.join(state["skillDir"] or "", "SKILL.md"), encoding="utf-8").read())
         if v:
@@ -1122,7 +1124,14 @@ def _gs():
 
 
 def gate_signed(state):
-    return state.get("gateSigned") is True
+    """True for a run started signed; a stripped or forged marker stops, never warns."""
+    if state.get("gateMark") is not None and _gs().load_key() is None:
+        die(_gs().MISSING_KEY_MESSAGE)
+    status = _gs().run_status(state)
+    if status in ("downgraded", "forged"):
+        die("маркер подписи прогона отсутствует или неверен (state.js правили без ключа); "
+            "запусти init заново или восстанови ~/.autopilot/gate.key")
+    return status == "signed"
 
 
 def require_key(state):
@@ -1546,10 +1555,12 @@ def cmd_ticket(state, pos, opt):
                 tk["attestFrom"] = 0
             except (OSError, UnicodeDecodeError) as exc:
                 die("таск %s: attestations.jsonl не читается (%s)" % (i, type(exc).__name__))
-        if act == "done" and state.get("strictRouting") and not gate_signed(state):
+        if act == "done" and (state.get("strictRouting") or state.get("gateMark")) and (
+                not gate_signed(state)):
             print("предупреждение: прогон без подписи гейтов (начат до подписи); "
                   "маршрут, аттестации и тесты не защищены ключом")
-        if act == "done" and state.get("strictRouting") and not routing_signature_ok(state, tk):
+        if act == "done" and (state.get("strictRouting") or state.get("gateMark")) and (
+                not routing_signature_ok(state, tk)):
             die("таск %s: подпись маршрута отсутствует или неверна" % i)
         if act == "done" and verified_host_required(state):
             if not evidence_signature_ok(state, i, tk.get("testEvidence")):

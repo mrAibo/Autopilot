@@ -42,7 +42,8 @@ class AttestTests(unittest.TestCase):
             gate_sign.ensure_key()
             line = attest.record(PRE_INSIDE, self.root)
             self.assertNotIn("sig", line)  # state.js has no gateSigned mark
-            (self.ap / "state.js").write_text('window.STATE = {"gateSigned": true}', encoding="utf-8")
+            (self.ap / "state.js").write_text(
+                "window.STATE = " + json.dumps({"gateMark": gate_sign.run_mark({})}), encoding="utf-8")
             line = attest.record(PRE_INSIDE, self.root)
             self.assertTrue(gate_sign.verify(line, line["sig"]))
             self.assertFalse(gate_sign.verify(dict(line, effort="high"), line["sig"]))
