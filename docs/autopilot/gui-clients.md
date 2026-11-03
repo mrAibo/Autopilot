@@ -157,7 +157,7 @@ Claude Code CLI command was found, so Claude Code GUI/CLI is also unverified.
 On the current Windows machine, resolved `codex debug models` (not `--bundled`) advertises the **actual CLI account-visible model IDs and Effort values**. The project's `codex_capabilities.py` can export these:
 
 ```powershell
-py -3.13 .autopilot/codex_capabilities.py --root . --write
+py -3 .autopilot/codex_capabilities.py --root . --write
 ```
 
 Only after `ap.py init` created `.autopilot`. This writes `.autopilot/model-capabilities.json` and blocks a conflicting existing provider unless explicitly refreshed. It makes no model calls. **This catalog is the CLI's**; desktop users should verify the selected model with their GUI host too. It does not certify actual inference model IDs or charges.
@@ -166,7 +166,7 @@ Only after `ap.py init` created `.autopilot`. This writes `.autopilot/model-capa
 
 Project Dashboards are **copies** of the skill template, not Junctions. The installed skill can be version 2.3 while an existing project still serves 2.2 HTML until explicitly refreshed. Use:
 
-    py -3.13 <REPO_DIR>\skills\autopilot\tools\dashboard_upgrade.py --project <OTHER_PROJECT_DIR>
+    py -3 <REPO_DIR>\skills\autopilot\tools\dashboard_upgrade.py --project <OTHER_PROJECT_DIR>
 
 The standalone upgrader requires a valid existing .autopilot/state.js, refuses mismatched project identity, backs up the old Dashboard under the user's temporary directory, and atomically replaces only the HTML while embedding the current snapshot. Reload the browser tab. It never changes an active application or task ledger. This was confirmed on the synthetic test suite and the real WEG_HomeManager local Dashboard (rev 41, two tickets) with a successful headless Chrome DOM read.
 
@@ -201,3 +201,7 @@ See [controller.md](controller.md).
 - Need real Claude Code installation/tooling discovery and authenticated execution before marking Claude GUI support verified.
 
 After release, a single supported installation/update path should make the skill discoverable to all installed compatible hosts, but the provider's GUI mechanisms and permissions remain the final authority.
+
+## Developer-linked installation (maintainer note)
+
+On the maintainer's Windows host (`<HOST>`), the global Codex and Claude skill paths already point to the development checkout through verified Windows Junctions; do not install another copy there. Do not replace those Junctions with a global `npx skills update -g`, which may overwrite the links. Everyone else installs from the published repository with the commands in the README.

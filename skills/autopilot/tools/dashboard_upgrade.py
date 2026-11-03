@@ -72,6 +72,21 @@ def prepare(project, template):
     return page, original, output, current["slug"]
 
 
+KEEP_BACKUPS = 5
+
+
+def prune_backups(folder, safe_slug):
+    """Keep the newest KEEP_BACKUPS backups of one slug; other slugs are untouched."""
+    mine = re.compile(re.escape(safe_slug) + r"-\d{8}T\d{6}Z-[0-9a-f]{12}\.html")
+    found = sorted((p for p in folder.iterdir() if mine.fullmatch(p.name)),
+                   key=lambda p: (p.stat().st_mtime_ns, p.name))
+    for stale in found[:-KEEP_BACKUPS]:
+        try:
+            stale.unlink()
+        except OSError:
+            pass  # a locked old backup must not fail the upgrade
+
+
 def upgrade(project, template, backup_dir=None, dry_run=False):
     page, original, content, slug = prepare(project, template)
     unchanged = content == original
@@ -80,15 +95,20 @@ def upgrade(project, template, backup_dir=None, dry_run=False):
     if dry_run or unchanged:
         return result
     folder = Path(backup_dir) if backup_dir else Path(tempfile.gettempdir()) / "autopilot-dashboard-backups"
-    folder.mkdir(parents=True, exist_ok=True)
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     if folder.is_symlink():
         raise UpgradeError("Backup folder must not be a symlink")
+    if os.name != "nt":
+        folder.chmod(0o700)  # backups hold a state.js snapshot: owner only
     digest = hashlib.sha256(original.encode("utf-8")).hexdigest()[:12]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    backup = folder / (re.sub(r"[^a-z0-9-]", "-", slug) + "-" + stamp + "-" + digest + ".html")
-    with backup.open("x", encoding="utf-8", newline="\n") as saved:
+    safe_slug = re.sub(r"[^a-z0-9-]", "-", slug)
+    backup = folder / (safe_slug + "-" + stamp + "-" + digest + ".html")
+    with open(backup, "x", encoding="utf-8", newline="\n",
+              opener=lambda path, flags: os.open(path, flags, 0o600)) as saved:
         saved.write(original)
     result["backup"] = str(backup)
+    prune_backups(folder, safe_slug)
     # Fail closed if another process rewrote the Dashboard before replacement.
     if page.read_text(encoding="utf-8") != original:
         raise UpgradeError("Dashboard changed during upgrade; backup preserved")

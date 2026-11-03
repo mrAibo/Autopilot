@@ -20,12 +20,12 @@ operator-reviewed test workflow outside strict isolated automation.
 ```powershell
 # Run from the PRIMARY repository, not inside the worktree.
 # Must be an existing test module committed in the worktree baseline.
-py -3.13 .autopilot/ap.py worktree 01 verify --suite test_calc.py
+py -3 .autopilot/ap.py worktree 01 verify --suite test_calc.py
 # If Python unittest reports actual passes and the Git-visible source did not change:
-py -3.13 .autopilot/ap.py worktree 01 finalize
-py -3.13 .autopilot/ap.py worktree 01 land
-py -3.13 .autopilot/ap.py ticket 01 done --commit <landedSHA>
-py -3.13 .autopilot/ap.py worktree 01 release
+py -3 .autopilot/ap.py worktree 01 finalize
+py -3 .autopilot/ap.py worktree 01 land
+py -3 .autopilot/ap.py ticket 01 done --commit <landedSHA>
+py -3 .autopilot/ap.py worktree 01 release
 ```
 
 `verify` executes the literal interpreter command
@@ -80,11 +80,11 @@ can run project tests independently from the worktree, then call:
 # Run your actual independent test suite from the worker cwd, not from main.
 # Prevent Python tests from creating unwanted __pycache__/ artifacts.
 $env:PYTHONDONTWRITEBYTECODE = "1"
-py -3.13 -m unittest -q test_calc.py   # EXAMPLE; run inside worker cwd
-py -3.13 .autopilot/ap.py worktree 01 finalize --tests 2/0
-py -3.13 .autopilot/ap.py worktree 01 land --tests 2/0
-py -3.13 .autopilot/ap.py ticket 01 done --commit <landedSHA>
-py -3.13 .autopilot/ap.py worktree 01 release
+py -3 -m unittest -q test_calc.py   # EXAMPLE; run inside worker cwd
+py -3 .autopilot/ap.py worktree 01 finalize --tests 2/0
+py -3 .autopilot/ap.py worktree 01 land --tests 2/0
+py -3 .autopilot/ap.py ticket 01 done --commit <landedSHA>
+py -3 .autopilot/ap.py worktree 01 release
 ```
 
 `finalize` creates a single host-side Git commit **only** when test totals are

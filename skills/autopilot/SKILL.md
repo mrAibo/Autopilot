@@ -3,7 +3,7 @@ name: autopilot
 description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run; /autopilot audit writes a read-only findings report for an existing project.
 disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md | audit[: фокус]"
-allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *)
+allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *) Bash(python .autopilot/controller.py *) Bash(python3 .autopilot/controller.py *) Bash(py -3 .autopilot/controller.py *)
 metadata:
   version: "2.6.0"
 ---

@@ -28,7 +28,7 @@ It works on its own: nothing else to install.
 
 > **Automatic model choice during planning:** `ap.py plan-models` selects model and reasoning Effort **per ticket** by complexity/risk. `--apply` registers all profiles only with host-supported capabilities. See [adaptive routing](docs/autopilot/model-routing.md). This does not attest actual GUI execution.
 
-> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing. If Codex stopped on a not-yet-started run because of the subagent check, `py -3.13 .autopilot/ap.py execution sequential-host --no-serve` switches it without `init`. It needs a verified Git baseline; the published 2.3.0 accepts Python unittest, and later development added a bounded Cargo test adapter.
+> **Safe sequential fallback:** [One-ticket host-verified mode](docs/autopilot/sequential-host.md) uses real Git worktrees and independent tests when named GUI subagents are unavailable. This does not verify the current GUI model/Effort or token billing. If Codex stopped on a not-yet-started run because of the subagent check, `py -3 .autopilot/ap.py execution sequential-host --no-serve` switches it without `init`. It needs a verified Git baseline; the published 2.3.0 accepts Python unittest, and later development added a bounded Cargo test adapter.
 
 > **Release qualification:** [R01–R06 evidence and scoped 2.3.0 support](docs/autopilot/release-readiness.md) — Codex sequential host mode is released; native GUI named-agent/model enforcement remain unverified; Claude Code strict routing is stable in 2.4.0 (desktop app and terminal CLI).
 
@@ -69,8 +69,6 @@ use `/autopilot`. See [scope and experimental components](docs/autopilot/scope-a
 For measured 2.2 vs 2.3 results, see the [reproducible offline R06 benchmark](docs/autopilot/r06-offline-benchmark.md). It measures host-only Git/CLI checks with no model calls. **2.2 vs 2.3 AI token savings have not been established**; what the main-session model and ticket routing save is measured in [measuring-cost.md](docs/autopilot/measuring-cost.md).
 
 ## Installation
-
-> **Developer-linked installation:** On <HOST>, the global Codex and Claude skill paths already point to this checkout through verified Windows Junctions; do not install another copy. After this release merges, the commands below install Autopilot 2.3.0 from the published repository. Do not replace the developer-linked Junctions with a global `npx skills update -g`.
 
 ### If you'd rather not open a terminal
 

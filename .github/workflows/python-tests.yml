@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Syntax check
-        run: python -m compileall -q skills/autopilot/tools tests
+        run: python -m compileall -q skills/autopilot/tools tests tools
       - name: Dashboard JavaScript syntax (Node.js)
         run: python tools/check-dashboard.py
       - name: Browser dashboard smoke

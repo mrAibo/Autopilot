@@ -10,9 +10,9 @@ worker or a missing test suite stops execution rather than fabricating success.
 After Phase 0 installed `.autopilot/controller.py` in the actual project:
 
 ```powershell
-py -3.13 .autopilot/controller.py --root .               # read-only next step
-py -3.13 .autopilot/controller.py --root . --advance     # one safe host step
-py -3.13 .autopilot/controller.py --root . --suite test_calc.py --advance
+py -3 .autopilot/controller.py --root .               # read-only next step
+py -3 .autopilot/controller.py --root . --advance     # one safe host step
+py -3 .autopilot/controller.py --root . --suite test_calc.py --advance
 ```
 
 `--advance` is deliberately a **single step**, not a hidden background loop.

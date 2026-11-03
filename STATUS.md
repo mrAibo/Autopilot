@@ -1,9 +1,13 @@
-# STATUS.md — Autopilot 2.3 handoff
+# STATUS.md — Autopilot 2.6.0
 
-**Updated:** 2026-10-26 (Europe/Berlin)
+**Updated:** 2026-11-03 (Europe/Berlin)
+**Current state:** `metadata.version = 2.6.0` (`skills/autopilot/SKILL.md`; the top entry of `CHANGELOG.md` agrees). Run the checks with `python3 -m unittest discover -s tests` and `python3 -m compileall -q skills/autopilot/tools tests tools`; CI runs both on Ubuntu and Windows, Python 3.11 and 3.13. Launch tools as `py -3 .autopilot/ap.py` / `python3 .autopilot/ap.py` (and `controller.py`); `SKILL.md` allowed-tools pre-approves exactly these forms. The router has four tiers (cheap, balanced, strong, critical); see `docs/autopilot/model-routing.md`. The sections below are the earlier history (2.3 through 2.4.0), kept unchanged; the "Current release v2.3.0" line there is historical, not current.
+
+## History (2.3 handoff, 2026-10-26)
+
 **Repository:** https://github.com/mrAibo/Autopilot
 **Quick new-chat handoff:** [HANDOFF.md](HANDOFF.md) (2026-10-26; complete continuation prompt, scope, latest R03 feature and actual GUI proof limits). Last verified pre-handoff `main` HEAD `ec740a7c7555d09e62f3f6039700b3fdf3ea0f64`, [CI #40352034156](https://github.com/mrAibo/Autopilot/actions/runs/40352034156) **4/4 green** Ubuntu/Windows Python 3.11/3.13; full local Windows Python 3.13 **308/308 passed**. Handoff docs-only commit may advance HEAD and starts a separate CI.
-**Current release:** [`v2.3.0`](https://github.com/mrAibo/Autopilot/releases/tag/v2.3.0) **published**, annotated tag resolves to merged product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5` ([PR #32](https://github.com/mrAibo/Autopilot/pull/32), release PR CI [#40395160483](https://github.com/mrAibo/Autopilot/actions/runs/40395160483) **4/4 green**). Main checkout clean at release publication.
+**Release v2.3.0 (historical):** [`v2.3.0`](https://github.com/mrAibo/Autopilot/releases/tag/v2.3.0) **published**, annotated tag resolves to merged product commit `90cf259b8919e512d22b518e9fe8c9c45b1744a5` ([PR #32](https://github.com/mrAibo/Autopilot/pull/32), release PR CI [#40395160483](https://github.com/mrAibo/Autopilot/actions/runs/40395160483) **4/4 green**). Main checkout clean at release publication.
 **P0 Codex native-agent guard:** [PR #2 merged](https://github.com/mrAibo/Autopilot/pull/2); `main` now contains verified fail-closed V1/V2/TOML checks. This is not native GUI E2E.
 **Merged:** [PR #1](https://github.com/mrAibo/Autopilot/pull/1), squash commit `00600107be80fdb54015611647c767954aa096be` on 2026-10-25. Owner explicitly approved promotion to main after confirming the skill appears in Codex GUI.
 **Development history:** `feat/autopilot-2.3-adaptive-router-dashboard` (192 commits retained; do not rely on it as the current deployment branch).

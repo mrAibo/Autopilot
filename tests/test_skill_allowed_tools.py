@@ -1,9 +1,13 @@
 """SKILL.md must pre-approve only the ap.py bookkeeping CLI via allowed-tools."""
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "autopilot" / "SKILL.md"
+DOC_FILES = ("README.md", "README.ru.md", "README.de.md",
+             "docs/autopilot/gui-clients.md", "docs/autopilot/worktrees.md",
+             "docs/autopilot/controller.md", "docs/autopilot/model-routing.md")
 
 
 def frontmatter_lines():
@@ -33,10 +37,24 @@ class SkillAllowedToolsTests(unittest.TestCase):
         for rule in self.rules():
             with self.subTest(rule=rule):
                 self.assertTrue(rule.startswith("Bash("), rule)
-                self.assertIn(".autopilot/ap.py", rule)
+                self.assertRegex(rule, r"\.autopilot/(ap|controller)\.py")
 
     def test_no_wildcard_bash_rule(self):
         self.assertNotIn("Bash(*)", self.rules())
+
+    def test_every_documented_launch_is_covered_by_a_rule(self):
+        rules = set(self.rules())
+        # Both scripts under all three launchers must be pre-approved.
+        for script in ("ap.py", "controller.py"):
+            for launcher in ("python", "python3", "py -3"):
+                self.assertIn("Bash(%s .autopilot/%s *)" % (launcher, script), rules)
+        launch = re.compile(r"\b(python3?|py -3(?:\.\d+)?)\s+(\.autopilot/(?:ap|controller)\.py)\b")
+        for name in DOC_FILES:
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertNotIn("py -3.13", text, name)
+            for launcher, script in launch.findall(text):
+                with self.subTest(doc=name, launch=launcher + " " + script):
+                    self.assertIn("Bash(%s %s *)" % (launcher, script), rules)
 
 
 if __name__ == "__main__":

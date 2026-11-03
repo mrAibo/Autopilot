@@ -1,5 +1,6 @@
 """Updating a copied dashboard must preserve the actual project's run."""
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -42,6 +43,36 @@ class DashboardUpgradeTest(unittest.TestCase):
         self.assertEqual(before_state, self.state.read_bytes())
         self.assertEqual(upgrade.upgrade(self.root, self.template)["status"],
                          "unchanged")
+
+    @unittest.skipIf(os.name == "nt", "POSIX permission bits")
+    def test_backup_folder_and_file_are_private(self):
+        backup_dir = self.root / "backups"
+        backup_dir.mkdir(mode=0o755)
+        backup_dir.chmod(0o755)
+        result = upgrade.upgrade(self.root, self.template, backup_dir)
+        self.assertEqual(backup_dir.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(Path(result["backup"]).stat().st_mode & 0o777, 0o600)
+
+    def test_keeps_only_five_latest_backups_per_slug(self):
+        backup_dir = self.root / "backups"
+        backup_dir.mkdir()
+        old = []
+        for n in range(6):
+            name = "synthetic-20200101T00000%dZ-%012d.html" % (n, n)
+            (backup_dir / name).write_text("old", encoding="utf-8")
+            os.utime(backup_dir / name, (1000 + n, 1000 + n))
+            old.append(name)
+        # Another slug whose name starts with ours must never be pruned.
+        other = backup_dir / ("synthetic-b-20200101T000000Z-%012d.html" % 0)
+        other.write_text("other", encoding="utf-8")
+        result = upgrade.upgrade(self.root, self.template, backup_dir)
+        left = sorted(p.name for p in backup_dir.glob("synthetic-2*.html"))
+        self.assertEqual(len(left), 5)
+        self.assertIn(Path(result["backup"]).name, left)
+        self.assertNotIn(old[0], left)
+        self.assertNotIn(old[1], left)
+        self.assertIn(old[2], left)
+        self.assertTrue(other.is_file())
 
     def test_dry_run_does_not_write(self):
         original = self.page.read_bytes()

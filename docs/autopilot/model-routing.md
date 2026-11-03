@@ -59,6 +59,7 @@ The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberat
 | cheap | `gpt-6-luna`, low | `haiku`, low |
 | balanced | `gpt-6-luna`, high | `sonnet`, medium |
 | strong | `gpt-6.1-sol`, high | `sonnet`, high |
+| critical | `gpt-6.1-sol`, high (same as strong) | `sonnet`, xhigh |
 | restricted / not automatically dispatched | `gpt-6-astra` | `fable`, `claude-fable-5` |
 
 These are defaults, **not a guarantee of host availability**. API model IDs and CLI aliases may differ; actual host capability discovery must resolve them. The default policy does not escalate to Opus, Astra or Fable. A model's accepted reasoning effort may differ across versions.
@@ -74,7 +75,7 @@ Models/prices/availability can change. The host must advertise supported model/e
 - test complexity: up to 15
 - security/irreversible risk: up to 10
 
-Scores of 0–25 use `cheap`, 26–55 `balanced`, 56–100 `strong`. High risk is an override (risk 10 forces strong); algorithm score >=20 forces strong. A risk-bearing task may also require independent review. Simple heuristics based on ticket contents are a starting estimate; supply verified factors explicitly if the default estimate is inadequate.
+Scores of 0–25 use `cheap`, 26–55 `balanced`, 56–100 `strong`. High risk is an override: risk >=8 lifts a `cheap` result to at least `balanced`; risk 10 or algorithm >=20 forces `strong`; risk 10 **and** algorithm >=20 together select `critical` (Anthropic: `sonnet` at `xhigh`; a host without `xhigh` is blocked, fail-closed). A risk-bearing task may also require independent review. Simple heuristics based on ticket contents are a starting estimate; supply verified factors explicitly if the default estimate is inadequate.
 
 ## Custom policy for the normal ticket route
 
