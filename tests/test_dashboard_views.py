@@ -97,6 +97,10 @@ def _fixtures():
                 "finishedAt": t(9 + i) if s == "done" else None, "retries": i % 2, "repairs": 1,
                 "routing": {"model": "sonnet", "provider": "anthropic", "effort": "medium", "score": 40, "reason": "x"},
                 "worktree": {"status": "clean"}} for i, s in enumerate(states, 1)]
+    for tk, reqs in zip(tickets, (["R00"], ["R01"], ["R05"], ["R02"], ["R03.1"], ["R04"], ["R06"])):
+        tk["requirements"] = reqs
+        if tk["status"] == "done":
+            tk["tests"] = {"passed": 6, "failed": 0}
     tickets[-1]["plannedRouting"] = {"model": "haiku", "status": "blocked"}
     del tickets[-1]["routing"]
     log = [{"k": "ticket", "act": "start", "ids": ["T%02d" % (i % 7 + 1)], "t": t(i)} for i in range(25)]
@@ -107,7 +111,7 @@ def _fixtures():
                "requirements": {"total": 10, "done": 3, "inTicket": 3, "placeholder": 2, "dropped": 0},
                "reqList": req_list, "gates": {"G1": {"ok": True, "total": 10}},
                "debt": {"emptyEnv": ["API_KEY"], "placeholders": ["a.py:3 - x"], "assumptions": ["y"]},
-               "usageEvents": [{"input": 1000, "output": 200, "cacheRead": 5, "cacheWrite": 1}],
+               "usageEvents": [{"ticket": "T01", "input": 1000, "output": 200, "cacheRead": 5, "cacheWrite": 1}],
                "tests": {"passed": 29, "failed": 0}, "budgetTokens": 5000, "skillVersion": "9.9"}
     done = dict(running, title="Finished build", finishedAt=t(40), result="Built it",
                 stages=[dict(s, status="done", finishedAt=t(30)) for s in stages + [{"id": "build", "startedAt": t(6)}]],
@@ -119,7 +123,13 @@ def _fixtures():
     # nothing finished yet: no durations to forecast from
     nodone = dict(running, title="Nothing done", tickets=[
         dict(x, status="in-progress" if i == 0 else "pending", finishedAt=None) for i, x in enumerate(tickets)])
-    return {"empty": empty, "running": running, "finished": done, "nodone": nodone}
+    # an old project: none of blind, debt, usageEvents, startedAt, requirement links
+    bare = lambda st: {k: v for k, v in st.items() if k not in (
+        "blind", "debt", "usageEvents", "startedAt", "budgetTokens", "skillVersion", "coverage")}
+    old_tickets = [{k: v for k, v in x.items() if k in ("id", "title", "status", "wave", "blockedBy")} for x in tickets]
+    old = dict(bare(running), title="Old build", tickets=old_tickets)
+    oldfin = dict(bare(done), title="Old finished build", tickets=[dict(x, status="done") for x in old_tickets])
+    return {"empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin}
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -137,7 +147,7 @@ class TemplateRuns(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def test_every_view_renders_every_fixture_without_exceptions(self):
-        self.assertEqual(len(self.out["renders"]), 4 * len(VIEW_IDS) * 2)
+        self.assertEqual(len(self.out["renders"]), 6 * len(VIEW_IDS) * 2)
         for key, res in self.out["renders"].items():
             with self.subTest(key=key):
                 self.assertNotIn("error", res)
@@ -159,7 +169,7 @@ class TemplateRuns(unittest.TestCase):
         for needle in ('class="ring"', 'class="route"', 'class="gx"', "G1", "G4", "Models & resources", "Retries: "):
             with self.subTest(view="overview", needle=needle):
                 self.assertIn(needle, page("overview"))
-        self.assertIn("Task timeline", page("timeline"))
+        self.assertIn("Build timeline", page("timeline"))
         self.assertIn('data-more="feed"', page("timeline"))
         self.assertIn('data-filter="all"', page("requirements"))
         self.assertIn('data-more="words"', page("requirements"))
@@ -336,6 +346,96 @@ class TemplateRuns(unittest.TestCase):
         self.assertEqual((stored["narrowSaved"], stored["narrowDenied"]), ("timeline", "compact"))
         self.assertEqual((stored["legacyFocus"], stored["legacyFocusNarrow"]), ("compact", "compact"))
 
+    def test_requirements_matrix_shows_each_phrase_by_stage_from_statuses_tickets_and_blind(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/requirements/%s" % (name, lang)]["html"]
+        run = page("running")
+        self.assertEqual(run.count('class="mx-row"'), 10)
+        self.assertEqual(run.count('class="mx-c '), 70)  # seven stages for every row
+        head = re.search(r'<div class="mx-head">.*?</div>', run, re.S).group(0)
+        for stage in ("Written", "the spec", "ticket", "Code", "Tests", "Review", "Blind acceptance"):
+            self.assertIn(stage, head)
+
+        def cells(html, rid):
+            row = re.search(r'<div class="mx-row"><div class="mx-req"><span class="rid">%s</span>.*?(?=<div class="mx-row">|<div class="mx-sum">|<div class="more">)' % rid, html, re.S).group(0)
+            found = re.findall(r'<div class="mx-c (\w+)"', row)
+            self.assertEqual(len(found), 7, rid)
+            return found
+        self.assertEqual(cells(run, "R00"), ["done"] * 6 + ["wait"])  # done requirement, done ticket; blind comes at the end
+        self.assertEqual(cells(run, "R01"), ["done", "done", "done", "now", "wait", "wait", "wait"])  # ticket in progress
+        self.assertEqual(cells(run, "R05")[3:6], ["done", "wait", "now"])  # ticket in review: code is in, review is going
+        self.assertEqual(cells(run, "R07"), ["done", "wait", "wait", "wait", "wait", "wait", "wait"])  # still "open"
+        self.assertIn("at the end", run)  # acceptance has not happened yet
+        for label in re.findall(r'<span class="mx-t">(.*?)</span>', run):  # a state is a word, not only a colour
+            self.assertTrue(label.strip())
+        total = re.search(r'<div class="mx-sum">.*', run, re.S).group(0)
+        self.assertIn("10 / 10", total)  # "how many reached the stage": everyone is written
+        self.assertIn('data-filter="all"', run)  # the filters of the word list stay
+        fin = page("finished")
+        self.assertEqual(cells(fin, "R03")[6], "bad")  # blind acceptance disagreed on R03
+        self.assertEqual(cells(fin, "R00")[6], "done")
+        empty = page("empty")
+        self.assertNotIn("mx-row", empty)
+        self.assertNotIn("mx-head", empty)
+
+    def test_summary_gives_a_verdict_per_requirement_and_a_mismatch_block_without_actions(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/summary/%s" % (name, lang)]["html"]
+        fin = page("finished")
+        rows = fin.split('<div class="vd-row">')[1:]
+        self.assertEqual(len(rows), 10)
+        by_id = {re.search(r'rid">(R\d+)<', r).group(1): r for r in rows}
+        self.assertIn("p-bad", by_id["R03"])  # blind acceptance disagrees
+        self.assertIn("p-done", by_id["R00"])
+        mis = re.search(r'<section class="card w mis">.*?</section>', fin, re.S).group(0)
+        self.assertIn("R03", mis)
+        self.assertIn("differs", mis)
+        self.assertNotIn("<button", mis)  # no action buttons: the dashboard only reads
+        for head in ("What to do next", "Needed from you", "Review notes"):
+            self.assertIn(head, fin)
+        self.assertIn("f.py:1", fin)
+        steps = re.search(r'<ol class="steps">.*?</ol>', fin, re.S).group(0)
+        self.assertEqual(steps.count("<li><b>"), 4)  # keys, stubs, mismatch, decisions
+        for absent in ("finding", "before", "after", "decision"):  # fields state.js does not have: no such blocks
+            self.assertNotIn('class="%s' % absent, fin)
+        ru = page("finished", "ru")
+        for head in ("Что делать дальше", "Нужно от вас", "Расхождение по R03"):
+            self.assertIn(head, ru)
+        for name in ("empty", "running"):  # nothing finished: no steps, no mismatch
+            for lang in ("ru", "en"):
+                html = page(name, lang)
+                self.assertNotIn('class="steps"', html)
+                self.assertNotIn('class="card w mis"', html)
+        self.assertNotIn("vd-row", page("empty"))
+
+    def test_timeline_keeps_the_detailed_gantt_and_overview_the_short_one(self):
+        timeline = self.out["renders"]["running/timeline/en"]["html"]
+        overview = self.out["renders"]["running/overview/en"]["html"]
+        self.assertEqual(timeline.count('class="gx-row"'), 7)  # every ticket
+        self.assertLess(overview.count('class="gx-row"'), 7)
+        self.assertIn('class="gx-nowline"', timeline)
+        self.assertIn("Wave 3", re.search(r'<div class="gx">.*', timeline, re.S).group(0))  # waves are told apart
+        self.assertEqual(timeline.count('class="route"'), 1)
+        self.assertIn("Build timeline", self.out["renders"]["empty/timeline/en"]["html"])  # no tickets: an empty card, not a blank
+
+    def test_resources_table_has_status_model_chip_and_tokens_per_ticket(self):
+        run = self.out["renders"]["running/resources/en"]["html"]
+        table = re.search(r'<table class="routes">.*?</table>', run, re.S).group(0)
+        self.assertIn('class="mchip"', table)
+        self.assertIn("pill", table)  # ticket state in words
+        self.assertIn("1,200", table)  # T01: 1000 in + 200 out, from usageEvents[].ticket
+        self.assertIn("<th>Tokens</th>", table)
+        nodata = self.out["renders"]["old/resources/en"]["html"]
+        self.assertNotIn("<th>Tokens</th>", nodata)  # no usage events: no column
+
+    def test_old_project_state_without_new_fields_draws_every_view_in_both_languages(self):
+        for name in ("old", "oldfin"):
+            for view in VIEW_IDS:
+                for lang in ("ru", "en"):
+                    res = self.out["renders"]["%s/%s/%s" % (name, view, lang)]
+                    with self.subTest(fixture=name, view=view, lang=lang):
+                        self.assertNotIn("error", res)
+                        for junk in ("undefined", "NaN", "[object"):
+                            self.assertNotIn(junk, res["html"])
+
     def test_both_locales_have_same_keys_including_view_names(self):
         i18n = self.out["i18n"]
         for pair in i18n["top"], i18n["vw"], i18n["views"]:
@@ -445,6 +545,22 @@ class TemplateStrings(unittest.TestCase):
         self.assertIn('compact:"Компактный"', self.html)
         self.assertIn('compact:"Compact"', self.html)
         self.assertEqual(self.html.count("'focus'"), 1)  # the old saved value is read as compact
+
+    def test_template_has_no_web_addresses_at_all(self):
+        self.assertNotRegex(self.html, r"https?://")  # the page was offline before and stays offline
+
+    def test_docs_and_changelog_match_the_current_views(self):
+        doc = (ROOT / "docs/autopilot/dashboard-views.md").read_text(encoding="utf-8")
+        for view in VIEW_IDS:
+            self.assertIn("| `%s` |" % view, doc)
+        self.assertNotIn("| `focus` |", doc)
+        self.assertNotIn("tasksCard", doc)  # the example of "Add a view" names blocks that exist
+        for block in re.findall(r"`c\.(\w+)`", doc):
+            self.assertIn(block, self.html, block)
+        log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").split("## 2.6.0")[0]
+        for word in ("compact", "palette", "Requirements", "Summary", "Timeline"):
+            self.assertIn(word, log)
+        self.assertNotIn("focus and quality", log)
 
     def test_no_network_requests_and_no_external_fonts(self):
         for bad in ("<link", "@import", "googleapis", "gstatic", "fetch(", "XMLHttpRequest", "@font-face", "WebSocket"):

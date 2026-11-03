@@ -4,14 +4,22 @@ One dashboard page, eight views of the same `window.STATE`. The switcher sits in
 
 | id | What it shows |
 |----|---------------|
-| `overview` | Default: mission hero (with the stage track), key figures, tickets by wave (pending ones too), gates and the live feed; every block once |
-| `timeline` | Track, per-ticket timeline, full event feed |
-| `requirements` | Requirement words, gates, requirement summary, debt |
-| `resources` | Key figures, model routes, tokens, isolation |
-| `summary` | Result hero, tiles, summary, blind spots, report, concerns, debt, additions |
-| `classic` | The earlier single-page layout |
-| `focus` | For a narrow panel beside the chat: state hero, running and waiting tickets, latest events; no tiles or tables |
+| `overview` | Default: progress ring ("N of M requirements closed") and a forecast, the stage route with minutes, a Gantt chart (the first six tickets), your words, gates, "needed from you", the live feed, models and isolation; every card of Classic stays, once |
+| `timeline` | Stage route, the detailed Gantt (every ticket, waves named, model chips), the full event feed |
+| `requirements` | "The path of your requirements": a matrix of each phrase by seven stages (written, spec, ticket, code, tests, review, blind acceptance) with a "how many reached the stage" row; below it the word list with its filters, gates, summary and leftovers |
+| `resources` | Key figures, the routes table (ticket state, model chip, tokens per ticket, worktree), tokens, isolation |
+| `summary` | Ring and figures, a verdict per requirement (where, tests, review, blind acceptance), the acceptance mismatch (text only, no action buttons), review notes, "what to do next", "needed from you" |
+| `classic` | The earlier single-page layout, with its own colours |
+| `compact` | One column for a narrow panel beside the chat: ring and forecast, tiles, stage strip, mini Gantt, "needed from you", gates, feed. Chosen by default when the window is 520 px wide or less and nothing is saved; a saved choice wins; the old saved value `focus` is read as `compact` |
 | `quality` | Can it be accepted: gates, blind acceptance, review and report notes, requirements with statuses, leftovers |
+
+## Palette
+
+Every view except `classic` uses the palette of the design handoff (`:root[data-view]:not([data-view="classic"])`, light and dark, text at least 4.5:1); `render()` sets `data-view` on the root. The page loads no fonts and makes no requests: system font stacks only. State is always a word or an icon as well as a colour, and the view buttons are 44 px high.
+
+## What a block needs
+
+A block is drawn only when `state.js` has its data; there are no error boxes for a missing field. The requirements matrix reads `reqList[].status`, `tickets[].requirements` (`R03.1` counts as `R03`), ticket statuses and `blind.mismatches`; the forecast needs finished tickets with `startedAt` and `finishedAt`; per-ticket tokens need `usageEvents[].ticket`. The summary has no before/after findings and no "decided for you" block because `state.js` has no such fields. An old project without `blind`, `debt`, `usageEvents` or `startedAt` still draws all eight views.
 
 ## Where it lives
 
@@ -29,7 +37,7 @@ The rail shows a link only for an anchor (`mission`, `tasks`, `models`, `quality
 ## Add a view
 
 1. Add the id to `VIEW_IDS` and its home anchor to `VIEW_HOME`.
-2. Add a function with that id to `VIEWS`: it receives the ready blocks (`c.hero`, `c.kpiRow`, `c.tasksCard`, …) and returns an HTML string.
+2. Add a function with that id to `VIEWS`: it receives the ready blocks (`c.ovHero`, `c.route`, `c.gantt`, `c.matrixCard`, `c.kpiRow`, `c.gatesCard`, …, the keys of the `VIEWS[VIEW]({…})` call in `render()`) and returns an HTML string; put `id="mission"|"tasks"|"models"|"quality"` on the blocks the rail should link to.
 3. Add the label to both `I18N.ru.views` and `I18N.en.views`.
 4. Run the tests below.
 

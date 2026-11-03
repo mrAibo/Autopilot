@@ -582,9 +582,6 @@
   .trackcard .s-fail .seg i{background:var(--bad)}
   .trackcard .s-done .seg i{background:var(--done)}
   .trackcard .s-now .seg i{background-color:var(--now)}
-  .g-nm{font-size:13.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .lane{position:relative;height:12px;margin-top:5px;border-radius:6px;background:var(--inset);overflow:hidden}
-  .lane i{position:absolute;top:0;bottom:0;border-radius:6px}
   .tablewrap{overflow-x:auto}
   .routes{width:100%;border-collapse:collapse;font-size:13.5px}
   .routes th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:750;padding:0 12px 10px 0}
@@ -812,6 +809,86 @@
   @media(max-width:560px){.route{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:520px){.ctile b{font-size:15px}.cmp-hero{padding:16px}}
   @media(max-width:360px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gchips{grid-template-columns:minmax(0,1fr)}}
+
+  /* «Требования»: матрица пути фразы по семи этапам. Состояние — значок и слово, цвет только помогает. */
+  .mx-head,.mx-row,.mx-sum{display:grid;grid-template-columns:minmax(200px,1.8fr) repeat(7,minmax(0,1fr));column-gap:6px;align-items:center}
+  .mx-head{padding:0 0 10px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;text-align:center;line-height:1.25}
+  .mx-head span:first-child{text-align:left;font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .mx-row{padding:14px 0;border-bottom:1px solid var(--line)}
+  .mx-req{display:flex;gap:10px;align-items:flex-start;min-width:0;padding-right:10px}
+  .mx-req>div{min-width:0}
+  .mx-req p{margin:0;font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+  .mx-req small{display:block;font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);margin-top:3px}
+  .mx-req small:empty{display:none}
+  .mx-c{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
+  .mx-h{display:none;font-size:10px;font-weight:700;line-height:1.2;color:var(--mut);overflow-wrap:anywhere}
+  .mx-m{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px dashed var(--idle);color:var(--mut)}
+  .mx-c.done .mx-m{background:var(--done);border-color:var(--done);color:var(--on-done)}
+  .mx-c.now .mx-m{background:var(--now-soft);border:3px solid var(--now)}
+  .mx-c.now .mx-m i{width:8px;height:8px;border-radius:50%;background:var(--now);display:block}
+  .mx-c.bad .mx-m{background:var(--bad);border-color:var(--bad);color:var(--on-bad)}
+  .mx-c.skip .mx-m{border:2px solid var(--line2)}
+  .mx-t{font-size:11.5px;font-weight:700;line-height:1.25;color:var(--mut);overflow-wrap:anywhere}
+  .mx-c.done .mx-t{color:var(--done-tx)}
+  .mx-c.now .mx-t{color:var(--now-tx)}
+  .mx-c.bad .mx-t{color:var(--bad-tx)}
+  .mx-sum{padding:16px 0 0;font-size:13px;font-weight:700}
+  .mx-sum b{display:block;text-align:center;font:700 13px/1.6 ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .mx-bar{display:block;height:5px;border-radius:3px;background:var(--soft);overflow:hidden}
+  .mx-bar i{display:block;height:100%;background:var(--done)}
+  .mx .more{padding-top:12px}
+
+  /* «Итог»: вердикт по каждому требованию, расхождение, что делать дальше */
+  .sum-top .ovh.won{background:var(--done-soft);border-color:var(--done);border-width:2px}
+  .vd-head,.vd-row{display:grid;grid-template-columns:44px minmax(0,2.2fr) minmax(0,1fr) 56px minmax(0,1.2fr) minmax(0,1.1fr);column-gap:12px;align-items:center}
+  .vd-head{padding-bottom:8px;border-bottom:1px solid var(--line);font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .vd-row{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--tx2)}
+  .vd-row p{margin:0;font-size:14px;font-weight:700;line-height:1.35;color:var(--tx);overflow-wrap:anywhere}
+  .vd-row span{min-width:0;overflow-wrap:anywhere}
+  .vd-t{font-weight:800;color:var(--tx)}
+  .vd .more{padding-top:12px}
+  .mis{background:var(--warn-bg);border-color:var(--warn-bd)}
+  .mis .wt{color:var(--warn-tx)}
+  .mis p{margin:10px 0 0;font-size:14.5px;line-height:1.5;color:var(--warn-tx)}
+  .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;counter-reset:st}
+  .steps li{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;row-gap:2px;counter-increment:st}
+  .steps li:before{content:counter(st);grid-row:1/3;width:28px;height:28px;border-radius:50%;background:var(--tx);color:var(--card);
+    display:grid;place-items:center;font-size:13px;font-weight:800}
+  .steps b{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+  .steps span{font-size:13px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere}
+
+  /* Значок события в ленте: у .ei свой фон перебивал цвет статуса, и белая галочка пропадала на светлом поле. */
+  html:not([data-view="classic"]) .ei.f-done{background:var(--done)}
+  html:not([data-view="classic"]) .ei.f-now{background:var(--now)}
+  html:not([data-view="classic"]) .ei.f-rev{background:var(--rev)}
+  html:not([data-view="classic"]) .ei.f-fix{background:var(--fix)}
+  html:not([data-view="classic"]) .ei.f-bad{background:var(--bad)}
+
+  /* «Ресурсы»: таблица маршрутов — ticket, модель-чип, токены по таскам */
+  .tablewrap{margin-top:14px}
+  .routes .tokbar{display:block;height:6px;border-radius:3px;background:var(--soft);overflow:hidden;min-width:80px;margin-bottom:4px}
+  .routes .tokbar i{display:block;height:100%;background:var(--rev)}
+  .routes .mono{font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--tx2)}
+  .routes td .pill{margin-top:5px}
+  .routes td:first-child{min-width:150px;font-weight:700}
+
+  @media(max-width:720px){
+    .routes{min-width:640px}
+    .routes .mchip{white-space:nowrap}
+    .mx-head{display:none}
+    .mx-row,.mx-sum{grid-template-columns:repeat(7,minmax(0,1fr));column-gap:4px}
+    .mx-req{grid-column:1/-1;padding:0 0 12px}
+    .mx-h{display:block}
+    .mx-t{font-size:10px}
+    .mx-sum>span{grid-column:1/-1;padding-bottom:6px}
+    .mx-sum b{font-size:11px}
+    .vd-head{display:none}
+    .vd-row{grid-template-columns:44px minmax(0,1fr) minmax(0,1fr);row-gap:8px}
+    .vd-row>.rid{grid-area:1/1}
+    .vd-row>p{grid-area:1/2/2/4}
+    .vd-row>.vd-w{grid-area:2/2}.vd-row>.vd-t{grid-area:2/3}.vd-row>.vd-r{grid-area:3/2}.vd-row>.vd-b{grid-area:3/3}
+    .vd-row>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;color:var(--mut);font-weight:400;letter-spacing:.04em;margin-bottom:2px}
+  }
 </style>
 </head>
 <body>
@@ -1025,7 +1102,7 @@ const I18N = {
     views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
-      tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",tTimeline:"Таймлайн тасков",
+      tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",
       tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
       tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
       cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
@@ -1034,7 +1111,22 @@ const I18N = {
       kAgents:"Агентов работает",kTime:"Рабочее время",going:"идёт",waited:n=>`+ ${n} мин ждали вас`,
       tGantt:"Ход сборки по времени",gSub:"Настоящие длительности; ждущие таски — пунктиром, после тех, от кого зависят",
       lgPlan:"ждёт · прогноз",nowTag:"сейчас",after:l=>`после ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены"}},
+      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",
+      mTitle:"Путь твоих требований",mSub:"Где сейчас каждая фраза из твоего брифа. Таски могут быть готовы, а требование нет — здесь это видно сразу.",
+      mReq:"Требование",mCount:"Сколько требований дошло до этапа",
+      mLong:["Записано дословно","В спецификации","В таске","Код написан","Тесты зелёные","Ревью","Слепая приёмка"],
+      mShort:["Записано","Спека","Таск","Код","Тесты","Ревью","Приёмка"],
+      mDone:"готово",mNow:"идёт",mCode:"пишется",mWait:"ждёт",mFinal:"в финале",mFail:"сбой",mMis:"не совпало",
+      mTickets:ids=>`${ids.length > 1 ? 'таски' : 'таск'} ${ids.join(' · ')}`,cTree:"Рабочая копия",
+      sVerdict:"Твои слова: вердикт по каждому требованию",sVerdictSub:"Вычеркнуть требование может только ты. Здесь видно, где оно в проекте и кто его проверил.",
+      cWhere:"Где в проекте",cTests:"Тесты",cReview:"Ревью",cBlind:"Слепая приёмка",
+      rvOk:"пройдено",rvFix:n=>`исправлено: ${n}`,rvOn:"идёт ревью",rvWait:"ждёт",bOk:"прошла",bBad:"расходится",bWait:"в финале",
+      sMis:id=>`Расхождение по ${id}: приёмка и трекер не совпали`,sMisAny:"Расхождение: приёмка и трекер не совпали",
+      sNext:"Что делать дальше",sNeed:"Нужно от вас",
+      nEnv:n=>`Впиши ${n} ${plural(n,'значение','значения','значений')} в .env`,nEnvD:"имена переменных ниже, значения только у тебя",
+      nPh:n=>`Замени ${n} ${plural(n,'заглушку','заглушки','заглушек')}`,nPhD:"видимые заглушки: агент не стал придумывать за тебя",
+      nMis:id=>`Реши по ${id}`,nMisD:"починить сейчас или принять как есть",
+      nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить"}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -1136,7 +1228,7 @@ const I18N = {
     views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
-      tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",tTimeline:"Task timeline",
+      tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",
       tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
       tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
       cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
@@ -1145,7 +1237,22 @@ const I18N = {
       kAgents:"Agents working",kTime:"Work time",going:"running",waited:n=>`+ ${n} min waiting on you`,
       tGantt:"Build timeline",gSub:"Real durations; waiting tickets are dashed, placed after the ones they depend on",
       lgPlan:"waiting · forecast",nowTag:"now",after:l=>`after ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed"}}
+      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",
+      mTitle:"The path of your requirements",mSub:"Where each phrase of your brief is now. Tickets can be done while a requirement is not — it shows right here.",
+      mReq:"Requirement",mCount:"How many requirements reached the stage",
+      mLong:["Written word for word","In the spec","In a ticket","Code written","Tests green","Review","Blind acceptance"],
+      mShort:["Written","Spec","Ticket","Code","Tests","Review","Acceptance"],
+      mDone:"done",mNow:"going",mCode:"writing",mWait:"waiting",mFinal:"at the end",mFail:"failed",mMis:"mismatch",
+      mTickets:ids=>`${ids.length > 1 ? 'tickets' : 'ticket'} ${ids.join(' · ')}`,cTree:"Worktree",
+      sVerdict:"Your words: a verdict on each requirement",sVerdictSub:"Only you can strike a requirement out. Here you see where it lives in the project and who checked it.",
+      cWhere:"Where",cTests:"Tests",cReview:"Review",cBlind:"Blind acceptance",
+      rvOk:"passed",rvFix:n=>`${n} fixed`,rvOn:"in review",rvWait:"waiting",bOk:"passed",bBad:"differs",bWait:"at the end",
+      sMis:id=>`Mismatch on ${id}: acceptance and tracker disagree`,sMisAny:"Mismatch: acceptance and tracker disagree",
+      sNext:"What to do next",sNeed:"Needed from you",
+      nEnv:n=>`Fill in ${n} ${en(n,'value','values')} in .env`,nEnvD:"the variable names are below; the values are only yours",
+      nPh:n=>`Replace ${n} ${en(n,'placeholder','placeholders')}`,nPhD:"visible stubs the agent did not invent for you",
+      nMis:id=>`Decide on ${id}`,nMisD:"fix it now or accept it as it is",
+      nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled"}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1418,20 +1525,23 @@ const VIEWS = {
     <div class="col">${c.feedView}</div>
     <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>
   <div id="models" class="vsec" tabindex="-1">${c.resourceBlock}${c.isolationBlock}</div>`,
+  // Подробный Гант: все таски, волны названы; маршрут этапов вместо плоской полосы.
   timeline: c => `
-  <div id="mission" class="vsec" tabindex="-1">${c.trackCard}</div>
-  <div id="tasks" class="vsec" tabindex="-1">${c.timelineCard}</div>
+  <div id="mission" class="vsec" tabindex="-1">${c.route}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.ganttFull || c.emptyGantt}</div>
   <div id="quality" class="vsec" tabindex="-1">${c.feedAll}</div>`,
+  // Матрица пути требований сверху; список со статусами и фильтрами, шлюзы и остатки — под ней.
   requirements: c => `
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.wordsView}</div>
-    <div class="col">${c.gatesCard}${c.reqSummary}${c.debtCard}</div></div>`,
+  <div id="quality" class="vsec" tabindex="-1">${c.matrixCard}<div class="cols"><div class="col">${c.wordsView}</div>
+    <div class="col">${c.gatesCard}${c.reqSummary}${c.debtCard}</div></div></div>`,
   resources: c => `
   <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.routesCard}${c.tokensCard}${c.isolationView}</div>`,
+  // Итог: кольцо и цифры, вердикт по каждому требованию, расхождение приёмки (если есть), замечания ревью;
+  // справа — что делать дальше и что нужно от вас. Блока без данных в state.js нет — его и не рисуем.
   summary: c => `
-  <div id="mission" class="spotlight one" tabindex="-1">${c.hero}</div>
-  ${c.tiles}
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.summaryCard}${c.blindCard}${c.reportCard}${c.concernsCard}</div>
-    <div class="col">${c.debtCard}${c.addCard}</div></div>`,
+  <div id="mission" class="vsec sum-top" tabindex="-1">${c.ovHero}</div>
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.verdictCard}${c.mismatchCard || c.blindCard}${c.reportCard}${c.concernsCard}</div>
+    <div class="col">${c.nextCard}${c.needSum}${c.asmCard}${c.addCard}${c.fin ? '' : c.summaryCard}</div></div>`,
   // Узкая панель: одна колонка, то же главное — кольцо, прогноз, фраза, плитки, полоса этапов, мини-Гант.
   compact: c => `
   <div class="cmp"><div id="mission" class="vsec" tabindex="-1">${c.cHero}</div>
@@ -1943,6 +2053,7 @@ function render(lang){
   const attention = activeWorkers.concat(failedWorkers);
   const none = `<p class="muted">${W.empty}</p>`;
   const tasksEmpty = emptyCard(L.build, t0 ? L.t0 : L.noTickets);
+  const emptyGantt = emptyCard(W.tGantt, t0 ? L.t0 : L.noTickets);
   const waitingT = T.filter(t => t.status === 'pending');
   const activeCard = T.length
     ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tActive}</h3><span>${attention.length}</span></div>${attention.length ? rowsList('act', attention.map(taskRow), 4) : none}</section>`
@@ -1959,30 +2070,7 @@ function render(lang){
   const blindView = blindCard || emptyCard(L.blind, W.empty);
   const reviewView = reportCard + concernsCard || emptyCard(W.tReview, W.empty);
 
-  // Таймлайн: полоса каждого таска — по календарному времени от первого старта до последнего конца.
-  const timed = T.filter(t => toMs(t.startedAt) != null);
-  const gFrom = timed.length ? Math.min(...timed.map(t => toMs(t.startedAt))) : 0;
-  const gTo = timed.length ? Math.max(...timed.map(t => toMs(t.finishedAt) ?? Date.now())) : 0;
-  const gSpan = Math.max(1, gTo - gFrom);
-  const ganttRow = t => {
-    const k = kindOf(t), a = toMs(t.startedAt);
-    let bar = '';
-    if (a != null) {
-      const b = toMs(t.finishedAt) ?? Date.now();
-      const left = (a - gFrom) / gSpan * 100, width = Math.min(Math.max(1.5, (b - a) / gSpan * 100), 100 - left);
-      bar = `<i class="${k.bar}" style="left:${left.toFixed(2)}%;width:${width.toFixed(2)}%"></i>`;
-    }
-    return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
-      <div style="min-width:0"><div class="g-nm" title="${esc(t.title)}">${esc(t.title)}</div><div class="lane">${bar}</div></div>
-      <span class="tl-time ${k.on ? k.k : ''}">${taskTime(t)}</span></div>`;
-  };
   const byTicketId = (a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true});
-  const timelineCard = T.length
-    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tTimeline}</h3>${timed.length ? `<span>${hhmm(new Date(gFrom))}–${hhmm(new Date(gTo))}</span>` : ''}</div>`
-      + [...new Set(T.map(t => t.wave ?? 1))].sort((a, b) => a - b).map(w =>
-        `<div class="wave">${esc(L.wave(w))}</div>` + T.filter(t => (t.wave ?? 1) === w).sort(byTicketId).map(ganttRow).join('')).join('')
-      + '</section>'
-    : emptyCard(W.tTimeline, t0 ? L.t0 : L.noTickets);
   const feedItems = feedEvents.slice().reverse().map(feedRow).filter(Boolean);
   const feedAll = feedItems.length
     ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tFeedAll}</h3><span>${feedItems.length}</span></div>${rowsList('feed', feedItems, 15)}</section>`
@@ -1991,10 +2079,25 @@ function render(lang){
   const debtCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tDebt}</h3><span>${env.length + ph.length + asm.length}</span></div>${keysBlock + phBlock + asmBlock || none}</section>`;
 
   const routeRows = routed.map(t => [t, t.routing, '']).concat(proposals.map(t => [t, t.plannedRouting, t.plannedRouting.status === 'blocked' ? W.blocked : W.planned]));
+  const PILLK = {done: 'p-done', now: 'p-now', rev: 'p-rev', fix: 'p-rev', bad: 'p-bad', wait: 'p-mut'};
+  // Токены по таскам — из usageEvents[].ticket; нет событий с таском — нет и столбца.
+  const tokBy = new Map();
+  usageEvents.forEach(e => tokBy.set(String(e.ticket), (tokBy.get(String(e.ticket)) || 0) + e.input + e.output));
+  const maxTok = Math.max(1, ...tokBy.values());
+  const hasTok = routeRows.some(([t]) => tokBy.has(String(t.id)));
+  const hasTree = routeRows.some(([t]) => t.worktree && t.worktree.status);
+  const routeCols = [W.cTask, W.cProvider, W.cModel, W.cScore, W.cWhy].concat(hasTok ? [W.tTokens] : [], hasTree ? [W.cTree] : []);
+  const routeRow = ([t, p, tag]) => {
+    const k = kindOf(t).k, n = tokBy.get(String(t.id));
+    return `<tr><td>${esc(t.id + ' · ' + t.title)}<br><span class="pill ${PILLK[k]}">${L.chip[k]}</span></td><td>${esc(p.provider || '—')}</td>`
+      + `<td><span class="mchip">${esc(p.model || '—')}${p.effort ? ' · ' + esc(p.effort) : ''}</span>${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td>`
+      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '—')}</td>`
+      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : '—'}</td>` : '')
+      + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>` : '—'}</td>` : '') + '</tr>';
+  };
   const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
-    ? `<div class="tablewrap"><table class="routes"><thead><tr>${[W.cTask, W.cProvider, W.cModel, 'Effort', W.cScore, W.cWhy].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
-      routeRows.map(([t, p, tag]) => `<tr><td>${esc(t.id + ' · ' + t.title)}</td><td>${esc(p.provider || '—')}</td><td>${esc(p.model || '—')}${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td><td>${esc(p.effort || '—')}</td><td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '—')}</td></tr>`).join('')
-      }</tbody></table></div>` : emptyBox(W.empty)}</section>`;
+    ? `<div class="tablewrap"><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+      routeRows.map(routeRow).join('')}</tbody></table></div>` : emptyBox(W.empty)}</section>`;
   const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
   const isolationView = isolationBlock || emptyCard(W.tIsolation, W.empty);
 
@@ -2075,7 +2178,7 @@ function render(lang){
   };
   const gRows = T.slice().sort((x, y) => ((x.wave ?? 1) - (y.wave ?? 1)) || byTicketId(x, y))
     .map(t => [t, place(t, new Set())]).filter(x => x[1]);
-  let gantt = '', miniGantt = '';
+  let gantt = '', ganttFull = '', miniGantt = '';
   if (gRows.length) {
     const gFrom = Math.min(...gRows.map(x => x[1].a), ...(fin ? [] : [gNow]));
     const gTo = Math.max(...gRows.map(x => x[1].b + x[1].tail), ...(fin ? [] : [gNow]));
@@ -2101,12 +2204,14 @@ function render(lang){
     const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
       <div class="gx-lane">${grid}${gBar(t, p, false)}</div><div class="gx-mdl">${t.routing && t.routing.model
         ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div></div>`;
-    const PILL = {done: 'p-done', now: 'p-now', rev: 'p-rev', fix: 'p-rev', bad: 'p-bad', wait: 'p-mut'};
-    const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILL[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
+    const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILLK[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
       <div class="gx-lane">${grid}${gBar(t, p, true)}</div></div>`;
     const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
-    gantt = `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
-      <div class="gx">${axis}${rowsList('gt', gRows.map(row), 12)}</div></section>`;
+    const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
+      <div class="gx">${axis}${rows}</div></section>`;
+    // «Обзор» — краткий (первые шесть), «Таймлайн» — подробный: все таски, волны названы.
+    gantt = ganttCard(rowsList('gt', gRows.map(row), 6));
+    ganttFull = ganttCard(gRows.map((x, i) => (i && (x[0].wave ?? 1) === (gRows[i - 1][0].wave ?? 1) ? '' : `<div class="wave">${esc(L.wave(x[0].wave ?? 1))}</div>`) + row(x)).join(''));
     miniGantt = `<section class="card w"><div class="whead"><h3 class="wt">${W.tGantt}</h3></div>
       <div class="gx mini">${axis}${rowsList('gtm', gRows.map(miniRow), 8)}</div>${legend}</section>`;
   }
@@ -2115,6 +2220,66 @@ function render(lang){
     ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}</span>`).join('')}</div></section>`;
   const feedShort = feedEvents.slice(-5).reverse().map(feedRow).join('');
   const feedCompact = feedShort ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3></div>${feedShort}</section>` : emptyCard(L.feed, W.empty);
+
+  // ——— «Требования» и «Итог»: путь каждой фразы брифа ———
+  // У требования в state.js нет ссылок на таски, но у таска есть requirements[]: связь берём оттуда
+  // (R03.1 — это R03). Что в state.js нет — то не рисуется: ни «было/стало», ни решений за вас.
+  const reqBase = x => String(x).split('.')[0];
+  const linked = id => T.filter(t => Array.isArray(t.requirements) && t.requirements.some(x => reqBase(x) === id));
+  const mism = (B && Array.isArray(B.mismatches) ? B.mismatches : []).map(m => {
+    const x = /^([RGA]\d+\w*)\s+[—–-]\s+(.*)$/.exec(m); return x ? {id: x[1], text: x[2]} : {id: '', text: String(m)}; });
+  const reqRows = reqList.map(r => ({r, k: REQ_KIND[r.status] || 'open', lk: linked(r.id)}));
+  // Семь этапов: записано · спецификация · таск · код · тесты · ревью · приёмка → done | now | wait | bad | skip.
+  const stagesOf = ({r, k, lk}) => {
+    if (k === 'dropped' || k === 'deferred') return ['done'].concat(Array(6).fill('skip'));
+    const every = f => lk.length > 0 && lk.every(f), some = f => lk.some(f);
+    const st = t => t.status, allDone = k === 'done' || every(t => st(t) === 'done');
+    const code = allDone ? 'done' : some(t => st(t) === 'failed') ? 'bad'
+      : some(t => ['in-progress', 'repair'].includes(st(t))) ? 'now'
+      : every(t => ['review', 'done'].includes(st(t))) ? 'done' : some(t => ['review', 'done'].includes(st(t))) ? 'now' : 'wait';
+    return ['done', r.status !== 'open' || lk.length ? 'done' : 'wait', lk.length || ['in-ticket', 'done'].includes(r.status) ? 'done' : 'wait',
+      code, allDone ? (some(t => t.tests && t.tests.failed) ? 'bad' : 'done') : 'wait',
+      allDone ? 'done' : some(t => ['review', 'repair'].includes(st(t))) ? 'now' : 'wait',
+      mism.some(m => m.id === r.id) ? 'bad' : B ? 'done' : 'wait'];
+  };
+  const mxWord = (s, i) => s === 'done' ? W.mDone : s === 'now' ? (i === 3 ? W.mCode : W.mNow) : s === 'bad' ? (i === 6 ? W.mMis : W.mFail)
+    : s === 'skip' ? '—' : (i === 6 && !fin ? W.mFinal : W.mWait);
+  const mxMark = {done: ic('check', 'xs'), bad: ic('x', 'xs'), now: '<i></i>', wait: '', skip: ''};
+  let matrixCard = '';
+  if (reqRows.length) {
+    const grid = reqRows.map(x => stagesOf(x));
+    const liveRows = grid.filter((_, i) => !['dropped', 'deferred'].includes(reqRows[i].k));
+    const rows = reqRows.map((x, n) => `<div class="mx-row"><div class="mx-req"><span class="rid">${esc(x.r.id)}</span><div><p>${q(esc(x.r.text), L.lang)}</p>
+        <small>${x.lk.length ? esc(W.mTickets(x.lk.map(t => t.id))) : ''}${['dropped', 'deferred', 'placeholder'].includes(x.k) ? `${x.lk.length ? ' · ' : ''}${L.rs[x.k]}` : ''}</small></div></div>${
+      grid[n].map((s, i) => `<div class="mx-c ${s}"><span class="mx-h">${W.mShort[i]}</span><span class="mx-m" aria-hidden="true">${mxMark[s]}</span><span class="mx-t">${mxWord(s, i)}</span></div>`).join('')}</div>`);
+    const count = liveRows.length ? `<div class="mx-sum"><span>${W.mCount}</span>${W.mShort.map((_, i) => { const n = liveRows.filter(g => g[i] === 'done').length;
+      return `<div><b>${n} / ${liveRows.length}</b><i class="mx-bar" aria-hidden="true"><i style="width:${Math.round(n / liveRows.length * 100)}%"></i></i></div>`; }).join('')}</div>` : '';
+    matrixCard = `<section class="card w mx"><div class="whead"><div><h3 class="wt">${W.mTitle}</h3><p class="muted">${W.mSub}</p></div></div>
+      <div class="mx-head"><span>${W.mReq}</span>${W.mLong.map(h => `<span>${h}</span>`).join('')}</div>${rowsList('mx', rows, 12)}${count}</section>`;
+  }
+
+  // «Итог»: вердикт по каждому требованию — где в проекте, тесты, ревью, слепая приёмка.
+  const verdictRows = reqRows.map(({r, lk}) => {
+    const passed = lk.reduce((n, t) => n + (t.tests && Number.isFinite(+t.tests.passed) ? +t.tests.passed : 0), 0);
+    const fixed = lk.reduce((n, t) => n + (Number(t.repairs) || 0), 0);
+    const review = !lk.length ? '—' : lk.every(t => t.status === 'done') ? (fixed ? W.rvFix(fixed) : W.rvOk)
+      : lk.some(t => ['review', 'repair'].includes(t.status)) ? W.rvOn : W.rvWait;
+    const blind = mism.some(m => m.id === r.id) ? `<span class="pill p-bad">${W.bBad}</span>` : B ? `<span class="pill p-done">${W.bOk}</span>` : `<span class="pill p-mut">${W.bWait}</span>`;
+    return `<div class="vd-row"><span class="rid">${esc(r.id)}</span><p>${q(esc(r.text), L.lang)}</p>
+      <span class="vd-w" data-l="${W.cWhere}">${lk.length ? esc(W.mTickets(lk.map(t => t.id))) : '—'}</span><span class="vd-t" data-l="${W.cTests}">${passed ? passed : '—'}</span>
+      <span class="vd-r" data-l="${W.cReview}">${esc(review)}</span><span class="vd-b" data-l="${W.cBlind}">${blind}</span></div>`;
+  });
+  const verdictCard = verdictRows.length
+    ? `<section class="card w vd"><div class="whead"><div><h3 class="wt">${W.sVerdict}</h3><p class="muted">${W.sVerdictSub}</p></div></div>
+        <div class="vd-head"><span></span><span>${W.mReq}</span><span>${W.cWhere}</span><span>${W.cTests}</span><span>${W.cReview}</span><span>${W.cBlind}</span></div>${rowsList('vd', verdictRows, 12)}</section>` : '';
+  // Расхождение приёмки — только текст: дашборд читает состояние, кнопок действий у него нет.
+  const mismatchCard = mism.map(m => `<section class="card w mis"><h3 class="wt">${m.id ? W.sMis(esc(m.id)) : W.sMisAny}</h3><p>${esc(m.text)}</p></section>`).join('');
+  const steps = fin ? [env.length && [W.nEnv(env.length), W.nEnvD], ph.length && [W.nPh(ph.length), W.nPhD],
+    ...mism.map(m => m.id ? [W.nMis(m.id), W.nMisD] : [W.sMisAny, W.nMisD]), asm.length && [W.nAsm(asm.length), W.nAsmD]].filter(Boolean) : [];
+  const nextCard = steps.length ? `<section class="card w"><div class="whead"><h3 class="wt">${W.sNext}</h3></div><ol class="steps">${
+    steps.map(([a, b]) => `<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')}</ol></section>` : '';
+  const needSum = env.length || ph.length
+    ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${W.sNeed}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
 
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
@@ -2147,9 +2312,9 @@ function render(lang){
   const sectionTitle = (number, title, sub) =>
     `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
   const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
-    buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, timelineCard, feedAll, debtCard, routesCard, tokensCard,
-    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
-    ovHero, route, gantt, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact});
+    buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
+    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
+    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
