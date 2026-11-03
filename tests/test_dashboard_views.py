@@ -11,7 +11,12 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "skills/autopilot/phases/dashboard-template.html"
 LOGO = ROOT / "assets/autopilot-logo-light.svg"
-VIEW_IDS = ["overview", "timeline", "requirements", "resources", "summary", "classic"]
+VIEW_IDS = ["overview", "timeline", "requirements", "resources", "summary", "classic", "focus", "quality"]
+NAMES = {"overview": "Overview", "timeline": "Timeline", "requirements": "Requirements", "resources": "Resources",
+         "summary": "Summary", "classic": "Classic", "focus": "Focus", "quality": "Quality"}
+# The rail link that stands for each theme (the anchor its main block carries).
+HOME = {"overview": "mission", "timeline": "tasks", "requirements": "quality", "resources": "models",
+        "summary": "quality", "classic": "mission", "focus": "mission", "quality": "quality"}
 NODE = shutil.which("node")
 
 # Runs the template's own <script> in a vm with a tiny DOM stub; prints JSON.
@@ -137,7 +142,7 @@ class TemplateRuns(unittest.TestCase):
                     self.assertNotIn(junk, page)
 
     def test_empty_state_says_nothing_yet_instead_of_blank(self):
-        for view in VIEW_IDS[:-1]:  # classic is the old layout, unchanged
+        for view in [v for v in VIEW_IDS if v != "classic"]:  # classic is the old layout, unchanged
             for lang, text in (("ru", "ещё нет"), ("en", "none yet")):
                 with self.subTest(view=view, lang=lang):
                     self.assertIn(text, self.out["renders"]["empty/%s/%s" % (view, lang)]["html"])
@@ -145,7 +150,7 @@ class TemplateRuns(unittest.TestCase):
     def test_views_show_the_composition_from_the_spec(self):
         page = lambda view, name="running": self.out["renders"]["%s/%s/en" % (name, view)]["html"]
         for needle in ('class="hero', "Tokens", "Working now", "Worktrees", "Retries and repairs",
-                       'class="track"', "G1", "G4", "Requirements summary"):
+                       'class="track"', "G1", "G4", "Requirements"):
             with self.subTest(view="overview", needle=needle):
                 self.assertIn(needle, page("overview"))
         self.assertIn("Task timeline", page("timeline"))
@@ -158,19 +163,88 @@ class TemplateRuns(unittest.TestCase):
         self.assertIn("Built it", page("summary", "finished"))
         self.assertIn("class=\"spotlight\"", page("classic"))
 
-    def test_overview_shows_at_least_as_much_text_as_classic_and_no_duplicate_ids(self):
-        def text(html):
-            return len(" ".join(re.sub(r"<[^>]*>", " ", html).split()))
+    def test_overview_shows_every_block_classic_shows_and_no_duplicate_ids(self):
+        heads = lambda html: set(re.findall(r'<h3 class="wt">(?:<i>.*?</i>)?(.*?)</h3>', html))
         for name in ("empty", "running", "finished"):
             for lang in ("ru", "en"):
                 over = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
                 classic = self.out["renders"]["%s/classic/%s" % (name, lang)]["html"]
                 with self.subTest(fixture=name, lang=lang):
-                    self.assertGreaterEqual(
-                        text(over), text(classic),
-                        "overview text %d chars, classic %d" % (text(over), text(classic)))
+                    self.assertTrue(heads(classic))
+                    self.assertEqual(heads(classic) - heads(over), set())
                     for block in ("mission", "tasks", "models", "quality"):
                         self.assertEqual(over.count(' id="%s"' % block), 1, block)
+
+    def test_overview_shows_pending_tickets_and_their_wave(self):
+        for lang, wave in (("en", "Wave 3"), ("ru", "Волна 3")):
+            page = self.out["renders"]["running/overview/" + lang]["html"]
+            with self.subTest(lang=lang):
+                self.assertIn(wave, page)
+                for title in ("Ticket 6", "Ticket 7"):  # the two pending tickets of the fixture
+                    self.assertIn(title, page)
+
+    def test_overview_does_not_repeat_blocks(self):
+        for name in ("empty", "running", "finished"):
+            for lang in ("ru", "en"):
+                page = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
+                with self.subTest(fixture=name, lang=lang):
+                    self.assertLessEqual(page.count('class="track"'), 1)  # hero has it; no second stage card
+                    self.assertNotIn("Requirements summary", page)  # the requirements tile already says it
+                    self.assertNotIn("Сводка требований", page)
+                    heads = re.findall(r'<h3 class="wt">(.*?)</h3>', page)
+                    self.assertEqual(len(heads), len(set(heads)), heads)
+                    for tid in re.findall(r'class="tl-id[^"]*">(T\d+)<', page):
+                        self.assertEqual(len(re.findall(r'class="tl-id[^"]*">%s<' % tid, page)), 1, tid)
+        fin = self.out["renders"]["finished/overview/en"]["html"]
+        self.assertEqual(len(re.findall(r'class="tl-id[^"]*">T\d+<', fin)), 7)
+
+    def test_rail_version_is_the_skill_version_from_state(self):
+        rail = lambda key: re.search(r'<aside class="cockpit-rail".*?</aside>', self.out["renders"][key]["html"], re.S).group(0)
+        for view in VIEW_IDS:
+            for lang in ("ru", "en"):
+                self.assertIn("9.9", rail("running/%s/%s" % (view, lang)))
+                self.assertIn("9.9", rail("finished/%s/%s" % (view, lang)))
+                no_version = rail("empty/%s/%s" % (view, lang))
+                self.assertNotIn("2.3", no_version)
+                self.assertNotIn("/ <", no_version)  # no dangling separator
+
+    def test_rail_highlights_the_theme_own_item_in_every_theme(self):
+        for key, res in self.out["renders"].items():
+            name, view, lang = key.split("/")
+            page = res["html"]
+            marked = re.findall(r'<a data-focus-key="nav-[a-z]+" href="#([a-z]+)" aria-current="page">(.*?)</a>', page)
+            with self.subTest(key=key):
+                self.assertEqual(len(marked), 1, marked)
+                self.assertEqual(marked[0][0], HOME[view])
+                if lang == "en":
+                    self.assertTrue(marked[0][1].endswith(NAMES[view]), marked[0][1])
+        timeline = self.out["renders"]["running/timeline/en"]["html"]
+        self.assertNotRegex(timeline, r'aria-current="page">[^<]*<span[^>]*>[^<]*</span>Overview')
+
+    def test_new_themes_compose_the_blocks_from_the_spec(self):
+        page = lambda view, name="running", lang="en": self.out["renders"]["%s/%s/%s" % (name, view, lang)]["html"]
+        focus = page("focus")
+        for needle in ('class="hero', "In progress now", "Ticket 2", "Ticket 6", 'class="ev"'):
+            with self.subTest(view="focus", needle=needle):
+                self.assertIn(needle, focus)
+        for tiled in ("<table", 'class="tiles"', "Models &amp; resources"):
+            self.assertNotIn(tiled, focus)
+        fin = page("quality", "finished")
+        for needle in ("G1", "G4", "Blind acceptance", "R03", "Review notes", "Requirement 1", "Leftovers", 'data-filter="all"'):
+            with self.subTest(view="quality", needle=needle):
+                self.assertIn(needle, fin)
+        for lang, text in (("en", "none yet"), ("ru", "ещё нет")):
+            self.assertIn(text, page("quality", "empty", lang))
+            self.assertIn(text, page("focus", "empty", lang))
+        rail = lambda html: re.findall(r'<a data-focus-key="nav-[a-z]+" href="#([a-z]+)"', html)
+        self.assertEqual(rail(fin), ["quality"])  # only anchors this theme really has
+        self.assertEqual(rail(focus), ["mission", "tasks", "quality"])
+
+    def test_every_theme_has_at_most_one_of_each_anchor(self):
+        for key, res in self.out["renders"].items():
+            for block in ("mission", "tasks", "models", "quality"):
+                with self.subTest(key=key, block=block):
+                    self.assertLessEqual(res["html"].count(' id="%s"' % block), 1)
 
     def test_selected_view_is_stored_unknown_and_denied_storage_give_overview(self):
         self.assertEqual(self.out["stored"], {"none": "overview", "saved": "timeline",
@@ -210,11 +284,13 @@ class TemplateStrings(unittest.TestCase):
 
     def test_registry_and_storage_names(self):
         for text in ("const VIEW_KEY = 'autopilot-view'",
-                     "const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic']",
+                     "const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','focus','quality']",
                      "function storedView()", "let VIEW = storedView()", "const VIEWS = {"):
             self.assertIn(text, self.html)
         for view in VIEW_IDS:
             self.assertRegex(self.html, r"\n  %s: c =>" % view)
+        views = self.html.split("const VIEWS = {")[1].split("\nfunction render(")[0]
+        self.assertNotRegex(views, r"\bSTATE\b")  # layout only: no state fields, no new data
 
     def test_view_buttons_click_handler_and_focus(self):
         self.assertRegex(self.html, r"focusAttrs = \[[^\]]*'data-view'")

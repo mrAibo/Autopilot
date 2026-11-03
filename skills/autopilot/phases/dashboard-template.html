@@ -472,7 +472,7 @@
   .rail-nav a{display:flex;align-items:center;gap:12px;color:#B6C6DD;
     text-decoration:none;border-radius:12px;padding:13px;font-weight:640;font-size:14px}
   .rail-nav a:hover,.rail-nav a:focus-visible{background:rgba(255,255,255,.10);color:#fff}
-  .rail-nav a:first-child{background:rgba(104,246,210,.12);color:#AFFFF0;
+  .rail-nav a[aria-current]{background:rgba(104,246,210,.12);color:#AFFFF0;
     border:1px solid rgba(100,236,201,.14)}
   .rail-nav .sym{width:22px;text-align:center;font-size:18px}
   .rail-monitor{margin-top:auto;padding:17px;border:1px solid rgba(220,236,255,.12);
@@ -678,7 +678,10 @@ function applyTheme(t){
 
 // Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
 const VIEW_KEY = 'autopilot-view';
-const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic'];
+const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','focus','quality'];
+// Какой пункт рейки подсвечен в теме: якорь её главного блока (в рейке он подписан названием темы).
+const VIEW_HOME = {overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
+  summary:'quality', classic:'mission', focus:'mission', quality:'quality'};
 function storedView(){
   try {
     const v = localStorage.getItem(VIEW_KEY);
@@ -801,10 +804,10 @@ const I18N = {
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
     viewLabel:"Вид",
-    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика"},
+    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",focus:"Фокус",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
-      tActive:"В работе сейчас",tDone:"Готовые таски",tReq:"Сводка требований",tStages:"Этапы",tTimeline:"Таймлайн тасков",
+      tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",tTimeline:"Таймлайн тасков",
       tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
       tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
       cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
@@ -907,10 +910,10 @@ const I18N = {
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
     viewLabel:"View",
-    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic"},
+    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",focus:"Focus",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
-      tActive:"In progress now",tDone:"Done tickets",tReq:"Requirements summary",tStages:"Stages",tTimeline:"Task timeline",
+      tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",tTimeline:"Task timeline",
       tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
       tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
       cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
@@ -1177,11 +1180,12 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Функция только склеивает строки: STATE не читает и в DOM не пишет.
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
+  // Трек этапов — в hero, требования — в плитке, таски — одним списком по волнам (buildCard): блоки не повторяются.
   overview: c => `
   <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
-  ${c.tiles}${c.trackCard}
+  ${c.tiles}
   <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.resourceBlock}${c.isolationBlock}</div>
-  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.tasksCard}${c.reqSummary}${c.leftCol.join('')}</div>
+  <div class="cols"><div id="tasks" class="col" tabindex="-1">${c.buildCard || c.tasksEmpty}${c.leftCol.filter(x => x !== c.buildCard).join('')}</div>
     <div id="quality" class="col" tabindex="-1">${c.rightCol.join('') || c.feedView}</div></div>`,
   timeline: c => `
   <div id="mission" class="vsec" tabindex="-1">${c.trackCard}</div>
@@ -1197,6 +1201,13 @@ const VIEWS = {
   ${c.tiles}
   <div id="quality" class="cols" tabindex="-1"><div class="col">${c.summaryCard}${c.blindCard}${c.reportCard}${c.concernsCard}</div>
     <div class="col">${c.debtCard}${c.addCard}</div></div>`,
+  focus: c => `
+  <div id="mission" class="spotlight one" tabindex="-1">${c.hero}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.activeCard}${c.waitingCard}</div>
+  <div id="quality" class="vsec" tabindex="-1">${c.feedView}</div>`,
+  quality: c => `
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.gatesCard}${c.blindView}${c.reviewView}</div>
+    <div class="col">${c.wordsView}${c.debtCard}</div></div>`,
   classic: c => `
   <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
   ${c.sectionTitle('01',c.langRu ? 'Состояние работы' : 'Execution health',c.langRu ? 'Прогресс и проверки' : 'Progress and validation')}
@@ -1699,16 +1710,22 @@ function render(lang){
   const trackCard = `<section class="card w trackcard"><div class="whead"><h3 class="wt">${W.tStages}</h3></div><div class="track" role="list">${segs}</div></section>`;
   const attention = activeWorkers.concat(failedWorkers);
   const none = `<p class="muted">${W.empty}</p>`;
-  const tasksCard = T.length
+  const tasksEmpty = emptyCard(L.build, t0 ? L.t0 : L.noTickets);
+  const waitingT = T.filter(t => t.status === 'pending');
+  const activeCard = T.length
     ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tActive}</h3><span>${attention.length}</span></div>${attention.length ? rowsList('act', attention.map(taskRow), 4) : none}</section>`
-      + `<section class="card w"><div class="whead"><h3 class="wt">${W.tDone}</h3><span>${done.length}</span></div>${done.length ? rowsList('dn', done.slice().reverse().map(taskRow), 4) : none}</section>`
-    : emptyCard(L.build, t0 ? L.t0 : L.noTickets);
+    : tasksEmpty;
+  const waitingCard = T.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tWaiting}</h3><span>${waitingT.length}</span></div>${waitingT.length ? rowsList('wt', waitingT.map(taskRow), 4) : none}</section>`
+    : '';
   const reqSummary = R.total
     ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tReq}</h3><span>${rk.done} ${L.of} ${live}</span></div>${reqStack}
         <p class="muted" style="margin-top:10px">${reqPartsText}</p>${T.length ? `<p class="muted" style="margin-top:6px">${L.g3ok(live, T.length)}</p>` : ''}</section>`
     : emptyCard(W.tReq, L.reqLater);
   const feedView = feedCard || emptyCard(L.feed, W.empty);
   const wordsView = wordsCard || emptyCard(L.words, L.reqLater);
+  const blindView = blindCard || emptyCard(L.blind, W.empty);
+  const reviewView = reportCard + concernsCard || emptyCard(W.tReview, W.empty);
 
   // Таймлайн: полоса каждого таска — по календарному времени от первого старта до последнего конца.
   const timed = T.filter(t => toMs(t.startedAt) != null);
@@ -1779,20 +1796,25 @@ function render(lang){
     && ['mission','tasks','models','quality'].includes(active.id) ? active.id : null;
   const sectionTitle = (number, title, sub) =>
     `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
-  const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksCard, buildCard,
-    reqSummary, gatesCard, feedView, wordsView, timelineCard, feedAll, debtCard, routesCard, tokensCard, isolationView,
-    summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers});
+  const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
+    buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, timelineCard, feedAll, debtCard, routesCard, tokensCard,
+    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
+  // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
+  const skillVer = typeof S.skillVersion === 'string' ? S.skillVersion.slice(0, 16) : '';
+  const cur = id => VIEW_HOME[VIEW] === id;
+  const navAttr = id => cur(id) ? ' aria-current="page"' : '';
+  const navText = (id, label) => cur(id) ? esc(L.views[VIEW]) : label;
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
     <div class="rail-brand">${BRAND_SVG}
-      <span>${BRAND_WORD}<small>CONTROL CENTER / 2.3</small></span></div>
+      <span>${BRAND_WORD}<small>CONTROL CENTER${skillVer ? ' / ' + esc(skillVer) : ''}</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
-      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>` : ''}
-      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>` : ''}
-      ${has('models') ? `<a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>` : ''}
-      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>` : ''}
+      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"${navAttr('mission')}><span class="sym" aria-hidden="true">◉</span>${navText('mission', langRu ? 'Обзор' : 'Overview')}</a>` : ''}
+      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"${navAttr('tasks')}><span class="sym" aria-hidden="true">▤</span>${navText('tasks', langRu ? 'Задачи' : 'Tickets')}</a>` : ''}
+      ${has('models') ? `<a data-focus-key="nav-models" href="#models"${navAttr('models')}><span class="sym" aria-hidden="true">◈</span>${navText('models', langRu ? 'Модели и токены' : 'Models & tokens')}</a>` : ''}
+      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"${navAttr('quality')}><span class="sym" aria-hidden="true">◇</span>${navText('quality', langRu ? 'Проверки' : 'Quality checks')}</a>` : ''}
     </nav>
     <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
       <b>${esc(nextTitle)}</b>
@@ -1800,7 +1822,7 @@ function render(lang){
         <div><strong>${activeWorkers.length}</strong><small>${langRu ? 'Работают' : 'Active'}</small></div>
         <div><strong>${okGates}/4</strong><small>${langRu ? 'Проверки' : 'Gates passed'}</small></div>
       </div></div>
-    <div class="rail-foot">AUTOPILOT ENGINE / 2.3.0</div>
+    <div class="rail-foot">AUTOPILOT ENGINE${skillVer ? ' / ' + esc(skillVer) : ''}</div>
   </aside>`;
   app.innerHTML = `
   <a class="skip-link" data-focus-key="skip" href="#content">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>

@@ -8,10 +8,12 @@ npx skills update autopilot -g
 
 ## Unreleased — Dashboard views (2026-11-03)
 
-The dashboard gets six switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.
+The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.
 
-- **Dashboard views:** overview, timeline, requirements, resources, summary and classic, chosen in the header and remembered in the browser (`autopilot-view`); registry and how to add one in `docs/autopilot/dashboard-views.md`.
+- **Dashboard views:** overview, timeline, requirements, resources, summary, classic, focus and quality, chosen in the header and remembered in the browser (`autopilot-view`); registry and how to add one in `docs/autopilot/dashboard-views.md`.
 - **Logo:** the project logo mark in the dashboard header.
+- **Overview finished, two new views:** the overview now shows pending tickets with their waves and every block once (one stage track, one requirements summary, one ticket list); new views `focus` (narrow panel: state, running and waiting tickets, latest events) and `quality` (gates, blind acceptance, review notes, requirements, leftovers).
+- **Fix: side rail:** the version under the logo comes from `skillVersion` instead of a hardcoded "2.3 / 2.3.0", and the highlighted rail link is the one of the current view (it was always the first, "Overview"); a view's rail shows only the anchors it has.
 - **Fix: `dashboard_upgrade.py` with BOM:** it read `state.js` on its own and refused a file with a BOM or without the `window.STATE` prefix; it now parses through `state_io` like the other tools (regression tests added).
 
 ## 2.6.0 — Audit mode (2026-10-30)
