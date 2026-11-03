@@ -416,6 +416,27 @@ class TemplateRuns(unittest.TestCase):
         self.assertEqual(timeline.count('class="route"'), 1)
         self.assertIn("Build timeline", self.out["renders"]["empty/timeline/en"]["html"])  # no tickets: an empty card, not a blank
 
+    def test_tickets_without_time_marks_stay_in_timeline_and_compact_without_a_false_empty_caption(self):
+        false_caption = {"ru": "Таски появятся после спецификации", "en": "Tickets appear after the spec"}
+        for name in ("old", "oldfin"):
+            for lang in ("ru", "en"):
+                for view in ("timeline", "compact", "overview"):
+                    page = self.out["renders"]["%s/%s/%s" % (name, view, lang)]["html"]
+                    with self.subTest(fixture=name, view=view, lang=lang):
+                        self.assertNotIn(false_caption[lang], page)  # there are 7 tickets
+                        rows = page.count('class="gx-row"')
+                        self.assertEqual(rows, 7 if view != "overview" else min(7, 6), "every ticket has its row")
+                        if view != "overview":
+                            for n in range(1, 8):
+                                self.assertIn("Ticket %d" % n, page)
+                            self.assertIn("нет отметок времени" if lang == "ru" else "no time marks", page)
+        # a ticket with marks keeps its bar; one without gets the note instead of a bar
+        mixed = self.out["renders"]["running/timeline/en"]["html"]
+        self.assertNotIn("no time marks", mixed)
+        # no tickets at all: the caption is true
+        self.assertIn(false_caption["en"], self.out["renders"]["empty/timeline/en"]["html"])
+        self.assertIn(false_caption["en"], self.out["renders"]["empty/compact/en"]["html"])
+
     def test_resources_table_has_status_model_chip_and_tokens_per_ticket(self):
         run = self.out["renders"]["running/resources/en"]["html"]
         table = re.search(r'<table class="routes">.*?</table>', run, re.S).group(0)

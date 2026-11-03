@@ -743,6 +743,7 @@
   .gx-wait{box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2);background:var(--card);
     background-image:repeating-linear-gradient(90deg,var(--card) 0 5px,transparent 5px 9px)}
   .gx-tail{border:1.5px dashed var(--now);color:var(--now-tx);font-weight:600;font-size:12px}
+  .gx-none{position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mut);white-space:nowrap}
   .gx-mdl{min-width:0}
   .mchip{display:inline-block;font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);
     border-radius:7px;padding:2px 8px;background:var(--inset);color:var(--tx2);overflow-wrap:anywhere}
@@ -1111,7 +1112,7 @@ const I18N = {
       kAgents:"Агентов работает",kTime:"Рабочее время",going:"идёт",waited:n=>`+ ${n} мин ждали вас`,
       tGantt:"Ход сборки по времени",gSub:"Настоящие длительности; ждущие таски — пунктиром, после тех, от кого зависят",
       lgPlan:"ждёт · прогноз",nowTag:"сейчас",after:l=>`после ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",
+      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",noMarks:"нет отметок времени",
       mTitle:"Путь твоих требований",mSub:"Где сейчас каждая фраза из твоего брифа. Таски могут быть готовы, а требование нет — здесь это видно сразу.",
       mReq:"Требование",mCount:"Сколько требований дошло до этапа",
       mLong:["Записано дословно","В спецификации","В таске","Код написан","Тесты зелёные","Ревью","Слепая приёмка"],
@@ -1237,7 +1238,7 @@ const I18N = {
       kAgents:"Agents working",kTime:"Work time",going:"running",waited:n=>`+ ${n} min waiting on you`,
       tGantt:"Build timeline",gSub:"Real durations; waiting tickets are dashed, placed after the ones they depend on",
       lgPlan:"waiting · forecast",nowTag:"now",after:l=>`after ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",
+      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",noMarks:"no time marks",
       mTitle:"The path of your requirements",mSub:"Where each phrase of your brief is now. Tickets can be done while a requirement is not — it shows right here.",
       mReq:"Requirement",mCount:"How many requirements reached the stage",
       mLong:["Written word for word","In the spec","In a ticket","Code written","Tests green","Review","Blind acceptance"],
@@ -2177,19 +2178,20 @@ function render(lang){
     return placed[t.id] = r;
   };
   const gRows = T.slice().sort((x, y) => ((x.wave ?? 1) - (y.wave ?? 1)) || byTicketId(x, y))
-    .map(t => [t, place(t, new Set())]).filter(x => x[1]);
+    .map(t => [t, place(t, new Set())]);  // у таска без отметок времени места на оси нет (null), но строка остаётся
+  const timedRows = gRows.filter(x => x[1]);
   let gantt = '', ganttFull = '', miniGantt = '';
   if (gRows.length) {
-    const gFrom = Math.min(...gRows.map(x => x[1].a), ...(fin ? [] : [gNow]));
-    const gTo = Math.max(...gRows.map(x => x[1].b + x[1].tail), ...(fin ? [] : [gNow]));
+    const gFrom = Math.min(...timedRows.map(x => x[1].a), ...(fin && timedRows.length ? [] : [gNow]));
+    const gTo = Math.max(...timedRows.map(x => x[1].b + x[1].tail), ...(fin && timedRows.length ? [] : [gNow]));
     const gSpan = Math.max(gTo - gFrom, 10 * GT) * 1.02;
     const pct = ms => ((ms - gFrom) / gSpan * 100).toFixed(2);
     const step = [5, 10, 15, 30, 60, 120, 240, 720, 1440].map(m => m * GT).find(x => gSpan / x <= 7) || 1440 * GT;
     const off = new Date(gFrom).getTimezoneOffset() * GT, ticks = [];
     for (let x = Math.ceil((gFrom - off) / step) * step + off; x <= gFrom + gSpan && ticks.length < 12; x += step) ticks.push(x);
-    const grid = ticks.map(x => `<i class="gx-grid" style="left:${pct(x)}%"></i>`).join('')
-      + (fin ? '' : `<i class="gx-nowline" style="left:${pct(gNow)}%"></i>`);
-    const axis = `<div class="gx-axis"><span class="gx-pad"></span><div class="gx-ticks">${ticks.map(x => `<span style="left:${pct(x)}%">${hhmm(new Date(x))}</span>`).join('')}${
+    const grid = timedRows.length ? ticks.map(x => `<i class="gx-grid" style="left:${pct(x)}%"></i>`).join('')
+      + (fin ? '' : `<i class="gx-nowline" style="left:${pct(gNow)}%"></i>`) : '';
+    const axis = !timedRows.length ? '' : `<div class="gx-axis"><span class="gx-pad"></span><div class="gx-ticks">${ticks.map(x => `<span style="left:${pct(x)}%">${hhmm(new Date(x))}</span>`).join('')}${
       fin ? '' : `<span class="gx-nowtag" style="left:${pct(gNow)}%">${W.nowTag} ${hhmm(new Date(gNow))}</span>`}</div><span class="gx-pad"></span></div>`;
     const gBar = (t, p, mini) => {
       const k = p.est ? 'wait' : kindOf(t).k, left = pct(p.a), w = Math.max(1.4, pct(p.b) - left);
@@ -2202,10 +2204,10 @@ function render(lang){
     };
     const subOf = t => [L.wave(t.wave ?? 1), (t.blockedBy || []).length ? W.after(t.blockedBy) : ''].filter(Boolean).join(' · ');
     const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
-      <div class="gx-lane">${grid}${gBar(t, p, false)}</div><div class="gx-mdl">${t.routing && t.routing.model
+      <div class="gx-lane">${grid}${p ? gBar(t, p, false) : `<span class="gx-none">${W.noMarks}</span>`}</div><div class="gx-mdl">${t.routing && t.routing.model
         ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div></div>`;
     const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILLK[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
-      <div class="gx-lane">${grid}${gBar(t, p, true)}</div></div>`;
+      <div class="gx-lane">${grid}${p ? gBar(t, p, true) : `<span class="gx-none">${W.noMarks}</span>`}</div></div>`;
     const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
     const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
       <div class="gx">${axis}${rows}</div></section>`;
