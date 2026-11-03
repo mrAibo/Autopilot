@@ -1906,10 +1906,14 @@ def cmd_worktree(state, pos, opt):
             source = "host"
         else:
             check = tests_pair(opt.get("tests") or "")
-            evidence = tk.get("testEvidence")
-            verified = (isinstance(evidence, dict) and evidence.get("status") == "verified"
-                        and {"passed": evidence.get("passed"), "failed": 0} == check)
-            source = "host" if verified else "claimed"
+            # "host" only if the receipt is bound to the current HEAD and fingerprint.
+            import test_evidence
+            try:
+                observed = test_evidence.check(ROOT, ident, record["baseCommit"],
+                                               tk.get("testEvidence"))
+            except test_evidence.EvidenceError:
+                observed = None
+            source = "host" if observed == check else "claimed"
         if check["passed"] < 1 or check["failed"] != 0:
             die("worktree: для интеграции нужны пройденные тесты N/0")
         result = worktrees.land(ROOT, ident, record["baseCommit"], tk.get("zone") or [])

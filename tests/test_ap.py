@@ -1889,15 +1889,42 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["debt"]["assumptions"],
                          ["тесты тикета 01 не перепроверены хостом"])
 
-    def test_land_after_verify_records_host_tests(self):
+    def test_land_after_verify_on_the_committed_head_records_host_tests(self):
         self.prepared_isolated_ticket()
+        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "1/0")[0], 0)
         code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
         self.assertEqual(code, 0, out)
-        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "1/0")[0], 0)
         code, out = self.ap("worktree", "01", "land", "--tests", "1/0")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.state()["tickets"][0]["testsSource"], "host")
         self.assertEqual(self.state()["debt"]["assumptions"], [])
+
+    def assert_claimed_with_debt(self, out):
+        self.assertIn("предупреждение", out)
+        self.assertEqual(self.state()["tickets"][0]["testsSource"], "claimed")
+        self.assertEqual(self.state()["debt"]["assumptions"],
+                         ["тесты тикета 01 не перепроверены хостом"])
+
+    def test_stale_evidence_from_before_the_commit_is_only_claimed(self):
+        self.prepared_isolated_ticket()
+        self.assertEqual(self.ap("worktree", "01", "verify", "--suite", "test_calc.py")[0], 0)
+        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "1/0")[0], 0)   # new HEAD
+        code, out = self.ap("worktree", "01", "land", "--tests", "1/0")
+        self.assertEqual(code, 0, out)
+        self.assert_claimed_with_debt(out)
+
+    def test_evidence_is_stale_after_the_worktree_commit_is_amended(self):
+        self.prepared_isolated_ticket()
+        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "1/0")[0], 0)
+        self.assertEqual(self.ap("worktree", "01", "verify", "--suite", "test_calc.py")[0], 0)
+        wt = self.state()["tickets"][0]["worktree"]["cwd"]
+        with open(os.path.join(wt, "src", "core", "change.txt"), "w", encoding="utf-8") as f:
+            f.write("edited after the host run")
+        subprocess.run(["git", "-C", wt, "-c", "user.email=t@t", "-c", "user.name=t",
+                        "commit", "-qa", "--amend", "--no-edit"], check=True, capture_output=True)
+        code, out = self.ap("worktree", "01", "land", "--tests", "1/0")
+        self.assertEqual(code, 0, out)
+        self.assert_claimed_with_debt(out)
 
     def test_land_rejects_commit_outside_zone(self):
         self.prepared_isolated_ticket()
