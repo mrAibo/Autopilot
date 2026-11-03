@@ -18,6 +18,7 @@ import sys
 import tomllib
 
 import spend_guard
+import state_io
 import worker_outcome
 
 
@@ -27,13 +28,10 @@ class DispatchError(ValueError):
 
 def load_state(root):
     path = Path(root) / ".autopilot" / "state.js"
-    content = path.read_text(encoding="utf-8")
-    if content.startswith("window.STATE"):
-        content = content.split("=", 1)[1]
-    state = json.loads(content)
-    if not isinstance(state, dict):
-        raise DispatchError("Autopilot state is not an object")
-    return state
+    try:
+        return state_io.read_state_file(path)
+    except state_io.StateError as exc:
+        raise DispatchError(str(exc)) from exc
 
 
 def choose_binary(explicit=None):

@@ -65,6 +65,8 @@ class Run(unittest.TestCase):
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
+        for name in ("state_io.py", "process_containment.py"):
+            shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -241,6 +243,59 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertTrue(os.path.exists(os.path.join(self.a, first.replace("--wip", ""), "state.js")))
         self.assertTrue(self.state()["dir"].endswith("second--wip"))
+
+    def test_state_with_bom_and_no_prefix_is_read_and_rewritten(self):
+        self.init()
+        raw = read(os.path.join(self.a, "state.js"))
+        body = raw.split("=", 1)[1].strip()
+        with open(os.path.join(self.a, "state.js"), "wb") as f:
+            f.write(b"\xef\xbb\xbf" + body.encode("utf-8") + b";")
+        code, out = self.ap("set", "tier=T2")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tier"], "T2")
+
+    def test_corrupt_state_is_a_clear_error(self):
+        self.init()
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE = {broken")
+        code, out = self.ap("set", "tier=T2")
+        self.assertNotEqual(code, 0)
+        self.assertIn("не разбирается", out)
+
+    def old_state_text(self):
+        return read(os.path.join(self.a, "state.js"))
+
+    def test_force_init_archives_old_state_into_run_folder(self):
+        self.init()
+        old = self.old_state_text()
+        code, out = self.ap("init", "--slug", "other", "--force")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(read(os.path.join(self.dir, "state.js")), old)
+        self.assertIn("%s/state.js" % os.path.basename(self.dir), out)
+        self.assertTrue(self.state()["dir"].endswith("other--wip"))
+
+    def test_force_init_without_run_folder_goes_to_archive_dir(self):
+        self.init()
+        old = self.old_state_text()
+        shutil.rmtree(self.dir)
+        code, out = self.ap("init", "--slug", "other", "--force")
+        self.assertEqual(code, 0, out)
+        archived = os.listdir(os.path.join(self.a, "archive"))
+        self.assertEqual(len(archived), 1)
+        self.assertTrue(archived[0].endswith("-state.js"), archived)
+        self.assertEqual(read(os.path.join(self.a, "archive", archived[0])), old)
+        self.assertIn("archive/", out)
+
+    def test_force_init_never_overwrites_an_existing_archive(self):
+        self.init()
+        old = self.old_state_text()
+        with open(os.path.join(self.dir, "state.js"), "w", encoding="utf-8") as f:
+            f.write("EARLIER ARCHIVE")
+        code, out = self.ap("init", "--slug", "other", "--force")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(read(os.path.join(self.dir, "state.js")), "EARLIER ARCHIVE")
+        self.assertEqual(read(os.path.join(self.dir, "state-2.js")), old)
+        self.assertIn("state-2.js", out)
 
     # ── stages ─────────────────────────────────────────────────────────────
     def test_opening_a_stage_closes_the_previous(self):
@@ -923,15 +978,15 @@ class Run(unittest.TestCase):
         code, out = self.ap("ticket", "01", "start")
         self.assertEqual(code, 0, out)
         wt = self.state()["tickets"][0]["worktree"]
-        (os.makedirs(os.path.join(wt["cwd"], "feature"), exist_ok=True))
-        with open(os.path.join(wt["cwd"], "feature", "recover.txt"), "w", encoding="utf-8") as f:
+        (os.makedirs(os.path.join(wt["cwd"], "src", "core"), exist_ok=True))
+        with open(os.path.join(wt["cwd"], "src", "core", "recover.txt"), "w", encoding="utf-8") as f:
             f.write("safe after restart\n")
-        self.git("-C", wt["cwd"], "add", "feature/recover.txt")
+        self.git("-C", wt["cwd"], "add", "src/core/recover.txt")
         self.git("-C", wt["cwd"], "commit", "-qm", "T01 recover")
         # Simulate power loss: Git cherry-pick completed but ap.py state write did not.
         result = subprocess.run(
             [sys.executable, os.path.join(self.a, "worktrees.py"), "land", "01",
-             "--root", self.root, "--base", wt["baseCommit"]],
+             "--root", self.root, "--base", wt["baseCommit"], "--zone", "src/core/"],
             text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
@@ -973,9 +1028,10 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.ap("ticket", "01", "start")
         wt = self.state()["tickets"][0]["worktree"]
-        with open(os.path.join(wt["cwd"], "cleanup-proof.txt"), "w", encoding="utf-8") as f:
+        os.makedirs(os.path.join(wt["cwd"], "src", "core"), exist_ok=True)
+        with open(os.path.join(wt["cwd"], "src", "core", "cleanup-proof.txt"), "w", encoding="utf-8") as f:
             f.write("proof\n")
-        self.git("-C", wt["cwd"], "add", "cleanup-proof.txt")
+        self.git("-C", wt["cwd"], "add", "src/core/cleanup-proof.txt")
         self.git("-C", wt["cwd"], "commit", "-qm", "T01 cleanup")
         code, out = self.ap("worktree", "01", "land", "--tests", "3/0")
         self.assertEqual(code, 0, out)
@@ -1741,6 +1797,58 @@ class Run(unittest.TestCase):
         code, out = self.ap("worktree", "01", "release")
         self.assertEqual(code, 0, out)
 
+    def prepared_isolated_ticket(self):
+        self.plan(isolated=True)
+        self.ap("tickets")
+        self.git("config", "user.name", "Autopilot Test")
+        self.git("config", "user.email", "test@example.invalid")
+        with open(os.path.join(self.root, "test_calc.py"), "w", encoding="utf-8") as f:
+            f.write("import unittest\n"
+                    "class Test(unittest.TestCase):\n"
+                    " def test_ok(self): self.assertTrue(True)\n")
+        self.git("add", ".gitignore", "test_calc.py")
+        self.commit("bootstrap")
+        self.assertEqual(self.ap("worktree", "01", "prepare")[0], 0)
+        self.ap("ticket", "01", "start")
+        wt = self.state()["tickets"][0]["worktree"]["cwd"]
+        os.makedirs(os.path.join(wt, "src", "core"), exist_ok=True)
+        with open(os.path.join(wt, "src", "core", "change.txt"), "w", encoding="utf-8") as f:
+            f.write("edit\n")
+
+    def test_land_without_verify_records_claimed_tests_and_debt(self):
+        self.prepared_isolated_ticket()
+        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "5/0")[0], 0)
+        code, out = self.ap("worktree", "01", "land", "--tests", "5/0")
+        self.assertEqual(code, 0, out)
+        self.assertIn("предупреждение", out)
+        self.assertEqual(self.state()["tickets"][0]["testsSource"], "claimed")
+        self.assertEqual(self.state()["debt"]["assumptions"],
+                         ["тесты тикета 01 не перепроверены хостом"])
+
+    def test_land_after_verify_records_host_tests(self):
+        self.prepared_isolated_ticket()
+        code, out = self.ap("worktree", "01", "verify", "--suite", "test_calc.py")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.ap("worktree", "01", "finalize", "--tests", "1/0")[0], 0)
+        code, out = self.ap("worktree", "01", "land", "--tests", "1/0")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["testsSource"], "host")
+        self.assertEqual(self.state()["debt"]["assumptions"], [])
+
+    def test_land_rejects_commit_outside_zone(self):
+        self.prepared_isolated_ticket()
+        wt = self.state()["tickets"][0]["worktree"]["cwd"]
+        os.makedirs(os.path.join(wt, ".claude"), exist_ok=True)
+        with open(os.path.join(wt, ".claude", "settings.json"), "w", encoding="utf-8") as f:
+            f.write("{}")
+        self.git("-C", wt, "add", "-f", ".")
+        subprocess.run(["git", "-C", wt, "-c", "user.email=t@t", "-c", "user.name=t",
+                        "commit", "-qm", "sneaky"], check=True)
+        code, out = self.ap("worktree", "01", "land", "--tests", "1/0")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn(".claude/settings.json", out)
+        self.assertEqual(self.state()["tickets"][0]["worktree"]["status"], "prepared")
+
     def test_sequential_host_requires_real_host_tests_and_one_active_ticket(self):
         self.plan(sequential=True)
         self.assertTrue(self.state()["sequentialHost"])
@@ -1836,9 +1944,10 @@ class Run(unittest.TestCase):
                             "--commit", wt["baseCommit"][:12])
         self.assertNotEqual(code, 0)
         self.assertIn("сначала интегрируй worktree", out)
-        with open(os.path.join(wt["cwd"], "worker.txt"), "w", encoding="utf-8") as stream:
+        os.makedirs(os.path.join(wt["cwd"], "src", "core"), exist_ok=True)
+        with open(os.path.join(wt["cwd"], "src", "core", "worker.txt"), "w", encoding="utf-8") as stream:
             stream.write("executor edit\n")
-        self.git("-C", wt["cwd"], "add", "worker.txt")
+        self.git("-C", wt["cwd"], "add", "src/core/worker.txt")
         result = subprocess.run(
             ["git", "-C", wt["cwd"], "-c", "user.email=t@t", "-c", "user.name=t",
              "commit", "-qm", "T01: worker edit"],
@@ -1850,7 +1959,7 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         wt = self.state()["tickets"][0]["worktree"]
         self.assertEqual(wt["status"], "landed")
-        self.assertEqual(read(os.path.join(self.root, "worker.txt")), "executor edit\n")
+        self.assertEqual(read(os.path.join(self.root, "src", "core", "worker.txt")), "executor edit\n")
         code, out = self.ap("ticket", "01", "done", "--commit", wt["landedCommit"][:12])
         self.assertEqual(code, 0, out)
         self.assertEqual(self.state()["tickets"][0]["status"], "done")
@@ -2264,6 +2373,47 @@ class Pure(unittest.TestCase):
     def test_version(self):
         self.assertEqual(self.m._version('---\nname: x\nmetadata:\n  version: "2.0.1"\n---\nversion: 9'), (2, 0, 1))
         self.assertIsNone(self.m._version("---\nname: x\n---\nversion: 3\n"))
+
+    def save_with_replace(self, replace):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "state.js")
+            with mock.patch.object(self.m, "STATE", path), \
+                    mock.patch.object(self.m.state_io, "WINDOWS", True), \
+                    mock.patch.object(self.m.state_io.time, "sleep"), \
+                    mock.patch.object(self.m.state_io.os, "replace", replace):
+                try:
+                    self.m.save({"rev": 4})
+                    err = None
+                except SystemExit as e:
+                    err = e
+            return err, sorted(os.listdir(d)), (read(path) if os.path.exists(path) else None)
+
+    def test_save_survives_two_winerror_5(self):
+        real, calls = os.replace, []
+
+        def flaky(src, dst):
+            calls.append(1)
+            if len(calls) <= 2:
+                exc = PermissionError(13, "denied")
+                exc.winerror = 5
+                raise exc
+            real(src, dst)
+
+        err, files, text = self.save_with_replace(flaky)
+        self.assertIsNone(err)
+        self.assertEqual(files, ["state.js"])
+        self.assertIn('"rev": 5', text)
+
+    def test_save_permanent_lock_dies_cleanly_without_tmp(self):
+        def locked(src, dst):
+            exc = PermissionError(13, "denied")
+            exc.winerror = 32
+            raise exc
+
+        err, files, text = self.save_with_replace(locked)
+        self.assertEqual(err.code, 1)
+        self.assertEqual(files, [])
 
     def test_skill_declares_a_version(self):
         text = read(os.path.join(SKILL, "SKILL.md"))

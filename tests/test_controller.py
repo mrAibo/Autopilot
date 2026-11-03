@@ -161,6 +161,19 @@ class ControllerTests(unittest.TestCase):
         s = ledger(task("01"), budgetTokens=-1)
         self.assertEqual(controller.decision(self.root, s)["reason"], "invalid-token-budget")
 
+    def test_read_state_accepts_bom_and_semicolon_and_maps_errors(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / ".autopilot").mkdir()
+            state_file = root / ".autopilot" / "state.js"
+            body = "window.STATE = " + json.dumps(ledger(task("01"))) + ";"
+            state_file.write_bytes(bytes([0xEF, 0xBB, 0xBF]) + body.encode("utf-8"))
+            self.assertEqual(controller.read_state(root)["tickets"][0]["id"], "01")
+            for bad in ("", "window.STATE = {bad", "window.STATE = {}"):
+                state_file.write_text(bad, encoding="utf-8")
+                with self.assertRaises(controller.ControllerError):
+                    controller.read_state(root)
+
     def test_read_only_default_never_calls_ap(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

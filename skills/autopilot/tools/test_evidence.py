@@ -18,6 +18,7 @@ import sys
 import tempfile
 import tomllib
 
+import process_containment
 import worktrees
 
 
@@ -194,12 +195,11 @@ def run_cargo(target, suite, timeout):
         with tempfile.TemporaryDirectory(prefix="autopilot-cargo-") as build:
             env["CARGO_HOME"] = str(Path(build) / "cargo-home")
             env["CARGO_TARGET_DIR"] = str(Path(build) / "target")
-            result = subprocess.run(
+            result = process_containment.run_contained(
                 [cargo, "test", "--frozen", "--quiet",
                  "--manifest-path", str(Path(target) / "Cargo.toml"),
                  "--test", name, "--", "--test-threads=1"],
-                cwd=target, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=timeout, env=env)
+                cwd=target, timeout=timeout, env=env)
     except (subprocess.TimeoutExpired, OSError) as exc:
         raise EvidenceError("Cargo tests could not complete within host limits") from exc
     output = result.stdout + "\n" + result.stderr
@@ -248,11 +248,13 @@ def verify(root, ticket, base, suite, timeout=90):
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONNOUSERSITE"] = "1"
     try:
-        result = subprocess.run([sys.executable, "-B", "-m", "unittest", "-q", suite],
-                                cwd=target, capture_output=True, text=True,
-                                encoding="utf-8", errors="replace", timeout=timeout, env=env)
+        result = process_containment.run_contained(
+            [sys.executable, "-B", "-m", "unittest", "-q", suite],
+            cwd=target, timeout=timeout, env=env)
     except subprocess.TimeoutExpired as exc:
         raise EvidenceError("Tests exceeded the host timeout") from exc
+    except OSError as exc:
+        raise EvidenceError("Tests could not be started or contained") from exc
     after = fingerprint(target)
     if before != after:
         raise EvidenceError("Worktree changed while running tests; results invalidated")

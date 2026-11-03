@@ -61,12 +61,7 @@ def inspect(root, ticket):
                 worktrees.git(target, "diff", "--cached", "--check",
                               check=False).returncode):
             return {"eligible": False, "reason": "unsafe-diff"}
-        operations = (("diff", "--name-only", "-z"),
-                      ("diff", "--cached", "--name-only", "-z"),
-                      ("ls-files", "--others", "--exclude-standard", "-z"))
-        names = sorted(set(name for cmd in operations
-                           for name in worktrees.git(target, *cmd).stdout.split("\0")
-                           if name))
+        names = worktrees.changed_paths(target)
         if not names:
             return {"eligible": False, "reason": "no-changes", "changed_files": 0}
         for name in names:
@@ -74,8 +69,7 @@ def inspect(root, ticket):
             pieces = normalized.split("/")
             if (not normalized or normalized.startswith("/") or
                     any(p in ("", ".", "..") for p in pieces) or
-                    normalized == ".git" or normalized.startswith(".git/") or
-                    normalized == ".autopilot" or normalized.startswith(".autopilot/")):
+                    pieces[0].casefold() in worktrees.PROTECTED_ROOTS):
                 return {"eligible": False, "reason": "unsafe-change-path"}
             candidate = target / normalized
             # Check intermediate components too, not just final target.

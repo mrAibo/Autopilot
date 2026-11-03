@@ -4,11 +4,17 @@
 Windows: CreateJobObject with KILL_ON_JOB_CLOSE; gate stays inert until the
 supervisor assigns it to the job and sends START. The job handle is owned
 solely by the supervisor. A parent crash closes it in the kernel.
-Non-Windows: POSIX process-group cancellation; parent death containment is
-NOT claimed. No silent Windows fallback.
+Non-Windows: the child must be started with start_new_session=True; terminate()
+then kills its whole process group (killpg). Parent death containment is NOT
+claimed there. No silent Windows fallback.
+
+run_contained() is the one-call form for host-run commands: it starts the child
+in its own session / Job, and on timeout kills every descendant before raising.
 """
 import ctypes
 import os
+import signal
+import subprocess
 
 
 class ContainmentError(OSError):
@@ -72,6 +78,7 @@ class OwnedJob:
 
     def __init__(self):
         self.handle = None
+        self.pid = None            # POSIX: leader of the group terminate() kills
         if os.name == "nt":
             handle = kernel.CreateJobObjectW(None, None)
             if not handle:
@@ -92,6 +99,7 @@ class OwnedJob:
 
     def assign(self, process):
         if os.name != "nt":
+            self.pid = process.pid
             return
         if self.handle is None:
             raise ContainmentError("Job Object is closed")
@@ -107,7 +115,14 @@ class OwnedJob:
             kernel.CloseHandle(handle)
 
     def terminate(self):
-        if os.name == "nt" and self.handle is not None:
+        if os.name != "nt":
+            # Only a session leader of its own (not our) group is safe to killpg.
+            try:
+                if self.pid is not None and os.getpgid(self.pid) == self.pid != os.getpgrp():
+                    os.killpg(self.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        elif self.handle is not None:
             if not kernel.TerminateJobObject(self.handle, 23):
                 raise ContainmentError(ctypes.get_last_error(), "TerminateJobObject failed")
 
@@ -121,3 +136,32 @@ class OwnedJob:
 
     def __exit__(self, exc_type, exc, tb):
         self.close()
+
+
+def run_contained(cmd, *, timeout, env=None, cwd=None):
+    """subprocess.run for host commands that must not leave descendants behind.
+
+    Captures text output (utf-8, errors replaced). On timeout the whole process
+    group (POSIX) or Job Object (Windows) is killed, then TimeoutExpired is raised.
+    shortcut: on Windows the child is assigned to the Job right after start, so a
+    grandchild spawned in that first instant escapes; upgrade by starting suspended.
+    """
+    with OwnedJob() as job:
+        proc = subprocess.Popen(
+            cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace",
+            start_new_session=(os.name != "nt"))
+        try:
+            job.assign(proc)
+            out, err = proc.communicate(timeout=timeout)
+        except BaseException as exc:
+            job.terminate()
+            proc.kill()
+            try:
+                out, err = proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:      # a descendant escaped and holds the pipe
+                out = err = None
+            if isinstance(exc, subprocess.TimeoutExpired):
+                raise subprocess.TimeoutExpired(cmd, timeout, output=out, stderr=err) from None
+            raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, out, err)

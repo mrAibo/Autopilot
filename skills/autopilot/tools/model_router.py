@@ -47,6 +47,41 @@ class PolicyError(ValueError):
     pass
 
 
+PREMIUM_FAMILIES = ("opus", "fable")
+# Exact shape of an allowed Anthropic subagent model after normalization:
+# haiku / sonnet, optionally claude-, a leading 3-5 / 3 and trailing version or date.
+ALLOWED_SUBAGENT_RE = re.compile(
+    r"(claude-)?(\d+([.-]\d+)*-)?(haiku|sonnet)(-\d+([.-]\d+)*)?(\[\w+\])?")
+
+
+def normalize_model_name(name):
+    """Casefold and drop provider/region prefixes and version suffixes.
+
+    `us.anthropic.claude-opus-4-1-20250805-v1:0`, `bedrock/anthropic.claude-opus-4`
+    and `claude-opus-4-1@20250805` all lose their wrappers; the family stays visible.
+    """
+    value = str(name).strip().casefold().rsplit("/", 1)[-1]
+    value = value.rsplit("anthropic.", 1)[-1]
+    value = re.sub(r"@[\w.-]+$", "", value)
+    return re.sub(r"-v\d+(:\d+)?$", "", value)
+
+
+def is_allowed_subagent_model(name, policy=None):
+    """True only for haiku/sonnet families that no policy list restricts.
+
+    Opus, fable and everything unrecognized are refused in any spelling.
+    """
+    if not isinstance(name, str) or not name.strip():
+        return False
+    normalized = normalize_model_name(name)
+    if any(family in normalized for family in PREMIUM_FAMILIES):
+        return False
+    denied = [m.casefold() for m in (policy or DEFAULT_POLICY).get("restricted", {}).get("anthropic", [])]
+    if name.strip().casefold() in denied or normalized in denied:
+        return False
+    return ALLOWED_SUBAGENT_RE.fullmatch(normalized) is not None
+
+
 def load_json(path):
     with Path(path).open(encoding="utf-8") as source:
         return json.load(source)
@@ -132,6 +167,15 @@ def assess_scores(scores):
     return score, profile
 
 
+# Whole words only: "продолжить" and "включить" must not look like prod / ключ.
+RISK_RE = re.compile(
+    r"\b(?:tokens?|secrets?|api[ _-]?keys?|credentials?|signatures?|webhooks?|subprocess(?:es)?|"
+    r"shell|deploy\w*|prod|production|encrypt\w*)\b|"
+    r"\b(?:токен\w*|секрет\w*|вебхук\w*|деплой\w*|деплои\w*|шифр\w*|"
+    r"ключ(?:а|и|е|ом|ей|ам|ами|ах|у)?|подпис(?:ь|и|ью|ей)|"
+    r"прод(?:а|е|у|ом|акшен\w*|акшн\w*)?)\b")
+
+
 def assess_ticket(text):
     """Conservative, deterministic first-pass heuristic; annotations may refine it."""
     zones = re.findall(r"\`([^\`]+)\`", next((s for s in text.splitlines()
@@ -140,7 +184,7 @@ def assess_ticket(text):
     lines = int(re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text).group(1)) \
         if re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text) else 0
     body = text.lower()
-    important = any(k in body for k in (
+    important = RISK_RE.search(body) is not None or any(k in body for k in (
         "auth", "session", "password", "credential", "secret", "payment",
         "migration", "delete data", "парол", "сесси", "платеж", "миграц",
         "удалени", "авторизац", "ключи доступа"))
@@ -187,10 +231,10 @@ def choose_route(provider, scores, policy=None, capabilities=None):
     # restricted entries just by replacing the restricted mapping.
     denied = [m.casefold() for m in DEFAULT_POLICY["restricted"][provider]]
     denied += [m.casefold() for m in denied_names]
-    costly_prefixes = {"openai": ("gpt-6-astra",),
-                       "anthropic": ("fable", "claude-fable", "opus", "claude-opus")}
     restricted = (model.lower() in denied or
-                  model.lower().startswith(costly_prefixes[provider]))
+                  (provider == "openai" and model.lower().startswith("gpt-6-astra")) or
+                  (provider == "anthropic" and any(
+                      family in normalize_model_name(model) for family in PREMIUM_FAMILIES)))
     if restricted and policy.get("allow_restricted_subagents") is not True:
         raise PolicyError("restricted model %s may not run as a subagent" % model)
     parallel = policy.get("max_parallel", 2)

@@ -203,5 +203,33 @@ class CargoEvidenceTests(unittest.TestCase):
             test_evidence.verify(self.root, "01", self.base, "cargo:smoke")
 
 
+class CargoRunnerContainmentTests(unittest.TestCase):
+    """run_cargo goes through run_contained; needs no installed Cargo."""
+
+    def run_cargo(self, **patches):
+        with tempfile.TemporaryDirectory() as target, \
+                patch.object(test_evidence, "checked_baseline_cargo", return_value="smoke"), \
+                patch.object(test_evidence.shutil, "which", return_value="/fake/cargo"), \
+                patch.object(test_evidence.process_containment, "run_contained",
+                             **patches) as contained:
+            try:
+                return contained, test_evidence.run_cargo(target, "cargo:smoke", 30)
+            except test_evidence.EvidenceError as exc:
+                return contained, exc
+
+    def test_cargo_command_runs_contained_with_the_host_timeout(self):
+        ok = subprocess.CompletedProcess(
+            [], 0, "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; x", "")
+        contained, passed = self.run_cargo(return_value=ok)
+        self.assertEqual(passed, 4)
+        self.assertEqual(contained.call_args.args[0][:3], ["/fake/cargo", "test", "--frozen"])
+        self.assertEqual(contained.call_args.kwargs["timeout"], 30)
+
+    def test_cargo_timeout_is_an_evidence_error(self):
+        _, error = self.run_cargo(side_effect=subprocess.TimeoutExpired("cargo", 30))
+        self.assertIsInstance(error, test_evidence.EvidenceError)
+        self.assertIn("host limits", str(error))
+
+
 if __name__ == "__main__":
     unittest.main()

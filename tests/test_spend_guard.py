@@ -21,6 +21,15 @@ class SpendGuardTests(unittest.TestCase):
         self.addCleanup(f.doCleanups)
         self.f = f
 
+    def test_usage_summary_reads_state_with_bom(self):
+        state = self.f.root / ".autopilot" / "state.js"
+        body = "window.STATE = " + json.dumps({"usageEvents": [{"input": 5, "output": 2}]}) + ";"
+        state.write_bytes(bytes([0xEF, 0xBB, 0xBF]) + body.encode("utf-8"))
+        self.assertEqual(spend_guard.usage_summary(self.f.root, "01")["recorded_total_tokens"], 7)
+        state.write_text("window.STATE = {bad", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            spend_guard.usage_summary(self.f.root, "01")
+
     def test_bridge_denies_before_receipt_or_any_paid_function(self):
         with patch.object(codex_dispatch, "run_once") as model:
             with self.assertRaisesRegex(spend_guard.CapUnavailable,

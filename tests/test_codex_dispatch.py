@@ -76,6 +76,15 @@ class DispatchTests(unittest.TestCase):
         return codex_dispatch.checked_dispatch(
             self.root, "01", executable=Path(sys.executable))
 
+    def test_load_state_accepts_bom_and_reports_corruption(self):
+        state_file = self.root / ".autopilot" / "state.js"
+        state_file.write_bytes(bytes([0xEF, 0xBB, 0xBF]) + state_file.read_bytes() + b";")
+        self.assertEqual(codex_dispatch.load_state(self.root)["tickets"][0]["id"], "01")
+        self.checked()
+        state_file.write_text("window.STATE = {bad", encoding="utf-8")
+        with self.assertRaises(codex_dispatch.DispatchError):
+            codex_dispatch.load_state(self.root)
+
     def test_pins_model_effort_cwd_and_sandbox(self):
         cfg = self.checked()
         self.assertEqual(cfg["model"], "gpt-6-luna")

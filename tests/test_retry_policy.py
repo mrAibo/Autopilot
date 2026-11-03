@@ -29,6 +29,23 @@ class Triage(unittest.TestCase):
         self.assertEqual(retry_policy.classify("something unrelated"), "unknown")
         self.assertEqual(retry_policy.decide("unknown")["model"], "same")
 
+    def test_security_marker_in_the_tail_of_a_long_log_wins(self):
+        log = "AssertionError: expected: 5\n" + "x = 1\n" * 3500 + "\nWARNING: secret leaked to stdout\n"
+        self.assertGreater(len(log), 20000)
+        self.assertEqual(retry_policy.classify(log), "security")
+        self.assertEqual(retry_policy.decide("security")["action"], "stop")
+
+    def test_other_kinds_still_look_only_at_the_first_12000_chars(self):
+        log = "x = 1\n" * 3000 + "AssertionError expected: 5"      # marker past 12000
+        self.assertEqual(retry_policy.classify(log), "unknown")
+
+    def test_security_scan_is_bounded_but_covers_head_and_tail(self):
+        pad = "a" * (retry_policy.SECURITY_SCAN_MAX + 10)
+        self.assertEqual(retry_policy.classify("secret leaked " + pad), "security")
+        self.assertEqual(retry_policy.classify(pad + " secret leaked"), "security")
+        half = "a" * (retry_policy.SECURITY_SCAN_MAX // 2 + 100)
+        self.assertEqual(retry_policy.classify(half + " secret leaked " + half), "unknown")  # in the gap
+
     def test_limits_are_absolute(self):
         self.assertEqual(retry_policy.decide("tests", retries=2)["action"], "stop")
         self.assertEqual(retry_policy.decide("tests", repairs=2)["action"], "stop")

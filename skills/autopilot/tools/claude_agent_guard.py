@@ -11,18 +11,15 @@ from pathlib import Path
 import re
 import sys
 
-from model_router import DEFAULT_POLICY
+import state_io
+from model_router import is_allowed_subagent_model
 
 
 def read_state(root):
     path = Path(root) / ".autopilot" / "state.js"
     try:
-        value = path.read_text(encoding="utf-8")
-        if value.startswith("window.STATE"):
-            value = value.split("=", 1)[1].strip().rstrip(";")
-        state = json.loads(value)
-        return state if isinstance(state, dict) else None
-    except (OSError, ValueError, IndexError):
+        return state_io.read_state_file(path)
+    except state_io.StateError:
         return None
 
 
@@ -85,9 +82,8 @@ def decision(payload, root):
     model, effort = fields.get("model"), fields.get("effort")
     if not model or model == "inherit":
         return False, "Agent model must be pinned"
-    premium = ("fable", "claude-fable", "opus", "claude-opus")
-    if model.lower().startswith(premium):
-        return False, "Premium subagents are blocked by strict policy"
+    if not is_allowed_subagent_model(model):
+        return False, "Premium or non-allowlisted subagent models are blocked by strict policy"
     # Claude Code resolves these variables after reading the profile.
     # In particular a forced model can silently ignore a pinned profile,
     # while the effort variable takes precedence over both frontmatter and

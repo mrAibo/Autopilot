@@ -53,6 +53,9 @@ import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # соседние модули инструментов
+import state_io  # noqa: E402
+
 for _s in (sys.stdout, sys.stderr):                       # cp1251-консоль Windows
     try:
         _s.reconfigure(encoding="utf-8")
@@ -136,24 +139,20 @@ def locked_state(timeout=10):
 
 
 def read_state():
-    try:
-        raw = open(STATE, encoding="utf-8").read()
-    except FileNotFoundError:
+    if not os.path.exists(STATE):
         return None
-    body = raw.split("=", 1)[1] if "=" in raw.split("\n", 1)[0] else raw
     try:
-        return json.loads(body.strip().rstrip(";"))
-    except json.JSONDecodeError as e:
-        die("state.js не разбирается (строка %d: %s) — перезапиши его командой init "
-            "или поправь строку" % (e.lineno, e.msg))
+        return state_io.read_state_file(STATE)
+    except state_io.StateError as e:
+        die("%s — перезапиши его командой init или поправь строку" % e)
 
 
 def save(state):
     state["rev"] = (state.get("rev") or 0) + 1        # дашборд перерисовывается по нему
-    tmp = STATE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write("window.STATE =\n" + json.dumps(state, ensure_ascii=False, indent=2) + "\n")
-    os.replace(tmp, STATE)
+    try:
+        state_io.write_state_file(STATE, state, prefix="window.STATE =\n")
+    except state_io.StateError as e:
+        die(str(e))
 
 
 def beat(state):
@@ -888,6 +887,25 @@ def tests_pair(v):
     return {"passed": int(m.group(1)), "failed": int(m.group(2) or 0)}
 
 
+def archive_old_state(old):
+    """Старый state.js уходит в папку его прогона, а без неё — в .autopilot/archive/.
+    Существующий файл не затирается: к имени добавляется -2, -3. Возвращает путь от .autopilot."""
+    if old.get("dir") and os.path.isdir(os.path.join(A, old["dir"])):
+        folder, name = old["dir"], "state.js"
+    else:
+        folder = "archive"
+        name = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-state.js"
+    os.makedirs(os.path.join(A, folder), exist_ok=True)
+    stem, ext = os.path.splitext(name)
+    dst, n = os.path.join(folder, name), 1
+    while os.path.exists(os.path.join(A, dst)):
+        n += 1
+        dst = os.path.join(folder, "%s-%d%s" % (stem, n, ext))
+    if subprocess.run(["git", "-C", A, "mv", "-f", "state.js", dst], capture_output=True).returncode:
+        os.replace(STATE, os.path.join(A, dst))
+    return dst.replace(os.sep, "/")
+
+
 def cmd_init(opt):
     if opt.get("sequential-host") and opt.get("strict-routing"):
         die("init: --sequential-host и --strict-routing несовместимы; "
@@ -900,11 +918,8 @@ def cmd_init(opt):
     notes = []
     if old and not old.get("finishedAt") and not opt.get("force"):
         die("идёт прогон %s — это продолжение, а не новый прогон (или --force)" % old.get("dir"))
-    if old and old.get("dir") and os.path.isdir(os.path.join(A, old["dir"])):
-        dst = os.path.join(old["dir"], "state.js")
-        if subprocess.run(["git", "-C", A, "mv", "-f", "state.js", dst], capture_output=True).returncode:
-            os.replace(STATE, os.path.join(A, dst))
-        notes.append("прошлый прогон убран в архив: %s" % dst)
+    if old:
+        notes.append("прошлый прогон убран в архив: %s" % archive_old_state(old))
     state = fresh_state(opt)
     try:  # версия навыка для шапки дашборда; нечитаемый SKILL.md — просто без неё
         v = _version(open(os.path.join(state["skillDir"] or "", "SKILL.md"), encoding="utf-8").read())
@@ -1822,11 +1837,23 @@ def cmd_worktree(state, pos, opt):
                 check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
             if opt.get("tests") and tests_pair(opt["tests"]) != check:
                 die("worktree: указанные тесты не совпадают с проверенными на хосте")
+            source = "host"
         else:
             check = tests_pair(opt.get("tests") or "")
+            evidence = tk.get("testEvidence")
+            verified = (isinstance(evidence, dict) and evidence.get("status") == "verified"
+                        and {"passed": evidence.get("passed"), "failed": 0} == check)
+            source = "host" if verified else "claimed"
         if check["passed"] < 1 or check["failed"] != 0:
             die("worktree: для интеграции нужны пройденные тесты N/0")
-        result = worktrees.land(ROOT, ident, record["baseCommit"])
+        result = worktrees.land(ROOT, ident, record["baseCommit"], tk.get("zone") or [])
+        tk["testsSource"] = source
+        if source == "claimed":
+            note = "тесты тикета %s не перепроверены хостом" % ident
+            assumptions = state.setdefault("debt", {}).setdefault("assumptions", [])
+            if note not in assumptions:
+                assumptions.append(note)
+            print("предупреждение: " + note + " (числа заявлены оркестратором)")
         record.update(status="landed", sourceCommit=result["sourceCommit"],
                       landedCommit=result["landedCommit"])
         tk["commit"] = result["landedCommit"][:12]

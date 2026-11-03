@@ -142,6 +142,56 @@ def recover(root, ticket, base):
             "sourceCommit": source, "landedCommit": found}
 
 
+PROTECTED_ROOTS = (".git", ".autopilot", ".claude")
+
+
+def changed_paths(cwd):
+    """Every path a worker changed in `cwd`: diff, staged diff and untracked files.
+
+    --no-renames turns a rename into delete+add, so BOTH the old and the new path
+    are checked against the zone (a rename out of the zone cannot hide the source).
+    """
+    commands = (("diff", "--name-only", "--no-renames", "-z"),
+                ("diff", "--cached", "--name-only", "--no-renames", "-z"),
+                ("ls-files", "--others", "--exclude-standard", "-z"))
+    return sorted({name for cmd in commands for name in
+                   git(cwd, *cmd).stdout.split("\0") if name})
+
+
+def _allowed_zones(zones):
+    if not isinstance(zones, list) or not zones:
+        raise WorktreeError("Ticket must declare an exact code zone")
+    allowed = []
+    for zone in zones:
+        if not isinstance(zone, str):
+            raise WorktreeError("Invalid zone type")
+        value = zone.replace("\\", "/")
+        parts = value.rstrip("/").split("/")
+        if (not value or value.startswith("/") or
+                any(p in ("", ".", "..") for p in parts) or
+                any(c in value for c in "*?[]:\0") or value == ".git" or
+                value.startswith(".git/")):  # .github/ is a legitimate zone
+            raise WorktreeError("Unsafe or wildcard code zone: " + zone)
+        allowed.append((value.rstrip("/"), value.endswith("/")))
+    return allowed
+
+
+def check_paths_in_zones(paths, zones):
+    """Raise WorktreeError unless every path is in a zone and outside .git/.autopilot/.claude."""
+    allowed = _allowed_zones(zones)
+    for name in paths:
+        normalized = name.replace("\\", "/")
+        pieces = normalized.split("/")
+        if (not normalized or normalized.startswith("/") or
+                any(p in ("", ".", "..") for p in pieces) or
+                pieces[0].casefold() in PROTECTED_ROOTS):
+            raise WorktreeError("Unsafe worker path: " + normalized)
+        if not any(normalized == prefix or
+                   (is_dir and normalized.startswith(prefix + "/"))
+                   for prefix, is_dir in allowed):
+            raise WorktreeError("Worker changed file outside declared zone: " + normalized)
+
+
 def finalize(root, ticket, base, zones, passed, failed):
     """Host-owned Git commit after independently confirmed tests.
 
@@ -153,19 +203,7 @@ def finalize(root, ticket, base, zones, passed, failed):
     target = safe_target(root, ticket)
     if type(passed) is not int or passed < 1 or type(failed) is not int or failed != 0:
         raise WorktreeError("Independent successful test results N/0 are required")
-    if not isinstance(zones, list) or not zones:
-        raise WorktreeError("Ticket must declare an exact code zone")
-    allowed = []
-    for zone in zones:
-        if not isinstance(zone, str):
-            raise WorktreeError("Invalid zone type")
-        value = zone.replace("\\", "/")
-        parts = value.rstrip("/").split("/")
-        if (not value or value.startswith("/") or
-                any(p in ("", ".", "..") for p in parts) or
-                any(c in value for c in "*?[]:\0") or value.startswith(".git")):
-            raise WorktreeError("Unsafe or wildcard code zone: " + zone)
-        allowed.append((value.rstrip("/"), value.endswith("/")))
+    _allowed_zones(zones)
     if source_dirty(root):
         raise WorktreeError("Primary source checkout must be clean before finalization")
     if not target.is_dir() or target.is_symlink():
@@ -177,29 +215,15 @@ def finalize(root, ticket, base, zones, passed, failed):
         raise WorktreeError("Worktree has an unresolved Git merge")
     if git(target, "diff", "--check").returncode:
         raise WorktreeError("Worker diff contains whitespace errors")
-    commands = (("diff", "--name-only", "-z"),
-                ("diff", "--cached", "--name-only", "-z"),
-                ("ls-files", "--others", "--exclude-standard", "-z"))
-    paths = sorted({name for cmd in commands for name in
-                    git(target, *cmd).stdout.split("\0") if name})
+    paths = changed_paths(target)
     if not paths:
         raise WorktreeError("No changed worker files to finalize")
+    check_paths_in_zones(paths, zones)
     for name in paths:
-        normalized = name.replace("\\", "/")
-        pieces = normalized.split("/")
-        if (normalized.startswith("/") or
-                any(p in ("", ".", "..") for p in pieces) or
-                normalized == ".git" or normalized.startswith(".git/") or
-                normalized == ".autopilot" or normalized.startswith(".autopilot/")):
-            raise WorktreeError("Unsafe worker path: " + normalized)
-        path = target / normalized
+        path = target / name.replace("\\", "/")
         if path.is_symlink() or (path.exists() and
                                 not path.resolve().is_relative_to(target.resolve())):
             raise WorktreeError("Changed file escapes worktree")
-        if not any(normalized == prefix or
-                   (is_dir and normalized.startswith(prefix + "/"))
-                   for prefix, is_dir in allowed):
-            raise WorktreeError("Worker changed file outside declared zone: " + normalized)
     git(target, "add", "--", *paths)
     result = git(target, "commit", "-m", "Autopilot " + ticket + ": validated worker changes",
                  check=False)
@@ -210,8 +234,11 @@ def finalize(root, ticket, base, zones, passed, failed):
             "files": paths, "tests": {"passed": passed, "failed": failed}}
 
 
-def land(root, ticket, base):
-    """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict."""
+def land(root, ticket, base, zones):
+    """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict.
+
+    The commit may touch only the ticket zones, never .git/.autopilot/.claude.
+    """
     root = repository(root)
     if interrupted_cherry_pick(root):
         raise WorktreeError("Git cherry-pick is interrupted; resolve or abort manually before landing")
@@ -222,6 +249,9 @@ def land(root, ticket, base):
                 "landedCommit": existing, "recovered": True}
     if source_dirty(root):
         raise WorktreeError("Main source checkout must be clean before landing")
+    names = git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "--no-renames",
+                "-z", source).stdout.split("\0")
+    check_paths_in_zones([n for n in names if n], zones)
     commit = git(root, "cherry-pick", "-x", source, check=False)
     if commit.returncode:
         git(root, "cherry-pick", "--abort", check=False)
@@ -252,6 +282,8 @@ def main():
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--base", default="HEAD",
                         help="Base commit. Required (as SHA) for land.")
+    parser.add_argument("--zone", action="append", default=[],
+                        help="Ticket zone (repeat); required for land.")
     parser.add_argument("--acknowledge-loss", action="store_true")
     args = parser.parse_args()
     try:
@@ -260,7 +292,7 @@ def main():
         elif args.action == "status":
             value = status(args.root, args.ticket)
         elif args.action == "land":
-            value = land(args.root, args.ticket, args.base)
+            value = land(args.root, args.ticket, args.base, args.zone)
         elif args.action == "recover":
             value = recover(args.root, args.ticket, args.base)
         else:

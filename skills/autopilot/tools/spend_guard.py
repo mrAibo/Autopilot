@@ -14,6 +14,8 @@ from pathlib import Path
 import re
 import sys
 
+import state_io
+
 
 class CapUnavailable(ValueError):
     """Provider-side hard cap is absent; deny before any paid call."""
@@ -49,11 +51,11 @@ def usage_summary(root, ticket):
     state_path = root / ".autopilot" / "state.js"
     if state_path.is_symlink() or not state_path.is_file():
         raise ValueError("Unsafe or missing state ledger")
-    content = state_path.read_text(encoding="utf-8")
-    if content.startswith("window.STATE"):
-        content = content.split("=", 1)[1]
-    state = json.loads(content)
-    if not isinstance(state, dict) or not isinstance(state.get("usageEvents"), list):
+    try:
+        state = state_io.read_state_file(state_path)
+    except state_io.StateError as exc:
+        raise ValueError(str(exc)) from exc
+    if not isinstance(state.get("usageEvents"), list):
         raise ValueError("Invalid usage ledger")
     budget = state.get("budgetTokens")
     if budget is not None:

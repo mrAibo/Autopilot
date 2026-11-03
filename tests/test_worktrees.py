@@ -9,6 +9,8 @@ TOOLS = Path(__file__).resolve().parents[1] / "skills" / "autopilot" / "tools"
 sys.path.insert(0, str(TOOLS))
 import worktrees
 
+ZONES = ["app.txt", "new-file.txt", "recovery.txt"]
+
 
 class WorktreeTests(unittest.TestCase):
     def setUp(self):
@@ -64,7 +66,7 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(worktrees.status(self.root, "11")["dirty"], False)
         self.assertEqual(worktrees.source_commit(self.root, "11", self.base),
                          result["sourceCommit"])
-        landed = worktrees.land(self.root, "11", self.base)
+        landed = worktrees.land(self.root, "11", self.base, ZONES)
         self.assertEqual(landed["status"], "landed")
         self.assertEqual((self.root / "app.txt").read_text(encoding="utf-8"), "fixed\n")
 
@@ -96,7 +98,7 @@ class WorktreeTests(unittest.TestCase):
         (path / "new-file.txt").write_text("new", encoding="utf-8")
         self.git(path, "add", "new-file.txt")
         self.git(path, "commit", "-qm", "T03")
-        result = worktrees.land(self.root, "03", self.base)
+        result = worktrees.land(self.root, "03", self.base, ZONES)
         self.assertEqual(result["status"], "landed")
         self.assertEqual((self.root / "new-file.txt").read_text(encoding="utf-8"), "new")
         # Cherry-pick may rewrite the source SHA; require an explicit cleanup acknowledgement.
@@ -107,9 +109,9 @@ class WorktreeTests(unittest.TestCase):
         (path / "recovery.txt").write_text("crash safe\n", encoding="utf-8")
         self.git(path, "add", "recovery.txt")
         self.git(path, "commit", "-qm", "T06 recovery")
-        first = worktrees.land(self.root, "06", self.base)
+        first = worktrees.land(self.root, "06", self.base, ZONES)
         self.assertFalse(first["recovered"])
-        again = worktrees.land(self.root, "06", self.base)
+        again = worktrees.land(self.root, "06", self.base, ZONES)
         self.assertTrue(again["recovered"])
         self.assertEqual(first["landedCommit"], again["landedCommit"])
         detected = worktrees.recover(self.root, "06", self.base)
@@ -131,7 +133,7 @@ class WorktreeTests(unittest.TestCase):
         with self.assertRaisesRegex(worktrees.WorktreeError, "interrupted"):
             worktrees.recover(self.root, "08", self.base)
         with self.assertRaisesRegex(worktrees.WorktreeError, "interrupted"):
-            worktrees.land(self.root, "08", self.base)
+            worktrees.land(self.root, "08", self.base, ZONES)
         # Read-only recovery did not abort or silently reset unrelated changes.
         self.assertTrue(worktrees.interrupted_cherry_pick(self.root))
         self.git(self.root, "cherry-pick", "--abort")
@@ -148,7 +150,7 @@ class WorktreeTests(unittest.TestCase):
         self.git(path, "commit", "--allow-empty", "-qm", "T04 part 1")
         self.git(path, "commit", "--allow-empty", "-qm", "T04 part 2")
         with self.assertRaises(worktrees.WorktreeError):
-            worktrees.land(self.root, "04", self.base)
+            worktrees.land(self.root, "04", self.base, ZONES)
         self.assertEqual(self.git(self.root, "rev-parse", "HEAD").stdout.strip(), self.base)
 
     def test_dirty_main_is_never_modified(self):
@@ -156,8 +158,52 @@ class WorktreeTests(unittest.TestCase):
         self.git(path, "commit", "--allow-empty", "-qm", "T05")
         (self.root / "app.txt").write_text("uncommitted\n", encoding="utf-8")
         with self.assertRaises(worktrees.WorktreeError):
-            worktrees.land(self.root, "05", self.base)
+            worktrees.land(self.root, "05", self.base, ZONES)
         self.assertEqual((self.root / "app.txt").read_text(encoding="utf-8"), "uncommitted\n")
+
+    def commit_in_worktree(self, ticket, *files):
+        path = Path(worktrees.create(self.root, ticket)["cwd"])
+        for name in files:
+            (path / name).parent.mkdir(parents=True, exist_ok=True)
+            (path / name).write_text("x\n", encoding="utf-8")
+        self.git(path, "add", "-f", *files)
+        self.git(path, "commit", "-qm", "T" + ticket)
+        return path
+
+    def test_land_rejects_commit_outside_zone_or_in_protected_dirs(self):
+        for n, name in enumerate((".claude/settings.json", ".autopilot/state.js",
+                                  ".CLAUDE/settings.json", "other.txt")):
+            ticket = "2%d" % n
+            self.commit_in_worktree(ticket, "app.txt", name)
+            with self.subTest(path=name):
+                with self.assertRaisesRegex(worktrees.WorktreeError, "Unsafe worker path|outside declared"):
+                    worktrees.land(self.root, ticket, self.base, ["app.txt", ".claude/", ".autopilot/"])
+            self.assertEqual(self.git(self.root, "rev-parse", "HEAD").stdout.strip(), self.base)
+
+    def test_land_accepts_dir_zone_and_requires_a_zone(self):
+        self.commit_in_worktree("30", "src/a.txt")
+        with self.assertRaises(worktrees.WorktreeError):
+            worktrees.land(self.root, "30", self.base, [])
+        self.assertEqual(worktrees.land(self.root, "30", self.base, ["src/"])["status"], "landed")
+
+    def test_rename_out_of_zone_reports_both_paths_and_is_rejected(self):
+        (self.root / "outside").mkdir()
+        (self.root / "outside" / "x.txt").write_text("secret\n", encoding="utf-8")
+        (self.root / "zone").mkdir()
+        self.git(self.root, "add", "outside")
+        self.git(self.root, "commit", "-qm", "outside file")
+        base = self.git(self.root, "rev-parse", "HEAD").stdout.strip()
+        path = Path(worktrees.create(self.root, "31")["cwd"])
+        (path / "zone").mkdir()
+        self.git(path, "mv", "outside/x.txt", "zone/x.txt")
+        self.assertEqual(worktrees.changed_paths(path), ["outside/x.txt", "zone/x.txt"])
+        with self.assertRaisesRegex(worktrees.WorktreeError, "outside declared zone: outside/x.txt"):
+            worktrees.finalize(self.root, "31", base, ["zone/"], 2, 0)
+
+    def test_dot_github_is_a_valid_zone(self):
+        worktrees.check_paths_in_zones([".github/workflows/ci.yml"], [".github/workflows/"])
+        with self.assertRaises(worktrees.WorktreeError):
+            worktrees.check_paths_in_zones([".git/config"], [".git/"])
 
 
 if __name__ == "__main__":

@@ -114,7 +114,7 @@ class RouterTests(unittest.TestCase):
             path.write_text(json.dumps(value), encoding="utf-8")
             return router.load_policy(path)
 
-    def test_partial_profile_override_keeps_other_tiers_and_provider(self):
+    def test_partial_profile_override_keeps_other_tiers_and_provider_first_copy(self):
         policy = self.policy_from({
             "providers": {"openai": {"cheap": {"effort": "medium"}}},
             "max_parallel": 1})
@@ -131,7 +131,7 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["effort"],
                          "low")
 
-    def test_custom_restricted_list_adds_to_not_erases_default(self):
+    def test_custom_restricted_list_adds_to_not_erases_default_first_copy(self):
         policy = self.policy_from({
             "restricted": {"openai": ["gpt-6-luna"]}})
         self.assertIn("gpt-6-astra", policy["restricted"]["openai"])
@@ -144,7 +144,7 @@ class RouterTests(unittest.TestCase):
         blank = self.policy_from({"restricted": {"openai": []}})
         self.assertIn("gpt-6-astra", blank["restricted"]["openai"])
 
-    def test_policy_must_reject_invalid_or_unknown_settings(self):
+    def test_policy_must_reject_invalid_or_unknown_settings_first_copy(self):
         invalid = [
             {"providers": {"openai": {"cheap": None}}},
             {"providers": {"openai": {"cheap": {}}}},
@@ -167,7 +167,7 @@ class RouterTests(unittest.TestCase):
                 with self.assertRaises(router.PolicyError):
                     self.policy_from(value)
 
-    def test_default_policy_is_not_mutated_by_custom_overrides(self):
+    def test_default_policy_is_not_mutated_by_custom_overrides_first_copy(self):
         first = self.policy_from({"providers": {
             "anthropic": {"strong": {"model": "some-host-model"}}}})
         second = router.load_policy()
@@ -178,7 +178,7 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(router.DEFAULT_POLICY["providers"]["openai"]["cheap"]["model"],
                          "gpt-6-luna")
 
-    def test_direct_policy_cannot_bypass_baseline_premium_deny_with_whitespace(self):
+    def test_direct_policy_cannot_bypass_baseline_premium_deny_with_whitespace_first_copy(self):
         policy = self.policy_from({"providers": {
             "openai": {"cheap": {"model": "gpt-6-luna"}}}})
         policy["providers"]["openai"]["cheap"]["model"] = " gpt-6-astra "
@@ -308,6 +308,80 @@ class RouterTests(unittest.TestCase):
         r = router.choose_route("anthropic", self.critical_scores(10, 25), capabilities=caps)
         self.assertEqual((r["status"], r["error"]),
                          ("blocked", "Model/effort unavailable in this harness"))
+
+
+class SubagentAllowlistTests(unittest.TestCase):
+    DENIED = (
+        "opus", "Opus", "claude-opus-4-8", "claude-opus-4-1-20250805",
+        "claude-3-opus-20240229", "claude-3-opus-latest",
+        "us.anthropic.claude-opus-4-1-20250805-v1:0", "eu.anthropic.claude-opus-4-v1:0",
+        "anthropic.claude-3-opus-20240229-v1:0", "bedrock/anthropic.claude-opus-4-1-20250805-v1:0",
+        "vertex_ai/claude-opus-4-1@20250805", "opusplan", " OPUS ",
+        "fable", "claude-fable-5", "us.anthropic.claude-fable-5-v1:0",
+        "inherit", "", "   ", "gpt-6-luna", "some-host-model", "claude", "sonnet-opus",
+        "claude-sonnet-4-5; opus", None, 5)
+    ALLOWED = (
+        "haiku", "sonnet", "Haiku", "SONNET", "claude-haiku-5-5", "claude-sonnet-4-5",
+        "claude-sonnet-4-5-20250929", "claude-3-5-haiku-20241022", "claude-3-haiku",
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "anthropic.claude-3-haiku-20240307-v1:0",
+        "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0", "vertex_ai/claude-sonnet-4@20250929",
+        "sonnet[1m]")
+
+    def test_premium_and_unknown_names_are_refused_in_every_spelling(self):
+        for name in self.DENIED:
+            with self.subTest(name=name):
+                self.assertFalse(router.is_allowed_subagent_model(name))
+
+    def test_haiku_and_sonnet_are_allowed_in_every_spelling(self):
+        for name in self.ALLOWED:
+            with self.subTest(name=name):
+                self.assertTrue(router.is_allowed_subagent_model(name))
+
+    def test_policy_restricted_list_can_remove_an_allowed_family(self):
+        policy = router.load_policy()
+        policy["restricted"]["anthropic"].append("claude-sonnet-4-5")
+        self.assertFalse(router.is_allowed_subagent_model("claude-sonnet-4-5", policy))
+        self.assertTrue(router.is_allowed_subagent_model("sonnet", policy))
+
+    def test_normalize_drops_wrappers_and_keeps_family(self):
+        self.assertEqual(router.normalize_model_name("US.Anthropic.Claude-Opus-4-1-20250805-V1:0"),
+                         "claude-opus-4-1-20250805")
+        self.assertEqual(router.normalize_model_name("vertex_ai/claude-sonnet-4@20250929"),
+                         "claude-sonnet-4")
+
+    def test_route_refuses_bedrock_style_opus(self):
+        policy = router.load_policy()
+        policy["providers"]["anthropic"]["cheap"] = {
+            "model": "us.anthropic.claude-opus-4-1-20250805-v1:0", "effort": "low"}
+        with self.assertRaises(router.PolicyError):
+            router.choose_route("anthropic", {n: 0 for n in router.WEIGHTS}, policy=policy)
+
+
+class RiskWordTests(unittest.TestCase):
+    def ticket(self, title):
+        return "# 01 — %s\n\n**Зона:** `src/a.py`\n\n## Критерии приёмки\n\n- [ ] работает\n" % title
+
+    def profile(self, title):
+        scores = router.assess_ticket(self.ticket(title))
+        return scores["risk"], router.assess_scores(scores)[1]
+
+    def test_risky_words_in_russian_and_english_are_not_cheap(self):
+        for title in (
+                "Проверка токена webhook-подписи", "Verify the API key", "Rotate credentials",
+                "Check webhook signature", "Run subprocess safely", "Open a shell",
+                "Deploy to production", "Выкатить в прод", "Деплой на сервер", "Шифрование файла",
+                "Хранение секрета", "Новый ключ доступа", "Вебхук от банка", "Проверка подписи",
+                "encrypt the backup", "Secret store", "Token refresh"):
+            with self.subTest(title=title):
+                risk, profile = self.profile(title)
+                self.assertEqual(risk, 10)
+                self.assertNotEqual(profile, "cheap")
+
+    def test_everyday_words_stay_cheap(self):
+        for title in ("Продолжить заявку", "Включить кнопку", "Исключение в форме",
+                      "Product list", "Продукты в каталоге", "Fix button colour"):
+            with self.subTest(title=title):
+                self.assertEqual(self.profile(title), (0, "cheap"))
 
 
 if __name__ == "__main__":

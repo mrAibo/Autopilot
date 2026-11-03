@@ -27,12 +27,22 @@ PATTERNS = (
 )
 
 
+SECURITY_SCAN_MAX = 2_000_000
+
+
 def classify(text):
     """Explainable heuristics; ambiguity always defaults to unknown, not upgrade."""
     if not isinstance(text, str):
         raise ValueError("failure details must be text")
-    lower = text.casefold()[:12000]
-    for kind, words in PATTERNS:
+    # A security marker anywhere in the log (head + tail past the ceiling) wins;
+    # the other classes keep the old first-12000-characters window.
+    half = SECURITY_SCAN_MAX // 2
+    scanned = text if len(text) <= SECURITY_SCAN_MAX else text[:half] + text[-half:]
+    security_words = PATTERNS[0][1]
+    if any(word in scanned.casefold() for word in security_words):
+        return "security"
+    lower = text[:12000].casefold()
+    for kind, words in PATTERNS[1:]:
         if any(word in lower for word in words):
             return kind
     return "unknown"

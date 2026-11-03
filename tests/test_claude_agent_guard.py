@@ -76,6 +76,27 @@ class HookGuardTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("Premium", why)
 
+    def test_every_opus_spelling_is_denied_by_the_shared_allowlist(self):
+        original = self.file.read_text(encoding="utf-8")
+        for model in ("us.anthropic.claude-opus-4-1-20250805-v1:0", "claude-3-opus-20240229",
+                      "bedrock/anthropic.claude-opus-4-1", "Opus", "claude-fable-5", "gpt-6-luna"):
+            with self.subTest(model=model):
+                self.file.write_text(original.replace("haiku", model), encoding="utf-8")
+                ok, why = guard.decision(self.payload(), self.root)
+                self.assertFalse(ok)
+                self.assertIn("Premium", why)
+
+    def test_guard_has_no_private_premium_list(self):
+        source = (Path(guard.__file__)).read_text(encoding="utf-8")
+        self.assertNotIn("claude-opus", source)
+        self.assertIn("is_allowed_subagent_model", source)
+
+    def test_state_with_bom_and_trailing_semicolon_is_read(self):
+        body = "window.STATE =\n" + json.dumps(self.state) + ";"
+        (self.ap / "state.js").write_bytes(b"\xef\xbb\xbf" + body.encode("utf-8"))
+        ok, why = guard.decision(self.payload(), self.root)
+        self.assertTrue(ok, why)
+
     def test_override_of_pinned_effort_is_denied(self):
         ok, why = guard.decision(self.payload(effort="high"), self.root)
         self.assertFalse(ok)

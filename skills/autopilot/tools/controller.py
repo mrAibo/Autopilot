@@ -17,6 +17,7 @@ import subprocess
 import sys
 
 import scheduler
+import state_io
 import worktrees
 
 
@@ -28,14 +29,11 @@ def read_state(root):
     state_file = root / ".autopilot" / "state.js"
     if state_file.is_symlink() or not state_file.is_file():
         raise ControllerError("Missing or redirected Autopilot state.js")
-    raw = state_file.read_text(encoding="utf-8")
-    if not raw.startswith("window.STATE"):
-        raise ControllerError("Invalid state.js format")
     try:
-        data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
-    except (ValueError, IndexError) as exc:
+        data = state_io.read_state_file(state_file)
+    except state_io.StateError as exc:
         raise ControllerError("Malformed Autopilot state.js") from exc
-    if not isinstance(data, dict) or not isinstance(data.get("tickets"), list):
+    if not isinstance(data.get("tickets"), list):
         raise ControllerError("Invalid Autopilot state")
     return data
 

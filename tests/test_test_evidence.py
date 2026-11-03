@@ -76,6 +76,19 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaises(test_evidence.EvidenceError):
             test_evidence.verify(self.root, "01", self.base, "test_calc.py", timeout=0)
 
+    def test_unittest_runs_through_run_contained_and_timeout_becomes_evidence_error(self):
+        (self.wt / "calc.py").write_text("def add(a,b): return a+b\n", encoding="utf-8")
+        real = test_evidence.process_containment.run_contained
+        with patch.object(test_evidence.process_containment, "run_contained",
+                          side_effect=real) as spy:
+            test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+        self.assertEqual(spy.call_count, 1)
+        self.assertEqual(spy.call_args.args[0][-3:], ["unittest", "-q", "test_calc.py"])
+        slow = subprocess.TimeoutExpired("x", 10)
+        with patch.object(test_evidence.process_containment, "run_contained", side_effect=slow):
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "host timeout"):
+                test_evidence.verify(self.root, "01", self.base, "test_calc.py")
+
     def test_fabricated_positive_receipt_cannot_turn_a_failing_suite_green(self):
         # A user-controlled state.js record can match HEAD and the source
         # fingerprint without ever having been produced by verify().
