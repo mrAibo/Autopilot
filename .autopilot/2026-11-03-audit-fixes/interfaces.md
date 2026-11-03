@@ -30,3 +30,18 @@
 **`tools/worktrees.py`** (расширяется). `changed_paths(cwd) -> list[str]` (diff + diff --cached + ls-files --others, всё с `--no-renames`); `check_paths_in_zones(paths, zones) -> None` (поднимает существующий тип ошибки finalize); `land` вызывает проверку над путями коммита (`git diff-tree --no-commit-id --name-only -r --no-renames <sha>`). `worker_outcome.inspect` использует `changed_paths`.
 
 **Швы для тестов:** `state_io` (чистые функции, tmp-каталог); `gate_sign` (через `AUTOPILOT_HOME` во временный каталог); `run_contained` (скрипт-внук); `is_allowed_subagent_model` (таблица имён); `land` (временный git-репозиторий, как в test_worktrees.py).
+
+## Таск 02 построил
+- dashboard_upgrade.prune_backups(folder, safe_slug) -> None; KEEP_BACKUPS = 5
+
+## Таск 01 построил
+- state_io.{parse_state_text, read_state_file, write_state_file(path,state,*,prefix), replace_with_retry(src,dst,*,windows=None,attempts=12), StateError}
+- process_containment.run_contained(cmd,*,timeout,env=None,cwd=None)
+- model_router.{is_allowed_subagent_model(name,policy=None), normalize_model_name}
+- worktrees.{changed_paths(cwd), check_paths_in_zones(paths,zones), land(root,ticket,base,zones)}; CLI land --zone; ticket.testsSource = host|claimed
+- тесты копируют state_io.py и process_containment.py в харнесс вместе с ap.py
+
+## Таск 03 построил
+- gate_sign.{key_path, ensure_key, load_key, sign, verify, routing_payload(ticket_id, routing), evidence_payload(ticket_id, evidence), MISSING_KEY_MESSAGE}
+- test_evidence.verify(..., sign=False), check(..., require_sig=False), check_signature(ticket, evidence); claude_agent_guard.WRITE_TOOLS
+- state.gateSigned; routing.sig, testEvidence.sig, строка аттестации с sig

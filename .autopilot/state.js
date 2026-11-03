@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "audit-fixes",
-  "dir": "2026-11-03-audit-fixes--wip",
+  "dir": "2026-11-03-audit-fixes",
   "title": "Исправления по аудиту Autopilot 2026-11-03",
   "mode": "semi",
   "depth": "normal",
@@ -16,8 +16,8 @@ window.STATE =
   "skillDir": "/home/user/Autopilot/skills/autopilot",
   "baseCommit": "aea02cc",
   "startedAt": "2026-11-03T16:24:15+00:00",
-  "updatedAt": "2026-11-03T16:33:19+00:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-03T20:02:52+01:00",
+  "finishedAt": "2026-11-03T20:02:53+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -42,30 +42,37 @@ window.STATE =
       "status": "done",
       "startedAt": "2026-11-03T16:26:05+00:00",
       "note": "x",
-      "finishedAt": "2026-11-03T16:31:57+00:00"
+      "finishedAt": "2026-11-03T20:02:49+01:00"
     },
     {
       "id": "plan",
-      "status": "active",
-      "startedAt": "2026-11-03T16:31:57+00:00"
+      "status": "done",
+      "startedAt": "2026-11-03T16:31:57+00:00",
+      "finishedAt": "2026-11-03T17:43:52+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "startedAt": "2026-11-03T17:45:02+01:00",
+      "finishedAt": "2026-11-03T19:20:56+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "startedAt": "2026-11-03T19:20:56+01:00",
+      "finishedAt": "2026-11-03T19:53:44+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "startedAt": "2026-11-03T19:53:44+01:00",
+      "finishedAt": "2026-11-03T20:02:53+01:00"
     }
   ],
   "requirements": {
     "total": 18,
-    "done": 0,
-    "inTicket": 18,
+    "done": 18,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -120,16 +127,39 @@ window.STATE =
       ],
       "review": "да — фундамент",
       "model": "сильная",
-      "fingerprint": "3be55889d35738071f1538195e1e8c7907aa1e4778f3dba77361bb548f4895ba",
-      "status": "pending",
+      "fingerprint": "6d458dbee67dc71c5bc32a52eeaf397ab9a85e9e0cc40ed72e9875a40eb39d29",
+      "status": "done",
+      "startedAt": "2026-11-03T17:45:21+01:00",
+      "finishedAt": "2026-11-03T19:00:58+01:00",
       "retries": 0,
-      "repairs": 0,
+      "repairs": 1,
+      "repairFindings": [
+        "ap.py ~1905: в изолированном режиме без strict testsSource=host ставить только если test_evidence.check подтверждает workerHead/fingerprint текущего HEAD; иначе claimed + строка в debt.assumptions; добавить тест на устаревшее evidence (verify → правка → land --tests)"
+      ],
+      "tests": {
+        "passed": 517,
+        "failed": 0
+      },
+      "commit": "4cfc7be",
+      "placeholders": [],
+      "routing": {
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": true,
+        "score": 50,
+        "reason": "score=50; profile=strong; high-risk=True",
+        "verified": true,
+        "agentType": "autopilot-executor-01-state-safety-routing",
+        "agentFile": ".claude/agents/autopilot-executor-01-state-safety-routing.md",
+        "profileSha": "ea20ea33350bb5be9da2de28015d78a0124ceba533401bf38d68e9d8c3ca6946"
+      },
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": null,
+        "effortEnforced": true,
         "profile": "strong",
         "score": 50,
         "factors": {
@@ -142,11 +172,15 @@ window.STATE =
         },
         "reason": "score=50; profile=strong; high-risk=True",
         "requiresReview": true,
-        "status": "blocked",
-        "fingerprint": "3be55889d35738071f1538195e1e8c7907aa1e4778f3dba77361bb548f4895ba",
+        "status": "ready",
+        "fingerprint": "6d458dbee67dc71c5bc32a52eeaf397ab9a85e9e0cc40ed72e9875a40eb39d29",
         "hostExecutionVerified": false,
-        "error": "No verified host capabilities",
-        "applied": false
+        "applied": true
+      },
+      "attestation": {
+        "model": "claude-sonnet-5-5",
+        "effort": "high",
+        "lines": 152
       }
     },
     {
@@ -179,16 +213,36 @@ window.STATE =
       ],
       "review": "нет",
       "model": "обычная",
-      "fingerprint": "c95853badf540c7047384a2f37d97982639a5c363d2bd46d44721a55f86819a5",
-      "status": "pending",
+      "fingerprint": "bfd9f253a15504d8f7469b4eb56b694db8713fcb10beb9ab862583e50ddd4183",
+      "status": "done",
+      "startedAt": "2026-11-03T17:45:21+01:00",
+      "finishedAt": "2026-11-03T17:53:37+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 25,
+        "failed": 0
+      },
+      "commit": "79bd014",
+      "placeholders": [],
+      "routing": {
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": true,
+        "score": 55,
+        "reason": "score=55; profile=strong; high-risk=False",
+        "verified": true,
+        "agentType": "autopilot-executor-02-docs-ci-backups",
+        "agentFile": ".claude/agents/autopilot-executor-02-docs-ci-backups.md",
+        "profileSha": "e9a041197c42ac58918a802c00dc0d1d1aea23f110d18f6d4c2073f23a6b9af8"
+      },
       "plannedRouting": {
         "ticket": "02",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": null,
+        "effortEnforced": true,
         "profile": "strong",
         "score": 55,
         "factors": {
@@ -201,11 +255,15 @@ window.STATE =
         },
         "reason": "score=55; profile=strong; high-risk=False",
         "requiresReview": true,
-        "status": "blocked",
-        "fingerprint": "c95853badf540c7047384a2f37d97982639a5c363d2bd46d44721a55f86819a5",
+        "status": "ready",
+        "fingerprint": "bfd9f253a15504d8f7469b4eb56b694db8713fcb10beb9ab862583e50ddd4183",
         "hostExecutionVerified": false,
-        "error": "No verified host capabilities",
-        "applied": false
+        "applied": true
+      },
+      "attestation": {
+        "model": "claude-sonnet-5-5",
+        "effort": "high",
+        "lines": 58
       }
     },
     {
@@ -235,16 +293,39 @@ window.STATE =
       ],
       "review": "да — ключи и подписи",
       "model": "сильная",
-      "fingerprint": "a6f6c452e3d8ace9f36e1e7df73ae1dd744dd50e2fd7ff0754788ef2e169e74c",
-      "status": "pending",
+      "fingerprint": "d5f043e96bb4f9113aa67311cd8c18a7c157a75798880d2af4016c9b2d389333",
+      "status": "done",
+      "startedAt": "2026-11-03T18:18:10+01:00",
+      "finishedAt": "2026-11-03T19:53:41+01:00",
       "retries": 0,
-      "repairs": 0,
+      "repairs": 1,
+      "repairFindings": [
+        "F1: run, начатый подписанным, нельзя понизить правкой state.js (ключ есть, а gateSigned нет или без подписи = стоп, не предупреждение); F2: Write/Edit по .autopilot/*.py верификаторам (gate_sign, claude_agent_guard, claude_attest, ap, test_evidence) запрещены в strict-прогоне"
+      ],
+      "tests": {
+        "passed": 546,
+        "failed": 0
+      },
+      "commit": "84f50cd",
+      "placeholders": [],
+      "routing": {
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": true,
+        "score": 35,
+        "reason": "score=35; profile=balanced; high-risk=False",
+        "verified": true,
+        "agentType": "autopilot-executor-03-gate-signing-protection",
+        "agentFile": ".claude/agents/autopilot-executor-03-gate-signing-protection.md",
+        "profileSha": "3284fb911ae093915f46ae369e52fe7b56ca77401ffaa94c1cb311da129ea86c"
+      },
       "plannedRouting": {
         "ticket": "03",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "medium",
-        "effortEnforced": null,
+        "effortEnforced": true,
         "profile": "balanced",
         "score": 35,
         "factors": {
@@ -257,15 +338,81 @@ window.STATE =
         },
         "reason": "score=35; profile=balanced; high-risk=False",
         "requiresReview": false,
-        "status": "blocked",
-        "fingerprint": "a6f6c452e3d8ace9f36e1e7df73ae1dd744dd50e2fd7ff0754788ef2e169e74c",
+        "status": "ready",
+        "fingerprint": "d5f043e96bb4f9113aa67311cd8c18a7c157a75798880d2af4016c9b2d389333",
         "hostExecutionVerified": false,
-        "error": "No verified host capabilities",
-        "applied": false
+        "applied": true
+      },
+      "attestation": {
+        "model": "claude-sonnet-5-5",
+        "effort": "medium",
+        "lines": 86
       }
+    },
+    {
+      "id": "F1",
+      "title": "Ремонт по ревью ветки",
+      "requirements": [
+        "R05",
+        "R17",
+        "R06",
+        "R12",
+        "R18"
+      ],
+      "blockedBy": [],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/tools/gate_sign.py",
+        "skills/autopilot/tools/claude_agent_guard.py",
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/model_router.py",
+        "skills/autopilot/tools/process_containment.py",
+        "docs/autopilot/*.md",
+        "skills/autopilot/phases/0-resume.md",
+        "tests/test_gate_sign.py",
+        "tests/test_claude_agent_guard.py",
+        "tests/test_ap.py",
+        "tests/test_model_router.py",
+        "tests/test_process_containment.py",
+        "tests/test_skill_allowed_tools.py"
+      ],
+      "review": "да — ремонт ветки",
+      "model": "сильная",
+      "fingerprint": "deff2743b0779d529f47d667a3b5dcbd31a06213501a3d631a22bcedd91c666c",
+      "status": "done",
+      "startedAt": "2026-11-03T19:25:34+01:00",
+      "finishedAt": "2026-11-03T19:53:42+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 546,
+        "failed": 0
+      },
+      "commit": "84f50cd",
+      "placeholders": [],
+      "routing": {
+        "agentType": "autopilot-executor-repair-2026-11-03-audit-fixes",
+        "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-03-audit-fixes.md",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": true,
+        "profileSha": "3172282d8b248f66324f2a495ab8b1b7c1a8ed733ec7169e6120c33e8d86b559",
+        "provider": "anthropic",
+        "reason": "ремонт ветки: подпись гейта, роутер моделей, контейнмент; сильный",
+        "verified": true
+      },
+      "attestation": {
+        "model": "claude-sonnet-5-5",
+        "effort": "high",
+        "lines": 73
+      },
+      "attestFrom": 394
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 546,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -275,14 +422,65 @@ window.STATE =
   },
   "additions": [],
   "coverage": {
-    "found": 3,
-    "fixed": 3,
-    "deferred": 0,
-    "items": []
+    "found": 4,
+    "fixed": 1,
+    "deferred": 3,
+    "items": [
+      "A05 strictRouting/finishedAt: закрыто — запись «начат подписанным» вне проекта (F1)",
+      "A05 запись через Bash: не закрыта — хук ловит Write/Edit, остаточный предел назван в docs/autopilot/claude-code.md",
+      "A05 model-capabilities.json: без подписи, закрыт от Write/Edit хуком",
+      "A10 на Windows: автотест внука через skipUnless (POSIX); вручную на Windows проверено, внук убит"
+    ]
   },
-  "concerns": [],
-  "blockingFindings": [],
-  "blind": null,
+  "concerns": [
+    "T02: py -3.13 остался в docs вне зоны (sequential-host, codex-cli, gui-cli-bridge, host-loop, spend-guard)",
+    "T01: land() требует zones — worktrees.md:191 нужен --zone (зона T02); зона .github/ допустима; на Windows run_contained может пропустить внука в первый миг",
+    "T01 ревью F2: model_router.py:63 is_allowed_subagent_model('claude-opus-4-1/haiku') даёт True — искать opus/fable и в сыром имени (безопасность)",
+    "T01 ревью F3: model_router.py:53 отклоняет claude-3-5-haiku-latest",
+    "T01 ревью F4: model_router.py:231 choose_route — второй премиум-чек вместо is_allowed_subagent_model",
+    "T01 ревью F5: process_containment.py:158 terminate может поднять ContainmentError до proc.kill; тест внука флачит; нет теста land на rename",
+    "T01 ревью F6: scheduler.py:134 и dashboard_upgrade.py:28 — свои разборщики state.js, BOM ломает scheduler CLI",
+    "T03 перепроверка: gate_sign.run_mark покрывает dir — finish переименует --wip, маркер станет forged; подписывать slug+startedAt без dir; нет теста finish→reopen",
+    "T03: ключ общий на машину — init --strict-routing в другом проекте жёстко останавливает старый неподписанный прогон; в доках нет предупреждения",
+    "T03: .autopilot/__pycache__/*.pyc глубины 3 не защищён"
+  ],
+  "blockingFindings": [
+    {
+      "id": "B01",
+      "text": "ap.py ~1905: в изолированном режиме без strict testsSource=host ставить только если test_evidence.check подтверждает workerHead/fingerprint текущего HEAD; иначе claimed + строка в debt.assumptions; добавить тест на устаревшее evidence (verify → правка → land --tests)",
+      "ticket": "01",
+      "openedAt": "2026-11-03T18:22:00+01:00",
+      "status": "resolved",
+      "openedCommit": "47e4ccd",
+      "resolvedAt": "2026-11-03T19:00:58+01:00",
+      "resolutionCommit": "4cfc7be",
+      "resolutionTests": {
+        "passed": 517,
+        "failed": 0
+      },
+      "review": "Независимый ревьюер перепроверил условие: host ставится только после test_evidence.check по текущему HEAD, иначе claimed; тесты красные до правки"
+    },
+    {
+      "id": "B02",
+      "text": "F1: run, начатый подписанным, нельзя понизить правкой state.js (ключ есть, а gateSigned нет или без подписи = стоп, не предупреждение); F2: Write/Edit по .autopilot/*.py верификаторам (gate_sign, claude_agent_guard, claude_attest, ap, test_evidence) запрещены в strict-прогоне",
+      "ticket": "03",
+      "openedAt": "2026-11-03T19:03:08+01:00",
+      "status": "resolved",
+      "openedCommit": "4cfc7be",
+      "resolvedAt": "2026-11-03T19:53:40+01:00",
+      "resolutionCommit": "84f50cd",
+      "resolutionTests": {
+        "passed": 546,
+        "failed": 0
+      },
+      "review": "Независимая перепроверка F1: запись «начат подписанным» вне проекта, guard проверяет подпись до «No active strict run»; все критерии закрыты"
+    }
+  ],
+  "blind": {
+    "checked": 15,
+    "matched": 15,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-03T16:24:15+00:00",
     "2026-11-03T16:24:27+00:00",
@@ -296,19 +494,63 @@ window.STATE =
     "2026-11-03T16:31:57+00:00",
     "2026-11-03T16:32:53+00:00",
     "2026-11-03T16:33:13+00:00",
-    "2026-11-03T16:33:19+00:00"
+    "2026-11-03T16:33:19+00:00",
+    "2026-11-03T17:43:22+01:00",
+    "2026-11-03T17:43:42+01:00",
+    "2026-11-03T17:43:52+01:00",
+    "2026-11-03T17:43:57+01:00",
+    "2026-11-03T17:44:58+01:00",
+    "2026-11-03T17:45:02+01:00",
+    "2026-11-03T17:45:21+01:00",
+    "2026-11-03T17:53:37+01:00",
+    "2026-11-03T17:53:44+01:00",
+    "2026-11-03T18:18:07+01:00",
+    "2026-11-03T18:18:09+01:00",
+    "2026-11-03T18:18:10+01:00",
+    "2026-11-03T18:18:21+01:00",
+    "2026-11-03T18:21:51+01:00",
+    "2026-11-03T18:22:00+01:00",
+    "2026-11-03T18:49:29+01:00",
+    "2026-11-03T19:00:58+01:00",
+    "2026-11-03T19:00:59+01:00",
+    "2026-11-03T19:03:08+01:00",
+    "2026-11-03T19:20:43+01:00",
+    "2026-11-03T19:20:56+01:00",
+    "2026-11-03T19:25:23+01:00",
+    "2026-11-03T19:25:24+01:00",
+    "2026-11-03T19:25:34+01:00",
+    "2026-11-03T19:45:46+01:00",
+    "2026-11-03T19:53:40+01:00",
+    "2026-11-03T19:53:41+01:00",
+    "2026-11-03T19:53:42+01:00",
+    "2026-11-03T19:53:43+01:00",
+    "2026-11-03T19:53:44+01:00",
+    "2026-11-03T19:59:59+01:00",
+    "2026-11-03T20:02:11+01:00",
+    "2026-11-03T20:02:12+01:00",
+    "2026-11-03T20:02:37+01:00",
+    "2026-11-03T20:02:49+01:00",
+    "2026-11-03T20:02:50+01:00",
+    "2026-11-03T20:02:51+01:00",
+    "2026-11-03T20:02:52+01:00"
   ],
-  "rev": 20,
-  "waiting": {
-    "kind": "stop",
-    "since": "2026-11-03T16:33:19+00:00",
-    "note": "выбор режима исполнения: strict (нужен новый чат на вашей машине) или sequential-host (здесь, по одному таску)"
-  },
+  "rev": 64,
+  "waiting": null,
   "waits": [
     {
       "kind": "briefing",
       "from": "2026-11-03T16:25:03+00:00",
       "to": "2026-11-03T16:26:04+00:00"
+    },
+    {
+      "kind": "stop",
+      "from": "2026-11-03T16:33:19+00:00",
+      "to": "2026-11-03T17:43:22+01:00"
+    },
+    {
+      "kind": "stop",
+      "from": "2026-11-03T17:43:57+01:00",
+      "to": "2026-11-03T17:44:58+01:00"
     }
   ],
   "log": [
@@ -419,122 +661,582 @@ window.STATE =
       "k": "ask",
       "kind": "stop",
       "note": "выбор режима исполнения: strict (нужен новый чат на вашей машине) или sequential-host (здесь, по одному таску)"
+    },
+    {
+      "t": "2026-11-03T17:43:22+01:00",
+      "k": "answered",
+      "kind": "stop"
+    },
+    {
+      "t": "2026-11-03T17:43:22+01:00",
+      "k": "gate",
+      "g": "G3",
+      "ok": true,
+      "problems": 0
+    },
+    {
+      "t": "2026-11-03T17:43:22+01:00",
+      "k": "gate",
+      "g": "G1",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T17:43:22+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T17:43:22+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T17:43:42+01:00",
+      "k": "plan-models",
+      "provider": "anthropic",
+      "applied": false,
+      "tickets": 3,
+      "blocked": 0
+    },
+    {
+      "t": "2026-11-03T17:43:52+01:00",
+      "k": "stage",
+      "id": "plan",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-03T17:43:52+01:00",
+      "k": "plan-models",
+      "provider": "anthropic",
+      "applied": true,
+      "tickets": 3,
+      "blocked": 0
+    },
+    {
+      "t": "2026-11-03T17:43:57+01:00",
+      "k": "ask",
+      "kind": "stop",
+      "note": "новый чат: агенты зарегистрированы"
+    },
+    {
+      "t": "2026-11-03T17:44:58+01:00",
+      "k": "answered",
+      "kind": "stop"
+    },
+    {
+      "t": "2026-11-03T17:44:58+01:00",
+      "k": "gate",
+      "g": "G3",
+      "ok": true,
+      "problems": 0
+    },
+    {
+      "t": "2026-11-03T17:45:02+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T17:45:21+01:00",
+      "k": "ticket",
+      "ids": [
+        "01",
+        "02"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T17:53:37+01:00",
+      "k": "ticket",
+      "ids": [
+        "02"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 25,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-03T17:53:44+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 1
+    },
+    {
+      "t": "2026-11-03T18:18:07+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 499,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-03T18:18:09+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 1
+    },
+    {
+      "t": "2026-11-03T18:18:10+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T18:18:21+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-03T18:21:51+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 5
+    },
+    {
+      "t": "2026-11-03T18:22:00+01:00",
+      "k": "blocker",
+      "id": "B01",
+      "act": "open",
+      "ticket": "01"
+    },
+    {
+      "t": "2026-11-03T18:22:00+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "repair",
+      "note": "ap.py ~1905: в изолированном режиме без strict testsSource=host ставить только если test_evidence.check подтверждает workerHead/fingerprint текущего HEAD; иначе claimed + строка в debt.assumptions; добавить тест на устаревшее evidence (verify → правка → land --tests)"
+    },
+    {
+      "t": "2026-11-03T18:49:29+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-03T19:00:58+01:00",
+      "k": "blocker",
+      "id": "B01",
+      "act": "resolve",
+      "ticket": "01"
+    },
+    {
+      "t": "2026-11-03T19:00:58+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 517,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-03T19:00:59+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-03T19:03:08+01:00",
+      "k": "blocker",
+      "id": "B02",
+      "act": "open",
+      "ticket": "03"
+    },
+    {
+      "t": "2026-11-03T19:03:08+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "repair",
+      "note": "F1: run, начатый подписанным, нельзя понизить правкой state.js (ключ есть, а gateSigned нет или без подписи = стоп, не предупреждение); F2: Write/Edit по .autopilot/*.py верификаторам (gate_sign, claude_agent_guard, claude_attest, ap, test_evidence) запрещены в strict-прогоне"
+    },
+    {
+      "t": "2026-11-03T19:20:43+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 3
+    },
+    {
+      "t": "2026-11-03T19:20:56+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T19:25:23+01:00",
+      "k": "tickets",
+      "n": 4
+    },
+    {
+      "t": "2026-11-03T19:25:24+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "route"
+    },
+    {
+      "t": "2026-11-03T19:25:34+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T19:45:46+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-03T19:53:40+01:00",
+      "k": "blocker",
+      "id": "B02",
+      "act": "resolve",
+      "ticket": "03"
+    },
+    {
+      "t": "2026-11-03T19:53:41+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 546,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-03T19:53:42+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 546,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-03T19:53:43+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 6
+    },
+    {
+      "t": "2026-11-03T19:53:44+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-03T19:59:59+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 15,
+      "matched": 13
+    },
+    {
+      "t": "2026-11-03T19:59:59+01:00",
+      "k": "tests",
+      "passed": 546,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-03T20:02:11+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 4,
+      "fixed": 1,
+      "deferred": 3
+    },
+    {
+      "t": "2026-11-03T20:02:12+01:00",
+      "k": "gate",
+      "g": "G1",
+      "ok": true,
+      "open": 0,
+      "total": 18
+    },
+    {
+      "t": "2026-11-03T20:02:12+01:00",
+      "k": "stage",
+      "id": "spec",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-03T20:02:37+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 15,
+      "matched": 15
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "gate",
+      "g": "G3",
+      "ok": true,
+      "problems": 0
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "gate",
+      "g": "G1",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "reason": "plan-changed"
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "gate",
+      "g": "G1",
+      "ok": true,
+      "open": 0,
+      "total": 18
+    },
+    {
+      "t": "2026-11-03T20:02:49+01:00",
+      "k": "stage",
+      "id": "spec",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-03T20:02:50+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 4,
+      "fixed": 1,
+      "deferred": 3
+    },
+    {
+      "t": "2026-11-03T20:02:51+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 15,
+      "matched": 15
+    },
+    {
+      "t": "2026-11-03T20:02:52+01:00",
+      "k": "tests",
+      "passed": 546,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-03T20:02:52+01:00",
+      "k": "finish",
+      "result": "Закрыты 18 пунктов аудита: общий state_io, проверка зон и путей, точный allowlist моделей, подпись гейтов, документация и CI"
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«A01: save() делает os.replace без повтора»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«A02: land() не проверяет зоны и пути; тесты берутся из текста --tests N/0»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
       "text": "«A03: git diff --cached --name-only без --no-renames»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R04",
       "text": "«A04: риск тикета считается только по словарю слов»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R05",
       "text": "«A05: гард защищает от промахов оркестратора, не от исполнителя»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R06",
       "text": "«A06: запрет премиум-моделей по префиксу строки»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R07",
       "text": "«A07: четыре разборщика state.js с разной терпимостью»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R08",
       "text": "«A08: init --force теряет журнал»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R09",
       "text": "«A09: classify смотрит только первые 12 000 символов»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R10",
       "text": "«A10: trusted-раннер не использует OwnedJob»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R11",
       "text": "«A11: версии не сходятся»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R12",
       "text": "«A12: доки велят py -3.13 … и controller.py, а allowed-tools пропускает только py -3 .autopilot/ap.py »",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R13",
       "text": "«A13: в таблице и скоринге нет tier critical»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R14",
       "text": "«A14: бэкап HTML со снимком state.js в общем tempdir»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R15",
       "text": "«A15: compileall только skills/autopilot/tools и tests»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R16",
       "text": "«I01: общий модуль чтения/записи state.js (BOM, префикс, повтор replace) — закрывает A01 и A07 разом»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R17",
       "text": "«I02: подписанные квитанции гейтов, ключ вне .autopilot — иначе правка state.js/attestations.jsonl проходит сверку (A05)»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R18",
       "text": "«I03: точный allowlist моделей в роутере вместо префиксов + тесты на Bedrock-ID и claude-3-opus (A06)»",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
     "G1": {
-      "ok": false,
-      "at": "2026-11-03T16:31:00+00:00",
-      "open": 18,
+      "ok": true,
+      "at": "2026-11-03T20:02:49+01:00",
+      "open": 0,
       "total": 18
     },
     "G2": {
       "ok": true,
-      "at": "2026-11-03T16:31:57+00:00",
-      "found": 3,
-      "fixed": 3,
-      "deferred": 0
+      "at": "2026-11-03T20:02:50+01:00",
+      "found": 4,
+      "fixed": 1,
+      "deferred": 3
     },
     "G3": {
       "ok": true,
-      "at": "2026-11-03T16:32:53+00:00",
+      "at": "2026-11-03T20:02:49+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-03T20:02:51+01:00",
+      "checked": 15,
+      "matched": 15
     }
   },
-  "result": null,
+  "result": "Закрыты 18 пунктов аудита: общий state_io, проверка зон и путей, точный allowlist моделей, подпись гейтов, документация и CI",
   "skillVersion": "2.6.0",
-  "planContractDigest": "2e6ca6c997cf1cc19fe470b8b2d06418c2b6d732b14a967f1891974f19ec9ee8",
-  "planValidationDigest": "2a84e0f72ca643f2ab74f9517d85875fa5fe84bc3ad5d36fec427cc597235063"
+  "planContractDigest": "c46c585cd2f5011d7cb9fd308805ab875991dbf03fb72492150624cde62d64f0",
+  "planValidationDigest": "c950f095a53552a7ede06fde7e50789c1b64c73e45778806a447724cec06b2d0",
+  "roleAgents": {
+    "reviewer": {
+      "agentType": "autopilot-reviewer-2026-11-03-audit-fixes",
+      "agentFile": ".claude/agents/autopilot-reviewer-2026-11-03-audit-fixes.md",
+      "model": "sonnet",
+      "effort": "high",
+      "effortEnforced": true,
+      "profileSha": "c0ce8d027e934dd42a0de465211a7d9e3be521053c5557a02a6438f33b717c52"
+    },
+    "acceptance": {
+      "agentType": "autopilot-acceptance-2026-11-03-audit-fixes",
+      "agentFile": ".claude/agents/autopilot-acceptance-2026-11-03-audit-fixes.md",
+      "model": "sonnet",
+      "effort": "medium",
+      "effortEnforced": true,
+      "profileSha": "f6e4056522333decb3f59778120895d06d50c03f3b192838cf5eae09eb48c24a"
+    },
+    "explorer": {
+      "agentType": "autopilot-explorer-2026-11-03-audit-fixes",
+      "agentFile": ".claude/agents/autopilot-explorer-2026-11-03-audit-fixes.md",
+      "model": "haiku",
+      "effort": "low",
+      "effortEnforced": true,
+      "profileSha": "4f8147a1a7e337d4f62e6edb70284103d97150881b953fbdf6ad572feec6e2c0"
+    }
+  },
+  "repairAgent": {
+    "agentType": "autopilot-executor-repair-2026-11-03-audit-fixes",
+    "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-03-audit-fixes.md",
+    "model": "sonnet",
+    "effort": "high",
+    "effortEnforced": true,
+    "profileSha": "3172282d8b248f66324f2a495ab8b1b7c1a8ed733ec7169e6120c33e8d86b559"
+  },
+  "report": [
+    "execution sequential-host стирает запись подписи, но оставляет gateMark: ap.py:985,1586, предупреждение «без подписи» неточно, подписи маршрута и тестов дальше не ставятся",
+    "Запись подписи пишется до save(state) и не атомарна (ap.py:2286, 2311): сбой между ними — прогон читается как forged до повторного init",
+    "scheduler.py:135 и dashboard_upgrade.py:28 разбирают state.js вручную: BOM ломает scheduler CLI и обновление дашборда",
+    "claude-3-5-haiku-latest отклоняется роутером (fail-closed)",
+    ".autopilot/__pycache__/*.pyc глубины 3 не защищён Write-хуком",
+    "Мелочи: ap.py:1925 ловит только EvidenceError; init создаёт ключ раньше отказа; chmod 0700 на чужой папке в /tmp"
+  ]
 }
