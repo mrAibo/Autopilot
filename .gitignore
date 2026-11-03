@@ -4,3 +4,22 @@ node_modules/
 __pycache__/
 HANDOFF.local.md
 *.local.md
+.autopilot/serve.*
+.autopilot/state.lock
+.autopilot/dispatch-*.lock
+.autopilot/controller.lock
+.autopilot/gui-dispatch/
+.autopilot/api-pilot/
+.autopilot/api-pilot-consent
+.autopilot/offline-worker/
+.autopilot/offline-test-consent
+.autopilot/__pycache__/
+.autopilot/worktrees/
+.autopilot/model-capabilities.json
+.claude/agents/autopilot-*.md
+.codex/agents/autopilot-*.toml
+
+# Autopilot self-run: копии инструментов, источник правды — skills/autopilot/
+.autopilot/*.py
+.autopilot/dashboard.html
+.autopilot/index.html
