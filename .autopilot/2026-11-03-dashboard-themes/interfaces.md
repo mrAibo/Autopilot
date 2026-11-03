@@ -23,7 +23,7 @@
 Скрывает: порядок и состав блоков внутри каждой темы; CSS-слои 3.0/3.1.
 
 ### Единица B — `skills/autopilot/tools/dashboard_upgrade.py`
-- `parse_project_state(data: str) -> dict` — разбирает через `state_io.parse_state_text`; `StateError` переводится в `UpgradeError("…not valid JSON…")` (текст сохраняет существующий тест). Тот же вход, что и раньше, плюс BOM и отсутствие префикса.
+- `read_project_state(path) -> dict` (D01: вместо `parse_project_state(data: str)`, см. манифест) — читает файл через `state_io.read_state_file`; `StateError` переводится в `UpgradeError("…not valid JSON…")` (текст сохраняет существующий тест). Тот же вход, что и раньше, плюс BOM и отсутствие префикса.
 - Не меняет сигнатуру `upgrade(...)` и статусы `upgraded|unchanged|would-upgrade`.
 
 ### Швы для тестов
@@ -33,3 +33,6 @@
 
 ## Что построили закрытые таски
 (пусто — заполняется по мере сдачи)
+
+### T01 — темы дашборда и логотип (сдан)
+`VIEW_KEY='autopilot-view'`; `VIEW_IDS` (6 id); `storedView()`; `let VIEW`; `const VIEWS={id: c=>html}`; `I18N.{ru,en}.{viewLabel,views,vw}`; кнопки `data-view` с `aria-pressed`; `BRAND_SVG`/`BRAND_WORD`/`BRAND_MARK`; `<symbol id="ap-mark">`. Ссылки рейки `#tasks/#models/#quality` работают там, где в теме есть нужный блок. Тесты: `tests/test_dashboard_views.py` (11, часть через `node`).
