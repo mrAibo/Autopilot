@@ -47,6 +47,62 @@ class HookGuardTests(unittest.TestCase):
         return {"tool_name": "Agent",
                 "tool_input": {"subagent_type": self.name if agent is None else agent, **args}}
 
+    def write(self, path, tool="Write"):
+        return guard.decision({"tool_name": tool, "tool_input": {"file_path": str(path)}}, self.root)
+
+    def test_strict_run_blocks_writes_to_run_files(self):
+        for rel in (".autopilot/state.js", ".autopilot/attestations.jsonl",
+                    ".autopilot/model-capabilities.json", ".claude/settings.json",
+                    ".claude/settings.local.json", ".claude/agents/x.md"):
+            for tool in ("Write", "Edit", "MultiEdit"):
+                self.assertFalse(self.write(self.root / rel, tool)[0], (rel, tool))
+        ok, _ = guard.decision({"tool_name": "NotebookEdit", "tool_input": {
+            "notebook_path": ".autopilot/state.js"}}, self.root)
+        self.assertFalse(ok)
+        self.assertFalse(self.write(self.root / "src" / ".." / ".autopilot" / "state.js")[0])
+
+    def test_other_files_and_finished_or_non_strict_runs_are_writable(self):
+        self.assertTrue(self.write(self.root / "src" / "app.py")[0])
+        self.assertTrue(self.write(self.root / ".autopilot" / "notes.md")[0])
+        self.state["finishedAt"] = "2026-01-01"
+        self.save()
+        self.assertTrue(self.write(self.root / ".autopilot" / "state.js")[0])
+        self.state.update(finishedAt=None, strictRouting=False)
+        self.save()
+        self.assertTrue(self.write(self.root / ".autopilot" / "state.js")[0])
+
+    def test_installer_adds_write_matcher_once(self):
+        guard.install_hook(self.root)
+        guard.install_hook(self.root)
+        entries = json.loads((self.root / ".claude" / "settings.json").read_text(
+            encoding="utf-8"))["hooks"]["PreToolUse"]
+        self.assertEqual([e["matcher"] for e in entries],
+                         ["Agent|Task", "Write|Edit|MultiEdit|NotebookEdit"])
+
+    def test_signed_run_requires_valid_route_signature(self):
+        import gate_sign
+        from unittest import mock
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
+            self.state["gateSigned"] = True
+            self.state["tickets"][0]["id"] = "01"
+            self.save()
+            self.assertEqual(guard.decision(self.payload(), self.root)[1], gate_sign.MISSING_KEY_MESSAGE)
+            gate_sign.ensure_key()
+            self.assertIn("signature", guard.decision(self.payload(), self.root)[1])  # no sig yet
+            route = self.state["tickets"][0]["routing"]
+            route["sig"] = gate_sign.sign(gate_sign.routing_payload("01", route))
+            self.save()
+            self.assertTrue(guard.decision(self.payload(), self.root)[0])
+            route["score"] = 99  # forged field, old signature
+            self.save()
+            self.assertIn("signature", guard.decision(self.payload(), self.root)[1])
+            del route["score"]
+            self.save()
+            os.remove(os.path.join(home.name, "gate.key"))
+            self.assertEqual(guard.decision(self.payload(), self.root)[1], gate_sign.MISSING_KEY_MESSAGE)
+
     def test_approved_executor_is_allowed(self):
         ok, why = guard.decision(self.payload(), self.root)
         self.assertTrue(ok, why)
@@ -191,7 +247,7 @@ class HookGuardTests(unittest.TestCase):
         _, installed = guard.install_hook(self.root)
         self.assertFalse(installed)
         content = json.loads(settings.read_text(encoding="utf-8"))
-        self.assertEqual(len(content["hooks"]["PreToolUse"]), 1)
+        self.assertEqual(len(content["hooks"]["PreToolUse"]), 2)  # Agent|Task + write tools
 
     def test_installer_writes_exec_form_fail_closed(self):
         guard.install_hook(self.root)
@@ -240,7 +296,7 @@ class HookGuardTests(unittest.TestCase):
         entries = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PreToolUse"]
         self.assertIn(other, entries)
         guards = [e for e in entries if "claude_agent_guard.py" in json.dumps(e)]
-        self.assertEqual(len(guards), 1)
+        self.assertEqual(len(guards), 2)
         self.assertEqual(guards[0]["hooks"][0]["onFailure"], "block")
         self.assertNotIn(legacy, entries)
 

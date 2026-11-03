@@ -13,7 +13,8 @@ from pathlib import Path
 import re
 import sys
 
-from claude_agent_guard import project_root
+import gate_sign
+from claude_agent_guard import project_root, read_state
 
 # Same agent-name contract as claude_agent_guard.decision.
 AGENT = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-[a-z0-9-]{1,58}")
@@ -62,6 +63,8 @@ def record(payload, root):
     if state.is_symlink() or log.is_symlink() or not state.exists():
         return None
     line = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **line}
+    if (read_state(root) or {}).get("gateSigned") is True and gate_sign.load_key():
+        line["sig"] = gate_sign.sign(line)  # no key: the line stays unsigned and the gate rejects it
     with log.open("a", encoding="utf-8") as writer:
         writer.write(json.dumps(line, ensure_ascii=False) + "\n")
     return line

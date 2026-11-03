@@ -212,7 +212,14 @@ def run_cargo(target, suite, timeout):
     return passed
 
 
-def verify(root, ticket, base, suite, timeout=90):
+def _seal(ticket, result, sign):
+    if sign:
+        import gate_sign
+        result["sig"] = gate_sign.sign(gate_sign.evidence_payload(ticket, result))
+    return result
+
+
+def verify(root, ticket, base, suite, timeout=90, sign=False):
     if type(timeout) is not int or not 10 <= timeout <= 300:
         raise EvidenceError("Test timeout must be 10–300 seconds")
     root = worktrees.repository(root)
@@ -236,10 +243,11 @@ def verify(root, ticket, base, suite, timeout=90):
         reject_ignored_rust(target)
         if before != after:
             raise EvidenceError("Worktree changed while running tests; results invalidated")
-        return {"status": "verified", "runner": runner, "suite": suite,
-                "fingerprint": after, "baseCommit": base, "workerHead": head,
-                "passed": passed, "failed": 0, "timeout": timeout,
-                "verifiedAt": datetime.now(timezone.utc).isoformat()}
+        return _seal(ticket, {
+            "status": "verified", "runner": runner, "suite": suite,
+            "fingerprint": after, "baseCommit": base, "workerHead": head,
+            "passed": passed, "failed": 0, "timeout": timeout,
+            "verifiedAt": datetime.now(timezone.utc).isoformat()}, sign)
     # Avoid inheriting PYTHONPATH/PYTHONHOME/etc. from the controlling host.
     # Otherwise an external module can satisfy tests without being represented
     # in the ticket's worktree fingerprint. Preserve non-Python OS variables.
@@ -263,19 +271,32 @@ def verify(root, ticket, base, suite, timeout=90):
     passed = int(matches[-1]) if matches else 0
     if result.returncode != 0 or not re.search(r"(?m)^OK(?:\s|$)", logs) or passed < 1:
         raise EvidenceError("Independent host tests did not pass")
-    return {"status": "verified", "runner": "python-unittest", "suite": suite,
-            "fingerprint": after, "baseCommit": base, "workerHead": head,
-            "passed": passed, "failed": 0, "timeout": timeout,
-            "verifiedAt": datetime.now(timezone.utc).isoformat()}
+    return _seal(ticket, {
+        "status": "verified", "runner": "python-unittest", "suite": suite,
+        "fingerprint": after, "baseCommit": base, "workerHead": head,
+        "passed": passed, "failed": 0, "timeout": timeout,
+        "verifiedAt": datetime.now(timezone.utc).isoformat()}, sign)
 
 
-def check(root, ticket, base, evidence):
+def check_signature(ticket, evidence):
+    """Signed run: the receipt must carry a valid signature made with the user's key."""
+    import gate_sign
+    if gate_sign.load_key() is None:
+        raise EvidenceError(gate_sign.MISSING_KEY_MESSAGE)
+    if not (isinstance(evidence, dict)
+            and gate_sign.verify(gate_sign.evidence_payload(ticket, evidence), evidence.get("sig"))):
+        raise EvidenceError("Test evidence signature missing or invalid")
+
+
+def check(root, ticket, base, evidence, require_sig=False):
     if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
             or evidence.get("runner") not in ("python-unittest", "cargo-test")
             or evidence.get("baseCommit") != base
             or type(evidence.get("passed")) is not int or evidence["passed"] < 1
             or evidence.get("failed") != 0):
         raise EvidenceError("Missing confirmed host test evidence")
+    if require_sig:
+        check_signature(ticket, evidence)
     actual = worktrees.status(root, ticket)
     if actual.get("status") != "present":
         raise EvidenceError("Evidence checkout missing")

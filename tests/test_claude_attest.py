@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 TOOLS = Path(__file__).resolve().parents[1] / "skills" / "autopilot" / "tools"
 sys.path.insert(0, str(TOOLS))
@@ -32,6 +33,19 @@ class AttestTests(unittest.TestCase):
         self.ap.mkdir()
         (self.ap / "state.js").write_text("window.STATE = {}", encoding="utf-8")
         self.log = self.ap / "attestations.jsonl"
+
+    def test_signed_run_signs_each_line_and_unsigned_run_does_not(self):
+        import gate_sign
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
+            gate_sign.ensure_key()
+            line = attest.record(PRE_INSIDE, self.root)
+            self.assertNotIn("sig", line)  # state.js has no gateSigned mark
+            (self.ap / "state.js").write_text('window.STATE = {"gateSigned": true}', encoding="utf-8")
+            line = attest.record(PRE_INSIDE, self.root)
+            self.assertTrue(gate_sign.verify(line, line["sig"]))
+            self.assertFalse(gate_sign.verify(dict(line, effort="high"), line["sig"]))
 
     def run_hook(self, payload, raw=None):
         env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}

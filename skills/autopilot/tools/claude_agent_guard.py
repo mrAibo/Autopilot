@@ -4,6 +4,7 @@
 Install with a project-local hook matching Agent|Task. Claude's SubagentStart
 hook cannot block a launch; this runs BEFORE tool execution instead.
 """
+import fnmatch
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ from pathlib import Path
 import re
 import sys
 
+import gate_sign
 import state_io
 from model_router import is_allowed_subagent_model
 
@@ -39,9 +41,50 @@ def parse_frontmatter(path):
     return fields
 
 
+WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+
+
+def is_protected(target, root):
+    """Run files an executor must not rewrite: state, attestations, capabilities, Claude config."""
+    real_root = os.path.normcase(os.path.realpath(root))
+    path = os.path.normcase(os.path.realpath(os.path.join(root, target)))
+    if os.path.commonpath((path, real_root)) != real_root:
+        return False
+    parts = path[len(real_root):].strip("\\/").replace("\\", "/").split("/")
+    if parts[0] == ".autopilot":
+        return parts[1:] in (["state.js"], ["attestations.jsonl"], ["model-capabilities.json"])
+    if parts[0] == ".claude" and len(parts) > 1:
+        return (parts[1] == "agents" and len(parts) > 2) or (
+            len(parts) == 2 and fnmatch.fnmatch(parts[1], "settings*.json"))
+    return False
+
+
+def write_decision(payload, root):
+    args = payload.get("tool_input")
+    target = args.get("file_path") or args.get("notebook_path") if isinstance(args, dict) else None
+    if not isinstance(target, str) or not target:
+        return True, "No file target"
+    try:
+        protected = is_protected(target, root)
+    except ValueError:  # other drive on Windows: certainly outside the project
+        return True, "Outside project"
+    if not protected:
+        return True, "Not a protected file"
+    if not (Path(root) / ".autopilot" / "state.js").exists():
+        return True, "No Autopilot run"
+    state = read_state(root)
+    if state is None:
+        return False, "Existing Autopilot state is unreadable or malformed"
+    if state.get("strictRouting") and not state.get("finishedAt"):
+        return False, "Autopilot run files are protected in strict runs"
+    return True, "No active strict run"
+
+
 def decision(payload, root):
     if not isinstance(payload, dict):
         return False, "Malformed Claude hook payload"
+    if payload.get("tool_name") in WRITE_TOOLS:
+        return write_decision(payload, root)
     if payload.get("tool_name") not in ("Agent", "Task"):
         return True, "Not an agent invocation"
     state_file = Path(root) / ".autopilot" / "state.js"
@@ -124,14 +167,21 @@ def decision(payload, root):
             # one fix ticket being built or repaired right now may call it.
             tickets = [t for t in tickets if isinstance(t, dict)
                        and t.get("status") in ("in-progress", "repair")]
-        known = [t.get("routing") or {} for t in tickets]
-        matching = [r for r in known if r.get("agentType") == name and
+        known = [(t.get("id"), t.get("routing") or {}) for t in tickets]
+        matching = [r for _, r in known if r.get("agentType") == name and
                     r.get("verified") and r.get("provider") == "anthropic" and
                     r.get("model") == model and
                     r.get("effortEnforced", True) is effort_enforced and
                     (not effort_enforced or r.get("effort") == effort)]
         if len(matching) != 1:
             return False, "Executor does not match an approved Autopilot task"
+        if state.get("gateSigned") is True:
+            if gate_sign.load_key() is None:
+                return False, gate_sign.MISSING_KEY_MESSAGE
+            tid = next(i for i, r in known if r is matching[0])
+            if not gate_sign.verify(gate_sign.routing_payload(tid, matching[0]),
+                                    matching[0].get("sig")):
+                return False, "Route signature missing or invalid"
         with agent.open("rb") as f:
             digest = hashlib.sha256(f.read()).hexdigest()
         if digest != matching[0].get("profileSha"):
@@ -185,7 +235,8 @@ def install_hook(root):
         raise ValueError("permissions.deny must be a list")
     # Settings-level layer for Claude-started forks, independent of this hook.
     fork_denied = "Agent(fork)" in deny
-    if hook in current and fork_denied:
+    write_hook = dict(hook, matcher="|".join(WRITE_TOOLS))
+    if hook in current and write_hook in current and fork_denied:
         return settings, False
     if not fork_denied:
         deny.append("Agent(fork)")
@@ -199,7 +250,7 @@ def install_hook(root):
                 or h.get("args") == hook["hooks"][0]["args"])
             for h in inner)
     current[:] = [e for e in current if not outdated(e)]
-    current.append(hook)
+    current.extend((hook, write_hook))
     temp = settings.with_suffix(".json.tmp")
     try:
         with temp.open("x", encoding="utf-8") as writer:

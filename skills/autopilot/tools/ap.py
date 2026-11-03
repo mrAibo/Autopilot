@@ -211,6 +211,7 @@ def fresh_state(a):
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
         "tier": None, "strictRouting": bool(a.get("strict-routing")),
+        "gateSigned": bool(a.get("strict-routing")),
         "sequentialHost": bool(a.get("sequential-host")),
         "isolateTickets": bool(a.get("isolated-tickets") or a.get("sequential-host")),
         "briefFile": a.get("brief-file"),
@@ -916,6 +917,11 @@ def cmd_init(opt):
         die("slug: разрешены только a-z, 0-9 и одиночные дефисы")
     old = read_state()
     notes = []
+    if opt.get("strict-routing"):
+        try:
+            _gs().ensure_key()
+        except OSError as exc:
+            die("init: не удалось создать ключ подписи %s (%s)" % (_gs().key_path(), type(exc).__name__))
     if old and not old.get("finishedAt") and not opt.get("force"):
         die("идёт прогон %s — это продолжение, а не новый прогон (или --force)" % old.get("dir"))
     if old:
@@ -1109,6 +1115,44 @@ def profile_ok(tk):
         return False
 
 
+def _gs():
+    """gate_sign is needed only by strict runs; plain harnesses may not ship it."""
+    import gate_sign
+    return gate_sign
+
+
+def gate_signed(state):
+    return state.get("gateSigned") is True
+
+
+def require_key(state):
+    """A signed run never continues without its key and never recreates it silently."""
+    if gate_signed(state) and _gs().load_key() is None:
+        die(_gs().MISSING_KEY_MESSAGE)
+
+
+def sign_routing(state, ticket_id, routing):
+    if gate_signed(state):
+        require_key(state)
+        routing["sig"] = _gs().sign(_gs().routing_payload(ticket_id, routing))
+
+
+def routing_signature_ok(state, tk):
+    if not gate_signed(state):
+        return True
+    require_key(state)
+    route = tk.get("routing") or {}
+    return _gs().verify(_gs().routing_payload(tk.get("id"), route), route.get("sig"))
+
+
+def evidence_signature_ok(state, ident, evidence):
+    if not gate_signed(state):
+        return True
+    require_key(state)
+    return isinstance(evidence, dict) and _gs().verify(
+        _gs().evidence_payload(ident, evidence), evidence.get("sig"))
+
+
 def verified_host_required(state):
     """Host-side test evidence even without native named-agent routing."""
     return bool(state.get("isolateTickets") and (
@@ -1127,6 +1171,9 @@ def check_claude_attestation(state, ticket, root):
     agent, model, effort = route.get("agentType"), route.get("model"), route.get("effort")
     if not all(isinstance(x, str) and x for x in (agent, model, effort)):
         return False, "в маршруте нет agentType/model/effort"
+    signed = gate_signed(state)
+    if signed and _gs().load_key() is None:
+        return False, _gs().MISSING_KEY_MESSAGE
     path = os.path.join(root, ".autopilot", "attestations.jsonl")
     if os.path.islink(path) or os.path.islink(os.path.dirname(path)):
         return False, "attestations.jsonl не может быть ссылкой"
@@ -1147,6 +1194,8 @@ def check_claude_attestation(state, ticket, root):
             item = json.loads(text)
         except ValueError:
             continue  # a malformed line is not evidence
+        if signed and not (isinstance(item, dict) and _gs().verify(item, item.get("sig"))):
+            continue  # an unsigned or forged line is not evidence
         if isinstance(item, dict) and item.get("agent_type") == agent:
             lines.append(item)
     if not lines:
@@ -1405,6 +1454,7 @@ def cmd_plan_models(state, opt):
                 }
                 if policy_relative is not None:
                     tk["routing"].update(policyFile=policy_relative, policySha=policy_sha)
+                sign_routing(state, tk["id"], tk["routing"])
         result = {"status": "applied" if apply else "advisory", "provider": provider,
                   "modelCalls": 0, "hostExecutionVerified": False,
                   "tickets": [p["proposal"] for p in plans]}
@@ -1496,7 +1546,14 @@ def cmd_ticket(state, pos, opt):
                 tk["attestFrom"] = 0
             except (OSError, UnicodeDecodeError) as exc:
                 die("таск %s: attestations.jsonl не читается (%s)" % (i, type(exc).__name__))
+        if act == "done" and state.get("strictRouting") and not gate_signed(state):
+            print("предупреждение: прогон без подписи гейтов (начат до подписи); "
+                  "маршрут, аттестации и тесты не защищены ключом")
+        if act == "done" and state.get("strictRouting") and not routing_signature_ok(state, tk):
+            die("таск %s: подпись маршрута отсутствует или неверна" % i)
         if act == "done" and verified_host_required(state):
+            if not evidence_signature_ok(state, i, tk.get("testEvidence")):
+                die("таск %s: подпись результатов тестов отсутствует или неверна" % i)
             recorded = tk.get("tests")
             evidence = tk.get("testEvidence")
             if (not isinstance(evidence, dict) or evidence.get("status") != "verified"
@@ -1591,6 +1648,7 @@ def cmd_ticket(state, pos, opt):
                     "agentType", "agentFile", "model", "effort", "effortEnforced",
                     "profileSha", "policyFile", "policySha") if k in repair},
                     provider="anthropic", reason=reason, verified=True)
+                sign_routing(state, i, tk["routing"])
                 if not profile_ok(tk):
                     die("route: профиль агента ремонта отсутствует или изменён")
                 tk.pop("plannedRouting", None)
@@ -1642,6 +1700,7 @@ def cmd_ticket(state, pos, opt):
             if policy_relative is not None:
                 tk["routing"].update(policyFile=policy_relative,
                                      policySha=policy_digest)
+            sign_routing(state, i, tk["routing"])
             continue
         tk["status"] = TICKET_STATUSES[act]
         if act == "start":
@@ -1734,9 +1793,12 @@ def cmd_worktree(state, pos, opt):
                 if record.get("sourceCommit") == recovered["sourceCommit"]:
                     if not evidence or evidence.get("status") != "verified":
                         die("worktree: отсутствует подтверждение тестов после финализации")
+                    if not evidence_signature_ok(state, ident, evidence):
+                        die("worktree: подпись результатов тестов отсутствует или неверна")
                     check = {"passed": evidence["passed"], "failed": evidence["failed"]}
                 else:
-                    check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+                    check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence,
+                                                gate_signed(state))
                 if opt.get("tests") and tests_pair(opt["tests"]) != check:
                     die("worktree: числа тестов не совпадают с результатом хоста")
             else:
@@ -1787,8 +1849,9 @@ def cmd_worktree(state, pos, opt):
             if not isinstance(timeout, str) or not re.fullmatch(r"\d{1,3}", timeout):
                 die("worktree: --timeout должен быть целым числом секунд")
             import test_evidence
+            require_key(state)
             result = test_evidence.verify(ROOT, ident, record["baseCommit"], suite,
-                                          int(timeout))
+                                          int(timeout), sign=gate_signed(state))
             tk["testEvidence"] = result
             check = {"passed": result["passed"], "failed": 0}
             tk["tests"] = check
@@ -1805,7 +1868,7 @@ def cmd_worktree(state, pos, opt):
             if verified_host_required(state):
                 import test_evidence
                 check = test_evidence.check(ROOT, ident, record["baseCommit"],
-                                            tk.get("testEvidence"))
+                                            tk.get("testEvidence"), gate_signed(state))
                 if opt.get("tests") and tests_pair(opt["tests"]) != check:
                     die("worktree: указанные тесты не совпадают с проверенными на хосте")
             else:
@@ -1830,11 +1893,14 @@ def cmd_worktree(state, pos, opt):
                 # Host finalize consumed and committed the exact verified edit.
                 if not evidence or evidence.get("status") != "verified":
                     die("worktree: нет подтверждения тестов на хосте")
+                if not evidence_signature_ok(state, ident, evidence):
+                    die("worktree: подпись результатов тестов отсутствует или неверна")
                 if worktrees.source_commit(ROOT, ident, record["baseCommit"]) != record["sourceCommit"]:
                     die("worktree: коммит изменился после финализации")
                 check = {"passed": evidence["passed"], "failed": evidence["failed"]}
             else:
-                check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence)
+                check = test_evidence.check(ROOT, ident, record["baseCommit"], evidence,
+                                            gate_signed(state))
             if opt.get("tests") and tests_pair(opt["tests"]) != check:
                 die("worktree: указанные тесты не совпадают с проверенными на хосте")
             source = "host"

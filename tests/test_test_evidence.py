@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] /
                        "skills" / "autopilot" / "tools"))
+import gate_sign
 import test_evidence
 import worktrees
 
@@ -49,6 +50,25 @@ class EvidenceTests(unittest.TestCase):
         (self.wt / "calc.py").write_text("def add(a,b): return a-b\n", encoding="utf-8")
         with self.assertRaisesRegex(test_evidence.EvidenceError, "changed after tests"):
             test_evidence.check(self.root, "01", self.base, proof)
+
+    def test_signed_receipt_is_required_and_bound_to_ticket(self):
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        with patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):
+            (self.wt / "calc.py").write_text("def add(a,b): return a+b\n", encoding="utf-8")
+            gate_sign.ensure_key()
+            proof = test_evidence.verify(self.root, "01", self.base, "test_calc.py", sign=True)
+            self.assertEqual(test_evidence.check(self.root, "01", self.base, proof, True)["passed"], 1)
+            unsigned = {k: v for k, v in proof.items() if k != "sig"}
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "signature"):
+                test_evidence.check(self.root, "01", self.base, unsigned, True)
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "signature"):
+                test_evidence.check(self.root, "01", self.base, dict(proof, passed=9), True)
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "signature"):
+                test_evidence.check_signature("02", proof)
+            os.remove(os.path.join(home.name, "gate.key"))
+            with self.assertRaisesRegex(test_evidence.EvidenceError, "нет ключа подписи"):
+                test_evidence.check(self.root, "01", self.base, proof, True)
 
     def test_actual_failed_test_cannot_be_recorded_as_passed(self):
         with self.assertRaisesRegex(test_evidence.EvidenceError, "did not pass"):

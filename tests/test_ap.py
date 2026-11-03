@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(os.path.dirname(HERE), "skills", "autopilot")
@@ -26,6 +27,8 @@ SCHEDULER = os.path.join(SKILL, "tools", "scheduler.py")
 CONTROLLER = os.path.join(SKILL, "tools", "controller.py")
 TEST_EVIDENCE = os.path.join(SKILL, "tools", "test_evidence.py")
 TEMPLATE = os.path.join(SKILL, "phases", "dashboard-template.html")
+sys.path.insert(0, os.path.join(SKILL, "tools"))
+import gate_sign  # noqa: E402
 
 MANIFEST = """# Манифест требований
 
@@ -56,6 +59,10 @@ class Run(unittest.TestCase):
         self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init")
         self.a = os.path.join(self.root, ".autopilot")
         os.makedirs(self.a)
+        self.home = tempfile.mkdtemp(prefix="ap-home-")
+        # Env (not just ap()) so controller/host-loop subprocesses find the same key.
+        self._home_env = mock.patch.dict(os.environ, {"AUTOPILOT_HOME": self.home})
+        self._home_env.start()
         shutil.copy(TEMPLATE, os.path.join(self.a, "dashboard.html"))
         shutil.copy(AP, os.path.join(self.a, "ap.py"))
         shutil.copy(ROUTER, os.path.join(self.a, "model_router.py"))
@@ -65,17 +72,19 @@ class Run(unittest.TestCase):
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
-        for name in ("state_io.py", "process_containment.py"):
+        for name in ("state_io.py", "process_containment.py", "gate_sign.py"):
             shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
+        self._home_env.stop()
+        shutil.rmtree(self.home, ignore_errors=True)
         shutil.rmtree(self.root, ignore_errors=True)
 
     def git(self, *args):
         return subprocess.run(["git", "-C", self.root] + list(args), capture_output=True, text=True)
 
     def ap(self, *args):
-        env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1")
+        env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1", AUTOPILOT_HOME=self.home)
         r = subprocess.run([sys.executable, os.path.join(self.a, "ap.py")] + list(args) + ["--no-serve"],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=self.root)
         return r.returncode, r.stdout + ("\n[stderr] " + r.stderr[-2000:] if r.returncode and r.stderr else "")
@@ -685,9 +694,17 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         return self.state()["tickets"][0]["routing"]["agentType"]
 
+    def seal(self, line):
+        """Sign a hook line like claude_attest.py does in a gateSigned run."""
+        if isinstance(line, str) or not self.state().get("gateSigned"):
+            return line
+        with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": self.home}):
+            return dict(line, sig=gate_sign.sign(line))
+
     def attest(self, *lines):
         with open(os.path.join(self.a, "attestations.jsonl"), "w", encoding="utf-8") as f:
             for line in lines:
+                line = self.seal(line)
                 f.write((line if isinstance(line, str) else json.dumps(line)) + "\n")
 
     def attest_routes(self):
@@ -760,6 +777,53 @@ class Run(unittest.TestCase):
         self.assertEqual(tk["status"], "done")
         self.assertEqual(tk["attestation"],
                          {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
+
+    def test_strict_init_creates_key_and_marks_run_signed(self):
+        self.routed_ticket()
+        self.assertTrue(os.path.isfile(os.path.join(self.home, "gate.key")))
+        st = self.state()
+        self.assertIs(st["gateSigned"], True)
+        self.assertEqual(len(st["tickets"][0]["routing"]["sig"]), 64)
+        self.assertFalse(os.path.exists(os.path.join(self.a, "gate.key")))
+
+    def test_signed_run_rejects_unsigned_attestation_line(self):
+        agent = self.routed_ticket()
+        lines = [self.post(agent), self.pre(agent)]
+        with open(os.path.join(self.a, "attestations.jsonl"), "w", encoding="utf-8") as f:
+            f.write("".join(json.dumps(x) + "\n" for x in lines))  # forged: no sig
+        self.assert_blocked("нет строк агента")
+
+    def test_signed_run_rejects_forged_routing_field(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        st = self.state()
+        st["tickets"][0]["routing"]["reason"] = "forged"
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE = " + json.dumps(st))
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("подпись маршрута", out)
+
+    def test_signed_run_without_key_stops_and_does_not_recreate_it(self):
+        agent = self.routed_ticket()
+        self.attest(self.post(agent), self.pre(agent))
+        os.remove(os.path.join(self.home, "gate.key"))
+        code, out = self.finish_01()
+        self.assertNotEqual(code, 0)
+        self.assertIn("нет ключа подписи, запусти init заново", out)
+        self.assertFalse(os.path.exists(os.path.join(self.home, "gate.key")))
+
+    def test_run_without_gate_mark_is_accepted_with_warning(self):
+        agent = self.routed_ticket()
+        st = self.state()
+        del st["gateSigned"]
+        del st["tickets"][0]["routing"]["sig"]
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE = " + json.dumps(st))
+        self.attest(self.post(agent), self.pre(agent))
+        code, out = self.finish_01()
+        self.assertEqual(code, 0, out)
+        self.assertIn("без подписи гейтов", out)
 
     def test_attestation_survives_ticket_republish(self):
         agent = self.routed_ticket()
@@ -1327,7 +1391,7 @@ class Run(unittest.TestCase):
     def append_attest(self, *lines):
         with open(os.path.join(self.a, "attestations.jsonl"), "a", encoding="utf-8") as f:
             for line in lines:
-                f.write(json.dumps(line) + "\n")
+                f.write(json.dumps(self.seal(line)) + "\n")
 
     def finish(self, tid):
         return self.ap("ticket", tid, "done", "--tests", "1/0", "--commit", self.commit(tid))
