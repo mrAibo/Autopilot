@@ -88,6 +88,18 @@ class DashboardUpgradeTest(unittest.TestCase):
         with self.assertRaisesRegex(upgrade.UpgradeError, "not valid JSON"):
             upgrade.upgrade(self.root, self.template)
 
+    def test_upgrades_when_state_has_bom(self):
+        self.state.write_bytes(b"\xef\xbb\xbf" + self.state.read_bytes())
+        self.assertEqual(upgrade.upgrade(self.root, self.template,
+                                         self.root / "backups")["status"], "upgraded")
+        self.assertIn('"rev":2', self.page.read_text(encoding="utf-8"))
+
+    def test_upgrades_when_state_has_no_prefix(self):
+        self.state.write_text(json.dumps({"slug": "synthetic", "rev": 3}), encoding="utf-8")
+        self.assertEqual(upgrade.upgrade(self.root, self.template,
+                                         self.root / "backups")["status"], "upgraded")
+        self.assertIn('"rev":3', self.page.read_text(encoding="utf-8"))
+
     def test_blocks_corrupted_snapshot_and_symlink(self):
         self.page.write_text("<html>no snapshot</html>", encoding="utf-8")
         with self.assertRaisesRegex(upgrade.UpgradeError, "snapshot marker"):

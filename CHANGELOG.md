@@ -6,6 +6,14 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased — Dashboard views (2026-11-03)
+
+The dashboard gets six switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.
+
+- **Dashboard views:** overview, timeline, requirements, resources, summary and classic, chosen in the header and remembered in the browser (`autopilot-view`); registry and how to add one in `docs/autopilot/dashboard-views.md`.
+- **Logo:** the project logo mark in the dashboard header.
+- **Fix: `dashboard_upgrade.py` with BOM:** it read `state.js` on its own and refused a file with a BOM or without the `window.STATE` prefix; it now parses through `state_io` like the other tools (regression tests added).
+
 ## 2.6.0 — Audit mode (2026-10-30)
 
 New read-only audit of existing projects with a verified findings report and a bridge to a build; READMEs explain the two passes and are now identical in EN/RU/DE.

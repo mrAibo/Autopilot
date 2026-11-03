@@ -15,6 +15,8 @@ import shutil
 import sys
 import tempfile
 
+import state_io
+
 
 class UpgradeError(ValueError):
     pass
@@ -24,14 +26,13 @@ ANCHOR = "/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/"
 SNAPSHOT = re.compile(r"/\*STATE-BEGIN\*/window\.STATE=(.*?);/\*STATE-END\*/", re.S)
 
 
-def parse_project_state(data):
-    if not data.startswith("window.STATE"):
-        raise UpgradeError("Project state.js has an unexpected format")
+def read_project_state(path):
+    """state.js (BOM, missing `window.STATE =` prefix tolerated) -> state dict."""
     try:
-        state = json.loads(data.split("=", 1)[1].strip().rstrip(";"))
-    except (IndexError, ValueError) as exc:
-        raise UpgradeError("Project state.js is not valid JSON") from exc
-    if not isinstance(state, dict) or not isinstance(state.get("slug"), str):
+        state = state_io.read_state_file(path)
+    except state_io.StateError as exc:
+        raise UpgradeError("Project state.js is not valid JSON: %s" % exc) from exc
+    if not isinstance(state.get("slug"), str):
         raise UpgradeError("Project state lacks a valid slug")
     return state
 
@@ -55,7 +56,7 @@ def prepare(project, template):
         old_state = json.loads(found.group(1))
     except ValueError as exc:
         raise UpgradeError("Existing Dashboard has invalid embedded snapshot") from exc
-    current = parse_project_state(state_path.read_text(encoding="utf-8"))
+    current = read_project_state(state_path)
     if (not isinstance(old_state, dict)
             or old_state.get("slug") != current["slug"]):
         raise UpgradeError("Dashboard belongs to a different project")
