@@ -180,7 +180,7 @@ class TemplateRuns(unittest.TestCase):
 
     def test_views_show_the_composition_from_the_spec(self):
         page = lambda view, name="running": self.out["renders"]["%s/%s/en" % (name, view)]["html"]
-        for needle in ('class="ring"', 'class="route"', 'class="gx"', "G1", "G4", "Models & resources", "Retries: "):
+        for needle in ('class="ring"', 'class="route"', 'class="gx"', "G1", "G4"):
             with self.subTest(view="overview", needle=needle):
                 self.assertIn(needle, page("overview"))
         self.assertIn("Build timeline", page("timeline"))
@@ -202,11 +202,16 @@ class TemplateRuns(unittest.TestCase):
                 with self.subTest(fixture=name, lang=lang):
                     self.assertTrue(heads(classic))
                     # the wave list ("Build progress") is not repeated in the overview: the Gantt carries its content
-                    self.assertLessEqual(heads(classic) - heads(over), {"Ход сборки" if lang == "ru" else "Build progress"})
+                    # Weakened on purpose (F8): the overview follows the mockup, which has no models/isolation blocks
+                    # (they live in Resources and Classic) and no wave list (the Gantt carries the waves).
+                    gone = {"Ход сборки", "Модели и ресурсы", "Изоляция и восстановление"} if lang == "ru" else                         {"Build progress", "Models & resources", "Isolation & recovery"}
+                    self.assertLessEqual(heads(classic) - heads(over), gone)
+                    self.assertFalse(heads(over) & (gone - {"Ход сборки", "Build progress"}))  # (empty state may say "none yet" there)
                     if 'class="gx-row"' in over:
                         self.assertIn("Волна" if lang == "ru" else "Wave", re.search(r'<div class="gx">.*', over, re.S).group(0))
-                    for block in ("mission", "tasks", "models", "quality"):
+                    for block in ("mission", "tasks", "quality"):
                         self.assertEqual(over.count(' id="%s"' % block), 1, block)
+                    self.assertEqual(over.count(' id="models"'), 0)
 
     def test_overview_shows_pending_tickets_and_their_wave(self):
         for lang, wave in (("en", "Wave 3"), ("ru", "Волна 3")):
@@ -232,15 +237,20 @@ class TemplateRuns(unittest.TestCase):
         fin = self.out["renders"]["finished/overview/en"]["html"]
         self.assertEqual(len(re.findall(r'class="gx-id">T\d+<', fin)), 7)
 
-    def test_overview_names_each_ticket_once_outside_the_models_block(self):
-        for name, n in (("running", 7), ("finished", 7), ("nodone", 7), ("old", 7)):
+    def test_overview_has_no_models_or_isolation_block_and_names_each_ticket_once(self):
+        for name in ("running", "finished", "nodone", "old"):
             for lang in ("ru", "en"):
                 page = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
-                lists = page.split(' id="models"')[0]  # the routing block lists the same tickets by model: another question
                 with self.subTest(fixture=name, lang=lang):
-                    for i in range(1, n + 1):
-                        self.assertEqual(lists.count("<b>Ticket %d</b>" % i), 1, i)
-                    self.assertEqual(lists.count('class="gx-row"'), n)
+                    for gone in ("Models & resources", "Isolation & recovery", "Модели и ресурсы", "Изоляция и восстановление",
+                                 'class="resource-card"', 'class="resource-list"', 'id="models"', 'href="#models"'):
+                        self.assertNotIn(gone, page)
+                    gantt = re.search(r' id="tasks".*?(?= id="quality")', page, re.S).group(0)
+                    rest = page.replace(gantt, "")  # the Gantt is the one place a title may stand (row label and bar tooltip)
+                    for i in range(1, 8):
+                        self.assertEqual(gantt.count("<b>Ticket %d</b>" % i), 1, i)
+                        self.assertNotRegex(rest, r"\bTicket %d\b" % i)
+                    self.assertEqual(page.count('class="gx-row"'), 7)
                     self.assertNotIn(">Build progress<" if lang == "en" else ">Ход сборки<", page)
 
     def test_rail_version_is_the_skill_version_from_state(self):
@@ -517,7 +527,8 @@ class TemplateRuns(unittest.TestCase):
                         self.assertNotIn(word, page)
         run = self.out["renders"]["running/compact/en"]["html"]
         # one column, no models, no tables (the task notes sit in both Gantt charts and weigh the same in each)
-        self.assertLess(len(run), 0.55 * len(self.out["renders"]["running/overview/en"]["html"]))
+        # (measured against Classic, the one full layout: the overview lost its models blocks in F8 and is no longer the yardstick)
+        self.assertLess(len(run), 0.6 * len(self.out["renders"]["running/classic/en"]["html"]))
         self.assertIn("API_KEY", run)  # the keys the user must give stay
         self.assertNotIn("Decisions made for you", run)  # the long assumptions list goes to Summary and Overview
 

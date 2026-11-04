@@ -1560,17 +1560,16 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Функция только склеивает строки: STATE не читает и в DOM не пишет.
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
-  // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки), модели внизу.
-  // Все карточки «Классики» остаются (тест); ход сборки по волнам — это сам Гант (волна подписана в каждой строке),
-  // второго списка тех же тасков нет. Расход, рабочие копии и повторы — в блоке моделей и в шапке.
+  // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки); больше ничего.
+  // Ход сборки по волнам — это сам Гант (волна подписана в каждой строке), второго списка тасков нет.
+  // «Модели и ресурсы» и «Изоляция» — в «Ресурсах» и «Классике»; якоря #models здесь нет, рейка его не рисует.
   overview: c => `
   <div id="mission" class="vsec" tabindex="-1">${c.ovHero}</div>
   ${c.route}
   <div id="tasks" class="vsec" tabindex="-1">${c.gantt || c.tasksEmpty}</div>
   <div id="quality" class="ov3" tabindex="-1"><div class="col">${c.wordsCard}${c.extras}</div>
     <div class="col">${c.feedView}</div>
-    <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>
-  <div id="models" class="vsec" tabindex="-1">${c.resourceBlock}${c.isolationBlock}</div>`,
+    <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>`,
   // Макет: герой с фразой, прогнозом и маршрутом; пять карточек; слева подробный Гант, справа «Понадобится от вас»,
   // проверки и лента; «Ваши слова» внизу. Блок без данных не рисуется.
   timeline: c => `
@@ -1692,7 +1691,8 @@ function render(lang){
 
   // ——— шапка ———
   const names = list => list.map(t => q(esc(t.title), L.lang)).join(', ');
-  let heroCls = '', stateLine, h2, lead = '', big = '', bigSub = '', hint = '';
+  const idsOf = list => list.map(t => esc(t.id)).join(', '); // «Обзор»: название таска видно один раз, в Ганте
+  let heroCls = '', stateLine, h2, lead = '', ovLead = null, big = '', bigSub = '', hint = '';
   if (fin) {
     heroCls = 'won';
     const k = (S.debt?.emptyEnv || []).length, p = (S.debt?.placeholders || []).length;
@@ -1719,9 +1719,10 @@ function render(lang){
     stateLine = `<span class="live" aria-hidden="true"></span>${L.stateRun[cur.id] || stName(cur)}`;
     if (cur.id === 'build' && T.length) {
       h2 = done.length === T.length ? L.buildAllDone(T.length) : L.buildH2(done.length, T.length, running.length);
-      lead = [writing.length ? L.leadWriting(names(writing)) : '', inReview.length ? L.leadReview(names(inReview)) : '',
-        inRepair.length ? L.leadRepair(names(inRepair)) : '', failedT.length ? L.leadFailed(names(failedT)) : '']
+      const leadOf = nm => [writing.length ? L.leadWriting(nm(writing)) : '', inReview.length ? L.leadReview(nm(inReview)) : '',
+        inRepair.length ? L.leadRepair(nm(inRepair)) : '', failedT.length ? L.leadFailed(nm(failedT)) : '']
         .filter(Boolean).join(' ') || (done.length < T.length ? L.leadIdle : '');
+      lead = leadOf(names); ovLead = leadOf(idsOf);
     } else {
       h2 = L.h2Run[cur.id] || stName(cur);
       lead = cur.note ? esc(cur.note) : (L.leadRun[cur.id] || '');
@@ -2188,7 +2189,7 @@ function render(lang){
   const stats = [T.length ? kv(W.kAgents, activeWorkers.length) : '', testsVal && kv(L.tTests, testsVal), timeVal && kv(W.kTime, timeVal),
     tokVal && kv(W.kTokens, tokVal + (budget ? ` ${L.of} ${fmtK(budget)}` : ''))].filter(Boolean).join('');
   const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
-    <div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}${evNote}</div>
+    <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
     ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
   const ctile = (k, v) => `<div class="ctile"><span>${k}</span><b>${v}</b></div>`;
   const ctiles = [testsVal && ctile(L.tTests, testsVal), timeVal && ctile(W.kTime, timeVal), tokVal && ctile(W.kTokens, tokVal)].filter(Boolean);
