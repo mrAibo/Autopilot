@@ -745,6 +745,10 @@
   .gx-tail{border:1.5px dashed var(--now);color:var(--now-tx);font-weight:600;font-size:12px}
   .gx-none{position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mut);white-space:nowrap}
   .gx-mdl{min-width:0}
+  .gx-note{grid-column:1/-1;padding:0 2px 10px 36px;align-items:center;flex-wrap:wrap}
+  .gx-note>span{flex:1 1 220px;min-width:0}
+  .gx-note .gx-redo{color:var(--mut);white-space:nowrap}
+  .gx-note .btn-soft{height:28px;padding:0 10px;font-size:12.5px;flex:none}
   .mchip{display:inline-block;font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);
     border-radius:7px;padding:2px 8px;background:var(--inset);color:var(--tx2);overflow-wrap:anywhere}
   .gx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--tx2);justify-content:flex-end;max-width:520px}
@@ -1150,7 +1154,7 @@ const I18N = {
       kAgents:"Агентов работает",kTime:"Рабочее время",going:"идёт",waited:n=>`+ ${n} мин ждали вас`,
       tGantt:"Ход сборки по времени",gSub:"Настоящие длительности; ждущие таски — пунктиром, после тех, от кого зависят",
       lgPlan:"ждёт · прогноз",nowTag:"сейчас",after:l=>`после ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",noMarks:"нет отметок времени",
+      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",noMarks:"нет отметок времени",noteMore:"Показать ещё",
       mTitle:"Путь твоих требований",mSub:"Где сейчас каждая фраза из твоего брифа. Таски могут быть готовы, а требование нет — здесь это видно сразу.",
       mReq:"Требование",mCount:"Сколько требований дошло до этапа",
       mLong:["Записано дословно","В спецификации","В таске","Код написан","Тесты зелёные","Ревью","Слепая приёмка"],
@@ -1277,7 +1281,7 @@ const I18N = {
       kAgents:"Agents working",kTime:"Work time",going:"running",waited:n=>`+ ${n} min waiting on you`,
       tGantt:"Build timeline",gSub:"Real durations; waiting tickets are dashed, placed after the ones they depend on",
       lgPlan:"waiting · forecast",nowTag:"now",after:l=>`after ${l.join(' ')}`,
-      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",noMarks:"no time marks",
+      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",noMarks:"no time marks",noteMore:"Show more",
       mTitle:"The path of your requirements",mSub:"Where each phrase of your brief is now. Tickets can be done while a requirement is not — it shows right here.",
       mReq:"Requirement",mCount:"How many requirements reached the stage",
       mLong:["Written word for word","In the spec","In a ticket","Code written","Tests green","Review","Blind acceptance"],
@@ -1791,15 +1795,19 @@ function render(lang){
   // Полоса показывает СОСТОЯНИЕ, а не долю: горизонтальная заливка в списке
   // задач читается как прогресс всегда. Длительность — цифрой справа.
   const taskTime = t => t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
+  // Заметка по таску: [класс, текст] или null; «Классика» и строки Ганта берут её отсюда.
+  const noteOf = t => {
+    const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
+    return t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
+      : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
+      : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
+  };
+  const redoOf = t => [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ');
   const taskRow = t => {
     const k = kindOf(t);
     const time = taskTime(t);
-    const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
-    const note = t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
-      : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
-      : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
-    const extra = t.status === 'done' && (t.repairs || t.retries)
-      ? ' · ' + [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ') : '';
+    const note = noteOf(t);
+    const extra = t.status === 'done' && redoOf(t) ? ' · ' + redoOf(t) : '';
     return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
       <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
         <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
@@ -2275,12 +2283,24 @@ function render(lang){
       return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${p.est || (tiny && mini) ? '' : ic(kindOf(t).icon, 'xs')}${esc(label)}</span>`
         + (p.tail ? `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%">~${Math.round(p.tail / GT)} ${L.min}</i>` : '');
     };
+    // Заметка под строкой Ганта: причина, замечание ревью или последняя починка, метка «ремонты · повторы»; нет данных — нет блока.
+    // Длинное обрезается до NOTE_MAX знаков, остальное по «показать ещё» (data-more); полного текста в атрибутах нет.
+    const NOTE_MAX = 140;
+    const gNote = t => {
+      const n = noteOf(t), redo = redoOf(t);
+      if (!n && !redo) return '';
+      const key = 'nt:' + t.id, chars = n ? [...n[1]] : [], long = chars.length > NOTE_MAX, open = !!UI.open[key];
+      const text = long && !open ? chars.slice(0, NOTE_MAX).join('').trimEnd() + '…' : (n ? n[1] : '');
+      return `<div class="tl-note gx-note${n ? ' ' + n[0] : ''}">${n ? ic(KIND[t.status].icon) : ''}<span>${esc(text)}${
+        redo ? `${text ? ' ' : ''}<span class="gx-redo">${text ? '· ' : ''}${esc(redo)}</span>` : ''}</span>${
+        long ? `<button type="button" class="btn-soft" data-more="${esc(key)}">${open ? L.collapse + ic('up') : W.noteMore + ic('chev')}</button>` : ''}</div>`;
+    };
     const subOf = t => [L.wave(t.wave ?? 1), (t.blockedBy || []).length ? W.after(t.blockedBy) : ''].filter(Boolean).join(' · ');
     const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
       <div class="gx-lane">${grid}${p ? gBar(t, p, false) : `<span class="gx-none">${W.noMarks}</span>`}</div><div class="gx-mdl">${t.routing && t.routing.model
-        ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div></div>`;
+        ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div>${gNote(t)}</div>`;
     const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILLK[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
-      <div class="gx-lane">${grid}${p ? gBar(t, p, true) : `<span class="gx-none">${W.noMarks}</span>`}</div></div>`;
+      <div class="gx-lane">${grid}${p ? gBar(t, p, true) : `<span class="gx-none">${W.noMarks}</span>`}</div>${gNote(t)}</div>`;
     const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
     const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
       <div class="gx">${axis}${rows}</div></section>`;

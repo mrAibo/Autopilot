@@ -26,6 +26,12 @@ const html = fs.readFileSync(process.argv[2], 'utf8');
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const src = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1])
   .find(s => s.includes('const STAGE_IDS'));
+// The fixtures live on 2026-11-03: freeze "now" ten minutes after the last of them so the chart does not grow with the calendar.
+const NOW = Date.parse('2026-11-03T08:30:00Z');
+class FixedDate extends Date {
+  constructor(...a) { if (a.length) super(...a); else super(NOW); }
+  static now() { return NOW; }
+}
 function env(state, store, denied, width) {
   const app = {innerHTML: '', listeners: {}, classList: {add() {}, remove() {}},
     addEventListener(n, f) { this.listeners[n] = f; }, contains() { return false; },
@@ -40,7 +46,7 @@ function env(state, store, denied, width) {
   const ctx = {document: doc, localStorage: ls, navigator: {language: 'en'}, location: {protocol: 'file:'},
     matchMedia: () => ({matches: false, addEventListener() {}}), setTimeout() { return 0; },
     clearTimeout() {}, setInterval() { return 0; }, addEventListener() {}, scrollTo() {}, scrollY: 0,
-    STATE: state, Intl, Date, Math, JSON, console};
+    STATE: state, Intl, Date: FixedDate, Math, JSON, console};
   if (width) ctx.innerWidth = width;
   ctx.window = ctx;
   vm.createContext(ctx);
@@ -77,6 +83,8 @@ out.click.html = c.app.innerHTML;
 press('nonsense');
 out.click.unknown = run(c, 'VIEW');
 out.click.reload = run(env(input.fixtures.running, c.store, false), 'VIEW');
+const x = env(input.fixtures.notes, {}, false);
+out.expanded = run(x, "VIEW = 'timeline'; UI.open['nt:T05'] = true; render('en'); document.getElementById('app').innerHTML");
 const L = run(c, 'I18N'), keys = o => Object.keys(o).sort();
 out.i18n = {top: [keys(L.ru), keys(L.en)], vw: [keys(L.ru.vw), keys(L.en.vw)],
   views: [keys(L.ru.views), keys(L.en.views)], label: [L.ru.viewLabel, L.en.viewLabel]};
@@ -129,7 +137,13 @@ def _fixtures():
     old_tickets = [{k: v for k, v in x.items() if k in ("id", "title", "status", "wave", "blockedBy")} for x in tickets]
     old = dict(bare(running), title="Old build", tickets=old_tickets)
     oldfin = dict(bare(done), title="Old finished build", tickets=[dict(x, status="done") for x in old_tickets])
-    return {"empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin}
+    # notes: the same build with what the dashboard used to show only in Classic (and a hostile line)
+    notes = json.loads(json.dumps(running))
+    notes["title"] = "Notes build"
+    notes["tickets"][2]["review"] = "да — check the edges <img src=x onerror=alert(1)>"
+    notes["tickets"][3]["repairFindings"] = ["first finding", "a.py:3 - last finding <b>x</b>"]
+    notes["tickets"][4]["concerns"] = ["db.py:9 - cannot connect", "long " * 60 + "THE-END"]
+    return {"notes": notes, "empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin}
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -147,7 +161,7 @@ class TemplateRuns(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def test_every_view_renders_every_fixture_without_exceptions(self):
-        self.assertEqual(len(self.out["renders"]), 6 * len(VIEW_IDS) * 2)
+        self.assertEqual(len(self.out["renders"]), 7 * len(VIEW_IDS) * 2)
         for key, res in self.out["renders"].items():
             with self.subTest(key=key):
                 self.assertNotIn("error", res)
@@ -502,7 +516,8 @@ class TemplateRuns(unittest.TestCase):
                     with self.subTest(fixture=name, lang=lang, word=word):
                         self.assertNotIn(word, page)
         run = self.out["renders"]["running/compact/en"]["html"]
-        self.assertLess(len(run), 0.5 * len(self.out["renders"]["running/overview/en"]["html"]))  # one column, no models, no tables
+        # one column, no models, no tables (the task notes sit in both Gantt charts and weigh the same in each)
+        self.assertLess(len(run), 0.55 * len(self.out["renders"]["running/overview/en"]["html"]))
         self.assertIn("API_KEY", run)  # the keys the user must give stay
         self.assertNotIn("Decisions made for you", run)  # the long assumptions list goes to Summary and Overview
 
@@ -559,6 +574,61 @@ class TemplateRuns(unittest.TestCase):
         old = self.out["renders"]["old/resources/en"]["html"]
         for tid in ("T06", "T07"):  # waiting, no route: nothing can have been spent
             self.assertEqual(cells(old, tid)[5], "0", tid)
+
+    @staticmethod
+    def _row(page, tid):
+        return next(r for r in page.split('class="gx-row"')[1:] if '<span class="gx-id">%s</span>' % tid in r)
+
+    def test_gantt_rows_carry_the_ticket_notes_classic_had_alone(self):
+        for view in ("overview", "timeline", "compact"):
+            for lang, rev, back, redo in (("en", "Reviewed on its own: ", "Review sent back: ", "1 repair · 1 retry"),
+                                          ("ru", "Проверяется отдельно: ", "Ревью вернуло: ", "1 ремонт · 1 повтор")):
+                page = self.out["renders"]["notes/%s/%s" % (view, lang)]["html"]
+                row = lambda tid: self._row(page, tid)
+                with self.subTest(view=view, lang=lang):
+                    self.assertIn(rev + "check the edges", row("T03"))  # a ticket in review: the review remark
+                    self.assertIn(back + "a.py:3 - last finding", row("T04"))  # in repair: the last of repairFindings
+                    self.assertNotIn("first finding", row("T04"))
+                    self.assertIn("db.py:9 - cannot connect; long", row("T05"))  # failed: why
+                    for tid, cls in (("T03", "rev"), ("T04", "fix"), ("T05", "bad")):
+                        self.assertIn('class="tl-note gx-note %s"' % cls, row(tid))
+                    self.assertIn(redo, row("T01"))  # counts only where they are not zero
+                    self.assertIn(redo.split(" · ")[0], row("T04"))  # T04: one repair, no retry
+                    self.assertNotIn(redo.split(" · ")[1], row("T04"))
+
+    def test_no_notes_and_no_counts_means_no_note_block(self):
+        for name in ("old", "oldfin", "empty"):
+            for view in ("overview", "timeline", "compact"):
+                for lang in ("ru", "en"):
+                    with self.subTest(fixture=name, view=view, lang=lang):
+                        self.assertNotIn("gx-note", self.out["renders"]["%s/%s/%s" % (name, view, lang)]["html"])
+
+    def test_note_text_from_state_is_escaped_in_every_view(self):
+        for view in VIEW_IDS:
+            for lang in ("ru", "en"):
+                page = self.out["renders"]["notes/%s/%s" % (view, lang)]["html"]
+                with self.subTest(view=view, lang=lang):
+                    self.assertNotIn("<img", page)
+                    self.assertNotIn("<b>x</b>", page)
+        for view in ("overview", "timeline", "compact"):
+            page = self.out["renders"]["notes/%s/en" % view]["html"]
+            self.assertIn("&lt;img src=x onerror=alert(1)&gt;", page)
+            self.assertIn("&lt;b&gt;x&lt;/b&gt;", page)
+
+    def test_long_note_is_cut_with_a_show_more_button_and_expands(self):
+        for view in ("overview", "timeline", "compact"):
+            for lang, more in (("en", "Show more"), ("ru", "Показать ещё")):
+                row = self._row(self.out["renders"]["notes/%s/%s" % (view, lang)]["html"], "T05")
+                with self.subTest(view=view, lang=lang):
+                    self.assertIn('data-more="nt:T05"', row)
+                    self.assertIn(more, row)
+                    self.assertNotIn("THE-END", row)  # the cut text; nothing hidden in an attribute either
+                    self.assertLess(len(row), 1500)
+        self.assertNotIn('data-more="nt:T03"', self._row(self.out["renders"]["notes/timeline/en"]["html"], "T03"))  # short notes have no button
+        row = self._row(self.out["expanded"], "T05")
+        self.assertIn("THE-END", row)
+        self.assertIn('data-more="nt:T05"', row)
+        self.assertIn("Collapse", row)
 
     def test_old_project_state_without_new_fields_draws_every_view_in_both_languages(self):
         for name in ("old", "oldfin"):

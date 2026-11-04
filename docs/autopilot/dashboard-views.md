@@ -17,6 +17,10 @@ One dashboard page, eight views of the same `window.STATE`. The switcher sits in
 
 Every view except `classic` shows "updated N s ago" in the header, counted live from `updatedAt` by the same timer as the footer; without `updatedAt` it is not drawn.
 
+## Ticket notes in the Gantt rows
+
+Overview, Timeline and Compact put a note under a ticket's Gantt row, built by the same `noteOf`/`redoOf` helpers Classic's ticket list uses: why a failed ticket failed (`concerns`), the review remark of a ticket in review, the last of `repairFindings` for a ticket in repair, and the label "N repairs · M retries" for any ticket whose counts are not zero. No note data, no block. A note longer than 140 characters is cut with a "Show more" button (`data-more="nt:<ticket id>"`, the same toggle as the other lists). Everything comes from `state.js` through `esc()`; there are no new fields.
+
 ## Palette
 
 Every view except `classic` uses the palette of the design handoff (`:root[data-view]:not([data-view="classic"])`, light and dark, text at least 4.5:1); `render()` sets `data-view` on the root. The page loads no fonts and makes no requests: system font stacks only. State is always a word or an icon as well as a colour, and the view buttons are 44 px high.
