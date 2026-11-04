@@ -912,7 +912,7 @@
   @media(max-width:900px){.tl2 .gx{--cols:minmax(0,1fr)}}
   @media(max-width:520px){
     .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
-    .tools .views{order:1}
+    html:not([data-view="classic"]) .tools .views{order:1}
     html[data-view="compact"] .title:before,html[data-view="compact"] .title .meta{display:none}
     html[data-view="compact"] .title{padding:8px 0 0}
     html[data-view="compact"] .title h1{font-size:19px}
@@ -2142,7 +2142,7 @@ function render(lang){
     return `<tr><td>${esc(t.id + ' · ' + t.title)}<br><span class="pill ${PILLK[k]}">${L.chip[k]}</span></td><td>${esc(p.provider || '—')}</td>`
       + `<td><span class="mchip">${esc(p.model || '—')}${p.effort ? ' · ' + esc(p.effort) : ''}</span>${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td>`
       + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '')}</td>`
-      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : '0'}</td>` : '')
+      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : tokBy.has(String(t.id)) || (t.status === 'pending' && !t.routing && !t.plannedRouting) ? '0' : '—'}</td>` : '')
       + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>`
         : t.status === 'pending' ? `<span class="pill p-mut">${W.notCreated}</span>` : '—'}</td>` : '') + '</tr>';
   };

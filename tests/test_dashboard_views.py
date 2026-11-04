@@ -548,6 +548,18 @@ class TemplateRuns(unittest.TestCase):
         run = self.out["renders"]["running/resources/en"]["html"]
         self.assertNotIn("not created", run)  # tickets that have a worktree or a route keep their own rows
 
+    def test_resources_tokens_say_zero_only_where_zero_is_known(self):
+        def cells(page, tid):
+            row = re.search(r'<tr><td>%s · .*?</tr>' % tid, page, re.S).group(0)
+            return re.findall(r'<td>(.*?)</td>', row, re.S)
+        run = self.out["renders"]["running/resources/en"]["html"]
+        self.assertIn("1,200", cells(run, "T01")[5])  # events exist: the real sum
+        for tid in ("T02", "T03", "T04"):  # no usage event for the ticket: not recorded, not zero
+            self.assertEqual(cells(run, tid)[5], "—", tid)
+        old = self.out["renders"]["old/resources/en"]["html"]
+        for tid in ("T06", "T07"):  # waiting, no route: nothing can have been spent
+            self.assertEqual(cells(old, tid)[5], "0", tid)
+
     def test_old_project_state_without_new_fields_draws_every_view_in_both_languages(self):
         for name in ("old", "oldfin"):
             for view in VIEW_IDS:
@@ -688,6 +700,12 @@ class TemplateStrings(unittest.TestCase):
         for bad in ("<link", "@import", "googleapis", "gstatic", "fetch(", "XMLHttpRequest", "@font-face", "WebSocket"):
             self.assertNotIn(bad, self.html)
         self.assertNotRegex(self.html, r"""(?:src|href)=["']https?://""")
+
+    def test_narrow_header_rule_does_not_touch_classic(self):
+        narrow = self.html.rsplit("@media(max-width:520px){", 1)[1].split("</style>")[0]
+        for line in narrow.splitlines():
+            if ".views" in line:
+                self.assertIn('html:not([data-view="classic"]) .tools .views', line)
 
     def test_narrow_compact_trims_header_title_and_chart_and_the_header_has_the_updated_line(self):
         narrow = self.html.rsplit("@media(max-width:520px){", 1)[1].split("</style>")[0]
