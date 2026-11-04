@@ -890,6 +890,44 @@
     .vd-row>.vd-w{grid-area:2/2}.vd-row>.vd-t{grid-area:2/3}.vd-row>.vd-r{grid-area:3/2}.vd-row>.vd-b{grid-area:3/3}
     .vd-row>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;color:var(--mut);font-weight:400;letter-spacing:.04em;margin-bottom:2px}
   }
+  /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
+  .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
+  .top .upd+.tools{margin-left:auto}
+  .upd i{width:8px;height:8px;border-radius:50%;background:var(--done);flex:none}
+  .tiles.t5{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .tiles.t5 .tv{font-size:32px}
+  .tlh .ovh-main{flex-basis:360px}
+  .tlh .route{flex:1 1 100%;background:none;border:0;border-radius:0;padding:8px 0 0}
+  .tl2{display:grid;gap:16px;align-items:start;min-width:0}
+  .tl2>.vsec{gap:16px}
+  .tl2{grid-template-columns:minmax(0,1fr) 330px}
+  .tl2 .gx{--cols:180px minmax(0,1fr) 124px}
+  .kcards{display:flex;flex-direction:column;gap:10px}
+  .kcard{background:var(--card);border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 0 0 1px var(--line);color:var(--tx)}
+  .kk{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .kcard b{font-size:26px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+  .ks{font-size:12.5px;color:var(--tx2)}
+  .sum-h .ovh-side{flex:0 1 300px}
+  @media(max-width:1100px){.tl2{grid-template-columns:minmax(0,1fr)}.tl2 .gx{--cols:260px minmax(0,1fr) 150px}}
+  @media(max-width:900px){.tl2 .gx{--cols:minmax(0,1fr)}}
+  @media(max-width:520px){
+    .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
+    .tools .views{order:1}
+    html[data-view="compact"] .title:before,html[data-view="compact"] .title .meta{display:none}
+    html[data-view="compact"] .title{padding:8px 0 0}
+    html[data-view="compact"] .title h1{font-size:19px}
+    .cmp{gap:10px}
+    .cmp .card{padding:14px 16px;border-radius:18px}
+    .cmp .whead{padding-bottom:8px}
+    .cmp .ev{padding:6px 0}
+    .cmp .need{padding:8px 0}
+    .gx.mini .gx-row{padding:7px 0;row-gap:4px}
+    .gx.mini .gx-lane{height:26px}
+    .gx.mini .gx-bar,.gx.mini .gx-tail{top:2px;height:22px}
+    .gx.mini+.gx-legend{margin-top:8px}
+    .gchip{padding:7px 10px}
+    .gchips{gap:6px}
+  }
 </style>
 </head>
 <body>
@@ -1127,7 +1165,8 @@ const I18N = {
       nEnv:n=>`Впиши ${n} ${plural(n,'значение','значения','значений')} в .env`,nEnvD:"имена переменных ниже, значения только у тебя",
       nPh:n=>`Замени ${n} ${plural(n,'заглушку','заглушки','заглушек')}`,nPhD:"видимые заглушки: агент не стал придумывать за тебя",
       nMis:id=>`Реши по ${id}`,nMisD:"починить сейчас или принять как есть",
-      nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить"}},
+      nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить",
+      upd:"обновлено",notCreated:"не создана"}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -1253,7 +1292,8 @@ const I18N = {
       nEnv:n=>`Fill in ${n} ${en(n,'value','values')} in .env`,nEnvD:"the variable names are below; the values are only yours",
       nPh:n=>`Replace ${n} ${en(n,'placeholder','placeholders')}`,nPhD:"visible stubs the agent did not invent for you",
       nMis:id=>`Decide on ${id}`,nMisD:"fix it now or accept it as it is",
-      nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled"}}
+      nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled",
+      upd:"updated",notCreated:"not created"}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1517,20 +1557,24 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
   // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки), модели внизу.
-  // Все карточки «Классики» остаются (тест); расход, рабочие копии и повторы — в блоке моделей и в шапке.
+  // Все карточки «Классики» остаются (тест); ход сборки по волнам — это сам Гант (волна подписана в каждой строке),
+  // второго списка тех же тасков нет. Расход, рабочие копии и повторы — в блоке моделей и в шапке.
   overview: c => `
   <div id="mission" class="vsec" tabindex="-1">${c.ovHero}</div>
   ${c.route}
-  <div id="tasks" class="vsec" tabindex="-1">${c.gantt}${c.buildCard || c.tasksEmpty}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.gantt || c.tasksEmpty}</div>
   <div id="quality" class="ov3" tabindex="-1"><div class="col">${c.wordsCard}${c.extras}</div>
     <div class="col">${c.feedView}</div>
     <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>
   <div id="models" class="vsec" tabindex="-1">${c.resourceBlock}${c.isolationBlock}</div>`,
-  // Подробный Гант: все таски, волны названы; маршрут этапов вместо плоской полосы.
+  // Макет: герой с фразой, прогнозом и маршрутом; пять карточек; слева подробный Гант, справа «Понадобится от вас»,
+  // проверки и лента; «Ваши слова» внизу. Блок без данных не рисуется.
   timeline: c => `
-  <div id="mission" class="vsec" tabindex="-1">${c.route}</div>
-  <div id="tasks" class="vsec" tabindex="-1">${c.ganttFull || c.emptyGantt}</div>
-  <div id="quality" class="vsec" tabindex="-1">${c.feedAll}</div>`,
+  <div id="mission" class="vsec" tabindex="-1">${c.tlHero}</div>
+  ${c.tlTiles}
+  <div class="tl2"><div id="tasks" class="vsec" tabindex="-1">${c.ganttFull || c.emptyGantt}</div>
+    <div id="quality" class="vsec" tabindex="-1">${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.gatesCard}${c.feedAll}</div></div>
+  ${c.wordsCard}`,
   // Матрица пути требований сверху; список со статусами и фильтрами, шлюзы и остатки — под ней.
   requirements: c => `
   <div id="quality" class="vsec" tabindex="-1">${c.matrixCard}<div class="cols"><div class="col">${c.wordsView}</div>
@@ -1540,14 +1584,15 @@ const VIEWS = {
   // Итог: кольцо и цифры, вердикт по каждому требованию, расхождение приёмки (если есть), замечания ревью;
   // справа — что делать дальше и что нужно от вас. Блока без данных в state.js нет — его и не рисуем.
   summary: c => `
-  <div id="mission" class="vsec sum-top" tabindex="-1">${c.ovHero}</div>
+  <div id="mission" class="vsec sum-top" tabindex="-1">${c.sumHero}</div>
   <div id="quality" class="cols" tabindex="-1"><div class="col">${c.verdictCard}${c.mismatchCard || c.blindCard}${c.reportCard}${c.concernsCard}</div>
     <div class="col">${c.nextCard}${c.needSum}${c.asmCard}${c.addCard}${c.fin ? '' : c.summaryCard}</div></div>`,
   // Узкая панель: одна колонка, то же главное — кольцо, прогноз, фраза, плитки, полоса этапов, мини-Гант.
+  // Без «Моделей и ресурсов», «Изоляции» и списка решений за вас: они в Обзоре и Итоге, здесь только то, что нужно от вас.
   compact: c => `
   <div class="cmp"><div id="mission" class="vsec" tabindex="-1">${c.cHero}</div>
   <div id="tasks" class="vsec" tabindex="-1">${c.cstrip}${c.miniGantt || c.tasksEmpty}</div>
-  <div id="quality" class="vsec" tabindex="-1">${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.gchips}${c.feedCompact}</div></div>`,
+  <div id="quality" class="vsec" tabindex="-1">${c.needSlim}${c.gchips}${c.feedCompact}</div></div>`,
   quality: c => `
   <div id="quality" class="cols" tabindex="-1"><div class="col">${c.gatesCard}${c.blindView}${c.reviewView}</div>
     <div class="col">${c.wordsView}${c.debtCard}</div></div>`,
@@ -1734,12 +1779,13 @@ function render(lang){
         tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}</span><span class="ts">${fin ? L.testsFinal : L.testsSub}</span>`
     : `<span class="tv dim">—</span><span class="ts">${L.testsLater}</span>`}</section>`;
   const B = S.blind;
+  const tileTime = `<section class="card tile w"><span class="tk">${L.tTime}</span><span class="tv">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '—'}</span>
+        <span class="ts">${L.timeSub}${median ? ' · ' + L.median(median) : ''}</span></section>`;
   const tile4 = fin && B
     ? `<section class="card tile w"><span class="tk">${L.tBlind}</span><span class="tv">${esc(B.matched)}<small>${L.of} ${esc(B.checked)}</small></span>
         <div class="stack" aria-hidden="true"><i class="f-done" style="flex:${+B.matched||0}"></i><i class="f-now" style="flex:${Math.max(0,(+B.checked||0)-(+B.matched||0))}"></i></div>
         <span class="ts">${L.blindSub((B.mismatches||[]).length)}</span></section>`
-    : `<section class="card tile w"><span class="tk">${L.tTime}</span><span class="tv">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '—'}</span>
-        <span class="ts">${L.timeSub}${median ? ' · ' + L.median(median) : ''}</span></section>`;
+    : tileTime;
 
   // ——— ход сборки ———
   // Полоса показывает СОСТОЯНИЕ, а не долю: горизонтальная заливка в списке
@@ -2079,22 +2125,26 @@ function render(lang){
 
   const debtCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tDebt}</h3><span>${env.length + ph.length + asm.length}</span></div>${keysBlock + phBlock + asmBlock || none}</section>`;
 
-  const routeRows = routed.map(t => [t, t.routing, '']).concat(proposals.map(t => [t, t.plannedRouting, t.plannedRouting.status === 'blocked' ? W.blocked : W.planned]));
+  // Ждущий таск без маршрута тоже получает строку: токенов 0, рабочей копии нет. Причин выбора без данных не выдумываем.
+  const unrouted = T.filter(t => t.status === 'pending' && !t.routing && !t.plannedRouting);
+  const routeRows = routed.map(t => [t, t.routing, '']).concat(proposals.map(t => [t, t.plannedRouting, t.plannedRouting.status === 'blocked' ? W.blocked : W.planned]),
+    unrouted.map(t => [t, {}, ''])).sort((a, b) => byTicketId(a[0], b[0]));
   const PILLK = {done: 'p-done', now: 'p-now', rev: 'p-rev', fix: 'p-rev', bad: 'p-bad', wait: 'p-mut'};
   // Токены по таскам — из usageEvents[].ticket; нет событий с таском — нет и столбца.
   const tokBy = new Map();
   usageEvents.forEach(e => tokBy.set(String(e.ticket), (tokBy.get(String(e.ticket)) || 0) + e.input + e.output));
   const maxTok = Math.max(1, ...tokBy.values());
-  const hasTok = routeRows.some(([t]) => tokBy.has(String(t.id)));
-  const hasTree = routeRows.some(([t]) => t.worktree && t.worktree.status);
+  const hasTok = unrouted.length > 0 || routeRows.some(([t]) => tokBy.has(String(t.id)));
+  const hasTree = unrouted.length > 0 || routeRows.some(([t]) => t.worktree && t.worktree.status);
   const routeCols = [W.cTask, W.cProvider, W.cModel, W.cScore, W.cWhy].concat(hasTok ? [W.tTokens] : [], hasTree ? [W.cTree] : []);
   const routeRow = ([t, p, tag]) => {
     const k = kindOf(t).k, n = tokBy.get(String(t.id));
     return `<tr><td>${esc(t.id + ' · ' + t.title)}<br><span class="pill ${PILLK[k]}">${L.chip[k]}</span></td><td>${esc(p.provider || '—')}</td>`
       + `<td><span class="mchip">${esc(p.model || '—')}${p.effort ? ' · ' + esc(p.effort) : ''}</span>${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td>`
-      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '—')}</td>`
-      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : '—'}</td>` : '')
-      + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>` : '—'}</td>` : '') + '</tr>';
+      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '')}</td>`
+      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : '0'}</td>` : '')
+      + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>`
+        : t.status === 'pending' ? `<span class="pill p-mut">${W.notCreated}</span>` : '—'}</td>` : '') + '</tr>';
   };
   const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
     ? `<div class="tablewrap"><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
@@ -2160,6 +2210,29 @@ function render(lang){
     <div class="cs-bar" role="img" aria-label="${stageOf}">${stages.map(s => `<i class="${rsInfo(s).cls}"></i>`).join('')}</div>
     ${nextNames.length ? `<p class="muted">${esc(W.cNext(nextNames.join(' → ')))}</p>` : fin ? `<p class="muted">${W.cDone}</p>` : ''}</div></section>`;
 
+  // Компактный: только то, что нужно от вас, — ключи и заглушки; решения за вас и пустое «пока ничего» в узкой панели не нужны.
+  const needSlim = keysBlock + phBlock
+    ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${fin ? L.prep : L.need}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
+
+  // «Таймлайн»: пять карточек (только с данными), герой с прогнозом и маршрутом этапов.
+  const tileTok = usageEvents.length
+    ? `<section class="card tile w"><span class="tk">${W.kTokens}</span><span class="tv">${fmtK(countedTokens)}${budget ? `<small>${L.of} ${fmtK(budget)}</small>` : ''}</span>${
+        budget ? `<div class="stack" aria-hidden="true"><i class="f-done" style="flex:${budgetPercent || 0}"></i><i class="f-idle" style="flex:${100 - (budgetPercent || 0)}"></i></div>` : ''}
+        <span class="ts">${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}</span></section>` : '';
+  const tlTilesList = [R.total && tileReq, T.length && tileTk, tests && tileTests, tileTok, S.startedAt && tileTime].filter(Boolean);
+  const tlTiles = tlTilesList.length ? `<div class="tiles t5">${tlTilesList.join('')}</div>` : '';
+  const tlHero = `<section class="card ovh tlh w ${heroCls}" aria-live="polite"><div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}</div>
+    ${foreBlock ? `<div class="ovh-side">${foreBlock}</div>` : ''}${route}</section>`;
+
+  // «Итог»: герой с карточками справа — рабочее время, тесты, токены. «Коммитов» в state.js нет — карточки нет.
+  const kcard = (k, v, sub) => `<div class="kcard"><span class="kk">${k}</span><b>${v}</b>${sub ? `<span class="ks">${sub}</span>` : ''}</div>`;
+  const kcards = [timeVal && kcard(W.kTime, timeVal, L.timeSub),
+    tests && kcard(L.tTests, esc(tests.passed), tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk),
+    tokVal && kcard(W.kTokens, tokVal, budget ? `${L.of} ${fmtK(budget)}` : '')].filter(Boolean);
+  const sumHero = `<section class="card ovh sum-h w ${heroCls}" aria-live="polite">${ringHTML('')}
+    <div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}${evNote}</div>
+    ${foreBlock || kcards.length ? `<div class="ovh-side">${foreBlock}${kcards.length ? `<div class="kcards">${kcards.join('')}</div>` : ''}</div>` : ''}</section>`;
+
   // Диаграмма Ганта: настоящие отрезки по startedAt/finishedAt; ждущие таски — пунктиром после тех, от кого зависят.
   const GT = 60000, gNow = Date.now(), placed = {};
   const place = (t, seen) => {
@@ -2197,9 +2270,9 @@ function render(lang){
       const k = p.est ? 'wait' : kindOf(t).k, left = pct(p.a), w = Math.max(1.4, pct(p.b) - left);
       const m = t.status === 'done' && mins(t) ? mins(t) : Math.max(1, Math.round((p.b - p.a) / GT));
       const dur = p.est ? (median ? `~${median} ${L.min}` : '') : `${m} ${L.min}`;
-      const tiny = mini && w < 14 && !p.est;  // узкий отрезок: только число минут, состояние — в плашке над ним
-      const label = tiny ? String(m) : mini ? (dur || L.chip.wait) : (w >= 14 || !dur) ? [L.chip[k], dur].filter(Boolean).join(' · ') : dur;
-      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${p.est || tiny ? '' : ic(kindOf(t).icon, 'xs')}${esc(label)}</span>`
+      const tiny = w < (mini ? 14 : 12) && !p.est;  // узкий отрезок: только число минут (состояние — плашка, значок, подсказка)
+      const label = tiny ? String(m) : mini ? (dur || L.chip.wait) : (w >= 22 || !dur) ? [L.chip[k], dur].filter(Boolean).join(' · ') : dur;
+      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${p.est || (tiny && mini) ? '' : ic(kindOf(t).icon, 'xs')}${esc(label)}</span>`
         + (p.tail ? `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%">~${Math.round(p.tail / GT)} ${L.min}</i>` : '');
     };
     const subOf = t => [L.wave(t.wave ?? 1), (t.blockedBy || []).length ? W.after(t.blockedBy) : ''].filter(Boolean).join(' · ');
@@ -2211,8 +2284,8 @@ function render(lang){
     const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
     const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
       <div class="gx">${axis}${rows}</div></section>`;
-    // «Обзор» — краткий (первые шесть), «Таймлайн» — подробный: все таски, волны названы.
-    gantt = ganttCard(rowsList('gt', gRows.map(row), 6));
+    // «Обзор» — краткий (до восьми строк, без разделителей волн: волна подписана в строке), «Таймлайн» — подробный: все таски, волны названы.
+    gantt = ganttCard(rowsList('gt', gRows.map(row), 8));
     ganttFull = ganttCard(gRows.map((x, i) => (i && (x[0].wave ?? 1) === (gRows[i - 1][0].wave ?? 1) ? '' : `<div class="wave">${esc(L.wave(x[0].wave ?? 1))}</div>`) + row(x)).join(''));
     miniGantt = `<section class="card w"><div class="whead"><h3 class="wt">${W.tGantt}</h3></div>
       <div class="gx mini">${axis}${rowsList('gtm', gRows.map(miniRow), 8)}</div>${legend}</section>`;
@@ -2316,7 +2389,7 @@ function render(lang){
   const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
     isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
-    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact});
+    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
@@ -2348,6 +2421,7 @@ function render(lang){
   <main class="cockpit-content" id="content" tabindex="-1">
   <header class="top">
     <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
+    ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span></span>` : ''}
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
       <div class="tabs views" role="group" aria-label="${L.viewLabel}">

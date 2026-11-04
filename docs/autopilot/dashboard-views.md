@@ -4,14 +4,18 @@ One dashboard page, eight views of the same `window.STATE`. The switcher sits in
 
 | id | What it shows |
 |----|---------------|
-| `overview` | Default: progress ring ("N of M requirements closed") and a forecast, the stage route with minutes, a Gantt chart (the first six tickets), your words, gates, "needed from you", the live feed, models and isolation; every card of Classic stays, once |
-| `timeline` | Stage route, the detailed Gantt (every ticket, waves named, model chips), the full event feed |
+| `overview` | Default: progress ring ("N of M requirements closed") and a forecast, the stage route with minutes, a Gantt chart (up to eight tickets; the wave is named in each row, so there is no second wave list of the same tickets), your words, gates, "needed from you", the live feed, models and isolation; every card of Classic stays, once |
+| `timeline` | Hero with the phrase, the forecast and the stage route (`c.tlHero`); up to five cards for requirements, tickets, tests, tokens and work time (`c.tlTiles`, only those with data); the detailed Gantt on the left (every ticket, waves named, model chips); on the right "needed from you", gates and the event feed; your words at the bottom |
 | `requirements` | "The path of your requirements": a matrix of each phrase by seven stages (written, spec, ticket, code, tests, review, blind acceptance) with a "how many reached the stage" row; below it the word list with its filters, gates, summary and leftovers |
-| `resources` | Key figures, the routes table (ticket state, model chip, tokens per ticket, worktree), tokens, isolation |
-| `summary` | Ring and figures, a verdict per requirement (where, tests, review, blind acceptance), the acceptance mismatch (text only, no action buttons), review notes, "what to do next", "needed from you" |
+| `resources` | Key figures, the routes table (ticket state, model chip, tokens per ticket, worktree; a waiting ticket with no route gets a row with 0 tokens and "not created", and no "why" without data), tokens, isolation |
+| `summary` | Hero with cards on the right (work time, tests, tokens; no commits card, `state.js` has no commits), a verdict per requirement (where, tests, review, blind acceptance), the acceptance mismatch (text only, no action buttons), review notes, "what to do next", "needed from you" |
 | `classic` | The earlier single-page layout, with its own colours |
-| `compact` | One column for a narrow panel beside the chat: ring and forecast, tiles, stage strip, mini Gantt, "needed from you", gates, feed. Chosen by default when the window is 520 px wide or less and nothing is saved; a saved choice wins; the old saved value `focus` is read as `compact` |
+| `compact` | One column for a narrow panel beside the chat: ring and forecast, tiles, stage strip, mini Gantt, "needed from you" (keys and stubs only), gates, feed; no models, isolation or decided-for-you list, and at 520 px or less a shorter header and title. Chosen by default when the window is 520 px wide or less and nothing is saved; a saved choice wins; the old saved value `focus` is read as `compact` |
 | `quality` | Can it be accepted: gates, blind acceptance, review and report notes, requirements with statuses, leftovers |
+
+## Header
+
+Every view except `classic` shows "updated N s ago" in the header, counted live from `updatedAt` by the same timer as the footer; without `updatedAt` it is not drawn.
 
 ## Palette
 

@@ -187,7 +187,10 @@ class TemplateRuns(unittest.TestCase):
                 classic = self.out["renders"]["%s/classic/%s" % (name, lang)]["html"]
                 with self.subTest(fixture=name, lang=lang):
                     self.assertTrue(heads(classic))
-                    self.assertEqual(heads(classic) - heads(over), set())
+                    # the wave list ("Build progress") is not repeated in the overview: the Gantt carries its content
+                    self.assertLessEqual(heads(classic) - heads(over), {"Ход сборки" if lang == "ru" else "Build progress"})
+                    if 'class="gx-row"' in over:
+                        self.assertIn("Волна" if lang == "ru" else "Wave", re.search(r'<div class="gx">.*', over, re.S).group(0))
                     for block in ("mission", "tasks", "models", "quality"):
                         self.assertEqual(over.count(' id="%s"' % block), 1, block)
 
@@ -209,10 +212,22 @@ class TemplateRuns(unittest.TestCase):
                     self.assertNotIn("Сводка требований", page)
                     heads = re.findall(r'<h3 class="wt">(.*?)</h3>', page)
                     self.assertEqual(len(heads), len(set(heads)), heads)
-                    for tid in re.findall(r'class="tl-id[^"]*">(T\d+)<', page):
-                        self.assertEqual(len(re.findall(r'class="tl-id[^"]*">%s<' % tid, page)), 1, tid)
+                    self.assertNotIn('class="tl-id', page)  # the wave list is gone: the Gantt is the only task list
+                    for tid in re.findall(r'class="gx-id">(T\d+)<', page):
+                        self.assertEqual(len(re.findall(r'class="gx-id">%s<' % tid, page)), 1, tid)
         fin = self.out["renders"]["finished/overview/en"]["html"]
-        self.assertEqual(len(re.findall(r'class="tl-id[^"]*">T\d+<', fin)), 7)
+        self.assertEqual(len(re.findall(r'class="gx-id">T\d+<', fin)), 7)
+
+    def test_overview_names_each_ticket_once_outside_the_models_block(self):
+        for name, n in (("running", 7), ("finished", 7), ("nodone", 7), ("old", 7)):
+            for lang in ("ru", "en"):
+                page = self.out["renders"]["%s/overview/%s" % (name, lang)]["html"]
+                lists = page.split(' id="models"')[0]  # the routing block lists the same tickets by model: another question
+                with self.subTest(fixture=name, lang=lang):
+                    for i in range(1, n + 1):
+                        self.assertEqual(lists.count("<b>Ticket %d</b>" % i), 1, i)
+                    self.assertEqual(lists.count('class="gx-row"'), n)
+                    self.assertNotIn(">Build progress<" if lang == "en" else ">Ход сборки<", page)
 
     def test_rail_version_is_the_skill_version_from_state(self):
         rail = lambda key: re.search(r'<aside class="cockpit-rail".*?</aside>', self.out["renders"][key]["html"], re.S).group(0)
@@ -410,7 +425,9 @@ class TemplateRuns(unittest.TestCase):
         timeline = self.out["renders"]["running/timeline/en"]["html"]
         overview = self.out["renders"]["running/overview/en"]["html"]
         self.assertEqual(timeline.count('class="gx-row"'), 7)  # every ticket
-        self.assertLess(overview.count('class="gx-row"'), 7)
+        self.assertIn('class="wave"', timeline)  # the detailed chart tells waves apart, the short one only names them per row
+        self.assertNotIn('class="wave"', overview)
+        self.assertIn('class="gx-mdl"><span class="mchip"', timeline)
         self.assertIn('class="gx-nowline"', timeline)
         self.assertIn("Wave 3", re.search(r'<div class="gx">.*', timeline, re.S).group(0))  # waves are told apart
         self.assertEqual(timeline.count('class="route"'), 1)
@@ -425,7 +442,7 @@ class TemplateRuns(unittest.TestCase):
                     with self.subTest(fixture=name, view=view, lang=lang):
                         self.assertNotIn(false_caption[lang], page)  # there are 7 tickets
                         rows = page.count('class="gx-row"')
-                        self.assertEqual(rows, 7 if view != "overview" else min(7, 6), "every ticket has its row")
+                        self.assertEqual(rows, 7, "every ticket has its row")
                         if view != "overview":
                             for n in range(1, 8):
                                 self.assertIn("Ticket %d" % n, page)
@@ -444,8 +461,92 @@ class TemplateRuns(unittest.TestCase):
         self.assertIn("pill", table)  # ticket state in words
         self.assertIn("1,200", table)  # T01: 1000 in + 200 out, from usageEvents[].ticket
         self.assertIn("<th>Tokens</th>", table)
-        nodata = self.out["renders"]["old/resources/en"]["html"]
-        self.assertNotIn("<th>Tokens</th>", nodata)  # no usage events: no column
+        nodata = self.out["renders"]["oldfin/resources/en"]["html"]
+        self.assertNotIn("<table", nodata)  # nothing routed, nothing waiting, no usage: no table at all
+
+    def test_timeline_has_hero_five_kpis_right_column_and_words_below_the_detailed_gantt(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/timeline/%s" % (name, lang)]["html"]
+        run = page("running")
+        hero = re.search(r'<section class="card ovh tlh[^"]*".*?</section>', run, re.S).group(0)
+        self.assertIn("<h2>", hero)
+        self.assertIn("≈", hero)  # the forecast sits in the hero
+        self.assertRegex(hero, r"likely \d+–\d+ min")
+        self.assertEqual(hero.count('class="route"'), 1)
+        tiles = re.findall(r'<section class="card tile w"><span class="tk">(.*?)</span>', run)
+        self.assertEqual(tiles, ["Requirements", "Tickets", "Tests", "Tokens", "Working time"])
+        self.assertIn('class="tiles t5"', run)
+        body = run.split('class="tl2"')[1]
+        right = body.split('id="quality"')[1]
+        order = [right.index(x) for x in ("Needed from you", "Checks", "All events")]
+        self.assertEqual(order, sorted(order))
+        self.assertLess(body.index('class="gx"'), body.index('id="quality"'))  # the chart stays in the left column
+        self.assertGreater(run.index("Your words"), run.index('data-more="feed"'))  # the words close the page
+        self.assertEqual(run.count('class="gx-row"'), 7)
+        ru = page("running", "ru")
+        for text in ("Понадобится от тебя", "Проверки", "Все события", "Твои слова"):
+            self.assertIn(text, ru)
+        for name in ("empty", "nodone", "old"):  # no data, no block
+            html = page(name)
+            with self.subTest(fixture=name):
+                self.assertNotIn("≈", html)
+        self.assertEqual(len(re.findall(r'<section class="card tile w">', page("old"))), 3)  # requirements, tickets, tests: no tokens, no start
+        self.assertNotIn('class="card tile w"', page("empty"))
+        self.assertNotIn("Your words", page("empty"))
+
+    def test_compact_in_a_narrow_panel_has_no_models_and_isolation_and_a_short_markup(self):
+        for name in ("running", "finished", "old"):
+            for lang, words in (("en", ("Models & resources", "Isolation & recovery", "Worktree:")),
+                                ("ru", ("Модели и ресурсы", "Изоляция и восстановление", "Рабочая копия:"))):
+                page = self.out["renders"]["%s/compact/%s" % (name, lang)]["html"]
+                for word in words:
+                    with self.subTest(fixture=name, lang=lang, word=word):
+                        self.assertNotIn(word, page)
+        run = self.out["renders"]["running/compact/en"]["html"]
+        self.assertLess(len(run), 0.5 * len(self.out["renders"]["running/overview/en"]["html"]))  # one column, no models, no tables
+        self.assertIn("API_KEY", run)  # the keys the user must give stay
+        self.assertNotIn("Decisions made for you", run)  # the long assumptions list goes to Summary and Overview
+
+    def test_summary_hero_has_kpi_cards_without_commits(self):
+        page = lambda name, lang="en": self.out["renders"]["%s/summary/%s" % (name, lang)]["html"]
+        fin = page("finished")
+        cards = re.search(r'<div class="kcards">.*?</div>\s*</section>', fin, re.S).group(0)
+        self.assertEqual(re.findall(r'<span class="kk">(.*?)</span>', cards), ["Work time", "Tests", "Tokens"])
+        self.assertIn("12", cards)  # tests passed
+        self.assertIn("1k", cards)  # 1200 tokens
+        for word in ("ommit", "оммит"):
+            self.assertNotIn(word, fin + page("finished", "ru"))
+        for name in ("old", "oldfin"):  # no start time, no usage events: only the tests card has data
+            self.assertEqual(re.findall(r'<span class="kk">(.*?)</span>', page(name)), ["Tests"], name)
+        self.assertNotIn('class="kcards"', page("empty"))
+
+    def test_header_says_updated_n_seconds_ago_live_and_only_with_updatedat(self):
+        for view in VIEW_IDS:
+            for lang, word in (("en", "updated"), ("ru", "обновлено")):
+                top = re.search(r'<header class="top">.*?</header>', self.out["renders"]["running/%s/%s" % (view, lang)]["html"], re.S).group(0)
+                with self.subTest(view=view, lang=lang):
+                    if view == "classic":
+                        self.assertNotIn('class="upd"', top)  # the classic header stays as it was
+                        continue
+                    upd = re.search(r'<span class="upd">(.*?)</span></span>', top, re.S).group(0)
+                    self.assertIn(word, upd)
+                    self.assertIn('data-ago="2026-11-03T08:20:00Z"', upd)  # the same live mechanism as the footer
+                    self.assertNotIn('class="upd"', re.search(r'<header class="top">.*?</header>', self.out["renders"]["empty/%s/%s" % (view, lang)]["html"], re.S).group(0))
+
+    def test_resources_list_waiting_tickets_without_routing(self):
+        for lang, none, tree in (("en", "not created", "Worktree"), ("ru", "не создана", "Рабочая копия")):
+            page = self.out["renders"]["old/resources/%s" % lang]["html"]
+            table = re.search(r'<table class="routes">.*?</table>', page, re.S).group(0)
+            rows = re.findall(r'<tr><td>.*?</tr>', table, re.S)
+            with self.subTest(lang=lang):
+                self.assertEqual(len(rows), 2)  # T06 and T07 are waiting and have no route
+                for row, tid in zip(rows, ("T06", "T07")):
+                    self.assertIn(tid, row)
+                    self.assertIn(none, row)
+                    self.assertIn("<td>0</td>", row)  # nothing spent yet
+                    self.assertIn("<td></td>", row)  # no data, no "why"
+                self.assertIn("<th>%s</th>" % tree, table)
+        run = self.out["renders"]["running/resources/en"]["html"]
+        self.assertNotIn("not created", run)  # tickets that have a worktree or a route keep their own rows
 
     def test_old_project_state_without_new_fields_draws_every_view_in_both_languages(self):
         for name in ("old", "oldfin"):
@@ -587,6 +688,14 @@ class TemplateStrings(unittest.TestCase):
         for bad in ("<link", "@import", "googleapis", "gstatic", "fetch(", "XMLHttpRequest", "@font-face", "WebSocket"):
             self.assertNotIn(bad, self.html)
         self.assertNotRegex(self.html, r"""(?:src|href)=["']https?://""")
+
+    def test_narrow_compact_trims_header_title_and_chart_and_the_header_has_the_updated_line(self):
+        narrow = self.html.rsplit("@media(max-width:520px){", 1)[1].split("</style>")[0]
+        for rule in ('html[data-view="compact"] .title .meta', 'html[data-view="compact"] .title:before', ".gx.mini .gx-lane{height:26px}", ".cmp .need{"):
+            self.assertIn(rule, narrow)
+        self.assertIn('<span class="upd">', self.html)
+        self.assertRegex(self.html, r"VIEW !== 'classic' && toMs\(S\.updatedAt\) != null")  # classic header unchanged; no updatedAt, no line
+        self.assertEqual(self.html.count("data-ago="), 3)  # feed card, header, footer: one live mechanism for all
 
     def test_narrow_panel_wraps_theme_buttons_instead_of_hiding_them(self):
         rules = re.findall(r"\.views\{([^}]*)\}", self.html)
