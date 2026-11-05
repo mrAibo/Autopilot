@@ -26,6 +26,7 @@
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
 - Ключ подписи гейтов — `~/.autopilot/gate.key` (или `$AUTOPILOT_HOME`), запись «прогон начат подписанным» — `$AUTOPILOT_HOME/runs/`; в strict-прогоне `.autopilot/*.py` закрыты от Write/Edit.
 - Допустимые модели субагентов задаёт `model_router.is_allowed_subagent_model`; Opus и Fable не проходят ни в каком написании.
-- Темы дашборда — реестр `VIEWS` в `skills/autopilot/phases/dashboard-template.html` (`docs/autopilot/dashboard-views.md`); у каждой темы должны быть якоря `mission/tasks/models/quality` для рейки. `.autopilot/dashboard.html` — копия шаблона: в живом проекте обновляй `dashboard_upgrade.py`, а не копированием.
+- Темы дашборда — реестр `VIEWS` в `skills/autopilot/phases/dashboard-template.html` (`docs/autopilot/dashboard-views.md`); пункты рейки строятся по тем якорям `mission/tasks/models/quality`, что есть на странице темы (у «Обзора» нет `models`), `VIEW_HOME` задаёт пункт текущей темы; «Классика» держит старые цвета, остальные темы — палитру макетов. `.autopilot/dashboard.html` — копия шаблона: в живом проекте обновляй `dashboard_upgrade.py`, а не копированием.
+- Файлы тасков в `.autopilot/<прогон>/tickets/` не править после публикации и не менять окончания строк: отпечаток сменится, и `ap.py tickets` сбросит статусы сданных тасков. Исполнители коммитят `git commit --only <файлы зоны>`, без `git stash`.
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->
