@@ -6,6 +6,21 @@ The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. 
 npx skills update autopilot -g
 ```
 
+## Unreleased
+
+Wave 1 process fixes.
+
+- **R01 ticket fingerprint by normalized text:** `state_io.ticket_fingerprint` hashes the ticket as LF text without BOM and trailing spaces, so changing line endings no longer resets a `done` ticket; `tickets`, `plan-models` and `codex_dispatch.py` compare through `state_io.fingerprint_matches`.
+- **R01a old fingerprints accepted:** a ticket published by older code (raw-byte hash, or CRLF/BOM variants) stays as it was and its fingerprint is silently rewritten to the new one.
+- **R01b edited `done` ticket stops publication:** `ap.py tickets` dies with the command `ticket NN accept-edit --note "..."`; the command (done tickets only, `--note` required) accepts the current text.
+- **R02 executors and git:** `prompts/executor.md` and the executor profile forbid `git stash`, `git reset`, `git checkout -- <others' paths>` and require `git commit --only <zone files>` after `git diff --cached --stat`.
+- **R02a Bash hook:** `claude_agent_guard.py` rejects those git commands in subagent Bash calls of an unfinished strict run; `install_hook` adds a `Bash` matcher (idempotent).
+- **R03 no machine paths in plans:** `phases/4-plan.md` says samples go through `<scratchpad>` and `<repo>`; **R03a** `ap.py tickets` refuses a ticket or `spec.md` with a user's absolute path (file and line).
+- **R04 advisor rule:** `docs/autopilot/claude-code.md` and `model-routing.md` explain the advisor is a server-side tool whose `advisorModel` subagents inherit and `is_allowed_subagent_model` cannot see; **R04a** `phases/0-preflight.md` warns in strict runs and offers `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`. R04b (advisor calls in `attestations.jsonl`) is recorded as an open question.
+- **R05 resume after a usage limit:** `phases/0-resume.md` and `phases/5-repair.md`: inspect the zone, `SendMessage` the same agent, keep uncommitted zone edits; **R05a** tell the user the reset time (5-hour and weekly windows; Ultra has no 5-hour one).
+- **R06 Claude Code version:** `ap.py claude-version [--text S]` (before `init`): below 2.1.295 refuses (exit 2), below 2.1.311 warns with known problems, unreadable version is one line, exit 0; **R06a** thresholds and `parse_claude_version` covered by tests.
+- **R00i:** every change above has tests (`tests/test_wave1.py`).
+
 ## 2.7.0 — Dashboard views (2026-11-05)
 
 The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.

@@ -139,7 +139,7 @@ class HookGuardTests(unittest.TestCase):
         entries = json.loads((self.root / ".claude" / "settings.json").read_text(
             encoding="utf-8"))["hooks"]["PreToolUse"]
         self.assertEqual([e["matcher"] for e in entries],
-                         ["Agent|Task", "Write|Edit|MultiEdit|NotebookEdit"])
+                         ["Agent|Task", "Write|Edit|MultiEdit|NotebookEdit", "Bash"])
 
     def test_signed_run_requires_valid_route_signature(self):
         import gate_sign
@@ -312,7 +312,7 @@ class HookGuardTests(unittest.TestCase):
         _, installed = guard.install_hook(self.root)
         self.assertFalse(installed)
         content = json.loads(settings.read_text(encoding="utf-8"))
-        self.assertEqual(len(content["hooks"]["PreToolUse"]), 2)  # Agent|Task + write tools
+        self.assertEqual(len(content["hooks"]["PreToolUse"]), 3)  # Agent|Task + write tools + Bash
 
     def test_installer_writes_exec_form_fail_closed(self):
         guard.install_hook(self.root)
@@ -361,7 +361,7 @@ class HookGuardTests(unittest.TestCase):
         entries = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PreToolUse"]
         self.assertIn(other, entries)
         guards = [e for e in entries if "claude_agent_guard.py" in json.dumps(e)]
-        self.assertEqual(len(guards), 2)
+        self.assertEqual(len(guards), 3)
         self.assertEqual(guards[0]["hooks"][0]["onFailure"], "block")
         self.assertNotIn(legacy, entries)
 

@@ -15,6 +15,8 @@
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
     python3 .autopilot/ap.py ticket 03 retry | fail --note "…" | reset
+    python3 .autopilot/ap.py ticket 02 accept-edit --note "…"   # осознанная правка сданного таска
+    python3 .autopilot/ap.py claude-version [--text "2.1.302"]  # версия Claude Code (до init)
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
     python3 .autopilot/ap.py add debt.emptyEnv TELEGRAM_BOT_TOKEN
@@ -409,20 +411,57 @@ def dep_id(ref, ids):
     return m.group(1).zfill(2) if m else ref
 
 
+# Те же шаблоны, что в tests/test_no_machine_data.py (не расширять сверх них).
+MACHINE_PATH_PATTERNS = [
+    re.compile(r"[A-Za-z]:\\Users\\(?!<|demo\\|user\\|example\\)[A-Za-z0-9_.-]+\\"),
+    re.compile(r"/(?:home|Users)/(?!<|demo/|user/|example/)[a-z0-9_.-]+/", re.I),
+]
+
+
+def machine_path_hits(text):
+    """Пути машины в тексте → [(номер строки, совпадение)]."""
+    return [(n, m.group(0)) for n, line in enumerate(text.splitlines(), 1)
+            for p in MACHINE_PATH_PATTERNS for m in p.finditer(line)]
+
+
+def check_machine_paths(state, files):
+    for p in files + [os.path.join(run_dir(state), "spec.md")]:
+        try:
+            with open(p, "rb") as f:
+                text = f.read().decode("utf-8", errors="replace")
+        except OSError:
+            continue
+        hits = machine_path_hits(text)
+        if hits:
+            die("путь машины в %s, строка %d: %s — замени на <repo> или <scratchpad>"
+                % (os.path.relpath(p, A).replace(os.sep, "/"), hits[0][0], hits[0][1]))
+
+
 def publish_tickets(state):
     files = sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md")))
     if not files:
         return "в %s/tickets/ нет файлов" % state.get("dir")
+    check_machine_paths(state, files)
     old = {t["id"]: t for t in state.get("tickets") or []}
     out = []
     for p in files:
         t = parse_ticket(p)
-        t["fingerprint"] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+        with open(p, "rb") as stream:
+            raw = stream.read()
+        t["fingerprint"] = state_io.ticket_fingerprint(raw)
         prev = old.get(t["id"], {})
-        if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
-            if prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
+        if prev.get("fingerprint") and not state_io.fingerprint_matches(prev["fingerprint"], raw):
+            if prev.get("status") == "done":
+                if prev.get("acceptedFingerprint") != t["fingerprint"]:
+                    die("сданный таск %s изменён; если правка осознанная: "
+                        "`ap.py ticket %s accept-edit --note \"что и почему\"`" % (t["id"], t["id"]))
+                prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
+            elif prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
                 die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
-            prev = {}
+            else:
+                prev = {}
+        elif "acceptedFingerprint" in prev:
+            prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
                   "worktree", "retryAdvice", "attestation", "attestFrom"):
@@ -1372,7 +1411,7 @@ def cmd_plan_models(state, opt):
                 die("plan-models: tickets отличаются от опубликованного плана: %s" % tid)
             with open(candidates[0], "rb") as stream:
                 raw = stream.read()
-            if hashlib.sha256(raw).hexdigest() != tk.get("fingerprint"):
+            if not state_io.fingerprint_matches(tk.get("fingerprint"), raw):
                 die("plan-models: tickets изменены; повтори ap.py tickets и check-plan")
             scores = router.assess_ticket(raw.decode("utf-8"))
             route = router.choose_route(provider, scores, policy, caps)
@@ -1507,8 +1546,30 @@ def cmd_plan_models(state, opt):
         die("plan-models: " + str(exc))
 
 
+def cmd_accept_edit(state, ids, opt):
+    """Запомнить текущий отпечаток сданного таска как осознанную правку."""
+    note = opt.get("note")
+    if not isinstance(note, str) or not note.strip():
+        die("accept-edit требует --note \"что и почему изменено\"")
+    if len(ids) != 1:
+        die("ticket NN accept-edit --note \"…\" — один таск")
+    tk = next((x for x in state.get("tickets") or [] if x["id"] == ids[0]), None)
+    if tk is None:
+        die("таска %s нет — сначала `ap.py tickets`" % ids[0])
+    if tk.get("status") != "done":
+        die("таск %s не сдан: accept-edit только для done" % ids[0])
+    files = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % ids[0]))
+    if len(files) != 1:
+        die("файл таска %s не найден или не один" % ids[0])
+    with open(files[0], "rb") as stream:
+        tk["acceptedFingerprint"] = state_io.ticket_fingerprint(stream.read())
+    log(state, "ticket-edit-accepted", id=ids[0], note=note)
+
+
 def cmd_ticket(state, pos, opt):
-    acts = [p for p in pos if p in TICKET_STATUSES]
+    if "accept-edit" in pos:
+        return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
+    acts =[p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
     if len(acts) != 1 or not ids:
         die("ticket <id…> start|review|repair|done|fail|retry|reset")
@@ -2330,6 +2391,48 @@ def cmd_commits(state):
     return notes or ["коммиты сданных тасков на месте"]
 
 
+CLAUDE_MIN_VERSION = (2, 1, 295)
+CLAUDE_WARN_BELOW = (2, 1, 311)
+CLAUDE_KNOWN_ISSUES = [
+    "2.1.305 (Windows): на части томов отказ любого вызова инструмента; пути scratchpad растут с длиной пути проекта (лимит 260)",
+    "2.1.310 (Windows): PreToolUse-хук пропускал вызов без Git Bash, если команда хука — только строки в кавычках",
+]
+
+
+def parse_claude_version(text):
+    """`2.1.302 (Claude Code)` → (2, 1, 302); не разобрано → None."""
+    m = re.search(r"(?<![\d.])(\d+)\.(\d+)\.(\d+)(?![\d.])", text or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def claude_version_report(version, min_version=CLAUDE_MIN_VERSION, warn_below=CLAUDE_WARN_BELOW):
+    """→ (уровень ok|warn|refuse|unknown, строки сообщения)."""
+    if version is None:
+        return "unknown", ["версия Claude Code не определена (настольное приложение несёт свою) — проверка пропущена"]
+    v = ".".join(map(str, version))
+    if version < min_version:
+        return "refuse", ["Claude Code %s ниже минимума %s — обнови" % (v, ".".join(map(str, min_version)))]
+    if version < warn_below:
+        return "warn", ["Claude Code %s ниже %s; известные проблемы:" % (v, ".".join(map(str, warn_below)))] \
+            + ["  - " + x for x in CLAUDE_KNOWN_ISSUES]
+    return "ok", ["Claude Code %s — ok" % v]
+
+
+def cmd_claude_version(opt):
+    text = opt.get("text")
+    if text is None:
+        try:
+            text = subprocess.run(["claude", "--version"], capture_output=True, text=True,
+                                  timeout=20).stdout
+        except (OSError, subprocess.SubprocessError):
+            text = ""
+    level, lines = claude_version_report(parse_claude_version(text if isinstance(text, str) else ""))
+    if level == "ok":
+        return 0
+    print("\n".join(lines))
+    return 2 if level == "refuse" else 0
+
+
 def main():
     argv = sys.argv[1:]
     # Справка ничего не трогает: ни state.js, ни гейты, ни сервер.
@@ -2344,6 +2447,8 @@ def main():
         return
     pos, opt, multi = parse_args(argv)
     cmd = pos[0] if pos else ""
+    if cmd == "claude-version":
+        sys.exit(cmd_claude_version(opt))
     notes = []
     if cmd == "init":
         state, notes = cmd_init(opt)

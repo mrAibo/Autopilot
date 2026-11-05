@@ -184,6 +184,8 @@ python .autopilot/claude_agent_guard.py --install-hook --root .
 
 This opt-in command merges a project hook into `.claude/settings.json`, preserving unrelated settings. During an unfinished `strictRouting` run it denies generic `Agent`/`Task` calls, premium/inherited profiles, explicit model/effort overrides, missing capability entries, and executor profiles whose hash no longer matches the approved route. The `SubagentStart` event **cannot** prevent spawning; `PreToolUse` can deny a tool invocation. Hooks can be disabled or bypassed by the host, so this is not a sandbox/security guarantee. Only enable this project-wide guard when you intend to route every subagent through Autopilot definitions; it will intentionally reject generic Explore calls during a strict run.
 
+**Advisor caveat:** the advisor is a server-side tool; subagents inherit the `advisorModel` setting and `is_allowed_subagent_model` does not see it, so this gate cannot block it. Set `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for a strict build (see [claude-code.md](claude-code.md)). The same hook also rejects `git stash`, `git reset` and `git checkout --` in subagent Bash calls; a command hidden in a script or `eval` is not caught.
+
 For Codex, named custom roles are the supported native mechanism. `[agents].default_subagent_model` and `default_subagent_reasoning_effort` may set cheap defaults as defense in depth, but explicit model selection can override them. There is no equivalent Codex hook installed here: do not claim hard prevention of arbitrary external spawns.
 
 ## Non-executor subagents

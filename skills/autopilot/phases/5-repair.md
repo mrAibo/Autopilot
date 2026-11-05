@@ -40,6 +40,10 @@ In strict isolated mode, the `--tests` count must match independently recorded h
 - **Two дозапроса into one context, then the right-hand column.**
 - If the harness cannot continue a subagent, the fallback is a fresh context with the full ticket prompt plus the finding — never your own keyboard.
 
+## An executor stopped by a usage limit
+
+Not a failure and not a retry. `git status` and `git diff` of its zone, then `SendMessage` "продолжи" to the same agent; do not start a new one. Uncommitted edits in the zone are that agent's work: keep them, never reset or stash them. Tell the user when the limit resets, taking the time from Claude Code's own message and never guessing: a plan has a 5-hour window and a weekly one; Ultra has no 5-hour limit.
+
 ## BLOCKED for a missing dependency
 
 Not a failure. If the dependency fits a decision the spec already made, add it to «Решения по реализации» and relaunch the ticket with permission to install exactly that (`phases/5-subagents.md`). If it would be a new decision — a paid service, a heavy framework, a different stack — it is the user's question in semi, interview and manual, an `ASSUMPTION` in full.

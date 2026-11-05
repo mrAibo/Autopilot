@@ -8,6 +8,7 @@
 guard — deny.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -38,6 +39,32 @@ def parse_state_text(text):
     if not isinstance(data, dict):
         raise StateError("state.js: ожидался объект")
     return data
+
+
+def _text_of(raw):
+    return raw.decode("utf-8", errors="replace").lstrip(chr(0xFEFF)).replace("\r\n", "\n").replace("\r", "\n")
+
+
+def ticket_fingerprint(raw):
+    """sha256 нормализованного текста таска: без BOM, LF, без пробелов и табов в конце строк."""
+    text = "\n".join(line.rstrip(" \t") for line in _text_of(raw).split("\n"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def fingerprint_matches(stored, raw):
+    """Таск не менялся: хранимый отпечаток равен новому или одному из старых вариантов
+    (сырые байты; текст с окончаниями LF/CRLF и BOM/без)."""
+    if not stored:
+        return False
+    if stored == ticket_fingerprint(raw) or stored == hashlib.sha256(raw).hexdigest():
+        return True
+    text = _text_of(raw)
+    for eol in ("\n", "\r\n"):
+        for bom in ("", chr(0xFEFF)):
+            data = (bom + text.replace("\n", eol)).encode("utf-8")
+            if stored == hashlib.sha256(data).hexdigest():
+                return True
+    return False
 
 
 def read_state_file(path):

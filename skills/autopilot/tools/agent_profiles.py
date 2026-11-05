@@ -63,6 +63,9 @@ def definition(provider, name, role, route, ticket, text=""):
         "Autopilot policy: do not use a different model; stop on model mismatch. "
         + ("Requested effort must also match. " if effort_enforced else
            "Effort is advisory, not enforceable by this host. ")
+        + ("Git: never run `git stash`, `git reset` or `git checkout -- <paths of others>`; "
+           "commit only with `git commit --only <files of your zone>`; "
+           "run `git diff --cached --stat` before committing. " if role == "executor" else "")
         + "Task brief: " + ticket + "\n"
     )
     if provider == "anthropic":

@@ -47,6 +47,7 @@ answered questions, or run `init` on an unfinished run.
    with the known worktree/zone information. If task state and Git
    disagree, stop the affected task until the inconsistency is
    resolved. Already verified `done` tickets must not be repeated.
+   **Executor stopped by a usage limit:** `git status` and `git diff` of its zone, then `SendMessage` "продолжи" to the same agent; do not start a new one. Uncommitted edits in the zone are the agent's work — keep them, never reset or stash them. Tell the user when the limit resets, from Claude Code's own message, never guessed: a plan has a 5-hour window and a weekly one; Ultra has no 5-hour limit.
 6. **Restore decisions:** if `state.js` records a `waiting`
    question, check whether the answer was durably recorded.
    Re-ask only genuinely unanswered questions; if the answer has

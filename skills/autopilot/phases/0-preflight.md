@@ -36,6 +36,12 @@ A dirty working tree → say so in one line and continue; never stash, reset or 
 
 **Read `phases/0-memory.md`**: it picks the file — `AGENTS.md` with a `CLAUDE.md` pointer, or the user's own file, which the run does not write into — and holds the skeleton. Do **not** read `phases/9-memory.md` here.
 
+## 3a. Claude Code version and advisor
+
+In Claude Code, before `init`: `python3 .autopilot/ap.py claude-version` (before the instruments exist, run the copy from the skill's `tools/`). Below 2.1.295 it refuses (exit 2); below 2.1.311 it warns with known problems (exit 0); an unreadable version is one line, not a refusal.
+
+**Strict run:** if `advisorModel` is set in the user, project or local Claude settings, warn the user and offer `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for the duration of the build: the advisor is a server-side tool that subagents inherit, and the model guard does not see it (`docs/autopilot/claude-code.md`).
+
 ## 4. Instruments
 
 **Read `phases/0-instruments.md`**: copy the template and `ap.py`, run `init` with the memory choice from §3, open the dashboard. The command table there is the whole of the instruments for the rest of the run.

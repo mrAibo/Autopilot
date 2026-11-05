@@ -2418,10 +2418,12 @@ class Run(unittest.TestCase):
         sha = self.commit("T01")
         self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
         self.write("tickets/01-karkas.md", ticket("01", "Новая версия", "R01, R05", "—", ["src/core/"], 1))
-        self.ap("tickets")
+        code, out = self.ap("tickets")   # R01b: a done ticket is not reset silently
+        self.assertNotEqual(code, 0)
+        self.assertIn("accept-edit", out)
         t = {t["id"]: t for t in self.state()["tickets"]}["01"]
-        self.assertEqual(t["status"], "pending")
-        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| in-ticket \|")
+        self.assertEqual(t["status"], "done")
+        self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| done \|")
 
     def test_finish_lands_the_run(self):
         self.ready_to_finish()
@@ -2496,7 +2498,12 @@ class Run(unittest.TestCase):
         self.write("tickets/02-priem.md",
                    ticket("02", "Приём", "R01, R02, R05, A01", "01",
                           ["src/bot/"], 2))
+        code, out = self.ap("ticket", "02", "accept-edit", "--note", "R05 added")
+        self.assertEqual(code, 0, out)
         code, out = self.ap("tickets")
+        self.assertEqual(code, 0, out)
+        self.assertEqual({t["id"]: t["status"] for t in self.state()["tickets"]}["02"], "done")
+        code, out = self.ap("ticket", "02", "reset")
         self.assertEqual(code, 0, out)
         code, out = self.ap("ticket", "02", "start")
         self.assertEqual(code, 0, out)

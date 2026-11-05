@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import sys
 
 import gate_sign
@@ -100,11 +101,55 @@ def write_decision(payload, root):
     return True, "No active strict run"
 
 
+GIT_OPTS_WITH_VALUE = ("-C", "-c", "--git-dir", "--work-tree", "--namespace")
+
+
+def bash_decision(command):
+    """Pure check of one Bash command: deny git stash / reset / checkout -- <paths>.
+
+    Splits on ; && || | & and newlines. shortcut: a command hidden in a script, `eval`
+    or `$(...)` is not seen; documented in docs/autopilot/claude-code.md.
+    """
+    for part in re.split(r"&&|\|\||[;|&\n]", command if isinstance(command, str) else ""):
+        try:
+            words = shlex.split(part)
+        except ValueError:
+            words = part.split()
+        if "git" not in words:
+            continue
+        rest = words[words.index("git") + 1:]
+        while rest and rest[0].startswith("-"):
+            rest = rest[2:] if rest[0] in GIT_OPTS_WITH_VALUE else rest[1:]
+        sub = rest[0] if rest else ""
+        if sub in ("stash", "reset") or (sub == "checkout" and "--" in rest):
+            return False, "git %s is forbidden for Autopilot subagents (shared worktree index)" % sub
+    return True, "Command allowed"
+
+
+def bash_gate(payload, root):
+    if not (payload.get("agent_id") or payload.get("agent_type")):
+        return True, "Main session"
+    if not (Path(root) / ".autopilot" / "state.js").exists():
+        return True, "No Autopilot run"
+    state = read_state(root)
+    if state is None:
+        return True, "No readable Autopilot state"
+    forged = forged_run(state, root)
+    if forged:
+        return False, forged
+    if not state.get("strictRouting") or state.get("finishedAt"):
+        return True, "No active strict run"
+    args = payload.get("tool_input")
+    return bash_decision(args.get("command") if isinstance(args, dict) else "")
+
+
 def decision(payload, root):
     if not isinstance(payload, dict):
         return False, "Malformed Claude hook payload"
     if payload.get("tool_name") in WRITE_TOOLS:
         return write_decision(payload, root)
+    if payload.get("tool_name") == "Bash":
+        return bash_gate(payload, root)
     if payload.get("tool_name") not in ("Agent", "Task"):
         return True, "Not an agent invocation"
     state_file = Path(root) / ".autopilot" / "state.js"
@@ -262,7 +307,8 @@ def install_hook(root):
     # Settings-level layer for Claude-started forks, independent of this hook.
     fork_denied = "Agent(fork)" in deny
     write_hook = dict(hook, matcher="|".join(WRITE_TOOLS))
-    if hook in current and write_hook in current and fork_denied:
+    bash_hook = dict(hook, matcher="Bash")
+    if hook in current and write_hook in current and bash_hook in current and fork_denied:
         return settings, False
     if not fork_denied:
         deny.append("Agent(fork)")
@@ -276,7 +322,7 @@ def install_hook(root):
                 or h.get("args") == hook["hooks"][0]["args"])
             for h in inner)
     current[:] = [e for e in current if not outdated(e)]
-    current.extend((hook, write_hook))
+    current.extend((hook, write_hook, bash_hook))
     temp = settings.with_suffix(".json.tmp")
     try:
         with temp.open("x", encoding="utf-8") as writer:
