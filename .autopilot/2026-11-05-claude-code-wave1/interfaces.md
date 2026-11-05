@@ -28,3 +28,11 @@
 Скрывает: разбор команды git.
 
 **Швы для тестов:** `state_io.fingerprint_matches`, `ap.machine_path_hits`, `ap.claude_version_report`, `claude_agent_guard.bash_decision`; сквозной — `ap.py tickets` / `ticket accept-edit` в харнессе из `tests/test_ap.py`.
+
+## Построено тиком 01
+
+- `state_io.ticket_fingerprint(raw: bytes) -> str`; `state_io.fingerprint_matches(stored, raw) -> bool`
+- `ap.machine_path_hits(text) -> list[tuple[int,str]]`; `ap.parse_claude_version(text) -> tuple|None`; `ap.claude_version_report(version, min_version=(2,1,295), warn_below=(2,1,311)) -> (level, lines)`
+- `claude_agent_guard.bash_decision(command) -> (bool,str)`; хук `Bash` в `install_hook`
+- команды: `ap.py claude-version [--text S]`, `ap.py ticket NN accept-edit --note S`
+- `claude_agent_guard.split_unquoted(command: str) -> list[str]` (F1): делит команду по разделителям только вне кавычек
