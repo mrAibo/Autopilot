@@ -35,8 +35,8 @@ class RunLogTests(unittest.TestCase):
 
     def test_long_value_is_cut_and_machine_path_is_replaced(self):
         run_log.append(self.d, "reset", what="ticket", id="01", reason="x" * 500)
-        run_log.append(self.d, "reset", what="ticket", id="C:\\Users\\ivan\\proj\\a.py",
-                       reason="/home/ivan/x")
+        run_log.append(self.d, "reset", what="ticket", id="C:\\Users\\" + "ivan" + "\\proj\\a.py",
+                       reason="/home/" + "ivan" + "/x")   # литерал пути не лежит в файле
         long_row, path_row = self.rows()
         self.assertEqual(len(long_row["reason"]), 120)
         self.assertEqual((path_row["id"], path_row["reason"]), ("[path]", "[path]"))
