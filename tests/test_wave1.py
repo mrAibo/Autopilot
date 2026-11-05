@@ -183,7 +183,11 @@ class BashGuard(unittest.TestCase):
                     'git commit -m "a; git reset notes"', 'git commit -m "x\nrun git stash later"',
                     "git commit -m 'a && git stash | b & c'", r'git commit -m "say \"; git stash\""'):
             self.assertTrue(guard.bash_decision(cmd)[0], cmd)
-        for cmd in ('git commit -m "a b" && git stash', 'git commit -m "x;y"; git reset --hard',
+        self.assertTrue(guard.bash_decision("git commit -F - <<EOF\ndon't do it\nEOF")[0])
+        self.assertFalse(guard.bash_decision("cat <<EOF\ndon't\nEOF\ngit stash")[0])
+        self.assertTrue(guard.bash_decision('echo "a #b; git stash"')[0])
+        for cmd in ("# don't touch the index\ngit stash\n# it's done", "ls # don't\ngit reset --hard",
+                    'git commit -m "a b" && git stash', 'git commit -m "x;y"; git reset --hard',
                     "git commit -m 'x|y' | git stash pop", 'echo "a"\ngit stash', r'echo \"; git stash'):
             self.assertFalse(guard.bash_decision(cmd)[0], cmd)
 

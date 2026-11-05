@@ -115,6 +115,10 @@ def split_unquoted(command):
             continue
         if quote:
             quote = None if c == quote else quote
+        elif c == "#" and (not buf or buf[-1][-1] in " \t"):
+            i = command.find("\n", i)  # comment: no quote opens inside it
+            i = len(command) if i < 0 else i
+            continue
         elif c in "'\"":
             quote = c
         elif c in ";&|\n":
