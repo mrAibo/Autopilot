@@ -115,7 +115,7 @@ def split_unquoted(command):
             continue
         if quote:
             quote = None if c == quote else quote
-        elif c == "#" and (not buf or buf[-1][-1] in " \t"):
+        elif c == "#" and (not buf or buf[-1] in (" ", "\t")):  # an escaped "\ " is a 2-char entry
             i = command.find("\n", i)  # comment: no quote opens inside it
             i = len(command) if i < 0 else i
             continue
