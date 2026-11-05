@@ -1,12 +1,12 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.6.0` (read-only audit mode; plan on a strong model, build in a fresh cheaper session; builds on 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.7.0` (switchable dashboard views and project logo; builds on 2.6.0 read-only audit mode, 2.5.0 plan on a strong model and build in a fresh cheaper session, and 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
 
-## Unreleased — Dashboard views (2026-11-03)
+## 2.7.0 — Dashboard views (2026-11-05)
 
 The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.
 

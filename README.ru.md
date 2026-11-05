@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h1 align="center">Autopilot 2.6</h1>
+<h1 align="center">Autopilot 2.7</h1>
 
 <p align="center"><a href="https://github.com/mrAibo/Autopilot">GitHub: mrAibo/Autopilot</a></p>
 

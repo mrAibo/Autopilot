@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md | audit[: фокус]"
 allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *) Bash(python .autopilot/controller.py *) Bash(python3 .autopilot/controller.py *) Bash(py -3 .autopilot/controller.py *)
 metadata:
-  version: "2.6.0"
+  version: "2.7.0"
 ---
 
 # Autopilot
