@@ -104,13 +104,36 @@ def write_decision(payload, root):
 GIT_OPTS_WITH_VALUE = ("-C", "-c", "--git-dir", "--work-tree", "--namespace")
 
 
+def split_unquoted(command):
+    """Split on ; & | and newlines that sit outside '...' and "..." (a backslash escapes)."""
+    parts, buf, quote, i = [], [], None, 0
+    while i < len(command):
+        c = command[i]
+        if c == "\\" and quote != "'" and i + 1 < len(command):
+            buf.append(command[i:i + 2])
+            i += 2
+            continue
+        if quote:
+            quote = None if c == quote else quote
+        elif c in "'\"":
+            quote = c
+        elif c in ";&|\n":
+            parts.append("".join(buf))
+            buf = []
+            i += 1
+            continue
+        buf.append(c)
+        i += 1
+    return parts + ["".join(buf)]
+
+
 def bash_decision(command):
     """Pure check of one Bash command: deny git stash / reset / checkout -- <paths>.
 
-    Splits on ; && || | & and newlines. shortcut: a command hidden in a script, `eval`
-    or `$(...)` is not seen; documented in docs/autopilot/claude-code.md.
+    Splits on ; && || | & and newlines outside quotes. shortcut: a command hidden in a script,
+    `eval` or `$(...)` is not seen; documented in docs/autopilot/claude-code.md.
     """
-    for part in re.split(r"&&|\|\||[;|&\n]", command if isinstance(command, str) else ""):
+    for part in split_unquoted(command if isinstance(command, str) else ""):
         try:
             words = shlex.split(part)
         except ValueError:
