@@ -131,25 +131,78 @@ def split_unquoted(command):
     return parts + ["".join(buf)]
 
 
-def bash_decision(command):
-    """Pure check of one Bash command: deny git stash / reset / checkout -- <paths>.
+GIT_NAMES = ("git", "git.exe")
+SHELL_NAMES = ("bash", "sh", "zsh", "dash")
+SHELL_MAX_DEPTH = 3  # bash -c wrappers unwrapped before the innermost command is checked
+WHOLE_TREE = (".", "./")
 
-    Splits on ; && || | & and newlines outside quotes. shortcut: a command hidden in a script,
-    `eval` or `$(...)` is not seen; documented in docs/autopilot/claude-code.md.
-    """
+
+def command_name(word):
+    """Name of a program word: `/usr/bin/git`, `C:/x/Git.EXE` -> `git`, `git.exe`."""
+    return re.split(r"[\\/]", word)[-1].lower()
+
+
+def git_denial(args):
+    """Reason to deny one git invocation (args after the `git` word), else None."""
+    rest = args
+    while rest and rest[0].startswith("-"):
+        rest = rest[2:] if rest[0] in GIT_OPTS_WITH_VALUE else rest[1:]
+    sub = rest[0] if rest else ""
+    if (sub in ("stash", "reset")
+            or (sub == "checkout" and ("--" in rest or any(a in WHOLE_TREE for a in rest)))
+            or (sub == "restore" and any(a in WHOLE_TREE for a in rest))):
+        return "git %s is forbidden for Autopilot subagents (shared worktree index)" % sub
+    # -f / --force in any short cluster (-fd, -df, -xdf); -n and --dry-run stay allowed
+    if sub == "clean" and any(a == "--force" or (a.startswith("-") and not a.startswith("--")
+                                                 and "f" in a) for a in rest[1:]):
+        return "git clean --force is forbidden for Autopilot subagents (deletes untracked work)"
+    return None
+
+
+def shell_command(args):
+    """The string after `-c` in `bash [-flags] -c "<string>"`, or None when no -c is given."""
+    j = 0
+    while j < len(args) and args[j].startswith("-") and not args[j].startswith("--"):
+        if args[j] in ("-o", "+o"):  # option with a value
+            j += 2
+            continue
+        if "c" in args[j][1:]:
+            return args[j + 1] if j + 1 < len(args) else ""
+        j += 1
+    return None
+
+
+def _denial(command, depth):
     for part in split_unquoted(command if isinstance(command, str) else ""):
         try:
             words = shlex.split(part)
         except ValueError:
             words = part.split()
-        if "git" not in words:
-            continue
-        rest = words[words.index("git") + 1:]
-        while rest and rest[0].startswith("-"):
-            rest = rest[2:] if rest[0] in GIT_OPTS_WITH_VALUE else rest[1:]
-        sub = rest[0] if rest else ""
-        if sub in ("stash", "reset") or (sub == "checkout" and "--" in rest):
-            return False, "git %s is forbidden for Autopilot subagents (shared worktree index)" % sub
+        for i, word in enumerate(words):
+            name = command_name(word)
+            if name in GIT_NAMES:
+                why = git_denial(words[i + 1:])
+            elif name in SHELL_NAMES and depth < SHELL_MAX_DEPTH:
+                inner = shell_command(words[i + 1:])
+                why = _denial(inner, depth + 1) if inner is not None else None
+            else:
+                continue
+            if why:
+                return why
+    return None
+
+
+def bash_decision(command):
+    """Pure check of one Bash command: deny git stash / reset / checkout -- / restore . / clean -f.
+
+    Splits on ; && || | & and newlines outside quotes; program names match by file name
+    (git, git.exe, any path, any case); `bash|sh|zsh|dash -c "<string>"` is checked recursively.
+    shortcut: a command hidden in a script, `eval` or `$(...)` is not seen; documented in
+    docs/autopilot/claude-code.md.
+    """
+    why = _denial(command, 0)
+    if why:
+        return False, why
     return True, "Command allowed"
 
 
