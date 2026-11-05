@@ -15,6 +15,10 @@ import sys
 
 import gate_sign
 from claude_agent_guard import project_root, read_state
+try:
+    import run_log
+except Exception:  # the journal is optional; the hook must keep working without it
+    run_log = None
 
 # Same agent-name contract as claude_agent_guard.decision.
 AGENT = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-[a-z0-9-]{1,58}")
@@ -68,6 +72,19 @@ def record(payload, root):
     with log.open("a", encoding="utf-8") as writer:
         writer.write(json.dumps(line, ensure_ascii=False) + "\n")
     return line
+
+
+def log_usage(line, root):
+    """SubagentStop: tokens from the subagent transcript -> run-log.jsonl. Never raises."""
+    try:
+        if run_log is None or not line or line.get("event") != "SubagentStop":
+            return
+        usage = run_log.usage_from_transcript(line["transcript_path"]) if line.get("transcript_path") else None
+        if usage:
+            run_log.append(str(Path(root) / ".autopilot"), "executor", agent_type=line["agent_type"],
+                           run=(read_state(root) or {}).get("dir"), **usage)
+    except Exception:
+        pass
 
 
 def install_hook(root):
@@ -136,7 +153,8 @@ def main():
         return 0
     try:
         payload = json.load(sys.stdin)
-        record(payload, project_root(payload))
+        root = project_root(payload)
+        log_usage(record(payload, root), root)
     except Exception as e:  # recording must never block work
         print("Autopilot attestation: " + str(e), file=sys.stderr)
     return 0

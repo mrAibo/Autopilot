@@ -29,6 +29,7 @@
     python3 .autopilot/ap.py finish --result "Бот принимает заявки и пишет их в таблицу"
     python3 .autopilot/ap.py reopen                     # второй бриф в сданном прогоне
     python3 .autopilot/ap.py commits                    # коммиты сданных тасков ещё в истории?
+    python3 .autopilot/ap.py report-run [--share]       # свод журнала прогона (run-log.jsonl)
     python3 .autopilot/ap.py                            # просто синхронизировать
 
 После каждой команды: updatedAt = сейчас (и метка в журнале beats), строка в ленте log,
@@ -57,6 +58,10 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # соседние модули инструментов
 import state_io  # noqa: E402
+try:
+    import run_log  # noqa: E402
+except Exception:                                    # журнал не обязателен для работы
+    run_log = None
 
 for _s in (sys.stdout, sys.stderr):                       # cp1251-консоль Windows
     try:
@@ -171,10 +176,45 @@ def beat(state):
 def log(state, event, **kw):
     """Лента событий для дашборда: что случилось, словами страницы, а не агента.
     Пишет скрипт сам, по команде, — от агента ничего сверх обычного вызова не нужно."""
+    journal = kw.pop("journal", None) or {}           # поля только для run-log.jsonl
     entry = {"t": state["updatedAt"], "k": event}
     entry.update({k: v for k, v in kw.items() if v not in (None, "", [])})
     state.setdefault("log", []).append(entry)
     del state["log"][:-LOG_KEPT]
+    try:
+        mirror_run_log(state, event, kw, journal)
+    except Exception:                                 # журнал только пишет и не блокирует
+        pass
+
+
+def mirror_run_log(state, event, kw, extra):
+    """Событие ленты → строки run-log.jsonl (схема в run_log.KINDS)."""
+    if run_log is None:
+        return
+    put = lambda row, **f: run_log.append(A, row, run=state.get("dir"), **f)
+    if event == "stage":
+        put("phase", id=kw.get("id"), act=kw.get("act"))
+    elif event == "ticket":
+        if kw.get("act") in ("start", "done", "retry", "fail", "repair", "review"):
+            for i in kw.get("ids") or []:
+                put("ticket", id=i, act=kw["act"], cause=extra.get("cause"))
+        if isinstance(kw.get("tests"), dict):
+            put("tests", source="ticket", **kw["tests"])
+    elif event == "gate":
+        put("gate", g=kw.get("g"), ok=kw.get("ok"), reason=kw.get("reason"))
+        if kw.get("reason"):
+            put("reset", what="gate", id=kw.get("g"), reason=kw["reason"])
+    elif event == "tests":
+        put("tests", passed=kw.get("passed"), failed=kw.get("failed"),
+            seconds=extra.get("seconds"), source="manual")
+    elif event == "worktree" and kw.get("act") == "verify":
+        put("tests", passed=kw.get("tests"), failed=0, seconds=extra.get("seconds"), source="host")
+    elif event == "ticket-reset":
+        put("reset", what="ticket", id=kw.get("id"), reason=kw.get("reason"))
+    elif event == "ask":
+        put("wait", kind=kw.get("kind"), act="start")
+    elif event == "answered":
+        put("wait", kind=kw.get("kind"), act="end")
 
 
 def set_gate(state, g, ok, **kw):
@@ -459,6 +499,8 @@ def publish_tickets(state):
             elif prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
                 die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
             else:
+                if prev.get("status") not in (None, "pending"):
+                    log(state, "ticket-reset", id=t["id"], reason="ticket-edited")
                 prev = {}
         elif "acceptedFingerprint" in prev:
             prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
@@ -888,7 +930,7 @@ def ensure_gitignore():
                ".autopilot/gui-dispatch/",
                ".autopilot/api-pilot/", ".autopilot/api-pilot-consent",
                ".autopilot/offline-worker/", ".autopilot/offline-test-consent",
-               ".autopilot/__pycache__/",
+               ".autopilot/__pycache__/", ".autopilot/run-log*.jsonl",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
                ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
     existing = {line.strip() for line in text.splitlines()}
@@ -1824,6 +1866,7 @@ def cmd_ticket(state, pos, opt):
         elif act == "reset":
             for k in ("startedAt", "finishedAt"):
                 tk.pop(k, None)
+            log(state, "ticket-reset", id=i, reason="manual")
         if act == "done":
             close_requirements(state, tk, opt, t)
         if opt.get("tests"):
@@ -1831,7 +1874,10 @@ def cmd_ticket(state, pos, opt):
             state["tests"] = tk["tests"]
         if isinstance(opt.get("commit"), str):
             tk["commit"] = opt["commit"][:12]
-    log(state, "ticket", ids=ids, act=act, tests=tests_pair(opt["tests"]) if opt.get("tests") else None,
+    pair = tests_pair(opt["tests"]) if opt.get("tests") else None
+    cause = opt.get("cause") if isinstance(opt.get("cause"), str) and re.fullmatch(
+        r"[a-z0-9][a-z0-9-]{0,39}", opt["cause"]) else ("tests-failed" if pair and pair["failed"] else None)
+    log(state, "ticket", ids=ids, act=act, tests=pair, journal={"cause": cause},
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
 
 
@@ -1950,14 +1996,16 @@ def cmd_worktree(state, pos, opt):
                 die("worktree: --timeout должен быть целым числом секунд")
             import test_evidence
             require_key(state)
+            started = time.monotonic()
             result = test_evidence.verify(ROOT, ident, record["baseCommit"], suite,
                                           int(timeout), sign=gate_signed(state))
+            seconds = round(time.monotonic() - started, 1)
             tk["testEvidence"] = result
             check = {"passed": result["passed"], "failed": 0}
             tk["tests"] = check
             state["tests"] = check
             log(state, "worktree", act="verify", ticket=ident,
-                tests=result["passed"], suite=result["suite"])
+                tests=result["passed"], suite=result["suite"], journal={"seconds": seconds})
             return "worktree %s: %d/%d тестов подтверждено на хосте" % (
                 ident, result["passed"], result["failed"])
         if action == "finalize":
@@ -2544,7 +2592,14 @@ def main():
             cmd_numbers(state, cmd, rest, multi)
         elif cmd == "tests":
             state["tests"] = tests_pair(rest[0] if rest else "")
-            log(state, "tests", **state["tests"])
+            seconds = opt.get("seconds")
+            if seconds is not None:
+                try:
+                    seconds = float(seconds)
+                except (TypeError, ValueError):
+                    die("--seconds — число секунд, например 42.5")
+                seconds = int(seconds) if seconds.is_integer() else round(seconds, 1)
+            log(state, "tests", journal={"seconds": seconds}, **state["tests"])
         elif cmd == "ask":
             cmd_ask(state, rest, opt)
         elif cmd == "answered":
@@ -2582,9 +2637,22 @@ def main():
             print("  ↑ " + note)
 
 
+def cmd_report_run(argv):
+    """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
+    records = run_log.read_all(A) if run_log else []
+    if not records:
+        print("журнал прогона пуст: .autopilot/run-log.jsonl ещё не создан")
+        return 0
+    summary = run_log.summarize(records, run=records[-1].get("run"))
+    print(run_log.render_report(summary, share="--share" in argv), end="")
+    return 0
+
+
 if __name__ == "__main__":
     if "--stop-now" in sys.argv:
         main()
+    elif sys.argv[1:2] == ["report-run"]:
+        sys.exit(cmd_report_run(sys.argv[2:]))
     else:
         with locked_state():
             main()

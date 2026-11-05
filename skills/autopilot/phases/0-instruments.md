@@ -36,6 +36,7 @@ cp "${TPL%/phases/*}/tools/test_evidence.py" "$A/test_evidence.py"
 cp "${TPL%/phases/*}/tools/state_io.py" "$A/state_io.py"
 cp "${TPL%/phases/*}/tools/process_containment.py" "$A/process_containment.py"
 cp "${TPL%/phases/*}/tools/gate_sign.py" "$A/gate_sign.py"
+cp "${TPL%/phases/*}/tools/run_log.py" "$A/run_log.py"
 ```
 
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
@@ -102,10 +103,11 @@ Immediately after `init`, before Phase 1 asks anything.
 | a finding for the final report | `add report "…"` |
 | G2 result | `coverage found=2 fixed=1 deferred=1 --item "R07 — отложено: …"` |
 | blind acceptance | one call: `blind checked=12 matched=11 --mismatch "R07 — статус не виден" --mismatch "…"` |
-| a full check outside a ticket | `tests 34/0` |
+| a full check outside a ticket | `tests 34/0` (+ `--seconds 42` if you timed it) |
 | the run waits for the user — a briefing round, the manual spec or plan gate, a yes/no before an irreversible action, a stop condition | `ask briefing\|spec\|plan\|action\|stop --note "что ждём, одной строкой"` — chained with nothing: the message goes out after it |
 | the answer came | `answered` — or nothing, when the next call is a `stage` or `ticket`: those close the wait themselves |
 | the run lands | `finish --result "одна строка: что теперь есть"` |
+| where the time and tokens went (reads `.autopilot/run-log.jsonl`, never blocks) | `report-run` — `report-run --share` for an issue attachment, no project data (`docs/autopilot/run-log.md`) |
 | a resume, before anything relaunches | `commits` — every `done` ticket's commit still in `HEAD`; a `!` line is a ticket to reset (`phases/0-resume.md`) |
 
 All are `python3 .autopilot/ap.py …`, and `add` takes several values in one call. **Chain a call with the command it belongs to**, so one event is one turn — the commit of a ticket and its `done` go together (`phases/5-subagents.md`, step 7). Never chain a commit after a check whose result you have not read: `| tail` always exits 0.

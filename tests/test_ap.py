@@ -73,7 +73,7 @@ class Run(unittest.TestCase):
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
-        for name in ("state_io.py", "process_containment.py", "gate_sign.py"):
+        for name in ("state_io.py", "process_containment.py", "gate_sign.py", "run_log.py"):
             shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
@@ -2581,6 +2581,110 @@ class Run(unittest.TestCase):
         self.assertNotIn("таск 01", out)
         self.assertEqual(self.state()["tickets"][1]["status"], "done")   # сбрасывает оркестратор
         self.assertEqual(len(self.state()["log"]), events)               # проверка — не событие
+
+    # ── журнал прогона (run-log.jsonl) ──────────────────────────────────────
+
+    def journal(self):
+        path = os.path.join(self.a, "run-log.jsonl")
+        if not os.path.isfile(path):
+            return []
+        return [json.loads(x) for x in read(path).splitlines()]
+
+    def full_sequence(self, tag="СЕКРЕТНАЯ-ЗАМЕТКА"):
+        """Каждое событие, что пишет журнал; возвращает (коды, отпечатки тасков, ok шлюзов)."""
+        self.plan()
+        steps = [("tickets",), ("stage", "spec"), ("coverage", "found=0", "fixed=0", "deferred=0"),
+                 ("check-plan",), ("ticket", "01", "start"), ("ticket", "01", "retry"),
+                 ("ticket", "01", "repair", "--note", tag), ("ticket", "01", "review"),
+                 ("ticket", "01", "fail", "--note", tag), ("ticket", "01", "retry"),
+                 ("tests", "5/0", "--seconds", "12"), ("blind", "checked=1", "matched=1"),
+                 ("ask", "stop", "--note", tag), ("answered",)]
+        codes = [self.ap(*step)[0] for step in steps]
+        sha = self.commit("T01")
+        codes.append(self.ap("blocker", "resolve", "--id", "B01", "--commit", sha, "--tests", "3/0",
+                             "--note", "Независимый перезапуск подтверждает правку")[0])
+        codes.append(self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)[0])
+        state = self.state()
+        return (codes, {t["id"]: t["fingerprint"] for t in state["tickets"]},
+                {g: v["ok"] for g, v in state["gates"].items()})
+
+    def test_run_log_gets_a_line_for_every_event_kind(self):
+        codes, _, _ = self.full_sequence()
+        self.assertEqual(codes, [0] * len(codes))
+        rows = self.journal()
+        self.assertEqual({r["run"] for r in rows}, {self.state()["dir"]})
+        self.assertTrue({"phase", "ticket", "gate", "tests", "wait"} <= {r["k"] for r in rows})
+        self.assertEqual({r["act"] for r in rows if r["k"] == "ticket"},
+                         {"start", "retry", "repair", "review", "fail", "done"})
+        self.assertIn(("spec", "start"), [(r["id"], r["act"]) for r in rows if r["k"] == "phase"])
+        self.assertTrue({"G2", "G3", "G4"} <= {r["g"] for r in rows if r["k"] == "gate"})
+        timed = [r for r in rows if r["k"] == "tests" and r.get("seconds") == 12]
+        self.assertEqual([(r["passed"], r["failed"], r["source"]) for r in timed], [(5, 0, "manual")])
+        self.assertEqual([r["act"] for r in rows if r["k"] == "wait"], ["start", "end"])
+
+    def test_run_log_holds_no_machine_path_and_no_note_text(self):
+        self.full_sequence(tag="СЕКРЕТНАЯ-ЗАМЕТКА")
+        raw = read(os.path.join(self.a, "run-log.jsonl"))
+        self.assertNotIn("СЕКРЕТНАЯ-ЗАМЕТКА", raw)
+        self.assertNotIn("Каркас", raw)                        # названия тасков
+        values = "\n".join(str(v) for r in self.journal() for v in r.values())   # без JSON-экранирования
+        for p in (r"[A-Za-z]:\\Users\\(?!<|demo\\|user\\|example\\)[A-Za-z0-9_.-]+\\",   # test_no_machine_data
+                  r"/(?:home|Users)/(?!<|demo/|user/|example/)[a-z0-9_.-]+/"):
+            self.assertIsNone(re.search(p, values, re.I), p)
+        self.assertNotIn(os.path.basename(self.root), raw)
+
+    def test_resets_land_in_run_log_with_reason(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("check-plan")
+        self.ap("ticket", "01", "start")
+        self.write("tickets/01-karkas.md", ticket("01", "Каркас 2", "R01, R05", "—", ["src/core/"], 1))
+        self.assertEqual(self.ap("tickets")[0], 0)             # несданный изменённый таск → pending
+        self.assertEqual(self.ap("ticket", "02", "reset")[0], 0)
+        self.write("tickets/02-priem.md", ticket("02", "Приём", "R01.1, R02, A01", "01", ["src/other/"], 2))
+        self.ap("check-plan")                                   # контракт плана сменился → шлюзы сброшены
+        resets = [r for r in self.journal() if r["k"] == "reset"]
+        self.assertTrue(all(r.get("reason") for r in resets), resets)
+        pairs = [(r["what"], r["id"], r["reason"]) for r in resets]
+        self.assertIn(("ticket", "01", "ticket-edited"), pairs)
+        self.assertIn(("ticket", "02", "manual"), pairs)
+        self.assertIn(("gate", "G2", "plan-changed"), pairs)
+
+    def test_failing_run_log_changes_nothing_in_commands_or_state(self):
+        clean = self.full_sequence()
+        other = Run("test_tickets_publish_and_move_rows_in_ticket")
+        other.setUp()
+        self.addCleanup(other.tearDown)
+        os.mkdir(os.path.join(other.a, "run-log.jsonl"))        # запись журнала падает
+        self.assertEqual(other.full_sequence(), clean)
+        self.assertTrue(os.path.isdir(os.path.join(other.a, "run-log.jsonl")))
+
+    def test_report_run_prints_sections_and_share_hides_project_data(self):
+        self.full_sequence()
+        code, out = self.ap("report-run")
+        self.assertEqual(code, 0, out)
+        for word in ("Фазы", "Таски", "Простои", "Токены", self.state()["dir"], "01"):
+            self.assertIn(word, out)
+        code, shared = self.ap("report-run", "--share")
+        self.assertEqual(code, 0, shared)
+        for word in ("Фазы", "Таски", "Простои", "Токены"):
+            self.assertIn(word, shared)
+        self.assertNotIn(self.state()["dir"], shared)
+        self.assertNotIn("repair-bot", shared)
+        self.assertIsNone(re.search(r"\d{4}-\d{2}-\d{2}", shared))
+        self.assertIsNone(re.search(r"\d\d:\d\d:\d\d", shared))
+
+    def test_report_run_with_empty_log_and_without_state_is_one_line(self):
+        code, out = self.ap("report-run")                       # ни state.js, ни журнала
+        self.assertEqual(code, 0, out)
+        self.assertEqual(len(out.strip().splitlines()), 1)
+        self.init()
+        code, out = self.ap("report-run", "--share")
+        self.assertEqual((code, len(out.strip().splitlines())), (0, 1))
+
+    def test_init_ignores_run_log_in_git(self):
+        self.init()
+        self.assertIn(".autopilot/run-log*.jsonl", read(os.path.join(self.root, ".gitignore")).splitlines())
 
 
 class Pure(unittest.TestCase):
