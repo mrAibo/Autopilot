@@ -18,6 +18,9 @@ NAMES = {"overview": "Overview", "timeline": "Timeline", "requirements": "Requir
 HOME = {"overview": "mission", "timeline": "tasks", "requirements": "quality", "resources": "models",
         "summary": "quality", "classic": "mission", "compact": "mission", "quality": "quality"}
 NODE = shutil.which("node")
+# Gantt label variants, longest first: full, short, number, icon (px the text needs, padding included); a bar this wide (px).
+GX_NEED = [140, 70, 34, 32]
+GX_CASES = [[GX_NEED, w] for w in (0, 8, 31, 32, 33, 34, 60, 69, 70, 139, 140, 400)]
 
 # Runs the template's own <script> in a vm with a tiny DOM stub; prints JSON.
 HARNESS = r"""
@@ -85,6 +88,33 @@ out.click.unknown = run(c, 'VIEW');
 out.click.reload = run(env(input.fixtures.running, c.store, false), 'VIEW');
 const x = env(input.fixtures.notes, {}, false);
 out.expanded = run(x, "VIEW = 'timeline'; UI.open['nt:T05'] = true; render('en'); document.getElementById('app').innerHTML");
+// Gantt bar labels: the pure rule, and the fitter on a fake DOM (no layout in node: the widths are given).
+out.gx = {};
+try {
+  const g = env(input.fixtures.running, {}, false);
+  out.gx.pick = input.gxCases.map(([need, avail]) => run(g, `gxPick(${JSON.stringify(need)}, ${avail})`));
+  const el = o => { const cl = new Set(o.cls || []);
+    return Object.assign({children: [], dataset: {}, parentElement: null, nextElementSibling: null, cl,
+      classList: {toggle(n, f) { (f === undefined ? !cl.has(n) : f) ? cl.add(n) : cl.delete(n); }, add: n => cl.add(n),
+        remove: n => cl.delete(n), contains: n => cl.has(n)}}, o); };
+  const bar = (cls, w, left, widths, d, laneW, tailW) => {
+    const lane = el({clientWidth: laneW});
+    const b = el({cls: [cls], clientWidth: w, offsetWidth: w, offsetLeft: left, parentElement: lane,
+      children: widths.map((x, i) => el({cls: i === d ? ['gl', 'd'] : ['gl'], offsetWidth: x}))});
+    if (tailW) b.nextElementSibling = el({cls: ['gx-tail'], offsetLeft: left + w + 4, offsetWidth: tailW});
+    return b;
+  };
+  const cases = {wide: bar('gx-bar', 200, 10, [110, 50, 16, 14], 1, 600), mid: bar('gx-bar', 60, 10, [110, 50, 16, 14], 1, 600),
+    tiny: bar('gx-bar', 7, 20, [110, 50, 16, 14], 1, 600), tinyRight: bar('gx-bar', 7, 520, [110, 50, 16, 14], 1, 600),
+    tinyTail: bar('gx-bar', 7, 520, [110, 50, 16, 14], 1, 600, 60), tailShort: bar('gx-tail', 40, 100, [48, 30], 0, 600),
+    tailLong: bar('gx-tail', 90, 100, [48, 30], 0, 600)};
+  const g2 = env(input.fixtures.running, {}, false);
+  g2.ctx.getComputedStyle = () => ({paddingLeft: '9px'});
+  g2.ctx.root = {querySelectorAll: () => Object.values(cases)};
+  run(g2, 'gxFit(root)');
+  out.gx.fit = Object.fromEntries(Object.entries(cases).map(([k, b]) => [k,
+    {on: b.children.findIndex(x => x.cl.has('on')), out: b.cl.has('out'), side: b.dataset.side || null, fit: b.cl.has('fit')}]));
+} catch (err) { out.gx.error = String(err && err.stack || err); }
 const L = run(c, 'I18N'), keys = o => Object.keys(o).sort();
 out.i18n = {top: [keys(L.ru), keys(L.en)], vw: [keys(L.ru.vw), keys(L.en.vw)],
   views: [keys(L.ru.views), keys(L.en.views)], label: [L.ru.viewLabel, L.en.viewLabel]};
@@ -155,7 +185,7 @@ class TemplateRuns(unittest.TestCase):
             harness.write_text(HARNESS, encoding="utf-8")
             done = subprocess.run(
                 [NODE, str(harness), str(TEMPLATE)], capture_output=True, encoding="utf-8", timeout=120,
-                input=json.dumps({"ids": VIEW_IDS, "fixtures": _fixtures()}))
+                input=json.dumps({"ids": VIEW_IDS, "fixtures": _fixtures(), "gxCases": GX_CASES}))
         if done.returncode:
             raise AssertionError("node harness failed: " + done.stderr[-800:])
         cls.out = json.loads(done.stdout)
@@ -634,12 +664,49 @@ class TemplateRuns(unittest.TestCase):
                     self.assertIn('data-more="nt:T05"', row)
                     self.assertIn(more, row)
                     self.assertNotIn("THE-END", row)  # the cut text; nothing hidden in an attribute either
-                    self.assertLess(len(row), 1500)
+                    self.assertLess(len(row), 1800)  # the row's bar carries its label variants too
         self.assertNotIn('data-more="nt:T03"', self._row(self.out["renders"]["notes/timeline/en"]["html"], "T03"))  # short notes have no button
         row = self._row(self.out["expanded"], "T05")
         self.assertIn("THE-END", row)
         self.assertIn('data-more="nt:T05"', row)
         self.assertIn("Collapse", row)
+
+    def test_bar_label_rule_picks_the_longest_variant_that_fits_whole(self):
+        self.assertNotIn("error", self.out["gx"], self.out["gx"].get("error"))
+        for (need, avail), i in zip(GX_CASES, self.out["gx"]["pick"]):
+            with self.subTest(width=avail):
+                if i < 0:  # nothing fits: the label leaves the bar, it is never cut
+                    self.assertTrue(all(n > avail for n in need))
+                else:
+                    self.assertLessEqual(need[i], avail)  # whole and inside the bar
+                    self.assertTrue(all(n > avail for n in need[:i]))  # and the fullest one that does
+        self.assertEqual(self.out["gx"]["pick"], [-1, -1, -1, 3, 3, 2, 2, 2, 1, 1, 0, 0])
+
+    def test_bar_fitter_shows_one_variant_or_puts_the_label_beside_the_bar(self):
+        fit = self.out["gx"]["fit"]
+        self.assertEqual(fit["wide"], {"on": 0, "out": False, "side": None, "fit": True})
+        self.assertEqual(fit["mid"], {"on": 2, "out": False, "side": None, "fit": True})  # the number, no unit
+        self.assertEqual(fit["tiny"], {"on": 1, "out": True, "side": "r", "fit": True})  # the short label, beside the bar
+        self.assertEqual(fit["tinyRight"]["side"], "l")  # no room to the right of a bar at the end of the scale
+        self.assertEqual(fit["tinyTail"]["side"], "l")  # the forecast tail takes the right side
+        self.assertEqual(fit["tailLong"]["on"], 0)
+        self.assertEqual(fit["tailShort"], {"on": -1, "out": False, "side": None, "fit": True})  # no room: no text, the title keeps it
+
+    def test_every_gantt_bar_carries_whole_label_variants_longest_first_in_every_view(self):
+        for view in ("overview", "timeline", "compact"):
+            for lang, state, unit in (("en", "Done", "min"), ("ru", "Сдан", "мин")):
+                gantt = re.search(r'<div class="gx.*', self.out["renders"]["running/%s/%s" % (view, lang)]["html"], re.S).group(0)
+                bars = re.findall(r'<span class="gx-bar gx-done[^"]*"[^>]*>((?:<span class="gl[^"]*">.*?</span>)+)</span>', gantt, re.S)
+                with self.subTest(view=view, lang=lang):
+                    self.assertTrue(bars)
+                    for bar in bars:
+                        texts = [re.sub(r"<[^>]*>", "", x).strip() for x in re.findall(r'<span class="gl[^"]*">(.*?)</span>', bar, re.S)]
+                        self.assertEqual(len(texts), 3 if view == "compact" else 4, texts)
+                        self.assertRegex(texts[0], r"^(%s · )?\d+ %s$" % (state.lower(), unit))  # a whole label ...
+                        self.assertRegex(texts[-2], r"^\d+$")  # ... down to a bare number
+                        self.assertEqual(texts[-1], "")  # and the icon alone
+                        self.assertEqual(bar.count(" d\">"), 1)  # exactly one is the label that goes beside the bar
+        self.assertNotIn('class="gl', self.out["renders"]["running/classic/en"]["html"])  # Classic has no chart
 
     def test_old_project_state_without_new_fields_draws_every_view_in_both_languages(self):
         for name in ("old", "oldfin"):
@@ -802,6 +869,14 @@ class TemplateStrings(unittest.TestCase):
         self.assertTrue(any("flex-wrap:wrap" in r for r in rules))
         for rule in rules:  # a scroll strip hides "Summary"/"Classic" at ~400 px and resets on re-render
             self.assertNotRegex(rule, r"overflow(-x)?:(auto|scroll|hidden)")
+
+    def test_bar_labels_are_fitted_after_every_draw_and_on_resize_with_one_rule(self):
+        self.assertEqual(self.html.count("function gxFit("), 1)
+        self.assertEqual(self.html.count("const gxPick ="), 1)
+        self.assertRegex(self.html, r"app\.innerHTML = `\s*<a class=\"skip-link\"[\s\S]*?</main>`;\s*gxFit\(app\);")
+        self.assertRegex(self.html, r"addEventListener\('resize'.*gxFit\(")
+        self.assertIn(".gx-bar.out{overflow:visible}", self.html)  # the label beside the bar is not clipped by it
+        self.assertEqual(len(re.findall(r'class="gl\b', self.html)), 1)  # one place builds the variants for all three charts
 
 
 if __name__ == "__main__":

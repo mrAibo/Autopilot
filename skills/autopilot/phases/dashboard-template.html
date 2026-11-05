@@ -743,6 +743,13 @@
   .gx-wait{box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2);background:var(--card);
     background-image:repeating-linear-gradient(90deg,var(--card) 0 5px,transparent 5px 9px)}
   .gx-tail{border:1.5px dashed var(--now);color:var(--now-tx);font-weight:600;font-size:12px}
+  /* Подпись на полосе — набор вариантов (.gl); gxFit() включает один (.on). Не влезла ни одна — короткая (.d) выносится рядом с полосой. */
+  .gx-bar>.gl,.gx-tail>.gl{display:none;align-items:center;gap:6px;flex:none}
+  .gx-bar:not(.fit)>.gl.d,.gx-tail:not(.fit)>.gl.d,.gx-bar>.gl.on,.gx-tail>.gl.on{display:inline-flex}
+  .gx-bar.out{overflow:visible}
+  .gx-bar.out>.gl.on{position:absolute;top:50%;transform:translateY(-50%);color:var(--tx2)}
+  .gx-bar.out[data-side=r]>.gl.on{left:calc(100% + 6px)}
+  .gx-bar.out[data-side=l]>.gl.on{right:calc(100% + 6px)}
   .gx-none{position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mut);white-space:nowrap}
   .gx-mdl{min-width:0}
   .gx-note{grid-column:1/-1;padding:0 2px 10px 36px;align-items:center;flex-wrap:wrap}
@@ -2279,10 +2286,13 @@ function render(lang){
       const k = p.est ? 'wait' : kindOf(t).k, left = pct(p.a), w = Math.max(1.4, pct(p.b) - left);
       const m = t.status === 'done' && mins(t) ? mins(t) : Math.max(1, Math.round((p.b - p.a) / GT));
       const dur = p.est ? (median ? `~${median} ${L.min}` : '') : `${m} ${L.min}`;
-      const tiny = w < (mini ? 14 : 12) && !p.est;  // узкий отрезок: только число минут (состояние — плашка, значок, подсказка)
-      const label = tiny ? String(m) : mini ? (dur || L.chip.wait) : (w >= 22 || !dur) ? [L.chip[k], dur].filter(Boolean).join(' · ') : dur;
-      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${p.est || (tiny && mini) ? '' : ic(kindOf(t).icon, 'xs')}${esc(label)}</span>`
-        + (p.tail ? `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%">~${Math.round(p.tail / GT)} ${L.min}</i>` : '');
+      // Варианты подписи от полного к короткому (ширина полосы в px известна только в браузере — выбирает gxFit):
+      // «сдан · 27 мин» → «27 мин» → «27» → значок; ни один не влез — «27 мин» рядом с полосой. В «Компактном» состояние уже в плашке строки.
+      const ico = p.est ? '' : ic(kindOf(t).icon, 'xs');
+      const vs = p.est ? [esc(dur || L.chip.wait), median ? `~${median}` : '']
+        : [...(mini ? [] : [ico + esc(L.chip[k] + ' · ' + dur)]), ico + esc(dur), String(m), ico];
+      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${gxLabels(vs, p.est || mini ? 0 : 1)}</span>`
+        + (p.tail ? (n => `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%" title="~${n} ${L.min}">${gxLabels([`~${n} ${L.min}`, `~${n}`], 0)}</i>`)(Math.round(p.tail / GT)) : '');
     };
     // Заметка под строкой Ганта: причина, замечание ревью или последняя починка, метка «ремонты · повторы»; нет данных — нет блока.
     // Длинное обрезается до NOTE_MAX знаков, остальное по «показать ещё» (data-more); полного текста в атрибутах нет.
@@ -2470,6 +2480,7 @@ function render(lang){
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
   </footer>
   </main>`;
+  gxFit(app);
   const bv = document.getElementById('brand-version'); // textContent only: state is untrusted
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
@@ -2494,6 +2505,33 @@ function render(lang){
   showLink();
   if (!pulling) pollState();
 }
+
+// Подпись на полосе Ганта (одно правило для «Обзора», «Таймлайна» и мини-Ганта «Компактного»): gxLabels() кладёт в полосу
+// все варианты, gxFit() после каждой отрисовки и при изменении окна оставляет самый длинный из тех, что целиком влезают
+// (нужную ширину берёт у браузера — язык и шрифт не гадаются); не влезла ни одна — короткая рядом с полосой. Не режется ничего.
+const gxLabels = (vs, d) => vs.map((v, i) => [v, i]).filter(([v, i]) => v && v !== vs[i - 1])
+  .map(([v, i]) => `<span class="gl${i === d ? ' d' : ''}">${v}</span>`).join('');
+const gxPick = (need, avail) => need.findIndex(n => n <= avail);  // need — по убыванию; -1: не влезает ни одна
+function gxFit(root) {
+  root.querySelectorAll('.gx-bar, .gx-tail').forEach(bar => {
+    const gl = [...bar.children], w = bar.clientWidth;
+    if (!gl.length || !w) return;
+    bar.classList.remove('out');
+    const pad = parseFloat(getComputedStyle(bar).paddingLeft) || 0;
+    const need = gl.map(g => { gl.forEach(x => x.classList.toggle('on', x === g)); return g.offsetWidth + 2 * pad; });
+    let i = gxPick(need, w);
+    const out = i < 0 && bar.classList.contains('gx-bar');  // у «хвоста» прогноза без места подписи нет: она в подсказке
+    if (out) {
+      i = gl.findIndex(g => g.classList.contains('d'));
+      const tail = bar.nextElementSibling, end = tail && tail.classList.contains('gx-tail') ? tail.offsetLeft + tail.offsetWidth : bar.offsetLeft + bar.offsetWidth;
+      bar.dataset.side = bar.parentElement.clientWidth - end >= bar.offsetLeft ? 'r' : 'l';
+    }
+    gl.forEach((g, j) => g.classList.toggle('on', j === i));
+    if (out) bar.classList.add('out');
+    bar.classList.add('fit');
+  });
+}
+window.addEventListener('resize', () => gxFit(document.getElementById('app')));
 
 // Один обработчик на всё: #app переписывается целиком на каждом событии сборки.
 document.getElementById('app').addEventListener('click', e => {
