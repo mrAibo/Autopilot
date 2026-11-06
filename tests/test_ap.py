@@ -2711,6 +2711,73 @@ class Run(unittest.TestCase):
         code, out = self.ap("report-run", "--share")
         self.assertEqual((code, len(out.strip().splitlines())), (0, 1))
 
+    def drop_run_log(self):
+        os.remove(os.path.join(self.a, "run_log.py"))
+
+    def ap_stderr(self, *args):
+        env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1", AUTOPILOT_HOME=self.home)
+        r = subprocess.run([sys.executable, os.path.join(self.a, "ap.py")] + list(args) + ["--no-serve"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, cwd=self.root)
+        return r.returncode, r.stdout, r.stderr
+
+    def test_missing_run_log_module_warns_once_and_changes_nothing(self):
+        with_module = self.ap_stderr("tests", "1/0")
+        self.assertEqual(with_module[2], "")
+        self.drop_run_log()
+        code, out, err = self.ap_stderr("tests", "1/0")
+        self.assertEqual((code, out), with_module[:2])
+        self.assertEqual(err.strip().splitlines(), ["run_log.py не найден, журнал не пишется"])
+
+    def test_broken_run_log_module_names_the_error_type(self):
+        with open(os.path.join(self.a, "run_log.py"), "w", encoding="utf-8") as f:
+            f.write("raise ValueError('x')\n")
+        code, out, err = self.ap_stderr("tests", "1/0")
+        self.assertEqual(err.strip().splitlines(), ["run_log.py не импортируется (ValueError), журнал не пишется"])
+
+    def test_report_run_without_module_says_unavailable_not_empty(self):
+        self.drop_run_log()
+        code, out, _ = self.ap_stderr("report-run")
+        self.assertEqual(code, 0)
+        self.assertIn("журнал недоступен: run_log.py не найден, журнал не пишется", out)
+        self.assertNotIn("пуст", out)
+        code, out, _ = self.ap_stderr("report-run")
+        self.assertEqual(code, 0)
+
+    def test_report_run_with_module_and_no_records_says_empty(self):
+        code, out, err = self.ap_stderr("report-run")
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("журнал прогона пуст", out)
+
+    def write_journal(self, *lines):
+        with open(os.path.join(self.a, "run-log.jsonl"), "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+
+    def test_report_run_survives_hand_broken_rows_and_counts_them(self):
+        ok = json.dumps({"t": "2026-01-01T10:00:00+00:00", "run": "r1", "k": "ticket", "id": "01", "act": "start"})
+        self.write_journal(ok, '{"k": "ticket", "run": "r1", "id',
+                           json.dumps({"k": "ticket", "run": "r1", "id": ["01"], "act": "start"}),
+                           json.dumps({"k": "ticket", "run": "r1", "id": "02", "act": "fail", "cause": {"a": 1}}),
+                           json.dumps({"k": "mystery", "run": "r1"}))
+        for args in (("report-run",), ("report-run", "--share")):
+            code, out, err = self.ap_stderr(*args)
+            self.assertEqual(code, 0, err)
+            self.assertIn("пропущено испорченных строк: 4", out)
+
+    def test_report_run_uses_last_row_with_a_run_and_ignores_rows_without(self):
+        row = lambda **f: json.dumps(dict({"t": "2026-01-01T10:00:00+00:00", "k": "ticket", "act": "start"}, **f))
+        self.write_journal(row(run="old-run", id="01"), row(run="new-run", id="02"),
+                           json.dumps({"k": "executor", "agent_type": "autopilot-executor-x", "turns": 9}))
+        code, out, _ = self.ap_stderr("report-run")
+        self.assertEqual(code, 0)
+        self.assertIn("new-run", out)
+        self.assertNotIn("old-run", out)
+        self.assertNotIn("autopilot-executor-x", out)
+
+    def test_report_run_without_any_run_name_is_one_line(self):
+        self.write_journal(json.dumps({"k": "ticket", "id": "01", "act": "start"}))
+        code, out, _ = self.ap_stderr("report-run")
+        self.assertEqual((code, out.strip()), (0, "в журнале нет записей с номером прогона"))
+
     def test_init_ignores_run_log_in_git(self):
         self.init()
         self.assertIn(".autopilot/run-log*.jsonl", read(os.path.join(self.root, ".gitignore")).splitlines())

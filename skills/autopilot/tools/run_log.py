@@ -21,10 +21,17 @@ KINDS = {
     "tests": ("passed", "failed", "seconds", "source"),
     "reset": ("what", "id", "reason"),
     "wait": ("kind", "act"),
-    "executor": ("agent_type", "turns", "input", "output", "cache_read", "cache_write"),
+    "executor": ("agent_type", "role", "turns", "input", "output", "cache_read", "cache_write"),
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
 ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-")
+TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source")
+
+
+def role_of(agent_type):
+    """Роль субагента по имени профиля `autopilot-<роль>-…` (ремонтный исполнитель — executor)."""
+    m = ROLE.match(agent_type) if isinstance(agent_type, str) else None
+    return m.group(1) if m else "agent"
 
 
 def _clean(value):
@@ -62,21 +69,28 @@ def append(autopilot_dir, kind, /, **fields):   # `kind` позиционный:
 
 def read_all(autopilot_dir):
     """Обе части журнала по порядку; битые строки и нечитаемые файлы молча пропускаются."""
-    rows = []
+    return read_all_stats(autopilot_dir)[0]
+
+
+def read_all_stats(autopilot_dir):
+    """(строки-словари обеих частей журнала, число нечитаемых непустых строк)."""
+    rows, skipped = [], 0
     for name in (ROTATED, NAME):
         try:
             with open(os.path.join(autopilot_dir, name), encoding="utf-8", errors="replace") as f:
                 lines = f.read().splitlines()
         except OSError:
             continue
-        for line in lines:
+        for line in filter(str.strip, lines):
             try:
                 row = json.loads(line)
             except ValueError:
-                continue
+                row = None
             if isinstance(row, dict):
                 rows.append(row)
-    return rows
+            else:
+                skipped += 1
+    return rows, skipped
 
 
 def usage_from_transcript(path, max_bytes=5_000_000):
@@ -115,55 +129,73 @@ def _seconds(a, b):
         return None
 
 
-def summarize(records, run=None):
-    """Строки журнала → сводка: фазы, таски, шлюзы, тесты, сбросы, простои, токены."""
-    rows = [r for r in records if isinstance(r, dict) and (run is None or r.get("run") == run)]
-    out = {"run": run or (rows[-1].get("run") if rows else None), "phases": [], "tickets": [],
+def _sound(r):
+    """Строка вида из схемы, где текстовые поля — строки, а значений-списков и словарей нет."""
+    return (isinstance(r, dict) and isinstance(r.get("k"), str) and r["k"] in KINDS
+            and not any(isinstance(v, (list, dict)) for v in r.values())
+            and all(isinstance(r.get(f), (str, type(None))) for f in TEXT_FIELDS))
+
+
+def summarize(records, run=None, skipped=0):
+    """Строки журнала → сводка: фазы, таски, шлюзы, тесты, сбросы, простои, токены.
+    `skipped` — сколько строк не прочитано ранее; испорченные по структуре прибавляются."""
+    records = list(records)
+    skipped += sum(1 for r in records if not _sound(r))
+    rows = [r for r in records if _sound(r) and (run is None or r.get("run") == run)]
+    out = {"run": run or (rows[-1].get("run") if rows else None), "skipped": skipped, "phases": [], "tickets": [],
            "gates": [], "tests": {"runs": 0, "seconds": 0, "passed": None, "failed": None},
            "resets": [], "waits": {"count": 0, "seconds": 0}, "tokens": []}
     phases, tickets, open_waits = {}, {}, {}
     for r in rows:
-        k, t = r.get("k"), r.get("t")
-        if k == "phase":
-            p = phases.setdefault(r.get("id"), {"id": r.get("id"), "start": None, "end": None, "act": None})
-            if r.get("act") == "start":
-                p["start"] = p["start"] or t
-            else:
-                p["start"] = p["start"] or t
-                p["end"], p["act"] = t, r.get("act")
-        elif k == "ticket":
-            x = tickets.setdefault(r.get("id"), {"id": r.get("id"), "starts": 0, "retries": 0,
-                                                 "repairs": 0, "fails": 0, "reviews": 0,
-                                                 "done": False, "causes": []})
-            act = r.get("act")
-            if act in ("start", "retry", "repair", "fail", "review"):
-                x[{"start": "starts", "retry": "retries", "repair": "repairs",
-                   "fail": "fails", "review": "reviews"}[act]] += 1
-            if act == "done":
-                x["done"] = True
-            if r.get("cause") and r["cause"] not in x["causes"]:
-                x["causes"].append(r["cause"])
-        elif k == "gate":
-            out["gates"].append({"g": r.get("g"), "ok": r.get("ok"), "reason": r.get("reason")})
-        elif k == "tests":
-            s = out["tests"]
-            s["runs"] += 1
-            s["seconds"] += r["seconds"] if isinstance(r.get("seconds"), (int, float)) else 0
-            s["passed"], s["failed"] = r.get("passed"), r.get("failed")
-        elif k == "reset":
-            out["resets"].append({"what": r.get("what"), "id": r.get("id"), "reason": r.get("reason")})
-        elif k == "wait":
-            if r.get("act") == "start":
-                open_waits[r.get("kind")] = t
-            elif r.get("kind") in open_waits:
-                out["waits"]["count"] += 1
-                out["waits"]["seconds"] += _seconds(open_waits.pop(r["kind"]), t) or 0
-        elif k == "executor":
-            out["tokens"].append({key: r.get(key) for key in KINDS["executor"]})
+        try:
+            _fold(r, out, phases, tickets, open_waits)
+        except Exception:                                # отчёт не должен падать на одной строке
+            out["skipped"] += 1
     for p in phases.values():
         p["seconds"] = _seconds(p["start"], p["end"]) if p["end"] else None
     out["phases"], out["tickets"] = list(phases.values()), list(tickets.values())
     return out
+
+
+def _fold(r, out, phases, tickets, open_waits):
+    k, t = r.get("k"), r.get("t")
+    if k == "phase":
+        p = phases.setdefault(r.get("id"), {"id": r.get("id"), "start": None, "end": None, "act": None})
+        if r.get("act") == "start":
+            p["start"] = p["start"] or t
+        else:
+            p["start"] = p["start"] or t
+            p["end"], p["act"] = t, r.get("act")
+    elif k == "ticket":
+        x = tickets.setdefault(r.get("id"), {"id": r.get("id"), "starts": 0, "retries": 0,
+                                             "repairs": 0, "fails": 0, "reviews": 0,
+                                             "done": False, "causes": []})
+        act = r.get("act")
+        if act in ("start", "retry", "repair", "fail", "review"):
+            x[{"start": "starts", "retry": "retries", "repair": "repairs",
+               "fail": "fails", "review": "reviews"}[act]] += 1
+        if act == "done":
+            x["done"] = True
+        if r.get("cause") and r["cause"] not in x["causes"]:
+            x["causes"].append(r["cause"])
+    elif k == "gate":
+        out["gates"].append({"g": r.get("g"), "ok": r.get("ok"), "reason": r.get("reason")})
+    elif k == "tests":
+        s = out["tests"]
+        s["runs"] += 1
+        s["seconds"] += r["seconds"] if isinstance(r.get("seconds"), (int, float)) else 0
+        s["passed"], s["failed"] = r.get("passed"), r.get("failed")
+    elif k == "reset":
+        out["resets"].append({"what": r.get("what"), "id": r.get("id"), "reason": r.get("reason")})
+    elif k == "wait":
+        if r.get("act") == "start":
+            open_waits[r.get("kind")] = t
+        elif r.get("kind") in open_waits:
+            out["waits"]["count"] += 1
+            out["waits"]["seconds"] += _seconds(open_waits.pop(r["kind"]), t) or 0
+    elif k == "executor":
+        out["tokens"].append({key: r.get(key) for key in KINDS["executor"]})
+        out["tokens"][-1]["role"] = r.get("role") or role_of(r.get("agent_type"))
 
 
 def _cell(v):
@@ -180,6 +212,8 @@ def render_report(summary, share=False):
     названий тасков и профилей, абсолютных времён, причин."""
     s, lines = summary, []
     lines.append("# Журнал прогона" + ("" if share else ": %s" % _cell(s.get("run"))))
+    if s.get("skipped"):
+        lines += ["", "пропущено испорченных строк: %d" % s["skipped"]]
     lines += ["", "## Фазы"]
     lines += _table(["фаза", "секунды"] if share else ["фаза", "начало", "конец", "итог", "секунды"],
                     [[p["id"], p["seconds"]] if share else
@@ -202,8 +236,7 @@ def render_report(summary, share=False):
     cols = ("turns", "input", "output", "cache_read", "cache_write")
     body = []
     for n, e in enumerate(s["tokens"], 1):
-        m = ROLE.match(e.get("agent_type") or "")
-        who = (m.group(1) if m else "agent") if share else _cell(e.get("agent_type"))
-        body.append([who] + [e.get(c) or 0 for c in cols])
-    lines += _table(["роль" if share else "исполнитель", "ходы", "вход", "выход", "кэш чтение", "кэш запись"], body)
+        role = e.get("role") or role_of(e.get("agent_type"))
+        body.append(([role] if share else [e.get("agent_type"), role]) + [e.get(c) or 0 for c in cols])
+    lines += _table((["роль"] if share else ["исполнитель", "роль"]) + ["ходы", "вход", "выход", "кэш чтение", "кэш запись"], body)
     return "\n".join(lines) + "\n"

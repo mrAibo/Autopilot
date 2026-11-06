@@ -135,6 +135,18 @@ class AttestTests(unittest.TestCase):
         self.assertEqual(len(self.lines()), 1)                    # аттестация записана как прежде
         self.assertNotIn("private", (self.ap / "run-log.jsonl").read_text(encoding="utf-8"))
 
+    def test_run_log_role_follows_the_profile_name(self):
+        reply = json.dumps({"message": {"id": "a", "role": "assistant", "usage": {"input_tokens": 1}}})
+        names = {"autopilot-reviewer-x": "reviewer", "autopilot-explorer-x": "explorer",
+                 "autopilot-acceptance-x": "acceptance", "autopilot-executor-x": "executor",
+                 "autopilot-executor-repair-x": "executor", "foreign-x": "agent"}
+        for name in names:                         # хук чужое имя отсекает, log_usage роль всё равно «agent»
+            stop = dict(self.stop_with_transcript([reply]), agent_type=name)
+            attest.log_usage({"event": "SubagentStop", "agent_type": name,
+                              "transcript_path": stop["agent_transcript_path"]}, self.root)
+        rows = [json.loads(x) for x in (self.ap / "run-log.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual({r["agent_type"]: r["role"] for r in rows}, names)
+
     def test_broken_missing_or_unwritable_run_log_keeps_attestation_and_exit_code(self):
         broken = self.run_hook(self.stop_with_transcript(["{не json"]))
         missing = self.run_hook(self.stop_with_transcript(None))

@@ -26,6 +26,7 @@ Wave 2: run log and hook gaps.
 - **R22 run log:** `.autopilot/run-log.jsonl` records phases, tickets, retries, test runs, resets and executor token usage by default (metadata only, write failures never stop a command); `ap.py report-run [--share]` prints the summary.
 - **R22a hook gaps:** the `Bash` guard also rejects `git.exe`, `<path>/git`, `bash -c "git stash"`, `git restore .`, `git checkout .` and `git clean -fd`.
 - **R22b Bash hook failure:** `docs/autopilot/claude-code.md` explains that `onFailure: block` on the `Bash` hook blocks all Bash commands of the project on a hook failure and how to lift it; behaviour unchanged.
+- **R22d run log hardening:** without `run_log.py` every `ap.py` command prints one stderr line (`run_log.py не найден, журнал не пишется`; an import error names its type) and `report-run` says "журнал недоступен", not "журнал пуст"; a test checks that every `tools/*.py` is in `phases/0-instruments.md` or in the explicit `RUN_FROM_SKILL` list; `report-run` skips hand-broken lines and rows of wrong structure and prints "пропущено испорченных строк: N", takes the run of the last row that has a `run` (none: one line), and shows a "роль" column from the new `role` field of executor rows (`executor`/`reviewer`/`explorer`/`acceptance`/`agent`).
 - **R22c `accept-edit` and worktree:** a done ticket whose worktree is not `released` no longer passes `ap.py tickets` after `accept-edit`; the refusal names `worktree NN land` and `worktree NN release`.
 
 ## 2.7.0 — Dashboard views (2026-11-05)

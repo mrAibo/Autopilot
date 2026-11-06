@@ -82,6 +82,7 @@ def log_usage(line, root):
         usage = run_log.usage_from_transcript(line["transcript_path"]) if line.get("transcript_path") else None
         if usage:
             run_log.append(str(Path(root) / ".autopilot"), "executor", agent_type=line["agent_type"],
+                           role=run_log.role_of(line["agent_type"]),
                            run=(read_state(root) or {}).get("dir"), **usage)
     except Exception:
         pass

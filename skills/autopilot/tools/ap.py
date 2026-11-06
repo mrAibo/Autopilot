@@ -58,16 +58,22 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # соседние модули инструментов
 import state_io  # noqa: E402
+RUN_LOG_WARNING = None
 try:
     import run_log  # noqa: E402
-except Exception:                                    # журнал не обязателен для работы
+except Exception as _e:                              # журнал не обязателен для работы
     run_log = None
+    RUN_LOG_WARNING = ("run_log.py не найден, журнал не пишется"
+                       if isinstance(_e, ModuleNotFoundError) and _e.name == "run_log" else
+                       "run_log.py не импортируется (%s), журнал не пишется" % type(_e).__name__)
 
 for _s in (sys.stdout, sys.stderr):                       # cp1251-консоль Windows
     try:
         _s.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
         pass
+if RUN_LOG_WARNING:
+    print(RUN_LOG_WARNING, file=sys.stderr)
 
 A = os.path.dirname(os.path.abspath(__file__))          # .autopilot этого проекта
 ROOT = os.path.dirname(A)
@@ -2643,11 +2649,18 @@ def main():
 
 def cmd_report_run(argv):
     """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
-    records = run_log.read_all(A) if run_log else []
+    if run_log is None:
+        print("журнал недоступен: " + RUN_LOG_WARNING)
+        return 0
+    records, unreadable = run_log.read_all_stats(A)
     if not records:
         print("журнал прогона пуст: .autopilot/run-log.jsonl ещё не создан")
         return 0
-    summary = run_log.summarize(records, run=records[-1].get("run"))
+    runs = [r["run"] for r in records if isinstance(r.get("run"), str) and r["run"]]
+    if not runs:
+        print("в журнале нет записей с номером прогона")
+        return 0
+    summary = run_log.summarize(records, run=runs[-1], skipped=unreadable)
     print(run_log.render_report(summary, share="--share" in argv), end="")
     return 0
 
