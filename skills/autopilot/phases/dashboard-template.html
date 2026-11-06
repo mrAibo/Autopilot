@@ -472,7 +472,7 @@
   .rail-nav a{display:flex;align-items:center;gap:12px;color:#B6C6DD;
     text-decoration:none;border-radius:12px;padding:13px;font-weight:640;font-size:14px}
   .rail-nav a:hover,.rail-nav a:focus-visible{background:rgba(255,255,255,.10);color:#fff}
-  .rail-nav a:first-child{background:rgba(104,246,210,.12);color:#AFFFF0;
+  .rail-nav a[aria-current]{background:rgba(104,246,210,.12);color:#AFFFF0;
     border:1px solid rgba(100,236,201,.14)}
   .rail-nav .sym{width:22px;text-align:center;font-size:18px}
   .rail-monitor{margin-top:auto;padding:17px;border:1px solid rgba(220,236,255,.12);
@@ -562,12 +562,400 @@
     .card{padding:17px}.cols{grid-template-columns:1fr}
   }
 
+  /* Dashboard 3.2 views: logo mark, theme switcher, blocks of the extra views. */
+  :root{--accent:#4F46E5;--rail-tx:#F8FAFF;--rail-accent:#7DD3FC}
+  :root[data-theme="dark"]{--accent:#8F94FF}
+  @media(prefers-color-scheme:dark){:root:not([data-theme]){--accent:#8F94FF}}
+  .brandmark{width:32px;height:32px;flex:0 0 auto;display:block}
+  .wordmark{font-size:22px;line-height:1.2;letter-spacing:-.045em}
+  .wordmark span{font-weight:400;color:var(--tx)}
+  .wordmark b{font-weight:700;color:var(--accent)}
+  .rail-brand .brandmark{width:42px;height:42px}
+  .rail-brand .wordmark span{color:var(--rail-tx)}
+  .rail-brand .wordmark b{color:var(--rail-accent)}
+  .views{max-width:100%;flex-wrap:wrap;border-radius:18px} /* перенос строкой: в узкой панели видны все темы */
+  .cockpit-content:focus{outline:none}
+  .views button{flex:0 0 auto;white-space:nowrap}
+  .spotlight.one{grid-template-columns:minmax(0,1fr)}
+  .vsec{display:flex;flex-direction:column;gap:13px;scroll-margin-top:18px;min-width:0}
+  .trackcard{--h-tx:var(--tx);--h-mut:var(--mut);--h-track:var(--soft)}
+  .trackcard .s-fail .seg i{background:var(--bad)}
+  .trackcard .s-done .seg i{background:var(--done)}
+  .trackcard .s-now .seg i{background-color:var(--now)}
+  .tablewrap{overflow-x:auto}
+  .routes{width:100%;border-collapse:collapse;font-size:13.5px}
+  .routes th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:750;padding:0 12px 10px 0}
+  .routes td{padding:11px 12px 11px 0;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+  .flat{margin-top:0;padding-top:0;border-top:0}
+  @media(max-width:900px){
+    .tools{flex:1 1 100%}
+    .views{flex:1 1 100%}
+    .wordmark{font-size:19px}
+    .brandmark{width:28px;height:28px}
+  }
+
+  /* Dashboard 3.3: палитра макетов. Рубильник — атрибут data-view на корне (его ставит render()):
+     «Классика» атрибута-исключения не получает и остаётся в прежних цветах. */
+  :root[data-view]:not([data-view="classic"]){
+    --bg:#EDF4F0; --card:#FFFFFF; --line:#D6E4DC; --line2:#C3D6CB;
+    --tx:#0F2A22; --tx2:#3F5A50; --mut:#5A7268; --quiet:#5A7268;
+    --done:#0A7D5A; --done-soft:#DDF3EA; --done-tx:#075E44; --on-done:#FFFFFF;
+    --now:#E8742A; --now-soft:#FDEBDD; --now-tx:#A8470F; --now-on:#2A1405; --hatch:#F6A56B;
+    --rev:#1B6FB8; --rev-soft:#E1EFFB; --rev-tx:#145A96; --on-rev:#FFFFFF;
+    --warn-bg:#FDF1E6; --warn-bd:#F0C9A6; --warn-tx:#7A3A0C;
+    --bad:#B42318; --bad-tx:#B42318; --bad-soft:#FDECEA; --on-bad:#FFFFFF;
+    --inset:#F3F8F5; --soft:#E3EDE7; --idle:#8FA89C; --accent:#0A7D5A;
+    --sh:0 1px 2px rgba(15,42,34,.05); --sh-raised:none;
+  }
+  :root[data-theme="dark"][data-view]:not([data-view="classic"]){
+    --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
+    --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
+    --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
+    --now:#FB923C; --now-soft:#4A2508; --now-tx:#FDBA74; --now-on:#1A0D06; --hatch:#D9742A;
+    --rev:#60A5FA; --rev-soft:#12294A; --rev-tx:#93C5FD; --on-rev:#0B1B33;
+    --warn-bg:#2A1A0B; --warn-bd:#6B4A12; --warn-tx:#FCD34D;
+    --bad:#F97066; --bad-tx:#F97066; --bad-soft:#3A1512; --on-bad:#3A1512;
+    --inset:#18243D; --soft:#1F2D4A; --idle:#566A8F; --accent:#34D399;
+    --sh:none; --sh-raised:none;
+  }
+  @media(prefers-color-scheme:dark){
+    :root:not([data-theme])[data-view]:not([data-view="classic"]){
+      --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
+      --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
+      --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
+      --now:#FB923C; --now-soft:#4A2508; --now-tx:#FDBA74; --now-on:#1A0D06; --hatch:#D9742A;
+      --rev:#60A5FA; --rev-soft:#12294A; --rev-tx:#93C5FD; --on-rev:#0B1B33;
+      --warn-bg:#2A1A0B; --warn-bd:#6B4A12; --warn-tx:#FCD34D;
+      --bad:#F97066; --bad-tx:#F97066; --bad-soft:#3A1512; --on-bad:#3A1512;
+      --inset:#18243D; --soft:#1F2D4A; --idle:#566A8F; --accent:#34D399;
+      --sh:none; --sh-raised:none;
+    }
+  }
+  /* Общие блоки в новой палитре — только вне «Классики». */
+  html:not([data-view="classic"]) :focus-visible{outline-color:var(--tx)}
+  html:not([data-view="classic"]) .card{border-radius:22px;box-shadow:var(--sh)}
+  html:not([data-view="classic"]) .title:before{color:var(--done-tx)}
+  html:not([data-view="classic"]) .brand-version{background:var(--done-soft);color:var(--done-tx)}
+  html:not([data-view="classic"]) .f-done,html:not([data-view="classic"]) .gi.ok{color:var(--on-done)}
+  html:not([data-view="classic"]) .f-rev{color:var(--on-rev)}
+  html:not([data-view="classic"]) .f-bad,html:not([data-view="classic"]) .gi.bad{color:var(--on-bad)}
+  html:not([data-view="classic"]) .tabs{border-color:var(--line);box-shadow:none}
+  html:not([data-view="classic"]) .tabs button,html:not([data-view="classic"]) .iconbtn{min-height:44px;min-width:44px}
+  html:not([data-view="classic"]) .iconbtn{width:44px;height:44px;box-shadow:none}
+  /* Шапка состояния у «Итога»: карточка в палитре вместо синего градиента. */
+  html:not([data-view="classic"]) .hero{--h-tx:var(--tx);--h-mut:var(--tx2);--h-track:var(--soft);
+    background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:var(--sh)}
+  html:not([data-view="classic"]) .hero:before{display:none}
+  html:not([data-view="classic"]) .hero.ask{background:var(--warn-bg);border-color:var(--warn-bd);--h-tx:var(--warn-tx);--h-mut:var(--warn-tx)}
+  html:not([data-view="classic"]) .hero.won{background:var(--done-soft);--h-tx:var(--done-tx);--h-mut:var(--done-tx)}
+  html:not([data-view="classic"]) .hero.bad{background:var(--bad-soft);--h-tx:var(--bad-tx);--h-mut:var(--bad-tx)}
+  html:not([data-view="classic"]) .hero .s-done .seg i,html:not([data-view="classic"]) .hero.won .s-done .seg i,
+  html:not([data-view="classic"]) .hero.bad .s-done .seg i,html:not([data-view="classic"]) .hero.ask .s-done .seg i{background:var(--done)}
+  html:not([data-view="classic"]) .hero .s-now .seg i,html:not([data-view="classic"]) .hero.ask .s-now .seg i{background-color:var(--now)}
+  html:not([data-view="classic"]) .hero .s-fail .seg i{background:var(--bad)}
+  html:not([data-view="classic"]) .hero .live{outline-color:var(--card)}
+  .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
+
+  /* Переключатель видов: цель нажатия не меньше 44 px, «нажато» — ещё и галочкой, не только цветом. */
+  .views button{min-height:44px;height:44px}
+  .views button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
+
+  /* «Обзор» */
+  .ovh{display:flex;flex-wrap:wrap;align-items:center;gap:28px 36px;padding:32px 34px;border-radius:28px}
+  .ring{--rs:210px;width:var(--rs);height:var(--rs);border-radius:50%;flex:none;display:grid;place-items:center}
+  .ring-in{width:76%;height:76%;border-radius:50%;background:var(--card);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:6px}
+  .ring-in b{font-size:calc(var(--rs) * .21);font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .ring-in b small{font-size:.55em;font-weight:600;color:var(--mut)}
+  .ring-in span{font-size:13px;color:var(--tx2);margin-top:6px;max-width:12ch;line-height:1.25}
+  .ring.sm{--rs:116px}
+  .ring.sm .ring-in span{font-size:11px;margin-top:3px}
+  .ovh-main{flex:1 1 400px;min-width:0}
+  .chip-state{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;
+    background:var(--now-soft);color:var(--now-tx)}
+  .chip-state i{width:8px;height:8px;border-radius:50%;background:var(--now);flex:none}
+  .ask .chip-state{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+  .won .chip-state{background:var(--done-soft);color:var(--done-tx)}
+  .won .chip-state i{background:var(--done)}
+  .bad .chip-state{background:var(--bad-soft);color:var(--bad-tx)}
+  .bad .chip-state i{background:var(--bad)}
+  .ovh h2{margin:14px 0 10px;font-size:clamp(26px,3vw,40px);line-height:1.1;font-weight:800;letter-spacing:-.02em;
+    text-wrap:balance;overflow-wrap:anywhere}
+  .ovh .lead{margin:0;font-size:17px;line-height:1.5;color:var(--tx2);max-width:64ch}
+  .ovh .hint{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+  .evnote{margin-top:16px;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--tx2);
+    background:var(--inset);border-radius:14px;padding:12px 14px;max-width:660px}
+  .evnote .mono{color:var(--tx);font-weight:500;flex:none}
+  .ovh-side{flex:0 1 290px;min-width:240px;display:flex;flex-direction:column;gap:14px}
+  .fc{display:flex;flex-direction:column;gap:2px}
+  .fc-k{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  .fc-v{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+  .fc-s{font-size:13px;color:var(--tx2)}
+  .kvs{display:flex;flex-direction:column;gap:6px;font-size:14px;border-top:1px solid var(--line);padding-top:12px}
+  .kv{display:flex;justify-content:space-between;gap:12px}
+  .kv span{color:var(--tx2)}
+  .kv b{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+  .route{list-style:none;margin:0;padding:22px 28px 20px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));
+    background:var(--card);border:1px solid var(--line);border-radius:22px}
+  .rs{min-width:0;padding-right:6px}
+  .rs-top{display:flex;align-items:center;min-height:28px}
+  .rs-mark{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center}
+  .rs-line{flex:1;height:3px}
+  .rs.done .rs-mark{background:var(--done);color:var(--on-done)}
+  .rs.done .rs-line{background:var(--done)}
+  .rs.now .rs-mark{width:28px;height:28px;background:var(--now-soft);border:3px solid var(--now)}
+  .rs.now .rs-mark i{width:8px;height:8px;border-radius:50%;background:var(--now);display:block}
+  .rs.now .rs-line{background:repeating-linear-gradient(90deg,var(--now) 0 8px,var(--now-soft) 8px 14px)}
+  .rs.pend .rs-mark,.rs.skip .rs-mark{border:2px dashed var(--idle);color:var(--mut)}
+  .rs.pend .rs-line,.rs.skip .rs-line{background:var(--line)}
+  .rs.bad .rs-mark{background:var(--bad);color:var(--on-bad)}
+  .rs.bad .rs-line{background:var(--bad)}
+  .rs:last-child .rs-line{display:none}
+  .rs-name{display:block;margin-top:6px;font-size:13px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+  .rs.now .rs-name{font-weight:800;color:var(--now-tx)}
+  .rs.pend .rs-name,.rs.skip .rs-name{color:var(--mut)}
+  .rs-sub{display:block;font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);overflow-wrap:anywhere}
+  .rs.now .rs-sub{color:var(--now-tx)}
+
+  /* Диаграмма Ганта */
+  .gx{--cols:260px minmax(0,1fr) 150px;position:relative}
+  .gx-axis,.gx-row{display:grid;grid-template-columns:var(--cols);column-gap:12px}
+  .gx-axis{height:40px;border-bottom:1px solid var(--line)}
+  .gx-ticks{position:relative}
+  .gx-ticks span{position:absolute;bottom:6px;transform:translateX(-50%);font:11px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);white-space:nowrap}
+  .gx-ticks .gx-nowtag{bottom:auto;top:0;background:var(--now-tx);color:var(--card);border-radius:5px;padding:3px 7px;font-weight:700;z-index:3}
+  .gx-row{min-height:60px;align-items:center;border-bottom:1px solid var(--line)}
+  .gx-lab{display:flex;gap:12px;align-items:center;min-width:0}
+  .gx-lab>div{min-width:0}
+  .gx-lab b{display:block;font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+  .gx-lab small{display:block;font-size:12px;color:var(--mut);margin-top:2px}
+  .gx-id{font:13px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);width:24px;flex:none}
+  .gx-lane{position:relative;height:36px}
+  .gx-grid{position:absolute;top:-12px;bottom:-12px;width:1px;background:var(--line)}
+  .gx-nowline{position:absolute;top:-12px;bottom:-12px;width:2px;margin-left:-1px;background:var(--now-tx);z-index:2}
+  .gx-bar,.gx-tail{position:absolute;top:4px;height:28px;border-radius:8px;display:flex;align-items:center;gap:6px;
+    padding:0 9px;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;z-index:1}
+  .gx-done{background:var(--done);color:var(--on-done)}
+  .gx-now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px);color:var(--now-on)}
+  .gx-rev,.gx-fix{background:var(--rev-soft);color:var(--rev-tx);box-shadow:inset 0 0 0 2px var(--rev)}
+  .gx-bad{background:var(--bad);color:var(--on-bad)}
+  .gx-wait{box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2);background:var(--card);
+    background-image:repeating-linear-gradient(90deg,var(--card) 0 5px,transparent 5px 9px)}
+  .gx-tail{border:1.5px dashed var(--now);color:var(--now-tx);font-weight:600;font-size:12px}
+  /* Подпись на полосе — набор вариантов (.gl); gxFit() включает один (.on). Не влезла ни одна — короткая (.d) выносится рядом с полосой. */
+  .gx-bar>.gl,.gx-tail>.gl{display:none;align-items:center;gap:6px;flex:none}
+  .gx-bar:not(.fit)>.gl.d,.gx-tail:not(.fit)>.gl.d,.gx-bar>.gl.on,.gx-tail>.gl.on{display:inline-flex}
+  .gx-bar.out{overflow:visible}
+  .gx-bar.out>.gl.on{position:absolute;top:50%;transform:translateY(-50%);color:var(--tx2)}
+  .gx-bar.out[data-side=r]>.gl.on{left:calc(100% + 6px)}
+  .gx-bar.out[data-side=l]>.gl.on{right:calc(100% + 6px)}
+  .gx-none{position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mut);white-space:nowrap}
+  .gx-mdl{min-width:0}
+  .gx-note{grid-column:1/-1;padding:0 2px 10px 36px;align-items:center;flex-wrap:wrap}
+  .gx-note>span{flex:1 1 220px;min-width:0}
+  .gx-note .gx-redo{color:var(--mut);white-space:nowrap}
+  .gx-note .btn-soft{height:28px;padding:0 10px;font-size:12.5px;flex:none}
+  .mchip{display:inline-block;font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);
+    border-radius:7px;padding:2px 8px;background:var(--inset);color:var(--tx2);overflow-wrap:anywhere}
+  .gx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--tx2);justify-content:flex-end;max-width:520px}
+  .gx-legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:18px;height:11px;border-radius:3px;display:inline-block}
+  .sw-done{background:var(--done)}
+  .sw-now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px)}
+  .sw-rev{background:var(--rev-soft);box-shadow:inset 0 0 0 2px var(--rev)}
+  .sw-wait{border:1.5px dashed var(--idle)}
+  .gx.mini{--cols:minmax(0,1fr)}
+  .gx.mini .gx-pad,.gx.mini .gx-mdl{display:none}
+  .gx.mini .gx-row{min-height:0;padding:10px 0;row-gap:6px}
+  .gx.mini .gx-lab b{flex:1}
+  .gx.mini .gx-grid,.gx.mini .gx-nowline{top:0;bottom:0}
+  .gx.mini .gx-lane{height:30px;background:var(--inset);border-radius:8px}
+  .gx.mini .gx-bar,.gx.mini .gx-tail{top:3px;height:24px;font-size:12px;padding:0 6px}
+  .gx.mini+.gx-legend{justify-content:flex-start;margin-top:12px}
+
+  .ov3{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.9fr);gap:16px;align-items:start;scroll-margin-top:18px}
+  .ov3>.col:empty{display:none}
+  .ask-card>.card{background:var(--warn-bg);border-color:var(--warn-bd)}
+  .ask-card .wt,.ask-card .nh,.ask-card .nh span{color:var(--warn-tx)}
+  .ask-card .key{background:var(--card);border:1px solid var(--warn-bd)}
+
+  /* «Компактный» */
+  .cmp{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .cmp-hero{padding:20px}
+  .cmp-top{display:flex;align-items:center;gap:18px}
+  .cmp-side{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .cmp-hero .fc-v{font-size:34px}
+  .cmp-hero h2{margin:16px 0 0;font-size:20px;line-height:1.2;font-weight:800;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .cmp-hero .evnote{margin-top:14px;font-size:13px}
+  .ctiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+  .ctile{background:var(--inset);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .ctile span{font-size:12px;color:var(--mut)}
+  .ctile b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .cs-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap;font-size:15px}
+  .cs-sub{font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--now-tx)}
+  .cs-bar{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin:12px 0 10px}
+  .cs-bar i{height:10px;border-radius:4px;background:var(--soft)}
+  .cs-bar i.done{background:var(--done)}
+  .cs-bar i.now{background:repeating-linear-gradient(135deg,var(--now) 0 4px,var(--hatch) 4px 8px)}
+  .cs-bar i.bad{background:var(--bad)}
+  .cs-bar i.pend,.cs-bar i.skip{background:transparent;box-shadow:inset 0 0 0 1.5px var(--idle)}
+  .gchips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .gchip{padding:9px 12px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.3;background:var(--done-soft);color:var(--done-tx);overflow-wrap:anywhere}
+  .gchip.wait{background:transparent;box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2)}
+  .gchip.warn{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
+
+  @media(max-width:1180px){.ov3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ov3>.col:last-child{grid-column:1/-1}}
+  @media(max-width:900px){
+    .ovh{padding:22px 20px;gap:20px}
+    .ring{--rs:170px}
+    .ovh-side{flex:1 1 100%}
+    .route{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 0;padding:18px 16px}
+    .gx{--cols:minmax(0,1fr)}
+    .gx-pad,.gx-mdl{display:none}
+    .gx-row{min-height:0;padding:10px 0;row-gap:6px}
+    .gx-lane{background:var(--inset);border-radius:8px}
+    .gx-grid,.gx-nowline{top:0;bottom:0}
+  }
+  @media(max-width:760px){.ov3{grid-template-columns:minmax(0,1fr)}}
+  @media(max-width:560px){.route{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:520px){.ctile b{font-size:15px}.cmp-hero{padding:16px}}
+  @media(max-width:360px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gchips{grid-template-columns:minmax(0,1fr)}}
+
+  /* «Требования»: матрица пути фразы по семи этапам. Состояние — значок и слово, цвет только помогает. */
+  .mx-head,.mx-row,.mx-sum{display:grid;grid-template-columns:minmax(200px,1.8fr) repeat(7,minmax(0,1fr));column-gap:6px;align-items:center}
+  .mx-head{padding:0 0 10px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;text-align:center;line-height:1.25}
+  .mx-head span:first-child{text-align:left;font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .mx-row{padding:14px 0;border-bottom:1px solid var(--line)}
+  .mx-req{display:flex;gap:10px;align-items:flex-start;min-width:0;padding-right:10px}
+  .mx-req>div{min-width:0}
+  .mx-req p{margin:0;font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+  .mx-req small{display:block;font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--mut);margin-top:3px}
+  .mx-req small:empty{display:none}
+  .mx-c{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
+  .mx-h{display:none;font-size:10px;font-weight:700;line-height:1.2;color:var(--mut);overflow-wrap:anywhere}
+  .mx-m{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px dashed var(--idle);color:var(--mut)}
+  .mx-c.done .mx-m{background:var(--done);border-color:var(--done);color:var(--on-done)}
+  .mx-c.now .mx-m{background:var(--now-soft);border:3px solid var(--now)}
+  .mx-c.now .mx-m i{width:8px;height:8px;border-radius:50%;background:var(--now);display:block}
+  .mx-c.bad .mx-m{background:var(--bad);border-color:var(--bad);color:var(--on-bad)}
+  .mx-c.skip .mx-m{border:2px solid var(--line2)}
+  .mx-t{font-size:11.5px;font-weight:700;line-height:1.25;color:var(--mut);overflow-wrap:anywhere}
+  .mx-c.done .mx-t{color:var(--done-tx)}
+  .mx-c.now .mx-t{color:var(--now-tx)}
+  .mx-c.bad .mx-t{color:var(--bad-tx)}
+  .mx-sum{padding:16px 0 0;font-size:13px;font-weight:700}
+  .mx-sum b{display:block;text-align:center;font:700 13px/1.6 ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .mx-bar{display:block;height:5px;border-radius:3px;background:var(--soft);overflow:hidden}
+  .mx-bar i{display:block;height:100%;background:var(--done)}
+  .mx .more{padding-top:12px}
+
+  /* «Итог»: вердикт по каждому требованию, расхождение, что делать дальше */
+  .sum-top .ovh.won{background:var(--done-soft);border-color:var(--done);border-width:2px}
+  .vd-head,.vd-row{display:grid;grid-template-columns:44px minmax(0,2.2fr) minmax(0,1fr) 56px minmax(0,1.2fr) minmax(0,1.1fr);column-gap:12px;align-items:center}
+  .vd-head{padding-bottom:8px;border-bottom:1px solid var(--line);font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .vd-row{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--tx2)}
+  .vd-row p{margin:0;font-size:14px;font-weight:700;line-height:1.35;color:var(--tx);overflow-wrap:anywhere}
+  .vd-row span{min-width:0;overflow-wrap:anywhere}
+  .vd-t{font-weight:800;color:var(--tx)}
+  .vd .more{padding-top:12px}
+  .mis{background:var(--warn-bg);border-color:var(--warn-bd)}
+  .mis .wt{color:var(--warn-tx)}
+  .mis p{margin:10px 0 0;font-size:14.5px;line-height:1.5;color:var(--warn-tx)}
+  .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;counter-reset:st}
+  .steps li{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;row-gap:2px;counter-increment:st}
+  .steps li:before{content:counter(st);grid-row:1/3;width:28px;height:28px;border-radius:50%;background:var(--tx);color:var(--card);
+    display:grid;place-items:center;font-size:13px;font-weight:800}
+  .steps b{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+  .steps span{font-size:13px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere}
+
+  /* Значок события в ленте: у .ei свой фон перебивал цвет статуса, и белая галочка пропадала на светлом поле. */
+  html:not([data-view="classic"]) .ei.f-done{background:var(--done)}
+  html:not([data-view="classic"]) .ei.f-now{background:var(--now)}
+  html:not([data-view="classic"]) .ei.f-rev{background:var(--rev)}
+  html:not([data-view="classic"]) .ei.f-fix{background:var(--fix)}
+  html:not([data-view="classic"]) .ei.f-bad{background:var(--bad)}
+
+  /* «Ресурсы»: таблица маршрутов — ticket, модель-чип, токены по таскам */
+  .tablewrap{margin-top:14px}
+  .routes .tokbar{display:block;height:6px;border-radius:3px;background:var(--soft);overflow:hidden;min-width:80px;margin-bottom:4px}
+  .routes .tokbar i{display:block;height:100%;background:var(--rev)}
+  .routes .mono{font:12px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--tx2)}
+  .routes td .pill{margin-top:5px}
+  .routes td:first-child{min-width:150px;font-weight:700}
+
+  @media(max-width:720px){
+    .routes{min-width:640px}
+    .routes .mchip{white-space:nowrap}
+    .mx-head{display:none}
+    .mx-row,.mx-sum{grid-template-columns:repeat(7,minmax(0,1fr));column-gap:4px}
+    .mx-req{grid-column:1/-1;padding:0 0 12px}
+    .mx-h{display:block}
+    .mx-t{font-size:10px}
+    .mx-sum>span{grid-column:1/-1;padding-bottom:6px}
+    .mx-sum b{font-size:11px}
+    .vd-head{display:none}
+    .vd-row{grid-template-columns:44px minmax(0,1fr) minmax(0,1fr);row-gap:8px}
+    .vd-row>.rid{grid-area:1/1}
+    .vd-row>p{grid-area:1/2/2/4}
+    .vd-row>.vd-w{grid-area:2/2}.vd-row>.vd-t{grid-area:2/3}.vd-row>.vd-r{grid-area:3/2}.vd-row>.vd-b{grid-area:3/3}
+    .vd-row>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;color:var(--mut);font-weight:400;letter-spacing:.04em;margin-bottom:2px}
+  }
+  /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
+  .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
+  .top .upd+.tools{margin-left:auto}
+  .upd i{width:8px;height:8px;border-radius:50%;background:var(--done);flex:none}
+  .tiles.t5{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .tiles.t5 .tv{font-size:32px}
+  .tlh .ovh-main{flex-basis:360px}
+  .tlh .route{flex:1 1 100%;background:none;border:0;border-radius:0;padding:8px 0 0}
+  .tl2{display:grid;gap:16px;align-items:start;min-width:0}
+  .tl2>.vsec{gap:16px}
+  .tl2{grid-template-columns:minmax(0,1fr) 330px}
+  .tl2 .gx{--cols:180px minmax(0,1fr) 124px}
+  .kcards{display:flex;flex-direction:column;gap:10px}
+  .kcard{background:var(--card);border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 0 0 1px var(--line);color:var(--tx)}
+  .kk{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .kcard b{font-size:26px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+  .ks{font-size:12.5px;color:var(--tx2)}
+  .sum-h .ovh-side{flex:0 1 300px}
+  @media(max-width:1100px){.tl2{grid-template-columns:minmax(0,1fr)}.tl2 .gx{--cols:260px minmax(0,1fr) 150px}}
+  @media(max-width:900px){.tl2 .gx{--cols:minmax(0,1fr)}}
+  @media(max-width:520px){
+    .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
+    html:not([data-view="classic"]) .tools .views{order:1}
+    html[data-view="compact"] .title:before,html[data-view="compact"] .title .meta{display:none}
+    html[data-view="compact"] .title{padding:8px 0 0}
+    html[data-view="compact"] .title h1{font-size:19px}
+    .cmp{gap:10px}
+    .cmp .card{padding:14px 16px;border-radius:18px}
+    .cmp .whead{padding-bottom:8px}
+    .cmp .ev{padding:6px 0}
+    .cmp .need{padding:8px 0}
+    .gx.mini .gx-row{padding:7px 0;row-gap:4px}
+    .gx.mini .gx-lane{height:26px}
+    .gx.mini .gx-bar,.gx.mini .gx-tail{top:2px;height:22px}
+    .gx.mini+.gx-legend{margin-top:8px}
+    .gchip{padding:7px 10px}
+    .gchips{gap:6px}
+  }
 </style>
 </head>
 <body>
 <!-- Плашка о потере связи живёт вне #app: render() переписывает #app целиком. -->
 <div class="lost" hidden><div id="link" role="status" hidden></div></div>
 <div class="wrap" id="app"></div>
+<!-- Знак логотипа (assets/autopilot-logo-light.svg): символ вне #app, чтобы render() и bootFail его не стирали. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="ap-mark" viewBox="8 8 112 112">
+  <linearGradient id="ap-mark-g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#ap-mark-g)"/>
+  <path d="M30 92 C 46 92, 50 70, 64 70 S 82 50, 96 40" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 11"/>
+  <circle cx="30" cy="92" r="7" fill="#FFFFFF"/>
+  <circle cx="64" cy="70" r="7" fill="#FFFFFF"/>
+  <circle cx="96" cy="40" r="17" fill="#FFFFFF"/>
+  <path d="M88 40.5 l5.5 5.5 l10 -11" fill="none" stroke="#4F46E5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol></defs></svg>
 
 <!-- Состояние приходит двумя путями, и порядок этих двух тегов — весь смысл.
      Сначала снимок, вписанный внутрь страницы: он есть всегда, поэтому дашборд
@@ -588,7 +976,10 @@ const STAGE_IDS = ['preflight','manifest','briefing','spec','plan','build','revi
 const POLL_MS = 10000;
 const IDLE_CAP_MS = 2700000;
 
-// Логотип — одна картинка: в тёмной теме её инвертирует CSS (--logo-filter).
+// Логотип: знак — символ #ap-mark в разметке страницы, слово — текст цветами темы.
+const BRAND_SVG = '<svg class="brandmark" viewBox="0 0 112 112" aria-hidden="true" focusable="false"><use href="#ap-mark"/></svg>';
+const BRAND_WORD = '<span class="wordmark"><span>auto</span><b>pilot</b></span>';
+const BRAND_MARK = BRAND_SVG + BRAND_WORD;
 
 const IC = {
   check: 'M20 6 9 17l-5-5',
@@ -626,6 +1017,23 @@ function applyTheme(t){
   if (t) document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
 }
+
+// Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
+const VIEW_KEY = 'autopilot-view';
+const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','compact','quality'];
+// Какой пункт рейки подсвечен в теме: якорь её главного блока (в рейке он подписан названием темы).
+const VIEW_HOME = {overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
+  summary:'quality', classic:'mission', compact:'mission', quality:'quality'};
+function storedView(){
+  try {
+    let v = localStorage.getItem(VIEW_KEY);
+    if (v === 'focus') v = 'compact';  // до переименования «Фокус» хранился как focus
+    if (VIEW_IDS.includes(v)) return v;
+  } catch(e) {}
+  // Выбора нет: в узкой панели рядом с чатом — компактный вид, иначе первый (обзор).
+  return window.innerWidth > 0 && window.innerWidth <= 520 ? 'compact' : VIEW_IDS[0];
+}
+let VIEW = storedView();
 
 const plural = (n, one, few, many) => {
   const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
@@ -739,7 +1147,37 @@ const I18N = {
     boot:"Дашборд ещё не прочитал состояние",
     bootWhy:"Состояния нет ни внутри страницы, ни в файле .autopilot/state.js рядом: прогон только начался, либо файл помялся.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
-    tabWait:"● Ждём ответа"},
+    tabWait:"● Ждём ответа",
+    viewLabel:"Вид",
+    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
+    vw:{empty:"ещё нет",none:"нет",have:"есть",
+      kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
+      tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",
+      tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
+      tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
+      cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
+      notDone:"Сборка ещё не сдана — итог появится в конце.",
+      ringCap:"требований закрыто",ringNone:"требований пока нет",toEnd:"До конца",likely:"вероятно",till:"до",
+      kAgents:"Агентов работает",kTime:"Рабочее время",going:"идёт",waited:n=>`+ ${n} мин ждали вас`,
+      tGantt:"Ход сборки по времени",gSub:"Настоящие длительности; ждущие таски — пунктиром, после тех, от кого зависят",
+      lgPlan:"ждёт · прогноз",nowTag:"сейчас",after:l=>`после ${l.join(' ')}`,
+      cStage:(i,n,s)=>`Этап ${i} из ${n} · ${s}`,cNext:l=>`дальше: ${l}`,cDone:"все этапы пройдены",noMarks:"нет отметок времени",noteMore:"Показать ещё",
+      mTitle:"Путь твоих требований",mSub:"Где сейчас каждая фраза из твоего брифа. Таски могут быть готовы, а требование нет — здесь это видно сразу.",
+      mReq:"Требование",mCount:"Сколько требований дошло до этапа",
+      mLong:["Записано дословно","В спецификации","В таске","Код написан","Тесты зелёные","Ревью","Слепая приёмка"],
+      mShort:["Записано","Спека","Таск","Код","Тесты","Ревью","Приёмка"],
+      mDone:"готово",mNow:"идёт",mCode:"пишется",mWait:"ждёт",mFinal:"в финале",mFail:"сбой",mMis:"не совпало",
+      mTickets:ids=>`${ids.length > 1 ? 'таски' : 'таск'} ${ids.join(' · ')}`,cTree:"Рабочая копия",
+      sVerdict:"Твои слова: вердикт по каждому требованию",sVerdictSub:"Вычеркнуть требование может только ты. Здесь видно, где оно в проекте и кто его проверил.",
+      cWhere:"Где в проекте",cTests:"Тесты",cReview:"Ревью",cBlind:"Слепая приёмка",
+      rvOk:"пройдено",rvFix:n=>`исправлено: ${n}`,rvOn:"идёт ревью",rvWait:"ждёт",bOk:"прошла",bBad:"расходится",bWait:"в финале",
+      sMis:id=>`Расхождение по ${id}: приёмка и трекер не совпали`,sMisAny:"Расхождение: приёмка и трекер не совпали",
+      sNext:"Что делать дальше",sNeed:"Нужно от вас",
+      nEnv:n=>`Впиши ${n} ${plural(n,'значение','значения','значений')} в .env`,nEnvD:"имена переменных ниже, значения только у тебя",
+      nPh:n=>`Замени ${n} ${plural(n,'заглушку','заглушки','заглушек')}`,nPhD:"видимые заглушки: агент не стал придумывать за тебя",
+      nMis:id=>`Реши по ${id}`,nMisD:"починить сейчас или принять как есть",
+      nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить",
+      upd:"обновлено",notCreated:"не создана"}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -836,7 +1274,37 @@ const I18N = {
     boot:"Dashboard has no state yet",
     bootWhy:"No state either inside the page or in .autopilot/state.js beside it: the run has just started, or the file got mangled.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
-    tabWait:"● Waiting for you"}
+    tabWait:"● Waiting for you",
+    viewLabel:"View",
+    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
+    vw:{empty:"none yet",none:"none",have:"yes",
+      kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
+      tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",
+      tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
+      tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
+      cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
+      notDone:"The build is not done yet — the summary appears at the end.",
+      ringCap:"requirements closed",ringNone:"no requirements yet",toEnd:"To go",likely:"likely",till:"by",
+      kAgents:"Agents working",kTime:"Work time",going:"running",waited:n=>`+ ${n} min waiting on you`,
+      tGantt:"Build timeline",gSub:"Real durations; waiting tickets are dashed, placed after the ones they depend on",
+      lgPlan:"waiting · forecast",nowTag:"now",after:l=>`after ${l.join(' ')}`,
+      cStage:(i,n,s)=>`Stage ${i} of ${n} · ${s}`,cNext:l=>`next: ${l}`,cDone:"all stages passed",noMarks:"no time marks",noteMore:"Show more",
+      mTitle:"The path of your requirements",mSub:"Where each phrase of your brief is now. Tickets can be done while a requirement is not — it shows right here.",
+      mReq:"Requirement",mCount:"How many requirements reached the stage",
+      mLong:["Written word for word","In the spec","In a ticket","Code written","Tests green","Review","Blind acceptance"],
+      mShort:["Written","Spec","Ticket","Code","Tests","Review","Acceptance"],
+      mDone:"done",mNow:"going",mCode:"writing",mWait:"waiting",mFinal:"at the end",mFail:"failed",mMis:"mismatch",
+      mTickets:ids=>`${ids.length > 1 ? 'tickets' : 'ticket'} ${ids.join(' · ')}`,cTree:"Worktree",
+      sVerdict:"Your words: a verdict on each requirement",sVerdictSub:"Only you can strike a requirement out. Here you see where it lives in the project and who checked it.",
+      cWhere:"Where",cTests:"Tests",cReview:"Review",cBlind:"Blind acceptance",
+      rvOk:"passed",rvFix:n=>`${n} fixed`,rvOn:"in review",rvWait:"waiting",bOk:"passed",bBad:"differs",bWait:"at the end",
+      sMis:id=>`Mismatch on ${id}: acceptance and tracker disagree`,sMisAny:"Mismatch: acceptance and tracker disagree",
+      sNext:"What to do next",sNeed:"Needed from you",
+      nEnv:n=>`Fill in ${n} ${en(n,'value','values')} in .env`,nEnvD:"the variable names are below; the values are only yours",
+      nPh:n=>`Replace ${n} ${en(n,'placeholder','placeholders')}`,nPhD:"visible stubs the agent did not invent for you",
+      nMis:id=>`Decide on ${id}`,nMisD:"fix it now or accept it as it is",
+      nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled",
+      upd:"updated",notCreated:"not created"}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1095,6 +1563,66 @@ const REQ_KIND = {'done':'done', 'in-ticket':'work', 'in-spec':'work', 'open':'o
 const REQ_PILL = {done:'p-done', work:'p-mut', open:'p-mut', placeholder:'p-now', deferred:'p-mut', dropped:'p-mut'};
 const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 
+// Реестр тем: id → раскладка уже посчитанных в render() блоков (c = ctx).
+// Функция только склеивает строки: STATE не читает и в DOM не пишет.
+// Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
+const VIEWS = {
+  // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки); больше ничего.
+  // Ход сборки по волнам — это сам Гант (волна подписана в каждой строке), второго списка тасков нет.
+  // «Модели и ресурсы» и «Изоляция» — в «Ресурсах» и «Классике»; якоря #models здесь нет, рейка его не рисует.
+  overview: c => `
+  <div id="mission" class="vsec" tabindex="-1">${c.ovHero}</div>
+  ${c.route}
+  <div id="tasks" class="vsec" tabindex="-1">${c.gantt || c.tasksEmpty}</div>
+  <div id="quality" class="ov3" tabindex="-1"><div class="col">${c.wordsCard}${c.extras}</div>
+    <div class="col">${c.feedView}</div>
+    <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>`,
+  // Макет: герой с фразой, прогнозом и маршрутом; пять карточек; слева подробный Гант, справа «Понадобится от вас»,
+  // проверки и лента; «Ваши слова» внизу. Блок без данных не рисуется.
+  timeline: c => `
+  <div id="mission" class="vsec" tabindex="-1">${c.tlHero}</div>
+  ${c.tlTiles}
+  <div class="tl2"><div id="tasks" class="vsec" tabindex="-1">${c.ganttFull || c.emptyGantt}</div>
+    <div id="quality" class="vsec" tabindex="-1">${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.gatesCard}${c.feedAll}</div></div>
+  ${c.wordsCard}`,
+  // Матрица пути требований сверху; список со статусами и фильтрами, шлюзы и остатки — под ней.
+  requirements: c => `
+  <div id="quality" class="vsec" tabindex="-1">${c.matrixCard}<div class="cols"><div class="col">${c.wordsView}</div>
+    <div class="col">${c.gatesCard}${c.reqSummary}${c.debtCard}</div></div></div>`,
+  resources: c => `
+  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.routesCard}${c.tokensCard}${c.isolationView}</div>`,
+  // Итог: кольцо и цифры, вердикт по каждому требованию, расхождение приёмки (если есть), замечания ревью;
+  // справа — что делать дальше и что нужно от вас. Блока без данных в state.js нет — его и не рисуем.
+  summary: c => `
+  <div id="mission" class="vsec sum-top" tabindex="-1">${c.sumHero}</div>
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.verdictCard}${c.mismatchCard || c.blindCard}${c.reportCard}${c.concernsCard}</div>
+    <div class="col">${c.nextCard}${c.needSum}${c.asmCard}${c.addCard}${c.fin ? '' : c.summaryCard}</div></div>`,
+  // Узкая панель: одна колонка, то же главное — кольцо, прогноз, фраза, плитки, полоса этапов, мини-Гант.
+  // Без «Моделей и ресурсов», «Изоляции» и списка решений за вас: они в Обзоре и Итоге, здесь только то, что нужно от вас.
+  compact: c => `
+  <div class="cmp"><div id="mission" class="vsec" tabindex="-1">${c.cHero}</div>
+  <div id="tasks" class="vsec" tabindex="-1">${c.cstrip}${c.miniGantt || c.tasksEmpty}</div>
+  <div id="quality" class="vsec" tabindex="-1">${c.needSlim}${c.gchips}${c.feedCompact}</div></div>`,
+  quality: c => `
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.gatesCard}${c.blindView}${c.reviewView}</div>
+    <div class="col">${c.wordsView}${c.debtCard}</div></div>`,
+  classic: c => `
+  <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
+  ${c.sectionTitle('01',c.langRu ? 'Состояние работы' : 'Execution health',c.langRu ? 'Прогресс и проверки' : 'Progress and validation')}
+  ${c.tiles}
+  <div id="tasks" class="pipeline" tabindex="-1">
+    ${c.sectionTitle('02',c.langRu ? 'Поток задач' : 'Task pipeline',c.langRu ? 'Этапы и исполнители' : 'Waves and workers')}
+    ${c.fin ? '' : c.buildCard}
+  </div>
+  <div id="models" class="intelligence" tabindex="-1">
+    ${c.sectionTitle('03',c.langRu ? 'Модели и ресурсы' : 'Models & resources',c.langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
+    ${c.resourceBlock}
+    ${c.isolationBlock}
+  </div>
+  ${c.sectionTitle('04',c.langRu ? 'Качество и решения' : 'Quality & decisions',c.langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
+  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.leftCol.join('')}</div><div class="col">${c.rightCol.join('')}</div></div>`
+};
+
 function render(lang){
   const L = I18N[lang] || I18N.ru;
   CUR = L;
@@ -1170,7 +1698,8 @@ function render(lang){
 
   // ——— шапка ———
   const names = list => list.map(t => q(esc(t.title), L.lang)).join(', ');
-  let heroCls = '', stateLine, h2, lead = '', big = '', bigSub = '', hint = '';
+  const idsOf = list => list.map(t => esc(t.id)).join(', '); // «Обзор»: название таска видно один раз, в Ганте
+  let heroCls = '', stateLine, h2, lead = '', ovLead = null, big = '', bigSub = '', hint = '';
   if (fin) {
     heroCls = 'won';
     const k = (S.debt?.emptyEnv || []).length, p = (S.debt?.placeholders || []).length;
@@ -1197,9 +1726,10 @@ function render(lang){
     stateLine = `<span class="live" aria-hidden="true"></span>${L.stateRun[cur.id] || stName(cur)}`;
     if (cur.id === 'build' && T.length) {
       h2 = done.length === T.length ? L.buildAllDone(T.length) : L.buildH2(done.length, T.length, running.length);
-      lead = [writing.length ? L.leadWriting(names(writing)) : '', inReview.length ? L.leadReview(names(inReview)) : '',
-        inRepair.length ? L.leadRepair(names(inRepair)) : '', failedT.length ? L.leadFailed(names(failedT)) : '']
+      const leadOf = nm => [writing.length ? L.leadWriting(nm(writing)) : '', inReview.length ? L.leadReview(nm(inReview)) : '',
+        inRepair.length ? L.leadRepair(nm(inRepair)) : '', failedT.length ? L.leadFailed(nm(failedT)) : '']
         .filter(Boolean).join(' ') || (done.length < T.length ? L.leadIdle : '');
+      lead = leadOf(names); ovLead = leadOf(idsOf);
     } else {
       h2 = L.h2Run[cur.id] || stName(cur);
       lead = cur.note ? esc(cur.note) : (L.leadRun[cur.id] || '');
@@ -1238,10 +1768,11 @@ function render(lang){
   rk.open = Math.max(0, (R.total||0) - rk.done - rk.work - rk.ph - rk.def - rk.drop);
   const reqStack = `<div class="stack" aria-hidden="true">${[[rk.done,'f-done'],[rk.ph,'f-now'],[rk.work + rk.open,'f-idle'],[rk.def,'f-q']]
     .filter(x => x[0]).map(([n, c]) => `<i class="${c}" style="flex:${n}"></i>`).join('')}</div>`;
+  const reqPartsText = [L.reqParts.done, rk.work ? L.reqParts.work(rk.work) : '', rk.open ? L.reqParts.open(rk.open) : '', rk.ph ? L.reqParts.ph(rk.ph) : '',
+    rk.def ? L.reqParts.def(rk.def) : '', rk.drop ? L.reqParts.drop(rk.drop) : ''].filter(Boolean).join(' · ');
   const tileReq = `<section class="card tile w"><span class="tk">${L.tReqs}</span>${R.total
     ? `<span class="tv">${rk.done}<small>${L.of} ${live}</small></span>${reqStack}
-       <span class="ts">${[L.reqParts.done, rk.work ? L.reqParts.work(rk.work) : '', rk.open ? L.reqParts.open(rk.open) : '', rk.ph ? L.reqParts.ph(rk.ph) : '',
-         rk.def ? L.reqParts.def(rk.def) : '', rk.drop ? L.reqParts.drop(rk.drop) : ''].filter(Boolean).join(' · ')}</span>`
+       <span class="ts">${reqPartsText}</span>`
     : `<span class="tv dim">—</span><span class="ts">${L.reqLater}</span>`}</section>`;
   const retries = T.reduce((s,t) => s + (t.retries||0), 0), repairs = T.reduce((s,t) => s + (t.repairs||0), 0);
   const tileTk = `<section class="card tile w"><span class="tk">${L.tTickets}</span>${T.length
@@ -1260,16 +1791,37 @@ function render(lang){
         tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}</span><span class="ts">${fin ? L.testsFinal : L.testsSub}</span>`
     : `<span class="tv dim">—</span><span class="ts">${L.testsLater}</span>`}</section>`;
   const B = S.blind;
+  const tileTime = `<section class="card tile w"><span class="tk">${L.tTime}</span><span class="tv">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '—'}</span>
+        <span class="ts">${L.timeSub}${median ? ' · ' + L.median(median) : ''}</span></section>`;
   const tile4 = fin && B
     ? `<section class="card tile w"><span class="tk">${L.tBlind}</span><span class="tv">${esc(B.matched)}<small>${L.of} ${esc(B.checked)}</small></span>
         <div class="stack" aria-hidden="true"><i class="f-done" style="flex:${+B.matched||0}"></i><i class="f-now" style="flex:${Math.max(0,(+B.checked||0)-(+B.matched||0))}"></i></div>
         <span class="ts">${L.blindSub((B.mismatches||[]).length)}</span></section>`
-    : `<section class="card tile w"><span class="tk">${L.tTime}</span><span class="tv">${S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '—'}</span>
-        <span class="ts">${L.timeSub}${median ? ' · ' + L.median(median) : ''}</span></section>`;
+    : tileTime;
 
   // ——— ход сборки ———
   // Полоса показывает СОСТОЯНИЕ, а не долю: горизонтальная заливка в списке
   // задач читается как прогресс всегда. Длительность — цифрой справа.
+  const taskTime = t => t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
+  // Заметка по таску: [класс, текст] или null; «Классика» и строки Ганта берут её отсюда.
+  const noteOf = t => {
+    const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
+    return t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
+      : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
+      : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
+  };
+  const redoOf = t => [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ');
+  const taskRow = t => {
+    const k = kindOf(t);
+    const time = taskTime(t);
+    const note = noteOf(t);
+    const extra = t.status === 'done' && redoOf(t) ? ' · ' + redoOf(t) : '';
+    return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
+      <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
+        <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
+      <span class="tl-time ${k.on ? k.k : ''}">${time}</span>
+      ${note ? `<div class="tl-note ${note[0]}">${ic(KIND[t.status].icon)}<span>${esc(note[1])}</span></div>` : ''}</div>`;
+  };
   let buildCard = '';
   if (T.length) {
     const counts = {};
@@ -1283,21 +1835,7 @@ function render(lang){
       const blockers = [...new Set(inWave.flatMap(t => t.blockedBy || []))].filter(b => byId[b] && byId[b].status !== 'done');
       const sub = inWave.every(t => t.status === 'pending') && blockers.length ? L.waveWaits(blockers)
         : inWave.length > 1 ? L.waveSub(inWave.length) : '';
-      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(t => {
-        const k = kindOf(t);
-        const time = t.status === 'done' ? fmtDur(mins(t)) : (t.startedAt && t.status !== 'pending') ? timerHTML(t.startedAt, t.finishedAt) : '—';
-        const why = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
-        const note = t.status === 'repair' && (t.repairFindings || []).length ? ['fix', L.noteRepair(t.repairFindings[t.repairFindings.length - 1])]
-          : t.status === 'review' && /^(да|yes)/i.test(t.review || '') && why ? ['rev', L.noteReview(why)]
-          : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
-        const extra = t.status === 'done' && (t.repairs || t.retries)
-          ? ' · ' + [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ') : '';
-        return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
-          <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
-            <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
-          <span class="tl-time ${k.on ? k.k : ''}">${time}</span>
-          ${note ? `<div class="tl-note ${note[0]}">${ic(KIND[t.status].icon)}<span>${esc(note[1])}</span></div>` : ''}</div>`;
-      }).join('');
+      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(taskRow).join('');
     }).join('');
     buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3><div class="legend">${legend}</div></div>${rows}</section>`;
   } else if (t0 && (activeStage?.id === 'build' || stage('build').status === 'done')) {
@@ -1389,13 +1927,15 @@ function render(lang){
     : e.k === 'ticket' ? ({done:['f-done','check'], review:['f-rev','clock'], repair:['f-fix','rotate'], fail:['f-bad','x']}[e.act] || ['','play'])
     : e.k === 'stage' ? ({done:['f-done','check'], fail:['f-bad','x'], skip:['','chev']}[e.act] || ['','play'])
     : e.k === 'tests' ? [e.failed ? 'f-bad' : 'f-done', e.failed ? 'x' : 'check'] : e.k === 'add' ? ['','plus'] : ['','list'];
-  const feedRows = (S.log || []).filter(e => e.k !== 'tier').slice(-12).reverse().map(e => {
+  const feedRow = e => {
     const text = evText(e);
     if (!text) return '';
     const [cls, icon] = evTone(e);
     return `<div class="ev"><span class="ei ${cls}">${ic(icon,'xs')}</span><span>${esc(text)}</span>${
       fin ? `<em>${hhmm(e.t)}</em>` : `<em data-ago-short="${esc(e.t)}">${agoShort(e.t)}</em>`}</div>`;
-  }).join('');
+  };
+  const feedEvents = (S.log || []).filter(e => e.k !== 'tier');
+  const feedRows = feedEvents.slice(-12).reverse().map(feedRow).join('');
   const feedCard = feedRows ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3>${fin ? '' :
     `<span data-ago="${esc(S.updatedAt || '')}">${S.updatedAt ? agoText(S.updatedAt) : ''}</span>`}</div>${feedRows}</section>` : '';
 
@@ -1488,10 +2028,7 @@ function render(lang){
       + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
       + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
     : '';
-  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
-    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
-    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
-    + (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
+  const routeNotes = (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
       (langRu ? 'Последовательный режим: один таск за раз, тесты проверяет хост. Модель и Effort текущей GUI-сессии не подтверждены Autopilot; субагент не создаётся.' :
       'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
       '</p>' : '')
@@ -1501,7 +2038,17 @@ function render(lang){
       ' task(s) without applied routes. Verify exact model and Effort support in the real host, then attest the capability catalog and run plan-models --apply. Do not spawn subagents until verified.') + '</p>' : '')
     + (routed.length ? '<p id="model-routing-runtime-notice" class="muted">' +
       (langRu ? 'Записанный маршрут или сохранённый профиль не подтверждает фактический запуск субагента, модель и Effort в GUI.' :
-      'A recorded route or saved profile does not attest actual GUI child execution, model or Effort.') + '</p>' : '')
+      'A recorded route or saved profile does not attest actual GUI child execution, model or Effort.') + '</p>' : '');
+  const resourceFooter = '<div class="resource-footer">' + (langRu ?
+      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
+      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
+      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
+      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
+    + '</div>';
+  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
+    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
+    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
+    + routeNotes
     + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
       (proposals.length ? '<p class="muted">' + (langRu ?
         'Модель и Effort рассчитаны на этапе планирования; профили не применены и реальный GUI не подтверждён.' :
@@ -1510,12 +2057,7 @@ function render(lang){
         'No per-task model assignments recorded yet.') + '</p>'))
     + (proposals.length ? '<div class="resource-list" id="planned-model-routes">' + proposalItems + '</div>' : '')
     + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
-    + '<div class="resource-footer">' + (langRu ?
-      'Стоимость: нет проверенных данных. Учёт токенов — сообщения от инструментов (' + usageEvents.length +
-      '); входные и кэшированные токены могут пересекаться. Лимит блокирует новые задачи лишь после регистрации расхода.' :
-      'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
-      '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
-    + '</div></section>';
+    + resourceFooter + '</section>';
 
   // ——— Isolation & recovery; read-only health indicators ———
   const isolated = T.filter(t => t.worktree || t.retries || t.repairs);
@@ -1546,12 +2088,314 @@ function render(lang){
         : 'Statuses reflect the Autopilot ledger, not an independent check of external agent execution. Use worktree status to inspect checkout health.')
       + '</div></section>' : '';
 
+  // ——— блоки для тем (данные посчитаны выше; здесь только упаковка) ———
+  const W = L.vw;
+  const emptyBox = text => `<div class="empty">${ic('list','m')}<span>${text}</span></div>`;
+  const emptyCard = (title, text) => `<section class="card w"><div class="whead"><h3 class="wt">${title}</h3></div>${emptyBox(text)}</section>`;
+  const moreBtn = (key, hidden) => `<button type="button" class="btn-soft" data-more="${key}">${UI.open[key] ? L.collapse + ic('up') : L.more(hidden) + ic('chev')}</button>`;
+  const rowsList = (key, rows, n) => (UI.open[key] ? rows : rows.slice(0, n)).join('')
+    + (rows.length > n ? `<div class="more">${moreBtn(key, rows.length - n)}</div>` : '');
+  const tiles = `<div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>`;
+
+  const kpi = (title, value, sub, dim) => `<section class="card tile w"><span class="tk">${title}</span><span class="tv${dim ? ' dim' : ''}">${value}</span><span class="ts">${sub}</span></section>`;
+  const ofT = n => `${n}<small>${L.of} ${T.length}</small>`;
+  const trees = T.filter(t => t.worktree);
+  const treeStates = [...new Set(trees.map(t => t.worktree.status).filter(Boolean))];
+  const redo = retries + repairs;
+  const kpiRow = '<div class="tiles">'
+    + (usageEvents.length ? kpi(W.kTokens, numberFormat(countedTokens), `${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}`)
+      : kpi(W.kTokens, '—', W.empty, true))
+    + (T.length ? kpi(W.kActive, ofT(activeWorkers.length), activeWorkers.length ? esc(activeWorkers.map(t => t.id).join(', ')) : W.empty)
+      : kpi(W.kActive, '—', W.empty, true))
+    + (trees.length ? kpi(W.kTrees, ofT(trees.length), esc(treeStates.join(' · ')) || W.empty) : kpi(W.kTrees, '—', W.empty, true))
+    + (T.length ? kpi(W.kRetries, String(redo), redo ? [repairs ? L.tkParts.repair(repairs) : '', retries ? L.tkParts.retry(retries) : ''].filter(Boolean).join(' · ') : W.empty, !redo)
+      : kpi(W.kRetries, '—', W.empty, true))
+    + '</div>';
+
+  const trackCard = `<section class="card w trackcard"><div class="whead"><h3 class="wt">${W.tStages}</h3></div><div class="track" role="list">${segs}</div></section>`;
+  const attention = activeWorkers.concat(failedWorkers);
+  const none = `<p class="muted">${W.empty}</p>`;
+  const tasksEmpty = emptyCard(L.build, t0 ? L.t0 : L.noTickets);
+  const emptyGantt = emptyCard(W.tGantt, t0 ? L.t0 : L.noTickets);
+  const waitingT = T.filter(t => t.status === 'pending');
+  const activeCard = T.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tActive}</h3><span>${attention.length}</span></div>${attention.length ? rowsList('act', attention.map(taskRow), 4) : none}</section>`
+    : tasksEmpty;
+  const waitingCard = T.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tWaiting}</h3><span>${waitingT.length}</span></div>${waitingT.length ? rowsList('wt', waitingT.map(taskRow), 4) : none}</section>`
+    : '';
+  const reqSummary = R.total
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tReq}</h3><span>${rk.done} ${L.of} ${live}</span></div>${reqStack}
+        <p class="muted" style="margin-top:10px">${reqPartsText}</p>${T.length ? `<p class="muted" style="margin-top:6px">${L.g3ok(live, T.length)}</p>` : ''}</section>`
+    : emptyCard(W.tReq, L.reqLater);
+  const feedView = feedCard || emptyCard(L.feed, W.empty);
+  const wordsView = wordsCard || emptyCard(L.words, L.reqLater);
+  const blindView = blindCard || emptyCard(L.blind, W.empty);
+  const reviewView = reportCard + concernsCard || emptyCard(W.tReview, W.empty);
+
+  const byTicketId = (a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true});
+  const feedItems = feedEvents.slice().reverse().map(feedRow).filter(Boolean);
+  const feedAll = feedItems.length
+    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tFeedAll}</h3><span>${feedItems.length}</span></div>${rowsList('feed', feedItems, 15)}</section>`
+    : emptyCard(W.tFeedAll, W.empty);
+
+  const debtCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tDebt}</h3><span>${env.length + ph.length + asm.length}</span></div>${keysBlock + phBlock + asmBlock || none}</section>`;
+
+  // Ждущий таск без маршрута тоже получает строку: токенов 0, рабочей копии нет. Причин выбора без данных не выдумываем.
+  const unrouted = T.filter(t => t.status === 'pending' && !t.routing && !t.plannedRouting);
+  const routeRows = routed.map(t => [t, t.routing, '']).concat(proposals.map(t => [t, t.plannedRouting, t.plannedRouting.status === 'blocked' ? W.blocked : W.planned]),
+    unrouted.map(t => [t, {}, ''])).sort((a, b) => byTicketId(a[0], b[0]));
+  const PILLK = {done: 'p-done', now: 'p-now', rev: 'p-rev', fix: 'p-rev', bad: 'p-bad', wait: 'p-mut'};
+  // Токены по таскам — из usageEvents[].ticket; нет событий с таском — нет и столбца.
+  const tokBy = new Map();
+  usageEvents.forEach(e => tokBy.set(String(e.ticket), (tokBy.get(String(e.ticket)) || 0) + e.input + e.output));
+  const maxTok = Math.max(1, ...tokBy.values());
+  const hasTok = unrouted.length > 0 || routeRows.some(([t]) => tokBy.has(String(t.id)));
+  const hasTree = unrouted.length > 0 || routeRows.some(([t]) => t.worktree && t.worktree.status);
+  const routeCols = [W.cTask, W.cProvider, W.cModel, W.cScore, W.cWhy].concat(hasTok ? [W.tTokens] : [], hasTree ? [W.cTree] : []);
+  const routeRow = ([t, p, tag]) => {
+    const k = kindOf(t).k, n = tokBy.get(String(t.id));
+    return `<tr><td>${esc(t.id + ' · ' + t.title)}<br><span class="pill ${PILLK[k]}">${L.chip[k]}</span></td><td>${esc(p.provider || '—')}</td>`
+      + `<td><span class="mchip">${esc(p.model || '—')}${p.effort ? ' · ' + esc(p.effort) : ''}</span>${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td>`
+      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '')}</td>`
+      + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : tokBy.has(String(t.id)) || (t.status === 'pending' && !t.routing && !t.plannedRouting) ? '0' : '—'}</td>` : '')
+      + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>`
+        : t.status === 'pending' ? `<span class="pill p-mut">${W.notCreated}</span>` : '—'}</td>` : '') + '</tr>';
+  };
+  const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
+    ? `<div class="tablewrap"><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+      routeRows.map(routeRow).join('')}</tbody></table></div>` : emptyBox(W.empty)}</section>`;
+  const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
+  const isolationView = isolationBlock || emptyCard(W.tIsolation, W.empty);
+
+  const checks = [[W.cResult, fin && S.result], [L.tTests, tests], [L.blind, B], [L.report, report.length], [L.assumptions, asm.length], [L.concerns, concerns.length]];
+  const summaryCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tSummary}</h3></div>${fin ? '' : `<p class="muted">${W.notDone}</p>`}${
+    checks.map(([name, ok]) => `<div class="req"><p>${name}</p><span class="pill ${ok ? 'p-done' : 'p-mut'}">${ok ? W.have : (fin ? W.none : W.empty)}</span></div>`).join('')}</section>`;
+
+  // ——— Обзор и Компактный: кольцо, прогноз, маршрут этапов, диаграмма Ганта ———
+  // Блок без данных не рисуется. Прогноз — только когда есть готовые таски с началом и концом (median).
+  const fmtK = n => n >= 1000 ? Math.round(n / 1000) + 'k' : String(n);
+  const ringHTML = cls => {
+    const a = live ? Math.min(100, rk.done / live * 100) : 0, b = live ? Math.min(100 - a, rk.work / live * 100) : 0;
+    const label = live ? `${rk.done} ${L.of} ${live} ${W.ringCap}` : W.ringNone;
+    return `<div class="ring${cls}" role="img" aria-label="${esc(label)}" style="background:conic-gradient(var(--done) 0 ${a.toFixed(1)}%,var(--now) ${a.toFixed(1)}% ${(a + b).toFixed(1)}%,var(--line) ${(a + b).toFixed(1)}% 100%)"><div class="ring-in"><b>${live ? `${rk.done}<small> / ${live}</small>` : '—'}</b><span>${live ? W.ringCap : W.ringNone}</span></div></div>`;
+  };
+  const fore = eta && median ? {v: fmtDur(Math.round(left)),
+    range: eta[1] < 60 ? `${eta[0]}–${eta[1]} ${L.min}` : `${fmtDur(eta[0])} — ${fmtDur(eta[1])}`,
+    by: hhmm(new Date(Date.now() + left * 60000))} : null;
+  const foreBlock = fore
+    ? `<div class="fc"><span class="fc-k">${W.toEnd}</span><b class="fc-v">≈ ${fore.v}</b><span class="fc-s">${W.likely} ${fore.range}, ${W.till} ${fore.by}</span></div>`
+    : waiting ? `<div class="fc"><span class="fc-k">${L.waitState}</span><b class="fc-v"><span data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span></b><span class="fc-s">${L.waitBig}</span></div>` : '';
+  const lastEv = feedEvents.slice().reverse().map(e => [e, evText(e)]).find(x => x[1]);
+  const evNote = lastEv ? `<div class="evnote"><span class="mono">${hhmm(lastEv[0].t)}</span><span>${esc(lastEv[1])}</span></div>` : '';
+  const chipState = `<span class="chip-state"><i aria-hidden="true"></i>${esc(stateLine.replace(/<[^>]*>/g, ''))}</span>`;
+  const testsVal = tests ? `${esc(tests.passed)} · ${tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}` : '';
+  const timeVal = S.startedAt ? timerHTML(S.startedAt, S.finishedAt) : '';
+  const tokVal = usageEvents.length ? fmtK(countedTokens) : '';
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  const stats = [T.length ? kv(W.kAgents, activeWorkers.length) : '', testsVal && kv(L.tTests, testsVal), timeVal && kv(W.kTime, timeVal),
+    tokVal && kv(W.kTokens, tokVal + (budget ? ` ${L.of} ${fmtK(budget)}` : ''))].filter(Boolean).join('');
+  const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
+    <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
+    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
+  const ctile = (k, v) => `<div class="ctile"><span>${k}</span><b>${v}</b></div>`;
+  const ctiles = [testsVal && ctile(L.tTests, testsVal), timeVal && ctile(W.kTime, timeVal), tokVal && ctile(W.kTokens, tokVal)].filter(Boolean);
+  const cHero = `<section class="card cmp-hero w ${heroCls}" aria-live="polite"><div class="cmp-top">${ringHTML(' sm')}
+    <div class="cmp-side">${chipState}${foreBlock}</div></div><h2>${h2}</h2>${evNote}${ctiles.length ? `<div class="ctiles">${ctiles.join('')}</div>` : ''}</section>`;
+
+  // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
+  const rsInfo = s => {
+    if (s.status === 'done') {
+      const a = toMs(s.startedAt), b = toMs(s.finishedAt), w = a != null && b != null ? Math.round(waitedIn(a, b) / 60000) : 0;
+      return {cls: 'done', mark: ic('check', 'xs'), sub: a != null && b != null
+        ? `${Math.max(1, Math.round((activeMs(s.startedAt, s.finishedAt) || 0) / 60000))} ${L.min}${w >= 1 ? ' ' + W.waited(w) : ''}` : '—'};
+    }
+    if (s.status === 'active') return {cls: 'now', mark: '<i></i>',
+      sub: (waiting ? L.waitingSt : s.startedAt ? timerHTML(s.startedAt, null) : '—') + ' · ' + W.going};
+    if (s.status === 'failed') return {cls: 'bad', mark: ic('x', 'xs'), sub: L.failedSt};
+    if (s.status === 'skipped') return {cls: 'skip', mark: ic('chev', 'xs'), sub: L.skipped};
+    return {cls: 'pend', mark: '', sub: L.ahead};
+  };
+  const route = `<ol class="route">${stages.map(s => { const r = rsInfo(s);
+    return `<li class="rs ${r.cls}"><div class="rs-top"><span class="rs-mark">${r.mark}</span><span class="rs-line"></span></div><b class="rs-name">${esc(stName(s))}</b><span class="rs-sub">${r.sub}</span></li>`; }).join('')}</ol>`;
+  const curSt = activeStage || failedStage || stages.find(s => s.status === 'pending') || stages[stages.length - 1];
+  const curNo = stages.indexOf(curSt) + 1;
+  const stageOf = esc(W.cStage(curNo, stages.length, stName(curSt)));
+  const nextNames = stages.slice(curNo).filter(s => s.status === 'pending').slice(0, 2).map(stName);
+  const cstrip = `<section class="card w"><div class="cstrip"><div class="cs-head"><b>${stageOf}</b><span class="cs-sub">${rsInfo(curSt).sub}</span></div>
+    <div class="cs-bar" role="img" aria-label="${stageOf}">${stages.map(s => `<i class="${rsInfo(s).cls}"></i>`).join('')}</div>
+    ${nextNames.length ? `<p class="muted">${esc(W.cNext(nextNames.join(' → ')))}</p>` : fin ? `<p class="muted">${W.cDone}</p>` : ''}</div></section>`;
+
+  // Компактный: только то, что нужно от вас, — ключи и заглушки; решения за вас и пустое «пока ничего» в узкой панели не нужны.
+  const needSlim = keysBlock + phBlock
+    ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${fin ? L.prep : L.need}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
+
+  // «Таймлайн»: пять карточек (только с данными), герой с прогнозом и маршрутом этапов.
+  const tileTok = usageEvents.length
+    ? `<section class="card tile w"><span class="tk">${W.kTokens}</span><span class="tv">${fmtK(countedTokens)}${budget ? `<small>${L.of} ${fmtK(budget)}</small>` : ''}</span>${
+        budget ? `<div class="stack" aria-hidden="true"><i class="f-done" style="flex:${budgetPercent || 0}"></i><i class="f-idle" style="flex:${100 - (budgetPercent || 0)}"></i></div>` : ''}
+        <span class="ts">${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}</span></section>` : '';
+  const tlTilesList = [R.total && tileReq, T.length && tileTk, tests && tileTests, tileTok, S.startedAt && tileTime].filter(Boolean);
+  const tlTiles = tlTilesList.length ? `<div class="tiles t5">${tlTilesList.join('')}</div>` : '';
+  const tlHero = `<section class="card ovh tlh w ${heroCls}" aria-live="polite"><div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}</div>
+    ${foreBlock ? `<div class="ovh-side">${foreBlock}</div>` : ''}${route}</section>`;
+
+  // «Итог»: герой с карточками справа — рабочее время, тесты, токены. «Коммитов» в state.js нет — карточки нет.
+  const kcard = (k, v, sub) => `<div class="kcard"><span class="kk">${k}</span><b>${v}</b>${sub ? `<span class="ks">${sub}</span>` : ''}</div>`;
+  const kcards = [timeVal && kcard(W.kTime, timeVal, L.timeSub),
+    tests && kcard(L.tTests, esc(tests.passed), tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk),
+    tokVal && kcard(W.kTokens, tokVal, budget ? `${L.of} ${fmtK(budget)}` : '')].filter(Boolean);
+  const sumHero = `<section class="card ovh sum-h w ${heroCls}" aria-live="polite">${ringHTML('')}
+    <div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}${evNote}</div>
+    ${foreBlock || kcards.length ? `<div class="ovh-side">${foreBlock}${kcards.length ? `<div class="kcards">${kcards.join('')}</div>` : ''}</div>` : ''}</section>`;
+
+  // Диаграмма Ганта: настоящие отрезки по startedAt/finishedAt; ждущие таски — пунктиром после тех, от кого зависят.
+  const GT = 60000, gNow = Date.now(), placed = {};
+  const place = (t, seen) => {
+    if (t.id in placed) return placed[t.id];
+    const a0 = toMs(t.startedAt), f0 = toMs(t.finishedAt);
+    let r = null;
+    if (t.status !== 'pending' && a0 != null) {
+      r = {a: a0, b: Math.max(f0 ?? gNow, a0), est: false,
+        tail: f0 == null && t.status === 'in-progress' && median ? Math.max(0, leftFor(t)) * GT : 0};
+    } else if (t.status === 'pending') {
+      const up = new Set(seen).add(t.id);
+      const ends = (t.blockedBy || []).filter(id => byId[id] && !up.has(id)).map(id => place(byId[id], up)).filter(Boolean).map(x => x.b + x.tail);
+      const a = Math.max(gNow, ...ends);
+      r = {a, b: a + (median || 10) * GT, tail: 0, est: true};
+    }
+    return placed[t.id] = r;
+  };
+  const gRows = T.slice().sort((x, y) => ((x.wave ?? 1) - (y.wave ?? 1)) || byTicketId(x, y))
+    .map(t => [t, place(t, new Set())]);  // у таска без отметок времени места на оси нет (null), но строка остаётся
+  const timedRows = gRows.filter(x => x[1]);
+  let gantt = '', ganttFull = '', miniGantt = '';
+  if (gRows.length) {
+    const gFrom = Math.min(...timedRows.map(x => x[1].a), ...(fin && timedRows.length ? [] : [gNow]));
+    const gTo = Math.max(...timedRows.map(x => x[1].b + x[1].tail), ...(fin && timedRows.length ? [] : [gNow]));
+    const gSpan = Math.max(gTo - gFrom, 10 * GT) * 1.02;
+    const pct = ms => ((ms - gFrom) / gSpan * 100).toFixed(2);
+    const step = [5, 10, 15, 30, 60, 120, 240, 720, 1440].map(m => m * GT).find(x => gSpan / x <= 7) || 1440 * GT;
+    const off = new Date(gFrom).getTimezoneOffset() * GT, ticks = [];
+    for (let x = Math.ceil((gFrom - off) / step) * step + off; x <= gFrom + gSpan && ticks.length < 12; x += step) ticks.push(x);
+    const grid = timedRows.length ? ticks.map(x => `<i class="gx-grid" style="left:${pct(x)}%"></i>`).join('')
+      + (fin ? '' : `<i class="gx-nowline" style="left:${pct(gNow)}%"></i>`) : '';
+    const axis = !timedRows.length ? '' : `<div class="gx-axis"><span class="gx-pad"></span><div class="gx-ticks">${ticks.map(x => `<span style="left:${pct(x)}%">${hhmm(new Date(x))}</span>`).join('')}${
+      fin ? '' : `<span class="gx-nowtag" style="left:${pct(gNow)}%">${W.nowTag} ${hhmm(new Date(gNow))}</span>`}</div><span class="gx-pad"></span></div>`;
+    const gBar = (t, p, mini) => {
+      const k = p.est ? 'wait' : kindOf(t).k, left = pct(p.a), w = Math.max(1.4, pct(p.b) - left);
+      const m = t.status === 'done' && mins(t) ? mins(t) : Math.max(1, Math.round((p.b - p.a) / GT));
+      const dur = p.est ? (median ? `~${median} ${L.min}` : '') : `${m} ${L.min}`;
+      // Варианты подписи от полного к короткому (ширина полосы в px известна только в браузере — выбирает gxFit):
+      // «сдан · 27 мин» → «27 мин» → «27» → значок; ни один не влез — «27 мин» рядом с полосой. В «Компактном» состояние уже в плашке строки.
+      const ico = p.est ? '' : ic(kindOf(t).icon, 'xs');
+      const vs = p.est ? [esc(dur || L.chip.wait), median ? `~${median}` : '']
+        : [...(mini ? [] : [ico + esc(L.chip[k] + ' · ' + dur)]), ico + esc(dur), String(m), ico];
+      return `<span class="gx-bar gx-${k}" style="left:${left}%;width:${w.toFixed(2)}%" title="${esc(t.title)}: ${esc(L.chip[k] + (dur ? ' · ' + dur : ''))}">${gxLabels(vs, p.est || mini ? 0 : 1)}</span>`
+        + (p.tail ? (n => `<i class="gx-tail" style="left:${pct(p.b)}%;width:${Math.max(1.4, pct(p.b + p.tail) - pct(p.b)).toFixed(2)}%" title="~${n} ${L.min}">${gxLabels([`~${n} ${L.min}`, `~${n}`], 0)}</i>`)(Math.round(p.tail / GT)) : '');
+    };
+    // Заметка под строкой Ганта: причина, замечание ревью или последняя починка, метка «ремонты · повторы»; нет данных — нет блока.
+    // Длинное обрезается до NOTE_MAX знаков, остальное по «показать ещё» (data-more); полного текста в атрибутах нет.
+    const NOTE_MAX = 140;
+    const gNote = t => {
+      const n = noteOf(t), redo = redoOf(t);
+      if (!n && !redo) return '';
+      const key = 'nt:' + t.id, chars = n ? [...n[1]] : [], long = chars.length > NOTE_MAX, open = !!UI.open[key];
+      const text = long && !open ? chars.slice(0, NOTE_MAX).join('').trimEnd() + '…' : (n ? n[1] : '');
+      return `<div class="tl-note gx-note${n ? ' ' + n[0] : ''}">${n ? ic(KIND[t.status].icon) : ''}<span>${esc(text)}${
+        redo ? `${text ? ' ' : ''}<span class="gx-redo">${text ? '· ' : ''}${esc(redo)}</span>` : ''}</span>${
+        long ? `<button type="button" class="btn-soft" data-more="${esc(key)}">${open ? L.collapse + ic('up') : W.noteMore + ic('chev')}</button>` : ''}</div>`;
+    };
+    const subOf = t => [L.wave(t.wave ?? 1), (t.blockedBy || []).length ? W.after(t.blockedBy) : ''].filter(Boolean).join(' · ');
+    const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
+      <div class="gx-lane">${grid}${p ? gBar(t, p, false) : `<span class="gx-none">${W.noMarks}</span>`}</div><div class="gx-mdl">${t.routing && t.routing.model
+        ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div>${gNote(t)}</div>`;
+    const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILLK[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
+      <div class="gx-lane">${grid}${p ? gBar(t, p, true) : `<span class="gx-none">${W.noMarks}</span>`}</div>${gNote(t)}</div>`;
+    const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
+    const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
+      <div class="gx">${axis}${rows}</div></section>`;
+    // «Обзор» — краткий (до восьми строк, без разделителей волн: волна подписана в строке), «Таймлайн» — подробный: все таски, волны названы.
+    gantt = ganttCard(rowsList('gt', gRows.map(row), 8));
+    ganttFull = ganttCard(gRows.map((x, i) => (i && (x[0].wave ?? 1) === (gRows[i - 1][0].wave ?? 1) ? '' : `<div class="wave">${esc(L.wave(x[0].wave ?? 1))}</div>`) + row(x)).join(''));
+    miniGantt = `<section class="card w"><div class="whead"><h3 class="wt">${W.tGantt}</h3></div>
+      <div class="gx mini">${axis}${rowsList('gtm', gRows.map(miniRow), 8)}</div>${legend}</section>`;
+  }
+  const gOk = g => G[g] && G[g].ok;
+  const gchips = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div><div class="gchips">${
+    ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}</span>`).join('')}</div></section>`;
+  const feedShort = feedEvents.slice(-5).reverse().map(feedRow).join('');
+  const feedCompact = feedShort ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3></div>${feedShort}</section>` : emptyCard(L.feed, W.empty);
+
+  // ——— «Требования» и «Итог»: путь каждой фразы брифа ———
+  // У требования в state.js нет ссылок на таски, но у таска есть requirements[]: связь берём оттуда
+  // (R03.1 — это R03). Что в state.js нет — то не рисуется: ни «было/стало», ни решений за вас.
+  const reqBase = x => String(x).split('.')[0];
+  const linked = id => T.filter(t => Array.isArray(t.requirements) && t.requirements.some(x => reqBase(x) === id));
+  const mism = (B && Array.isArray(B.mismatches) ? B.mismatches : []).map(m => {
+    const x = /^([RGA]\d+\w*)\s+[—–-]\s+(.*)$/.exec(m); return x ? {id: x[1], text: x[2]} : {id: '', text: String(m)}; });
+  const reqRows = reqList.map(r => ({r, k: REQ_KIND[r.status] || 'open', lk: linked(r.id)}));
+  // Семь этапов: записано · спецификация · таск · код · тесты · ревью · приёмка → done | now | wait | bad | skip.
+  const stagesOf = ({r, k, lk}) => {
+    if (k === 'dropped' || k === 'deferred') return ['done'].concat(Array(6).fill('skip'));
+    const every = f => lk.length > 0 && lk.every(f), some = f => lk.some(f);
+    const st = t => t.status, allDone = k === 'done' || every(t => st(t) === 'done');
+    const code = allDone ? 'done' : some(t => st(t) === 'failed') ? 'bad'
+      : some(t => ['in-progress', 'repair'].includes(st(t))) ? 'now'
+      : every(t => ['review', 'done'].includes(st(t))) ? 'done' : some(t => ['review', 'done'].includes(st(t))) ? 'now' : 'wait';
+    return ['done', r.status !== 'open' || lk.length ? 'done' : 'wait', lk.length || ['in-ticket', 'done'].includes(r.status) ? 'done' : 'wait',
+      code, allDone ? (some(t => t.tests && t.tests.failed) ? 'bad' : 'done') : 'wait',
+      allDone ? 'done' : some(t => ['review', 'repair'].includes(st(t))) ? 'now' : 'wait',
+      mism.some(m => m.id === r.id) ? 'bad' : B ? 'done' : 'wait'];
+  };
+  const mxWord = (s, i) => s === 'done' ? W.mDone : s === 'now' ? (i === 3 ? W.mCode : W.mNow) : s === 'bad' ? (i === 6 ? W.mMis : W.mFail)
+    : s === 'skip' ? '—' : (i === 6 && !fin ? W.mFinal : W.mWait);
+  const mxMark = {done: ic('check', 'xs'), bad: ic('x', 'xs'), now: '<i></i>', wait: '', skip: ''};
+  let matrixCard = '';
+  if (reqRows.length) {
+    const grid = reqRows.map(x => stagesOf(x));
+    const liveRows = grid.filter((_, i) => !['dropped', 'deferred'].includes(reqRows[i].k));
+    const rows = reqRows.map((x, n) => `<div class="mx-row"><div class="mx-req"><span class="rid">${esc(x.r.id)}</span><div><p>${q(esc(x.r.text), L.lang)}</p>
+        <small>${x.lk.length ? esc(W.mTickets(x.lk.map(t => t.id))) : ''}${['dropped', 'deferred', 'placeholder'].includes(x.k) ? `${x.lk.length ? ' · ' : ''}${L.rs[x.k]}` : ''}</small></div></div>${
+      grid[n].map((s, i) => `<div class="mx-c ${s}"><span class="mx-h">${W.mShort[i]}</span><span class="mx-m" aria-hidden="true">${mxMark[s]}</span><span class="mx-t">${mxWord(s, i)}</span></div>`).join('')}</div>`);
+    const count = liveRows.length ? `<div class="mx-sum"><span>${W.mCount}</span>${W.mShort.map((_, i) => { const n = liveRows.filter(g => g[i] === 'done').length;
+      return `<div><b>${n} / ${liveRows.length}</b><i class="mx-bar" aria-hidden="true"><i style="width:${Math.round(n / liveRows.length * 100)}%"></i></i></div>`; }).join('')}</div>` : '';
+    matrixCard = `<section class="card w mx"><div class="whead"><div><h3 class="wt">${W.mTitle}</h3><p class="muted">${W.mSub}</p></div></div>
+      <div class="mx-head"><span>${W.mReq}</span>${W.mLong.map(h => `<span>${h}</span>`).join('')}</div>${rowsList('mx', rows, 12)}${count}</section>`;
+  }
+
+  // «Итог»: вердикт по каждому требованию — где в проекте, тесты, ревью, слепая приёмка.
+  const verdictRows = reqRows.map(({r, lk}) => {
+    const passed = lk.reduce((n, t) => n + (t.tests && Number.isFinite(+t.tests.passed) ? +t.tests.passed : 0), 0);
+    const fixed = lk.reduce((n, t) => n + (Number(t.repairs) || 0), 0);
+    const review = !lk.length ? '—' : lk.every(t => t.status === 'done') ? (fixed ? W.rvFix(fixed) : W.rvOk)
+      : lk.some(t => ['review', 'repair'].includes(t.status)) ? W.rvOn : W.rvWait;
+    const blind = mism.some(m => m.id === r.id) ? `<span class="pill p-bad">${W.bBad}</span>` : B ? `<span class="pill p-done">${W.bOk}</span>` : `<span class="pill p-mut">${W.bWait}</span>`;
+    return `<div class="vd-row"><span class="rid">${esc(r.id)}</span><p>${q(esc(r.text), L.lang)}</p>
+      <span class="vd-w" data-l="${W.cWhere}">${lk.length ? esc(W.mTickets(lk.map(t => t.id))) : '—'}</span><span class="vd-t" data-l="${W.cTests}">${passed ? passed : '—'}</span>
+      <span class="vd-r" data-l="${W.cReview}">${esc(review)}</span><span class="vd-b" data-l="${W.cBlind}">${blind}</span></div>`;
+  });
+  const verdictCard = verdictRows.length
+    ? `<section class="card w vd"><div class="whead"><div><h3 class="wt">${W.sVerdict}</h3><p class="muted">${W.sVerdictSub}</p></div></div>
+        <div class="vd-head"><span></span><span>${W.mReq}</span><span>${W.cWhere}</span><span>${W.cTests}</span><span>${W.cReview}</span><span>${W.cBlind}</span></div>${rowsList('vd', verdictRows, 12)}</section>` : '';
+  // Расхождение приёмки — только текст: дашборд читает состояние, кнопок действий у него нет.
+  const mismatchCard = mism.map(m => `<section class="card w mis"><h3 class="wt">${m.id ? W.sMis(esc(m.id)) : W.sMisAny}</h3><p>${esc(m.text)}</p></section>`).join('');
+  const steps = fin ? [env.length && [W.nEnv(env.length), W.nEnvD], ph.length && [W.nPh(ph.length), W.nPhD],
+    ...mism.map(m => m.id ? [W.nMis(m.id), W.nMisD] : [W.sMisAny, W.nMisD]), asm.length && [W.nAsm(asm.length), W.nAsmD]].filter(Boolean) : [];
+  const nextCard = steps.length ? `<section class="card w"><div class="whead"><h3 class="wt">${W.sNext}</h3></div><ol class="steps">${
+    steps.map(([a, b]) => `<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')}</ol></section>` : '';
+  const needSum = env.length || ph.length
+    ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${W.sNeed}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
   const leftCol = fin ? [needCard, blindCard, buildCard, wordsCard] : [wordsCard, needCard];
   const rightCol = fin ? [gatesCard, reportCard, asmCard, concernsCard, addCard, feedCard]
                     : [gatesCard, feedCard, reportCard, concernsCard, addCard];
+  // Остальные карточки «Классики» (слепая приёмка, отчёт, замечания…) — под «Твоими словами» в Обзоре.
+  const shown = [buildCard, wordsCard, feedCard, gatesCard, needCard];
+  const extras = leftCol.concat(rightCol).filter(x => x && !shown.includes(x)).join('');
   const when = S.startedAt ? (fin
     ? L.startedRange(new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}), hhmm(S.finishedAt))
     : L.started(new Date(S.startedAt).toDateString() === new Date().toDateString()
@@ -1559,26 +2403,40 @@ function render(lang){
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
   document.documentElement.lang = L.lang;
+  document.documentElement.setAttribute('data-view', VIEW);  // палитра макетов включается всем видам, кроме «Классики»
   const app = document.getElementById('app');
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
   const focusTag = focusAttr ? active.tagName : null;
   const focusId = !focusAttr && active && typeof app.contains === 'function' && app.contains(active)
     && ['mission','tasks','models','quality'].includes(active.id) ? active.id : null;
+  const sectionTitle = (number, title, sub) =>
+    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
+  const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
+    buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
+    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
+    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero});
+  // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
+  const has = id => page.includes(`id="${id}"`);
+  // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
+  const skillVer = typeof S.skillVersion === 'string' ? S.skillVersion.slice(0, 16) : '';
+  const cur = id => VIEW_HOME[VIEW] === id;
+  const navAttr = id => cur(id) ? ' aria-current="page"' : '';
+  const navText = (id, label) => cur(id) ? esc(L.views[VIEW]) : label;
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
-    <div class="rail-brand"><span class="rail-symbol" aria-hidden="true">A</span>
-      <span>Autopilot<small>CONTROL CENTER / 2.3</small></span></div>
+    <div class="rail-brand">${BRAND_SVG}
+      <span>${BRAND_WORD}<small>CONTROL CENTER${skillVer ? ' / ' + esc(skillVer) : ''}</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
-      <a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>
-      <a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>
-      <a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>
-      <a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>
+      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"${navAttr('mission')}><span class="sym" aria-hidden="true">◉</span>${navText('mission', langRu ? 'Обзор' : 'Overview')}</a>` : ''}
+      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"${navAttr('tasks')}><span class="sym" aria-hidden="true">▤</span>${navText('tasks', langRu ? 'Задачи' : 'Tickets')}</a>` : ''}
+      ${has('models') ? `<a data-focus-key="nav-models" href="#models"${navAttr('models')}><span class="sym" aria-hidden="true">◈</span>${navText('models', langRu ? 'Модели и токены' : 'Models & tokens')}</a>` : ''}
+      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"${navAttr('quality')}><span class="sym" aria-hidden="true">◇</span>${navText('quality', langRu ? 'Проверки' : 'Quality checks')}</a>` : ''}
     </nav>
     <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
       <b>${esc(nextTitle)}</b>
@@ -1586,18 +2444,20 @@ function render(lang){
         <div><strong>${activeWorkers.length}</strong><small>${langRu ? 'Работают' : 'Active'}</small></div>
         <div><strong>${okGates}/4</strong><small>${langRu ? 'Проверки' : 'Gates passed'}</small></div>
       </div></div>
-    <div class="rail-foot">AUTOPILOT ENGINE / 2.3.0</div>
+    <div class="rail-foot">AUTOPILOT ENGINE${skillVer ? ' / ' + esc(skillVer) : ''}</div>
   </aside>`;
-  const sectionTitle = (number, title, sub) =>
-    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
   app.innerHTML = `
-  <a class="skip-link" data-focus-key="skip" href="#mission">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>
+  <a class="skip-link" data-focus-key="skip" href="#content">${langRu ? 'Перейти к содержимому' : 'Skip to main content'}</a>
   ${rail}
-  <main class="cockpit-content">
+  <main class="cockpit-content" id="content" tabindex="-1">
   <header class="top">
-    <div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div>
+    <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
+    ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span></span>` : ''}
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
+      <div class="tabs views" role="group" aria-label="${L.viewLabel}">
+        ${VIEW_IDS.map(id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`).join('')}
+      </div>
       <div class="tabs" role="group" aria-label="${L.themeLabel}">
         <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${effectiveTheme()==='light'}">${ic('sun')}</button>
         <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}" aria-pressed="${effectiveTheme()==='dark'}">${ic('moon')}</button>
@@ -1613,26 +2473,14 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  <div id="mission" class="spotlight" tabindex="-1">${hero}${opsBlock}</div>
-  ${sectionTitle('01',langRu ? 'Состояние работы' : 'Execution health',langRu ? 'Прогресс и проверки' : 'Progress and validation')}
-  <div class="tiles">${tileReq}${tileTk}${tileTests}${tile4}</div>
-  <div id="tasks" class="pipeline" tabindex="-1">
-    ${sectionTitle('02',langRu ? 'Поток задач' : 'Task pipeline',langRu ? 'Этапы и исполнители' : 'Waves and workers')}
-    ${fin ? '' : buildCard}
-  </div>
-  <div id="models" class="intelligence" tabindex="-1">
-    ${sectionTitle('03',langRu ? 'Модели и ресурсы' : 'Models & resources',langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
-    ${resourceBlock}
-    ${isolationBlock}
-  </div>
-  ${sectionTitle('04',langRu ? 'Качество и решения' : 'Quality & decisions',langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${leftCol.join('')}</div><div class="col">${rightCol.join('')}</div></div>
+  ${page}
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
   </footer>
   </main>`;
+  gxFit(app);
   const bv = document.getElementById('brand-version'); // textContent only: state is untrusted
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
@@ -1658,6 +2506,33 @@ function render(lang){
   if (!pulling) pollState();
 }
 
+// Подпись на полосе Ганта (одно правило для «Обзора», «Таймлайна» и мини-Ганта «Компактного»): gxLabels() кладёт в полосу
+// все варианты, gxFit() после каждой отрисовки и при изменении окна оставляет самый длинный из тех, что целиком влезают
+// (нужную ширину берёт у браузера — язык и шрифт не гадаются); не влезла ни одна — короткая рядом с полосой. Не режется ничего.
+const gxLabels = (vs, d) => vs.map((v, i) => [v, i]).filter(([v, i]) => v && v !== vs[i - 1])
+  .map(([v, i]) => `<span class="gl${i === d ? ' d' : ''}">${v}</span>`).join('');
+const gxPick = (need, avail) => need.findIndex(n => n <= avail);  // need — по убыванию; -1: не влезает ни одна
+function gxFit(root) {
+  root.querySelectorAll('.gx-bar, .gx-tail').forEach(bar => {
+    const gl = [...bar.children], w = bar.clientWidth;
+    if (!gl.length || !w) return;
+    bar.classList.remove('out');
+    const pad = parseFloat(getComputedStyle(bar).paddingLeft) || 0;
+    const need = gl.map(g => { gl.forEach(x => x.classList.toggle('on', x === g)); return g.offsetWidth + 2 * pad; });
+    let i = gxPick(need, w);
+    const out = i < 0 && bar.classList.contains('gx-bar');  // у «хвоста» прогноза без места подписи нет: она в подсказке
+    if (out) {
+      i = gl.findIndex(g => g.classList.contains('d'));
+      const tail = bar.nextElementSibling, end = tail && tail.classList.contains('gx-tail') ? tail.offsetLeft + tail.offsetWidth : bar.offsetLeft + bar.offsetWidth;
+      bar.dataset.side = bar.parentElement.clientWidth - end >= bar.offsetLeft ? 'r' : 'l';
+    }
+    gl.forEach((g, j) => g.classList.toggle('on', j === i));
+    if (out) bar.classList.add('out');
+    bar.classList.add('fit');
+  });
+}
+window.addEventListener('resize', () => gxFit(document.getElementById('app')));
+
 // Один обработчик на всё: #app переписывается целиком на каждом событии сборки.
 document.getElementById('app').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -1670,6 +2545,10 @@ document.getElementById('app').addEventListener('click', e => {
     try { localStorage.setItem('autopilot-theme', t); } catch(err) {}
     applyTheme(t);
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
+  } else if (VIEW_IDS.includes(b.dataset.view)) {
+    VIEW = b.dataset.view;
+    try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
+    render(CUR.lang);
   } else if (b.hasAttribute('data-refresh')) {
     refreshNow(b);
   } else if (b.dataset.filter) {
@@ -1691,7 +2570,7 @@ function bootFail(why){
   const app = document.getElementById('app');
   if (!app) return;
   const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
-  app.innerHTML = `<header class="top"><div class="brand"><span class="brand-name">Autopilot</span><span class="brand-version" id="brand-version"></span></div></header>
+  app.innerHTML = `<header class="top"><div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div></header>
     <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
     <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
 }

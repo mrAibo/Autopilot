@@ -15,6 +15,8 @@
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
     python3 .autopilot/ap.py ticket 03 retry | fail --note "…" | reset
+    python3 .autopilot/ap.py ticket 02 accept-edit --note "…"   # осознанная правка сданного таска
+    python3 .autopilot/ap.py claude-version [--text "2.1.302"]  # версия Claude Code (до init)
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
     python3 .autopilot/ap.py add debt.emptyEnv TELEGRAM_BOT_TOKEN
@@ -27,6 +29,7 @@
     python3 .autopilot/ap.py finish --result "Бот принимает заявки и пишет их в таблицу"
     python3 .autopilot/ap.py reopen                     # второй бриф в сданном прогоне
     python3 .autopilot/ap.py commits                    # коммиты сданных тасков ещё в истории?
+    python3 .autopilot/ap.py report-run [--share]       # свод журнала прогона (run-log.jsonl)
     python3 .autopilot/ap.py                            # просто синхронизировать
 
 После каждой команды: updatedAt = сейчас (и метка в журнале beats), строка в ленте log,
@@ -55,12 +58,22 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # соседние модули инструментов
 import state_io  # noqa: E402
+RUN_LOG_WARNING = None
+try:
+    import run_log  # noqa: E402
+except Exception as _e:                              # журнал не обязателен для работы
+    run_log = None
+    RUN_LOG_WARNING = ("run_log.py не найден, журнал не пишется"
+                       if isinstance(_e, ModuleNotFoundError) and _e.name == "run_log" else
+                       "run_log.py не импортируется (%s), журнал не пишется" % type(_e).__name__)
 
 for _s in (sys.stdout, sys.stderr):                       # cp1251-консоль Windows
     try:
         _s.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
         pass
+if RUN_LOG_WARNING:
+    print(RUN_LOG_WARNING, file=sys.stderr)
 
 A = os.path.dirname(os.path.abspath(__file__))          # .autopilot этого проекта
 ROOT = os.path.dirname(A)
@@ -169,10 +182,45 @@ def beat(state):
 def log(state, event, **kw):
     """Лента событий для дашборда: что случилось, словами страницы, а не агента.
     Пишет скрипт сам, по команде, — от агента ничего сверх обычного вызова не нужно."""
+    journal = kw.pop("journal", None) or {}           # поля только для run-log.jsonl
     entry = {"t": state["updatedAt"], "k": event}
     entry.update({k: v for k, v in kw.items() if v not in (None, "", [])})
     state.setdefault("log", []).append(entry)
     del state["log"][:-LOG_KEPT]
+    try:
+        mirror_run_log(state, event, kw, journal)
+    except Exception:                                 # журнал только пишет и не блокирует
+        pass
+
+
+def mirror_run_log(state, event, kw, extra):
+    """Событие ленты → строки run-log.jsonl (схема в run_log.KINDS)."""
+    if run_log is None:
+        return
+    put = lambda row, **f: run_log.append(A, row, run=state.get("dir"), **f)
+    if event == "stage":
+        put("phase", id=kw.get("id"), act=kw.get("act"))
+    elif event == "ticket":
+        if kw.get("act") in ("start", "done", "retry", "fail", "repair", "review"):
+            for i in kw.get("ids") or []:
+                put("ticket", id=i, act=kw["act"], cause=extra.get("cause"))
+        if isinstance(kw.get("tests"), dict):
+            put("tests", source="ticket", **kw["tests"])
+    elif event == "gate":
+        put("gate", g=kw.get("g"), ok=kw.get("ok"), reason=kw.get("reason"))
+        if kw.get("reason"):
+            put("reset", what="gate", id=kw.get("g"), reason=kw["reason"])
+    elif event == "tests":
+        put("tests", passed=kw.get("passed"), failed=kw.get("failed"),
+            seconds=extra.get("seconds"), source="manual")
+    elif event == "worktree" and kw.get("act") == "verify":
+        put("tests", passed=kw.get("tests"), failed=0, seconds=extra.get("seconds"), source="host")
+    elif event == "ticket-reset":
+        put("reset", what="ticket", id=kw.get("id"), reason=kw.get("reason"))
+    elif event == "ask":
+        put("wait", kind=kw.get("kind"), act="start")
+    elif event == "answered":
+        put("wait", kind=kw.get("kind"), act="end")
 
 
 def set_gate(state, g, ok, **kw):
@@ -409,20 +457,63 @@ def dep_id(ref, ids):
     return m.group(1).zfill(2) if m else ref
 
 
+# Те же шаблоны, что в tests/test_no_machine_data.py (не расширять сверх них).
+MACHINE_PATH_PATTERNS = [
+    re.compile(r"[A-Za-z]:\\Users\\(?!<|demo\\|user\\|example\\)[A-Za-z0-9_.-]+\\"),
+    re.compile(r"/(?:home|Users)/(?!<|demo/|user/|example/)[a-z0-9_.-]+/", re.I),
+]
+
+
+def machine_path_hits(text):
+    """Пути машины в тексте → [(номер строки, совпадение)]."""
+    return [(n, m.group(0)) for n, line in enumerate(text.splitlines(), 1)
+            for p in MACHINE_PATH_PATTERNS for m in p.finditer(line)]
+
+
+def check_machine_paths(state, files):
+    for p in files + [os.path.join(run_dir(state), "spec.md")]:
+        try:
+            with open(p, "rb") as f:
+                text = f.read().decode("utf-8", errors="replace")
+        except OSError:
+            continue
+        hits = machine_path_hits(text)
+        if hits:
+            die("путь машины в %s, строка %d: %s — замени на <repo> или <scratchpad>"
+                % (os.path.relpath(p, A).replace(os.sep, "/"), hits[0][0], hits[0][1]))
+
+
 def publish_tickets(state):
     files = sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md")))
     if not files:
         return "в %s/tickets/ нет файлов" % state.get("dir")
+    check_machine_paths(state, files)
     old = {t["id"]: t for t in state.get("tickets") or []}
     out = []
     for p in files:
         t = parse_ticket(p)
-        t["fingerprint"] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+        with open(p, "rb") as stream:
+            raw = stream.read()
+        t["fingerprint"] = state_io.ticket_fingerprint(raw)
         prev = old.get(t["id"], {})
-        if prev.get("fingerprint") and prev["fingerprint"] != t["fingerprint"]:
-            if prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
+        if prev.get("fingerprint") and not state_io.fingerprint_matches(prev["fingerprint"], raw):
+            if prev.get("status") == "done":
+                if prev.get("acceptedFingerprint") != t["fingerprint"]:
+                    die("сданный таск %s изменён; если правка осознанная: "
+                        "`ap.py ticket %s accept-edit --note \"что и почему\"`" % (t["id"], t["id"]))
+                if prev.get("worktree") and prev["worktree"].get("status") != "released":
+                    die("таск %s изменён при существующем worktree: посадите его "
+                        "(`ap.py worktree %s land`) или снимите (`ap.py worktree %s release`)"
+                        % (t["id"], t["id"], t["id"]))
+                prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
+            elif prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
                 die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])
-            prev = {}
+            else:
+                if prev.get("status") not in (None, "pending"):
+                    log(state, "ticket-reset", id=t["id"], reason="ticket-edited")
+                prev = {}
+        elif "acceptedFingerprint" in prev:
+            prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
                   "worktree", "retryAdvice", "attestation", "attestFrom"):
@@ -849,7 +940,7 @@ def ensure_gitignore():
                ".autopilot/gui-dispatch/",
                ".autopilot/api-pilot/", ".autopilot/api-pilot-consent",
                ".autopilot/offline-worker/", ".autopilot/offline-test-consent",
-               ".autopilot/__pycache__/",
+               ".autopilot/__pycache__/", ".autopilot/run-log*.jsonl",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
                ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
     existing = {line.strip() for line in text.splitlines()}
@@ -1372,7 +1463,7 @@ def cmd_plan_models(state, opt):
                 die("plan-models: tickets отличаются от опубликованного плана: %s" % tid)
             with open(candidates[0], "rb") as stream:
                 raw = stream.read()
-            if hashlib.sha256(raw).hexdigest() != tk.get("fingerprint"):
+            if not state_io.fingerprint_matches(tk.get("fingerprint"), raw):
                 die("plan-models: tickets изменены; повтори ap.py tickets и check-plan")
             scores = router.assess_ticket(raw.decode("utf-8"))
             route = router.choose_route(provider, scores, policy, caps)
@@ -1507,8 +1598,30 @@ def cmd_plan_models(state, opt):
         die("plan-models: " + str(exc))
 
 
+def cmd_accept_edit(state, ids, opt):
+    """Запомнить текущий отпечаток сданного таска как осознанную правку."""
+    note = opt.get("note")
+    if not isinstance(note, str) or not note.strip():
+        die("accept-edit требует --note \"что и почему изменено\"")
+    if len(ids) != 1:
+        die("ticket NN accept-edit --note \"…\" — один таск")
+    tk = next((x for x in state.get("tickets") or [] if x["id"] == ids[0]), None)
+    if tk is None:
+        die("таска %s нет — сначала `ap.py tickets`" % ids[0])
+    if tk.get("status") != "done":
+        die("таск %s не сдан: accept-edit только для done" % ids[0])
+    files = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % ids[0]))
+    if len(files) != 1:
+        die("файл таска %s не найден или не один" % ids[0])
+    with open(files[0], "rb") as stream:
+        tk["acceptedFingerprint"] = state_io.ticket_fingerprint(stream.read())
+    log(state, "ticket-edit-accepted", id=ids[0], note=note)
+
+
 def cmd_ticket(state, pos, opt):
-    acts = [p for p in pos if p in TICKET_STATUSES]
+    if "accept-edit" in pos:
+        return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
+    acts =[p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
     if len(acts) != 1 or not ids:
         die("ticket <id…> start|review|repair|done|fail|retry|reset")
@@ -1763,6 +1876,7 @@ def cmd_ticket(state, pos, opt):
         elif act == "reset":
             for k in ("startedAt", "finishedAt"):
                 tk.pop(k, None)
+            log(state, "ticket-reset", id=i, reason="manual")
         if act == "done":
             close_requirements(state, tk, opt, t)
         if opt.get("tests"):
@@ -1770,7 +1884,10 @@ def cmd_ticket(state, pos, opt):
             state["tests"] = tk["tests"]
         if isinstance(opt.get("commit"), str):
             tk["commit"] = opt["commit"][:12]
-    log(state, "ticket", ids=ids, act=act, tests=tests_pair(opt["tests"]) if opt.get("tests") else None,
+    pair = tests_pair(opt["tests"]) if opt.get("tests") else None
+    cause = opt.get("cause") if isinstance(opt.get("cause"), str) and re.fullmatch(
+        r"[a-z0-9][a-z0-9-]{0,39}", opt["cause"]) else ("tests-failed" if pair and pair["failed"] else None)
+    log(state, "ticket", ids=ids, act=act, tests=pair, journal={"cause": cause},
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
 
 
@@ -1889,14 +2006,16 @@ def cmd_worktree(state, pos, opt):
                 die("worktree: --timeout должен быть целым числом секунд")
             import test_evidence
             require_key(state)
+            started = time.monotonic()
             result = test_evidence.verify(ROOT, ident, record["baseCommit"], suite,
                                           int(timeout), sign=gate_signed(state))
+            seconds = round(time.monotonic() - started, 1)
             tk["testEvidence"] = result
             check = {"passed": result["passed"], "failed": 0}
             tk["tests"] = check
             state["tests"] = check
             log(state, "worktree", act="verify", ticket=ident,
-                tests=result["passed"], suite=result["suite"])
+                tests=result["passed"], suite=result["suite"], journal={"seconds": seconds})
             return "worktree %s: %d/%d тестов подтверждено на хосте" % (
                 ident, result["passed"], result["failed"])
         if action == "finalize":
@@ -2330,6 +2449,48 @@ def cmd_commits(state):
     return notes or ["коммиты сданных тасков на месте"]
 
 
+CLAUDE_MIN_VERSION = (2, 1, 295)
+CLAUDE_WARN_BELOW = (2, 1, 311)
+CLAUDE_KNOWN_ISSUES = [
+    "2.1.305 (Windows): на части томов отказ любого вызова инструмента; пути scratchpad растут с длиной пути проекта (лимит 260)",
+    "2.1.310 (Windows): PreToolUse-хук пропускал вызов без Git Bash, если команда хука — только строки в кавычках",
+]
+
+
+def parse_claude_version(text):
+    """`2.1.302 (Claude Code)` → (2, 1, 302); не разобрано → None."""
+    m = re.search(r"(?<![\d.])(\d+)\.(\d+)\.(\d+)(?![\d.])", text or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def claude_version_report(version, min_version=CLAUDE_MIN_VERSION, warn_below=CLAUDE_WARN_BELOW):
+    """→ (уровень ok|warn|refuse|unknown, строки сообщения)."""
+    if version is None:
+        return "unknown", ["версия Claude Code не определена (настольное приложение несёт свою) — проверка пропущена"]
+    v = ".".join(map(str, version))
+    if version < min_version:
+        return "refuse", ["Claude Code %s ниже минимума %s — обнови" % (v, ".".join(map(str, min_version)))]
+    if version < warn_below:
+        return "warn", ["Claude Code %s ниже %s; известные проблемы:" % (v, ".".join(map(str, warn_below)))] \
+            + ["  - " + x for x in CLAUDE_KNOWN_ISSUES]
+    return "ok", ["Claude Code %s — ok" % v]
+
+
+def cmd_claude_version(opt):
+    text = opt.get("text")
+    if text is None:
+        try:
+            text = subprocess.run(["claude", "--version"], capture_output=True, text=True,
+                                  timeout=20).stdout
+        except (OSError, subprocess.SubprocessError):
+            text = ""
+    level, lines = claude_version_report(parse_claude_version(text if isinstance(text, str) else ""))
+    if level == "ok":
+        return 0
+    print("\n".join(lines))
+    return 2 if level == "refuse" else 0
+
+
 def main():
     argv = sys.argv[1:]
     # Справка ничего не трогает: ни state.js, ни гейты, ни сервер.
@@ -2344,6 +2505,8 @@ def main():
         return
     pos, opt, multi = parse_args(argv)
     cmd = pos[0] if pos else ""
+    if cmd == "claude-version":
+        sys.exit(cmd_claude_version(opt))
     notes = []
     if cmd == "init":
         state, notes = cmd_init(opt)
@@ -2439,7 +2602,14 @@ def main():
             cmd_numbers(state, cmd, rest, multi)
         elif cmd == "tests":
             state["tests"] = tests_pair(rest[0] if rest else "")
-            log(state, "tests", **state["tests"])
+            seconds = opt.get("seconds")
+            if seconds is not None:
+                try:
+                    seconds = float(seconds)
+                except (TypeError, ValueError):
+                    die("--seconds — число секунд, например 42.5")
+                seconds = int(seconds) if seconds.is_integer() else round(seconds, 1)
+            log(state, "tests", journal={"seconds": seconds}, **state["tests"])
         elif cmd == "ask":
             cmd_ask(state, rest, opt)
         elif cmd == "answered":
@@ -2477,9 +2647,29 @@ def main():
             print("  ↑ " + note)
 
 
+def cmd_report_run(argv):
+    """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
+    if run_log is None:
+        print("журнал недоступен: " + RUN_LOG_WARNING)
+        return 0
+    records, unreadable = run_log.read_all_stats(A)
+    if not records:
+        print("журнал прогона пуст: .autopilot/run-log.jsonl ещё не создан")
+        return 0
+    runs = [r["run"] for r in records if isinstance(r.get("run"), str) and r["run"]]
+    if not runs:
+        print("в журнале нет записей с номером прогона")
+        return 0
+    summary = run_log.summarize(records, run=runs[-1], skipped=unreadable)
+    print(run_log.render_report(summary, share="--share" in argv), end="")
+    return 0
+
+
 if __name__ == "__main__":
     if "--stop-now" in sys.argv:
         main()
+    elif sys.argv[1:2] == ["report-run"]:
+        sys.exit(cmd_report_run(sys.argv[2:]))
     else:
         with locked_state():
             main()

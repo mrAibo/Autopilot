@@ -82,7 +82,7 @@ class DocumentationLocalesTests(unittest.TestCase):
     def test_230_scoped_codex_release_and_claude_limits(self):
         skill = (ROOT / "skills/autopilot/SKILL.md").read_text(encoding="utf-8")
         claude = (ROOT / "docs/autopilot/claude-code.md").read_text(encoding="utf-8")
-        self.assertIn('version: "2.6.0"', skill)
+        self.assertIn('version: "2.7.0"', skill)
         for name in LOCALES:
             page = (ROOT / name).read_text(encoding="utf-8")
             self.assertIn("2.4.0", page)
@@ -180,6 +180,15 @@ class DocumentationLocalesTests(unittest.TestCase):
                       "`5-host-codex.md` if in Codex.", shared)
         for name in ("5-host-claude.md", "5-host-codex.md"):
             self.assertTrue((ROOT / "skills/autopilot/phases" / name).is_file(), name)
+
+    def test_run_log_is_copied_documented_and_listed_in_the_event_table(self):
+        instruments = (ROOT / "skills/autopilot/phases/0-instruments.md").read_text(encoding="utf-8")
+        self.assertIn('tools/run_log.py" "$A/run_log.py"', instruments)
+        self.assertIn("report-run", instruments)
+        doc = (ROOT / "docs/autopilot/run-log.md").read_text(encoding="utf-8")
+        for needle in ("run-log.jsonl", "run-log.1.jsonl", "--share", "report-run", "1 MB",
+                       "agent_type", "cache_read", "What the log does not hold"):
+            self.assertIn(needle, doc)
 
     def test_phase5_claude_host_rules(self):
         text = (ROOT / "skills/autopilot/phases/5-host-claude.md").read_text(encoding="utf-8")

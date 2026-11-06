@@ -1,7 +1,7 @@
-# STATUS.md — Autopilot 2.6.0
+# STATUS.md — Autopilot 2.7.0
 
 **Updated:** 2026-11-03 (Europe/Berlin)
-**Current state:** `metadata.version = 2.6.0` (`skills/autopilot/SKILL.md`; the top entry of `CHANGELOG.md` agrees). Run the checks with `python3 -m unittest discover -s tests` and `python3 -m compileall -q skills/autopilot/tools tests tools`; CI runs both on Ubuntu and Windows, Python 3.11 and 3.13. Launch tools as `py -3 .autopilot/ap.py` / `python3 .autopilot/ap.py` (and `controller.py`); `SKILL.md` allowed-tools pre-approves exactly these forms. The router has four tiers (cheap, balanced, strong, critical); see `docs/autopilot/model-routing.md`. The sections below are the earlier history (2.3 through 2.4.0), kept unchanged; the "Current release v2.3.0" line there is historical, not current.
+**Current state:** `metadata.version = 2.7.0` (`skills/autopilot/SKILL.md`; the top entry of `CHANGELOG.md` agrees). Run the checks with `python3 -m unittest discover -s tests` and `python3 -m compileall -q skills/autopilot/tools tests tools`; CI runs both on Ubuntu and Windows, Python 3.11 and 3.13. Launch tools as `py -3 .autopilot/ap.py` / `python3 .autopilot/ap.py` (and `controller.py`); `SKILL.md` allowed-tools pre-approves exactly these forms. The router has four tiers (cheap, balanced, strong, critical); see `docs/autopilot/model-routing.md`. The sections below are the earlier history (2.3 through 2.4.0), kept unchanged; the "Current release v2.3.0" line there is historical, not current.
 
 ## History (2.3 handoff, 2026-10-26)
 

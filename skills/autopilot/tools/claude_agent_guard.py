@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import sys
 
 import gate_sign
@@ -100,11 +101,135 @@ def write_decision(payload, root):
     return True, "No active strict run"
 
 
+GIT_OPTS_WITH_VALUE = ("-C", "-c", "--git-dir", "--work-tree", "--namespace")
+
+
+def split_unquoted(command):
+    """Split on ; & | and newlines that sit outside '...' and "..." (a backslash escapes)."""
+    parts, buf, quote, i = [], [], None, 0
+    while i < len(command):
+        c = command[i]
+        if c == "\\" and quote != "'" and i + 1 < len(command):
+            buf.append(command[i:i + 2])
+            i += 2
+            continue
+        if quote:
+            quote = None if c == quote else quote
+        elif c == "#" and (not buf or buf[-1] in (" ", "\t")):  # an escaped "\ " is a 2-char entry
+            i = command.find("\n", i)  # comment: no quote opens inside it
+            i = len(command) if i < 0 else i
+            continue
+        elif c in "'\"":
+            quote = c
+        elif c in ";&|\n":
+            parts.append("".join(buf))
+            buf = []
+            i += 1
+            continue
+        buf.append(c)
+        i += 1
+    return parts + ["".join(buf)]
+
+
+GIT_NAMES = ("git", "git.exe")
+SHELL_NAMES = ("bash", "sh", "zsh", "dash")
+SHELL_MAX_DEPTH = 3  # bash -c wrappers unwrapped before the innermost command is checked
+WHOLE_TREE = (".", "./")
+
+
+def command_name(word):
+    """Name of a program word: `/usr/bin/git`, `C:/x/Git.EXE` -> `git`, `git.exe`."""
+    return re.split(r"[\\/]", word)[-1].lower()
+
+
+def git_denial(args):
+    """Reason to deny one git invocation (args after the `git` word), else None."""
+    rest = args
+    while rest and rest[0].startswith("-"):
+        rest = rest[2:] if rest[0] in GIT_OPTS_WITH_VALUE else rest[1:]
+    sub = rest[0] if rest else ""
+    if (sub in ("stash", "reset")
+            or (sub == "checkout" and ("--" in rest or any(a in WHOLE_TREE for a in rest)))
+            or (sub == "restore" and any(a in WHOLE_TREE for a in rest))):
+        return "git %s is forbidden for Autopilot subagents (shared worktree index)" % sub
+    # -f / --force in any short cluster (-fd, -df, -xdf); -n and --dry-run stay allowed
+    if sub == "clean" and any(a == "--force" or (a.startswith("-") and not a.startswith("--")
+                                                 and "f" in a) for a in rest[1:]):
+        return "git clean --force is forbidden for Autopilot subagents (deletes untracked work)"
+    return None
+
+
+def shell_command(args):
+    """The string after `-c` in `bash [-flags] -c "<string>"`, or None when no -c is given."""
+    j = 0
+    while j < len(args) and args[j].startswith("-") and not args[j].startswith("--"):
+        if args[j] in ("-o", "+o"):  # option with a value
+            j += 2
+            continue
+        if "c" in args[j][1:]:
+            return args[j + 1] if j + 1 < len(args) else ""
+        j += 1
+    return None
+
+
+def _denial(command, depth):
+    for part in split_unquoted(command if isinstance(command, str) else ""):
+        try:
+            words = shlex.split(part)
+        except ValueError:
+            words = part.split()
+        for i, word in enumerate(words):
+            name = command_name(word)
+            if name in GIT_NAMES:
+                why = git_denial(words[i + 1:])
+            elif name in SHELL_NAMES and depth < SHELL_MAX_DEPTH:
+                inner = shell_command(words[i + 1:])
+                why = _denial(inner, depth + 1) if inner is not None else None
+            else:
+                continue
+            if why:
+                return why
+    return None
+
+
+def bash_decision(command):
+    """Pure check of one Bash command: deny git stash / reset / checkout -- / restore . / clean -f.
+
+    Splits on ; && || | & and newlines outside quotes; program names match by file name
+    (git, git.exe, any path, any case); `bash|sh|zsh|dash -c "<string>"` is checked recursively.
+    shortcut: a command hidden in a script, `eval` or `$(...)` is not seen; documented in
+    docs/autopilot/claude-code.md.
+    """
+    why = _denial(command, 0)
+    if why:
+        return False, why
+    return True, "Command allowed"
+
+
+def bash_gate(payload, root):
+    if not (payload.get("agent_id") or payload.get("agent_type")):
+        return True, "Main session"
+    if not (Path(root) / ".autopilot" / "state.js").exists():
+        return True, "No Autopilot run"
+    state = read_state(root)
+    if state is None:
+        return True, "No readable Autopilot state"
+    forged = forged_run(state, root)
+    if forged:
+        return False, forged
+    if not state.get("strictRouting") or state.get("finishedAt"):
+        return True, "No active strict run"
+    args = payload.get("tool_input")
+    return bash_decision(args.get("command") if isinstance(args, dict) else "")
+
+
 def decision(payload, root):
     if not isinstance(payload, dict):
         return False, "Malformed Claude hook payload"
     if payload.get("tool_name") in WRITE_TOOLS:
         return write_decision(payload, root)
+    if payload.get("tool_name") == "Bash":
+        return bash_gate(payload, root)
     if payload.get("tool_name") not in ("Agent", "Task"):
         return True, "Not an agent invocation"
     state_file = Path(root) / ".autopilot" / "state.js"
@@ -262,7 +387,8 @@ def install_hook(root):
     # Settings-level layer for Claude-started forks, independent of this hook.
     fork_denied = "Agent(fork)" in deny
     write_hook = dict(hook, matcher="|".join(WRITE_TOOLS))
-    if hook in current and write_hook in current and fork_denied:
+    bash_hook = dict(hook, matcher="Bash")
+    if hook in current and write_hook in current and bash_hook in current and fork_denied:
         return settings, False
     if not fork_denied:
         deny.append("Agent(fork)")
@@ -276,7 +402,7 @@ def install_hook(root):
                 or h.get("args") == hook["hooks"][0]["args"])
             for h in inner)
     current[:] = [e for e in current if not outdated(e)]
-    current.extend((hook, write_hook))
+    current.extend((hook, write_hook, bash_hook))
     temp = settings.with_suffix(".json.tmp")
     try:
         with temp.open("x", encoding="utf-8") as writer:

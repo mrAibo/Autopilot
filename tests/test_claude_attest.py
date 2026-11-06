@@ -116,6 +116,48 @@ class AttestTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(self.log.exists())
 
+    def stop_with_transcript(self, lines=None):
+        path = self.root / "agent.jsonl"
+        if lines is not None:
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return dict(STOP, agent_transcript_path=str(path))
+
+    def test_subagent_stop_writes_executor_usage_to_run_log(self):
+        reply = lambda i: json.dumps({"message": {"id": i, "role": "assistant", "content": "private",
+                                                  "usage": {"input_tokens": 10, "output_tokens": 4,
+                                                            "cache_read_input_tokens": 50}}})
+        self.assertEqual(self.run_hook(self.stop_with_transcript([reply("a"), reply("b")])).returncode, 0)
+        rows = [json.loads(x) for x in (self.ap / "run-log.jsonl").read_text(encoding="utf-8").splitlines()]
+        (row,) = rows
+        self.assertEqual((row["k"], row["agent_type"], row["turns"], row["input"], row["output"],
+                          row["cache_read"], row["cache_write"]),
+                         ("executor", "autopilot-executor-01-calc", 2, 20, 8, 100, 0))
+        self.assertEqual(len(self.lines()), 1)                    # аттестация записана как прежде
+        self.assertNotIn("private", (self.ap / "run-log.jsonl").read_text(encoding="utf-8"))
+
+    def test_run_log_role_follows_the_profile_name(self):
+        reply = json.dumps({"message": {"id": "a", "role": "assistant", "usage": {"input_tokens": 1}}})
+        names = {"autopilot-reviewer-x": "reviewer", "autopilot-explorer-x": "explorer",
+                 "autopilot-acceptance-x": "acceptance", "autopilot-executor-x": "executor",
+                 "autopilot-executor-repair-x": "executor", "foreign-x": "agent"}
+        for name in names:                         # хук чужое имя отсекает, log_usage роль всё равно «agent»
+            stop = dict(self.stop_with_transcript([reply]), agent_type=name)
+            attest.log_usage({"event": "SubagentStop", "agent_type": name,
+                              "transcript_path": stop["agent_transcript_path"]}, self.root)
+        rows = [json.loads(x) for x in (self.ap / "run-log.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual({r["agent_type"]: r["role"] for r in rows}, names)
+
+    def test_broken_missing_or_unwritable_run_log_keeps_attestation_and_exit_code(self):
+        broken = self.run_hook(self.stop_with_transcript(["{не json"]))
+        missing = self.run_hook(self.stop_with_transcript(None))
+        (self.ap / "run-log.jsonl").mkdir()                       # запись журнала падает
+        failing = self.run_hook(self.stop_with_transcript(
+            [json.dumps({"message": {"id": "a", "role": "assistant", "usage": {"input_tokens": 1}}})]))
+        for result in (broken, missing, failing):
+            self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertEqual(len(self.lines()), 3)
+        self.assertFalse((self.ap / "run-log.jsonl").is_file())
+
     def test_installer_adds_three_hooks_idempotent(self):
         settings = self.root / ".claude" / "settings.json"
         settings.parent.mkdir()

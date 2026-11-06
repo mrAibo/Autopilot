@@ -1,10 +1,48 @@
 # What's new in Autopilot
 
-The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.6.0` (read-only audit mode; plan on a strong model, build in a fresh cheaper session; builds on 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
+The skill version comes from `metadata.version` in `skills/autopilot/SKILL.md`. The current stable release is `2.7.0` (switchable dashboard views and project logo; builds on 2.6.0 read-only audit mode, 2.5.0 plan on a strong model and build in a fresh cheaper session, and 2.4.x Claude Code support; Codex behavior unchanged from the scoped Codex release `2.3.0`); historical development evidence below may still refer to `2.3.0-dev`. When running from a Git checkout linked by Windows Junction, update the working branch using `git pull --ff-only` only after checking for local edits. The `npx` update command below applies only to installer-managed **released** versions, not this developer-linked checkout:
 
 ```bash
 npx skills update autopilot -g
 ```
+
+## Unreleased
+
+Wave 1 process fixes.
+
+- **R01 ticket fingerprint by normalized text:** `state_io.ticket_fingerprint` hashes the ticket as LF text without BOM and trailing spaces, so changing line endings no longer resets a `done` ticket; `tickets`, `plan-models` and `codex_dispatch.py` compare through `state_io.fingerprint_matches`.
+- **R01a old fingerprints accepted:** a ticket published by older code (raw-byte hash, or CRLF/BOM variants) stays as it was and its fingerprint is silently rewritten to the new one.
+- **R01b edited `done` ticket stops publication:** `ap.py tickets` dies with the command `ticket NN accept-edit --note "..."`; the command (done tickets only, `--note` required) accepts the current text.
+- **R02 executors and git:** `prompts/executor.md` and the executor profile forbid `git stash`, `git reset`, `git checkout -- <others' paths>` and require `git commit --only <zone files>` after `git diff --cached --stat`.
+- **R02a Bash hook:** `claude_agent_guard.py` rejects those git commands in subagent Bash calls of an unfinished strict run; `install_hook` adds a `Bash` matcher (idempotent).
+- **R03 no machine paths in plans:** `phases/4-plan.md` says samples go through `<scratchpad>` and `<repo>`; **R03a** `ap.py tickets` refuses a ticket or `spec.md` with a user's absolute path (file and line).
+- **R04 advisor rule:** `docs/autopilot/claude-code.md` and `model-routing.md` explain the advisor is a server-side tool whose `advisorModel` subagents inherit and `is_allowed_subagent_model` cannot see; **R04a** `phases/0-preflight.md` warns in strict runs and offers `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`. R04b (advisor calls in `attestations.jsonl`) is recorded as an open question.
+- **R05 resume after a usage limit:** `phases/0-resume.md` and `phases/5-repair.md`: inspect the zone, `SendMessage` the same agent, keep uncommitted zone edits; **R05a** tell the user the reset time (5-hour and weekly windows; Ultra has no 5-hour one).
+- **R06 Claude Code version:** `ap.py claude-version [--text S]` (before `init`): below 2.1.295 refuses (exit 2), below 2.1.311 warns with known problems, unreadable version is one line, exit 0; **R06a** thresholds and `parse_claude_version` covered by tests.
+- **R00i:** every change above has tests (`tests/test_wave1.py`).
+
+Wave 2: run log and hook gaps.
+
+- **R22 run log:** `.autopilot/run-log.jsonl` records phases, tickets, retries, test runs, resets and executor token usage by default (metadata only, write failures never stop a command); `ap.py report-run [--share]` prints the summary.
+- **R22a hook gaps:** the `Bash` guard also rejects `git.exe`, `<path>/git`, `bash -c "git stash"`, `git restore .`, `git checkout .` and `git clean -fd`.
+- **R22b Bash hook failure:** `docs/autopilot/claude-code.md` explains that `onFailure: block` on the `Bash` hook blocks all Bash commands of the project on a hook failure and how to lift it; behaviour unchanged.
+- **R22d run log hardening:** without `run_log.py` every `ap.py` command prints one stderr line (`run_log.py не найден, журнал не пишется`; an import error names its type) and `report-run` says "журнал недоступен", not "журнал пуст"; a test checks that every `tools/*.py` is in `phases/0-instruments.md` or in the explicit `RUN_FROM_SKILL` list; `report-run` skips hand-broken lines and rows of wrong structure and prints "пропущено испорченных строк: N", takes the run of the last row that has a `run` (none: one line), and shows a "роль" column from the new `role` field of executor rows (`executor`/`reviewer`/`explorer`/`acceptance`/`agent`).
+- **R22c `accept-edit` and worktree:** a done ticket whose worktree is not `released` no longer passes `ap.py tickets` after `accept-edit`; the refusal names `worktree NN land` and `worktree NN release`.
+
+## 2.7.0 — Dashboard views (2026-11-05)
+
+The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.
+
+- **Dashboard views:** overview, timeline, requirements, resources, summary, classic, compact and quality, chosen in the header and remembered in the browser (`autopilot-view`); registry and how to add one in `docs/autopilot/dashboard-views.md`.
+- **Logo:** the project logo mark in the dashboard header.
+- **Overview finished, two new views:** the overview now shows pending tickets with their waves and every block once (one stage track, one requirements summary, one ticket list); new views `compact` (narrow panel; first called `focus`, a saved `focus` still opens it) and `quality` (gates, blind acceptance, review notes, requirements, leftovers).
+- **Fitted to the design handoff:** the mockup palette (light and dark) for every view except Classic; Overview with a progress ring, forecast, stage route with minutes and a Gantt chart; Compact in one column, chosen by default in a window up to 520 px; Requirements as a matrix of each phrase by seven stages with a "how many reached the stage" row; Summary with a verdict per requirement, the acceptance mismatch (text only, no buttons), review notes, "what to do next" and "needed from you"; Timeline with the detailed Gantt (Overview keeps a short one); Resources with ticket state, model chips and tokens per ticket. Blocks whose data `state.js` lacks (before/after findings, decisions) are not drawn; no new `state.js` fields, no fonts, no network requests.
+- **Fixed after a blind acceptance:** Overview no longer lists the same tickets twice (the Gantt carries the wave in each row); Timeline gets a hero with forecast and route, up to five cards, a right column (needed from you, checks, feed) and your words at the bottom; Compact in a narrow panel drops the long "decided for you" list and tightens the header, title and chart (about 2555 px down to about 2125 px at 440 px wide on the demo state); Summary gets a hero with work-time, tests and tokens cards; the header says "updated N s ago" live; Resources lists waiting tickets that have no route (0 tokens, "not created"). No new `state.js` fields.
+- **Ticket notes in the Gantt:** Overview, Timeline and Compact show under a ticket's row why a failed ticket failed, the review remark or the last repair finding, and "N repairs · M retries" where they are not zero; nothing is drawn without data, a long note is cut with "Show more", text is escaped. Classic is unchanged; no new `state.js` fields.
+- **Overview as in the mockup:** Overview no longer ends with the "Models & resources" and "Isolation & recovery" blocks (they stay in Resources and Classic), and every ticket is named once, in the Gantt (the hero lead says "Writing T02" instead of repeating the title); the rail has no "Models" link in this view. Classic, Compact and the other views are unchanged; no new `state.js` fields.
+- **Fix: Gantt bar labels are no longer cut:** on a short bar the label was clipped mid-word ("done · 27 m", "~27 mi"). One rule now serves the Gantt of Overview and Timeline and the mini Gantt of Compact: the dashboard measures the bar after every draw and on window resize and shows the longest variant that fits whole ("done · 27 min" → "27 min" → "27" → the icon); when none fits, "27 min" goes beside the bar, and the forecast tail drops its text (it stays in the tooltip). Classic and the other views are unchanged; no new `state.js` fields.
+- **Fix: side rail:** the version under the logo comes from `skillVersion` instead of a hardcoded "2.3 / 2.3.0", and the highlighted rail link is the one of the current view (it was always the first, "Overview"); a view's rail shows only the anchors it has.
+- **Fix: `dashboard_upgrade.py` with BOM:** it read `state.js` on its own and refused a file with a BOM or without the `window.STATE` prefix; it now parses through `state_io` like the other tools (regression tests added).
 
 ## 2.6.0 — Audit mode (2026-10-30)
 

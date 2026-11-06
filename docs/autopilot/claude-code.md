@@ -74,6 +74,22 @@ Claude Code's own `isolation: worktree` starts from the default branch by defaul
 
 Native Claude Code E2E is qualified for strict routing; see the limits in [claude-qualification.md](claude-qualification.md).
 
+## Advisor tool and the model guard
+
+The advisor is a **server-side tool**, not an `Agent` call. Subagents **inherit** the `advisorModel` setting, and `is_allowed_subagent_model` **does not see** it, so a configured advisor can bring a model the route never approved. In a strict run `phases/0-preflight.md` warns when `advisorModel` is set (user, project or local settings) and offers `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for the duration of the build.
+
+**Open question R04b:** are advisor calls visible in `.autopilot/attestations.jsonl`? Not answered; do not assume. Live check: enable the advisor, run a disposable strict run with one ticket, then read `attestations.jsonl` and the subagent transcript for advisor entries and record what is there.
+
+## Executor Bash guard
+
+`claude_agent_guard.py` also hooks `Bash`: in an unfinished strict run it rejects `git stash`, `git reset` and `git checkout -- <paths>` in **subagent** Bash calls (it parses `git -C <path>`, `;`, `&&`, `|`); `git commit --only <files>` passes, and the main session is untouched. **Limit:** a command hidden in a script, `eval` or `$(...)` is not caught. `claude-version` (`ap.py claude-version`) checks the host version: minimum 2.1.295, warning below 2.1.311.
+
+### Bash hook failure (R22b)
+
+The `Bash` entry that `install_hook` writes to `.claude/settings.json` has `"onFailure": "block"`: if the hook crashes or times out, Claude Code denies the call. For the `Bash` matcher this means **every Bash command of the project is blocked, including `ap.py`**, until the hook works again. To lift it, delete the hook entry with `"matcher": "Bash"` from `hooks.PreToolUse` in `.claude/settings.json` (or fix the hook, e.g. the interpreter path). The hook behaviour is not changed by Autopilot and changes only by the owner's decision.
+
+What the guard parses (`bash_decision`): the command name `git`, `git.exe`, `<path>/git`, `<path>/git.exe` (any case); `bash|sh|zsh|dash [-flags] -c "<string>"` (the string is parsed by the same rule, depth up to 3); `git -C <path>`, `;`, `&&`, `|`. It rejects `stash`, `reset`, `checkout --`, `checkout .`, `restore .` and `clean` with `-f`/`--force` (also `-fd`, `-df`, `-xdf`). **Limit:** a command hidden in `$(...)`, `eval` or a script is still not caught, and unquoted backslash paths are not understood (shlex).
+
 ## Live probe (T08, 2026-10-29)
 
 Disposable strict run, one ticket routed `anthropic / haiku / low`, guard (T02) and attestation hooks (T06) installed, gate (T07) active.

@@ -153,6 +153,25 @@ class InstrumentsCopyListTests(unittest.TestCase):
                 self.assertTrue((self.TOOLS / (module + ".py")).is_file(), "listed but missing")
                 self.assertLessEqual(self.sibling_imports(module), copied)
 
+    # Модули, что запускаются только из навыка (в проект не копируются). Новый модуль tools/
+    # надо внести либо в 0-instruments.md, либо сюда. Динамические импорты (importlib,
+    # __import__) AST-разбор не видит — предел проверки.
+    RUN_FROM_SKILL = {"bounded_api_pilot", "dashboard_upgrade",
+                      "offline_fixture_worker", "offline_supervisor", "process_gate", "repo_doctor"}
+
+    def unlisted(self, copied, run_from_skill):
+        return {p.stem for p in self.TOOLS.glob("*.py")} - copied - run_from_skill
+
+    def test_every_tool_is_copied_or_named_as_run_from_skill(self):
+        self.assertEqual(self.unlisted(self.copied(), self.RUN_FROM_SKILL), set())
+
+    def test_a_module_in_neither_list_fails_the_check(self):
+        self.assertEqual(self.unlisted(self.copied() - {"run_log"}, self.RUN_FROM_SKILL), {"run_log"})
+        self.assertEqual(self.unlisted(self.copied(), self.RUN_FROM_SKILL - {"repo_doctor"}), {"repo_doctor"})
+
+    def test_ap_imports_are_copied(self):
+        self.assertLessEqual(self.sibling_imports("ap"), self.copied())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,7 +41,8 @@ class RunContainedTests(unittest.TestCase):
             done = process_containment.run_contained(
                 [sys.executable, "-c", "import os; print(os.getcwd()); print(os.environ['AP_X'])"],
                 timeout=30, cwd=cwd, env=dict(os.environ, AP_X="42"))
-        self.assertEqual(done.stdout.split(), [os.path.realpath(cwd), "42"])
+        out = done.stdout.split()
+        self.assertEqual([os.path.realpath(out[0]), out[1]], [os.path.realpath(cwd), "42"])
 
     def test_timeout_raises_after_killing_the_child(self):
         started = time.monotonic()

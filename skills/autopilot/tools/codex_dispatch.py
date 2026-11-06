@@ -128,7 +128,7 @@ def checked_dispatch(root, ticket_id, executable=None, mode="workspace-write", o
     files = list((root / ".autopilot" / state["dir"] / "tickets").glob(ticket_id + "-*.md"))
     if len(files) != 1 or not files[0].is_file():
         raise DispatchError("Cannot resolve exact ticket brief")
-    if hashlib.sha256(files[0].read_bytes()).hexdigest() != t.get("fingerprint"):
+    if not state_io.fingerprint_matches(t.get("fingerprint"), files[0].read_bytes()):
         raise DispatchError("Ticket brief changed since publication")
     binary = choose_binary(executable)
     cmd = [binary, "exec", "--cd", str(target), "--sandbox", mode,
