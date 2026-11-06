@@ -144,6 +144,8 @@ try {
       effort:'low', profile:'cheap', score:12,
       status:'blocked', error:'No verified host capabilities'};
   }
+  // Проверка рассчитана на полный набор блоков «Классики»; тема по умолчанию («Обзор») их не все показывает.
+  VIEW = 'classic';
   render(%(lang)s);
   applyTheme(%(theme)s);
   // Exercise the real delegated language-click rerender and a later refresh.
