@@ -16,7 +16,7 @@ assert.ok(code, 'Dashboard render script not found');
 
 function render(state, options = {}) {
   const app = {innerHTML: '', classList: {add() {}, remove() {}},
-               addEventListener() {}};
+               addEventListener() {}, querySelectorAll() {return []}};
   const link = {hidden: true, parentNode: {hidden: true}, textContent: ''};
   const document = {
     documentElement: {setAttribute() {}, removeAttribute() {}, lang: 'ru'},
