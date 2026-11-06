@@ -19,3 +19,9 @@
 - `ap.cmd_report_run(argv)` — выбор прогона: последняя запись с непустым `run`.
 - `ap.py` при сбое импорта `run_log` печатает одну строку в stderr; `run_log = None` как раньше.
 - Тест списка копирования: `tests/test_state_io.py::InstrumentsCopyListTests` — явный список `RUN_FROM_SKILL`.
+
+## Построено таском 01
+
+- `run_log.role_of(agent_type) -> str`; `run_log.read_all_stats(autopilot_dir) -> (list[dict], int)`; `run_log.summarize(records, run=None, skipped=0)` (ключ `skipped`, `tokens[*]["role"]`); `KINDS["executor"]` + поле `role`.
+- `render_report(summary, share=False)`: строка «пропущено испорченных строк: N», колонка «роль».
+- `ap.RUN_LOG_WARNING`; `tests/test_state_io.py::InstrumentsCopyListTests.RUN_FROM_SKILL`.
