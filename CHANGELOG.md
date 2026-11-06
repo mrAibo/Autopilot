@@ -21,6 +21,13 @@ Wave 1 process fixes.
 - **R06 Claude Code version:** `ap.py claude-version [--text S]` (before `init`): below 2.1.295 refuses (exit 2), below 2.1.311 warns with known problems, unreadable version is one line, exit 0; **R06a** thresholds and `parse_claude_version` covered by tests.
 - **R00i:** every change above has tests (`tests/test_wave1.py`).
 
+Wave 2: run log and hook gaps.
+
+- **R22 run log:** `.autopilot/run-log.jsonl` records phases, tickets, retries, test runs, resets and executor token usage by default (metadata only, write failures never stop a command); `ap.py report-run [--share]` prints the summary.
+- **R22a hook gaps:** the `Bash` guard also rejects `git.exe`, `<path>/git`, `bash -c "git stash"`, `git restore .`, `git checkout .` and `git clean -fd`.
+- **R22b Bash hook failure:** `docs/autopilot/claude-code.md` explains that `onFailure: block` on the `Bash` hook blocks all Bash commands of the project on a hook failure and how to lift it; behaviour unchanged.
+- **R22c `accept-edit` and worktree:** a done ticket whose worktree is not `released` no longer passes `ap.py tickets` after `accept-edit`; the refusal names `worktree NN land` and `worktree NN release`.
+
 ## 2.7.0 — Dashboard views (2026-11-05)
 
 The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.

@@ -495,6 +495,10 @@ def publish_tickets(state):
                 if prev.get("acceptedFingerprint") != t["fingerprint"]:
                     die("сданный таск %s изменён; если правка осознанная: "
                         "`ap.py ticket %s accept-edit --note \"что и почему\"`" % (t["id"], t["id"]))
+                if prev.get("worktree") and prev["worktree"].get("status") != "released":
+                    die("таск %s изменён при существующем worktree: посадите его "
+                        "(`ap.py worktree %s land`) или снимите (`ap.py worktree %s release`)"
+                        % (t["id"], t["id"], t["id"]))
                 prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
             elif prev.get("worktree") and prev["worktree"].get("status") not in ("released",):
                 die("таск %s изменён при существующем worktree; завершите и освободите его вручную" % t["id"])

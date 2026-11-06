@@ -84,6 +84,12 @@ The advisor is a **server-side tool**, not an `Agent` call. Subagents **inherit*
 
 `claude_agent_guard.py` also hooks `Bash`: in an unfinished strict run it rejects `git stash`, `git reset` and `git checkout -- <paths>` in **subagent** Bash calls (it parses `git -C <path>`, `;`, `&&`, `|`); `git commit --only <files>` passes, and the main session is untouched. **Limit:** a command hidden in a script, `eval` or `$(...)` is not caught. `claude-version` (`ap.py claude-version`) checks the host version: minimum 2.1.295, warning below 2.1.311.
 
+### Bash hook failure (R22b)
+
+The `Bash` entry that `install_hook` writes to `.claude/settings.json` has `"onFailure": "block"`: if the hook crashes or times out, Claude Code denies the call. For the `Bash` matcher this means **every Bash command of the project is blocked, including `ap.py`**, until the hook works again. To lift it, delete the hook entry with `"matcher": "Bash"` from `hooks.PreToolUse` in `.claude/settings.json` (or fix the hook, e.g. the interpreter path). The hook behaviour is not changed by Autopilot and changes only by the owner's decision.
+
+What the guard parses (`bash_decision`): the command name `git`, `git.exe`, `<path>/git`, `<path>/git.exe` (any case); `bash|sh|zsh|dash [-flags] -c "<string>"` (the string is parsed by the same rule, depth up to 3); `git -C <path>`, `;`, `&&`, `|`. It rejects `stash`, `reset`, `checkout --`, `checkout .`, `restore .` and `clean` with `-f`/`--force` (also `-fd`, `-df`, `-xdf`). **Limit:** a command hidden in `$(...)`, `eval` or a script is still not caught, and unquoted backslash paths are not understood (shlex).
+
 ## Live probe (T08, 2026-10-29)
 
 Disposable strict run, one ticket routed `anthropic / haiku / low`, guard (T02) and attestation hooks (T06) installed, gate (T07) active.

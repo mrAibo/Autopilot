@@ -2411,7 +2411,7 @@ class Run(unittest.TestCase):
         self.assertIn("план пуст", out)
         self.assertFalse(self.state()["gates"]["G3"]["ok"])
 
-    def test_changed_ticket_resets_previous_acceptance(self):
+    def test_changed_done_ticket_is_not_reset_silently_but_stops_publication(self):
         self.plan()
         self.ap("tickets")
         self.ap("ticket", "01", "start")
@@ -2424,6 +2424,35 @@ class Run(unittest.TestCase):
         t = {t["id"]: t for t in self.state()["tickets"]}["01"]
         self.assertEqual(t["status"], "done")
         self.assertRegex(self.manifest(), r"\| R05 \|[^\n]*\| done \|")
+
+    def accepted_edit_with_worktree(self, wt_status):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        sha = self.commit("T01")
+        self.ap("ticket", "01", "done", "--tests", "3/0", "--commit", sha)
+        s = self.state()
+        s["tickets"][0]["worktree"] = {"status": wt_status}
+        with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps(s, ensure_ascii=False))
+        self.write("tickets/01-karkas.md", ticket("01", "Новая версия", "R01, R05", "—", ["src/core/"], 1))
+        self.assertEqual(self.ap("ticket", "01", "accept-edit", "--note", "правка")[0], 0)
+        return sha
+
+    def test_accepted_edit_with_unreleased_worktree_stops_publication(self):
+        sha = self.accepted_edit_with_worktree("landed")
+        code, out = self.ap("tickets")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("worktree 01 land", out)
+        self.assertIn("worktree 01 release", out)
+        t = self.state()["tickets"][0]
+        self.assertEqual((t["status"], t["commit"]), ("done", sha))
+
+    def test_accepted_edit_with_released_worktree_publishes(self):
+        self.accepted_edit_with_worktree("released")
+        code, out = self.ap("tickets")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "done")
 
     def test_finish_lands_the_run(self):
         self.ready_to_finish()
@@ -2685,6 +2714,24 @@ class Run(unittest.TestCase):
     def test_init_ignores_run_log_in_git(self):
         self.init()
         self.assertIn(".autopilot/run-log*.jsonl", read(os.path.join(self.root, ".gitignore")).splitlines())
+
+
+class Wave2Docs(unittest.TestCase):
+    def doc(self, *parts):
+        return read(os.path.join(os.path.dirname(HERE), *parts))
+
+    def test_changelog_has_unreleased_entry_for_wave2(self):
+        text = self.doc("CHANGELOG.md")
+        unreleased = text[text.index("## Unreleased"):text.index("## 2.7.0")]
+        for r in ("R22", "R22a", "R22b", "R22c"):
+            self.assertRegex(unreleased, r"\*\*" + r + r"\b")
+
+    def test_bash_hook_failure_documented(self):
+        text = self.doc("docs", "autopilot", "claude-code.md")
+        section = text[text.index("### Bash hook failure"):]
+        for needle in ("onFailure", "block", "ap.py", ".claude/settings.json",
+                       "owner", "$(...)", "eval", "git.exe"):
+            self.assertIn(needle, section)
 
 
 class Pure(unittest.TestCase):
