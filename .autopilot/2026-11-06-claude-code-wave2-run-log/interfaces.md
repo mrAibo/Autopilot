@@ -39,3 +39,10 @@
 **Швы для тестов:** `run_log.append / read_all / summarize / render_report / usage_from_transcript`; `claude_agent_guard.bash_decision`; сквозные — `ap.py report-run`, `ap.py tickets` (R22c) в харнессе `tests/test_ap.py`.
 
 **Харнессы:** любой тест, копирующий `ap.py` или `claude_attest.py` в временную папку, копирует и `run_log.py` — иначе `import run_log` не найдёт модуль (список файлов ставит таск 01, он же правит харнессы).
+
+## Таск 02 сдан
+- `claude_agent_guard.bash_decision(command) -> tuple[bool, str]` (сигнатура прежняя); новые: `command_name(word) -> str`, `git_denial(args) -> str | None`, `shell_command(args) -> str | None`. Предел: backslash-пути без кавычек (shlex).
+
+## Таск 01 сдан
+- `run_log.append(autopilot_dir, kind, /, **fields) -> bool` · `read_all(autopilot_dir) -> list[dict]` · `usage_from_transcript(path, max_bytes=5_000_000) -> dict | None` · `summarize(records, run=None) -> dict` · `render_report(summary, share=False) -> str`
+- `ap.py report-run [--share]` · `ap.py tests N/M --seconds S` · `ap.py ticket … --cause <tag>` · событие `ticket-reset(id, reason)`. В журнал попадает только тег причины, не `--note`.

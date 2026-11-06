@@ -1,7 +1,7 @@
 <!-- autopilot:progress -->
 # Autopilot — что осталось
 
-Последняя сборка: `.autopilot/2026-11-05-claude-code-wave1/` — волна 1 (R01–R06): отпечаток тасков по нормализованному тексту и `ticket NN accept-edit`, запрет `git stash`/`reset` у исполнителей и в хуке, проверка путей машины, правило про советник и лимит, `ap.py claude-version`; 622 теста зелёные.
+Последняя сборка: `.autopilot/2026-11-06-claude-code-wave2-run-log/` — волна 2: журнал прогона `run-log.jsonl` и `ap.py report-run`, хук git ловит `git.exe stash`, `bash -c`, `restore .`, `checkout .`, `clean -fd`; `accept-edit` не пускает неосвобождённый worktree; 653 теста зелёные.
 
 ## Договорились — не пересматривать
 
@@ -24,11 +24,10 @@
 
 ## Известные баги
 
-- Хук git не ловит `git.exe stash`, `/usr/bin/git stash`, `bash -c "git stash"`, `git restore .`, `git checkout .`, `git clean -fd`; расширять ли список — решает заказчик (`claude_agent_guard.py`)
-- Хук `Bash` с `onFailure: block`: сбой хука блокирует все Bash-команды проекта; в docs не названо
-- После `accept-edit` сданный таск с неосвобождённым worktree проходит публикацию (`ap.py:454`)
+- Хук git: `bash --login -c`, `cmd /c`, `powershell -Command` с `git stash` проходят; слово git ищется не только в позиции команды — ложный отказ на `git log --grep git stash` (`claude_agent_guard.py`)
+- Журнал: пути `/tmp/`, `/mnt/c/`, UNC не заменяются на `[path]`; `reason` сброса без шаблона; `tests --seconds` принимает nan/inf; сброс таска может записаться дважды; `report-run` падает на испорченных строках и берёт все прогоны, если последняя запись без run; все роли пишутся как `k:executor`
 - `claude-version`: печатает весь список проблем даже для версии, где часть исправлена; не разбирает точку после версии; не находит `claude.cmd` на Windows
-- Нет теста на новый отпечаток и CRLF для `codex_dispatch.py`; тест `test_changed_ticket_resets_previous_acceptance` назван наоборот
+- Нет теста на новый отпечаток и CRLF для `codex_dispatch.py`
 - «Итог»: колонки «ревью» и «приёмка» выводятся из статуса таска, а не из данных ревью; строка тестов зелёная даже при упавших тестах
 - «Обзор»: Гант показывает 8 строк (случай ≥9 тасков не покрыт); «обновлено N назад» считает бесконечно в сданной сборке
 - Подписи полос Ганта (`gxFit`) пересчитываются на каждый `resize` без ограничения частоты
