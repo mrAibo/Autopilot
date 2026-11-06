@@ -29,6 +29,34 @@ It works on its own: nothing else to install.
 
 What is *not* claimed: there is no measured "X% fewer tokens" figure. The extra review stages cost tokens too. What is measured, and what is not, is in [measuring-cost.md](docs/autopilot/measuring-cost.md).
 
+### Quick start
+
+1. **Install**, then restart your agent (skills load at startup): `npx skills add mrAibo/Autopilot`. Details and a no-terminal option: [Installation](#installation).
+2. **Describe it**: `/autopilot I want a Telegram bot that takes repair requests`, or `/autopilot brief.md` for a big idea. The more you tell, the less is guessed.
+3. **Build**: in Claude Code, Autopilot stops after the plan; open a **new chat** in the same folder and type `/autopilot` (the reason is in [How to use it](#how-to-use-it)). Codex works in one pass.
+
+### Without and with Autopilot
+
+| | Without | With Autopilot |
+|---|---|---|
+| Your requirements | Shrink quietly along the way | Numbered word for word; only you can drop one |
+| Gaps in the brief | You find them after the build | Thought through for you, as deep as you set |
+| Context | One long chat re-reads everything | A fresh agent and one commit per task |
+| Checking | You read the code | Blind acceptance against your own words |
+| Next session | The agent re-learns the project | `AGENTS.md` written before the first line of code |
+| A broken chat | Start over | `/autopilot` resumes from the files |
+| Your role | Manager of agents | The client |
+
+### What you get
+
+- [Requirements that don't get lost, and gaps thought through](#two-things-autopilot-does-differently)
+- [Four modes and a depth dial](#four-modes): how much you are asked, and how much is thought through for you
+- [A dashboard that opens by itself](#progress-is-always-visible)
+- [A project that remembers itself](#the-project-remembers-itself)
+- [Continue or audit an existing project](#continue-an-existing-project) and [resume after an interruption](#resume-when-an-agent-or-chat-is-interrupted)
+- [Keys are never requested](#keys-passwords-and-access); you only name them
+- [Cost control](#spending-less)
+
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, desktop layout using synthetic data"></a>
   <a href="assets/dashboard-31-narrow.png"><img src="assets/dashboard-31-narrow.png" width="230" alt="Dashboard 3.1, narrow layout using synthetic data"></a>

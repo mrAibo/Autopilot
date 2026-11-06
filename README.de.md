@@ -29,6 +29,34 @@ Er funktioniert für sich allein: Du musst nichts weiter installieren.
 
 Was **nicht** behauptet wird: Eine gemessene Zahl „X % weniger Tokens“ gibt es nicht. Die zusätzlichen Review-Stufen kosten ebenfalls Tokens. Was gemessen ist und was nicht, steht in [measuring-cost.md](docs/autopilot/measuring-cost.md).
 
+### Schnellstart
+
+1. **Installieren** und den Agenten neu starten (Skills werden beim Start geladen): `npx skills add mrAibo/Autopilot`. Details und eine Variante ohne Terminal: [Installation](#installation).
+2. **Beschreiben**: `/autopilot Ich möchte einen Telegram-Bot, der Reparaturanfragen annimmt`, bei einer großen Idee `/autopilot brief.md`. Je mehr du erzählst, desto weniger wird geraten.
+3. **Bauen**: In Claude Code hält Autopilot nach dem Plan an; öffne einen **neuen Chat** im selben Ordner und tippe `/autopilot` (der Grund steht in [So benutzt du es](#so-benutzt-du-es)). Codex läuft in einem Durchgang.
+
+### Ohne und mit Autopilot
+
+| | Ohne | Mit Autopilot |
+|---|---|---|
+| Deine Anforderungen | Schrumpfen unterwegs still | Wörtlich nummeriert; nur du kannst eine streichen |
+| Lücken in der Beschreibung | Du findest sie nach dem Bau | Für dich durchdacht, so tief wie eingestellt |
+| Kontext | Ein langer Chat liest alles neu | Ein frischer Agent und ein Commit pro Task |
+| Prüfung | Du liest den Code | Blindabnahme gegen deine eigenen Worte |
+| Nächste Sitzung | Der Agent lernt das Projekt neu | `AGENTS.md` entsteht vor der ersten Codezeile |
+| Abgebrochener Chat | Von vorn anfangen | `/autopilot` macht anhand der Dateien weiter |
+| Deine Rolle | Manager von Agenten | Auftraggeber |
+
+### Was du bekommst
+
+- [Anforderungen gehen nicht verloren, Lücken werden durchdacht](#zwei-dinge-die-autopilot-anders-macht)
+- [Vier Modi und ein Tiefenregler](#vier-modi): wie viel du gefragt wirst und wie viel für dich durchdacht wird
+- [Ein Dashboard, das sich selbst öffnet](#der-fortschritt-ist-immer-sichtbar)
+- [Ein Projekt, das sich selbst erinnert](#das-projekt-erinnert-sich-selbst)
+- [Ein vorhandenes Projekt fortsetzen oder prüfen](#ein-vorhandenes-projekt-weiterentwickeln) und [nach einem Abbruch fortsetzen](#fortsetzen-wenn-ein-agent-oder-chat-unterbrochen-wurde)
+- [Schlüssel werden nie verlangt](#schlüssel-passwörter-und-zugänge), du nennst sie nur
+- [Kostenkontrolle](#sparsamer-arbeiten)
+
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, Desktop-Layout mit synthetischen Daten"></a>
   <a href="assets/dashboard-31-narrow.png"><img src="assets/dashboard-31-narrow.png" width="230" alt="Dashboard 3.1, schmales Layout mit synthetischen Daten"></a>
