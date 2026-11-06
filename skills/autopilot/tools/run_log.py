@@ -84,7 +84,7 @@ def read_all_stats(autopilot_dir):
         for line in filter(str.strip, lines):
             try:
                 row = json.loads(line)
-            except ValueError:
+            except (ValueError, RecursionError):
                 row = None
             if isinstance(row, dict):
                 rows.append(row)
@@ -105,7 +105,7 @@ def usage_from_transcript(path, max_bytes=5_000_000):
         for n, line in enumerate(lines):
             try:
                 msg = json.loads(line).get("message")
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError, RecursionError):
                 continue
             if isinstance(msg, dict) and msg.get("role") == "assistant" \
                     and isinstance(msg.get("usage"), dict):

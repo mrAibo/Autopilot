@@ -123,6 +123,19 @@ class HardeningTests(unittest.TestCase):
         self.assertEqual((len(rows), bad), (2, 2))
         self.assertEqual(len(run_log.read_all(d)), 2)
 
+    def test_deeply_nested_line_is_unreadable_not_fatal(self):
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, run_log.NAME), "w", encoding="utf-8") as f:
+            f.write('{"k": "phase", "run": "r"}\n' + "[" * 200000 + "\n")
+        rows, bad = run_log.read_all_stats(d)
+        self.assertEqual((len(rows), bad), (1, 1))
+        s = run_log.summarize(rows, run="r", skipped=bad)
+        self.assertIn("пропущено испорченных строк: 1", run_log.render_report(s))
+        tr = os.path.join(d, "t.jsonl")
+        with open(tr, "w", encoding="utf-8") as f:
+            f.write("[" * 200000 + "\n")
+        self.assertIsNone(run_log.usage_from_transcript(tr))
+
     def test_summarize_skips_malformed_rows_and_counts_them(self):
         rows = [{"k": "phase", "run": "r", "id": ["x"], "act": "start"},
                 {"k": "ticket", "run": "r", "id": "01", "act": "fail", "cause": 5},
