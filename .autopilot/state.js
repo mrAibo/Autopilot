@@ -1,79 +1,71 @@
 window.STATE =
 {
   "version": 2,
-  "slug": "r22d-run-log-hardening",
-  "dir": "2026-11-06-r22d-run-log-hardening",
-  "title": "Журнал надёжнее (R22d)",
-  "mode": "full",
+  "slug": "upstream-port-opus",
+  "dir": "2026-11-08-upstream-port-opus--wip",
+  "title": "Порт апстрима 2.2.2/2.2.3 и точечный Opus",
+  "mode": "interview",
   "depth": "strict",
-  "tier": "T0",
+  "tier": "T1",
   "strictRouting": true,
   "gateSigned": true,
   "sequentialHost": false,
   "isolateTickets": false,
-  "briefFile": "2026-11-06-brief.md",
+  "briefFile": "2026-11-08-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": "e4232cb",
-  "startedAt": "2026-11-06T01:32:19+01:00",
-  "updatedAt": "2026-11-06T02:18:42+01:00",
-  "finishedAt": "2026-11-06T02:18:42+01:00",
+  "baseCommit": null,
+  "startedAt": "2026-11-08T14:16:44+01:00",
+  "updatedAt": "2026-11-08T14:30:56+01:00",
+  "finishedAt": null,
   "stages": [
     {
       "id": "preflight",
       "status": "done",
-      "startedAt": "2026-11-06T01:32:19+01:00",
-      "finishedAt": "2026-11-06T01:32:26+01:00"
+      "startedAt": "2026-11-08T14:16:44+01:00",
+      "finishedAt": "2026-11-08T14:17:01+01:00"
     },
     {
       "id": "manifest",
       "status": "done",
-      "startedAt": "2026-11-06T01:32:26+01:00",
-      "finishedAt": "2026-11-06T01:32:44+01:00"
+      "startedAt": "2026-11-08T14:17:01+01:00",
+      "finishedAt": "2026-11-08T14:17:06+01:00"
     },
     {
       "id": "briefing",
-      "status": "skipped",
-      "startedAt": "2026-11-06T01:32:43+01:00",
-      "finishedAt": "2026-11-06T01:32:43+01:00",
-      "note": "full strict: бриф с критериями приёмки, открытых вопросов нет"
+      "status": "done",
+      "startedAt": "2026-11-08T14:17:06+01:00",
+      "finishedAt": "2026-11-08T14:19:23+01:00"
     },
     {
       "id": "spec",
       "status": "done",
-      "startedAt": "2026-11-06T01:32:44+01:00",
-      "finishedAt": "2026-11-06T02:18:40+01:00"
+      "startedAt": "2026-11-08T14:19:23+01:00",
+      "finishedAt": "2026-11-08T14:30:45+01:00"
     },
     {
       "id": "plan",
-      "status": "done",
-      "startedAt": "2026-11-06T01:34:40+01:00",
-      "finishedAt": "2026-11-06T01:35:34+01:00"
+      "status": "active",
+      "startedAt": "2026-11-08T14:30:45+01:00"
     },
     {
       "id": "build",
-      "status": "done",
-      "startedAt": "2026-11-06T01:36:32+01:00",
-      "finishedAt": "2026-11-06T01:55:05+01:00"
+      "status": "pending"
     },
     {
       "id": "review",
-      "status": "done",
-      "startedAt": "2026-11-06T01:55:05+01:00",
-      "finishedAt": "2026-11-06T02:10:57+01:00"
+      "status": "pending"
     },
     {
       "id": "final",
-      "status": "done",
-      "startedAt": "2026-11-06T02:10:57+01:00",
-      "finishedAt": "2026-11-06T02:18:42+01:00"
+      "status": "pending"
     }
   ],
   "requirements": {
-    "total": 7,
-    "done": 7,
-    "inTicket": 0,
+    "total": 33,
+    "done": 0,
+    "inTicket": 33,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -82,135 +74,142 @@ window.STATE =
   "tickets": [
     {
       "id": "01",
-      "title": "Журнал надёжнее",
+      "title": "Порт: лимиты, G1, слепая приёмка, finish с оговорками, git-check",
       "requirements": [
-        "R22q",
-        "R22r",
-        "R22s",
-        "R22t",
-        "R22u",
-        "R22v",
-        "R22w"
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R06",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R23",
+        "R26",
+        "R27",
+        "R29",
+        "R30"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
-        "skills/autopilot/tools/run_log.py",
         "skills/autopilot/tools/ap.py",
-        "skills/autopilot/tools/claude_attest.py",
-        "docs/autopilot/run-log.md",
-        "CHANGELOG.md",
-        "tests/test_run_log.py",
+        "skills/autopilot/tools/retry_policy.py",
         "tests/test_ap.py",
-        "tests/test_claude_attest.py",
-        "tests/test_state_io.py"
+        "tests/test_retry_policy.py"
       ],
       "review": "нет",
-      "model": "обычная",
-      "fingerprint": "6196106d4f93be4791ef2f1eef1e15ab5d7ee9b3aaa57a7d767cc84f68a8adaf",
-      "status": "done",
-      "startedAt": "2026-11-06T01:36:40+01:00",
-      "finishedAt": "2026-11-06T01:55:01+01:00",
+      "model": null,
+      "fingerprint": "ff8b4a3c5550b21d47482e8584469beac7da3b9cca12ccf49a400df379dcf73e",
+      "status": "pending",
       "retries": 0,
-      "repairs": 0,
-      "tests": {
-        "passed": 668,
-        "failed": 0
-      },
-      "commit": "5eaaffc",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "medium",
-        "effortEnforced": true,
-        "score": 35,
-        "reason": "score=35; profile=balanced; high-risk=False",
-        "verified": true,
-        "agentType": "autopilot-executor-01-run-log-hardening",
-        "agentFile": ".claude/agents/autopilot-executor-01-run-log-hardening.md",
-        "profileSha": "d5fca8178f255c61625defae8c5803c5cd7b560864dd111e141403b1103672c0",
-        "sig": "a8306f2718c711bea74aa7f0ccbcd387925d585e503952c67b50783b5f93a4be"
-      },
-      "plannedRouting": {
-        "ticket": "01",
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "medium",
-        "effortEnforced": true,
-        "profile": "balanced",
-        "score": 35,
-        "factors": {
-          "algorithm": 5,
-          "coupling": 20,
-          "uncertainty": 0,
-          "context": 5,
-          "testing": 5,
-          "risk": 0
-        },
-        "reason": "score=35; profile=balanced; high-risk=False",
-        "requiresReview": false,
-        "status": "ready",
-        "fingerprint": "6196106d4f93be4791ef2f1eef1e15ab5d7ee9b3aaa57a7d767cc84f68a8adaf",
-        "hostExecutionVerified": false,
-        "applied": true
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
-        "effort": "medium",
-        "lines": 42
-      }
+      "repairs": 0
     },
     {
-      "id": "F1",
-      "title": "Строка из глубоких скобок не роняет report-run",
+      "id": "02",
+      "title": "Opus: политика роутера, допуск guard и профили",
       "requirements": [
-        "R22t"
+        "R16",
+        "R18",
+        "R20",
+        "R21",
+        "R23",
+        "R26",
+        "R27",
+        "R29",
+        "R30"
       ],
       "blockedBy": [],
+      "wave": 1,
+      "zone": [
+        "skills/autopilot/tools/model_router.py",
+        "skills/autopilot/tools/claude_agent_guard.py",
+        "skills/autopilot/tools/agent_profiles.py",
+        "tests/test_model_router.py",
+        "tests/test_claude_agent_guard.py",
+        "tests/test_agent_profiles.py"
+      ],
+      "review": "да — риск: допуск дорогой модели в строгом прогоне",
+      "model": null,
+      "fingerprint": "3a687c89eb9cc29dafcbd36a80d3fd391644351099b6946c3aa5fcaafb4ee2f7",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0
+    },
+    {
+      "id": "03",
+      "title": "Opus: команда opus, подтверждение и plan-models",
+      "requirements": [
+        "R17",
+        "R18",
+        "R19",
+        "R21",
+        "G01",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R29",
+        "R30"
+      ],
+      "blockedBy": [
+        "01",
+        "02"
+      ],
       "wave": 2,
       "zone": [
-        "skills/autopilot/tools/run_log.py",
-        "tests/test_run_log.py"
+        "skills/autopilot/tools/ap.py",
+        "tests/test_ap.py"
       ],
-      "review": "да — ремонт ветки",
-      "model": "сильная",
-      "fingerprint": "92e4eaa4af64b63e5a7f335bbfdd67b0ce716c5eaac711b29da9116b15378adc",
-      "status": "done",
-      "startedAt": "2026-11-06T01:57:07+01:00",
-      "finishedAt": "2026-11-06T02:10:56+01:00",
+      "review": "да — риск: подпись подтверждения и цитата пользователя",
+      "model": null,
+      "fingerprint": "dba8570d8e53bb1ce4ff65598029011e6be4cc7457817caa9d449590c0bd5215",
+      "status": "pending",
       "retries": 0,
-      "repairs": 0,
-      "tests": {
-        "passed": 669,
-        "failed": 0
-      },
-      "commit": "8cbb2b2",
-      "placeholders": [],
-      "routing": {
-        "agentType": "autopilot-executor-repair-2026-11-06-r22d-run-log-hardening",
-        "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-06-r22d-run-log-hardening.md",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
-        "profileSha": "d159742ff58bc8748a564786b23140c77e47f5cacf373d907aa05e3c81c4b548",
-        "provider": "anthropic",
-        "reason": "ремонт ветки: RecursionError в read_all_stats",
-        "verified": true,
-        "sig": "1b39ed533caea25ce9fda20d82a0f97a67e1bfc66855e5366cf35707b4a89a1b"
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
-        "effort": "high",
-        "lines": 16
-      },
-      "attestFrom": 2064
+      "repairs": 0
+    },
+    {
+      "id": "04",
+      "title": "Дашборд, фазы и документы",
+      "requirements": [
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R14",
+        "R15",
+        "R22",
+        "R28",
+        "R31",
+        "R32"
+      ],
+      "blockedBy": [
+        "03"
+      ],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/phases/",
+        "skills/autopilot/SKILL.md",
+        "docs/autopilot/",
+        "CHANGELOG.md",
+        "README.md",
+        "README.ru.md",
+        "README.de.md",
+        "tests/test_dashboard_views.py"
+      ],
+      "review": "нет",
+      "model": null,
+      "fingerprint": "67b50270e08b2de24afa9b81f089ce2e3ce6e4909c5ae302392a9965eecde78f",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0
     }
   ],
-  "tests": {
-    "passed": 669,
-    "failed": 0
-  },
+  "tests": null,
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -220,471 +219,340 @@ window.STATE =
   },
   "additions": [],
   "coverage": {
-    "found": 3,
-    "fixed": 3,
-    "deferred": 0,
-    "items": []
+    "found": 25,
+    "fixed": 21,
+    "deferred": 4,
+    "items": [
+      "бриф: порядок запуска после PR 81, режим/глубина — условия запуска, не содержимое спецификации",
+      "бриф: слепая приёмка по брифу — процесс прогона (R31 в §4.9)",
+      "бриф: источники (коммиты апстрима) — справка, не требование",
+      "бриф: свежая ветка от main — уже выполнено (feat/upstream-port-opus)"
+    ]
   },
   "concerns": [],
   "blockingFindings": [],
-  "blind": {
-    "checked": 7,
-    "matched": 7,
-    "mismatches": []
-  },
+  "blind": null,
   "beats": [
-    "2026-11-06T01:32:19+01:00",
-    "2026-11-06T01:32:26+01:00",
-    "2026-11-06T01:32:38+01:00",
-    "2026-11-06T01:32:43+01:00",
-    "2026-11-06T01:32:44+01:00",
-    "2026-11-06T01:34:39+01:00",
-    "2026-11-06T01:34:40+01:00",
-    "2026-11-06T01:34:57+01:00",
-    "2026-11-06T01:34:58+01:00",
-    "2026-11-06T01:35:17+01:00",
-    "2026-11-06T01:35:23+01:00",
-    "2026-11-06T01:35:24+01:00",
-    "2026-11-06T01:35:33+01:00",
-    "2026-11-06T01:35:34+01:00",
-    "2026-11-06T01:35:38+01:00",
-    "2026-11-06T01:36:28+01:00",
-    "2026-11-06T01:36:32+01:00",
-    "2026-11-06T01:36:40+01:00",
-    "2026-11-06T01:55:01+01:00",
-    "2026-11-06T01:55:05+01:00",
-    "2026-11-06T01:57:06+01:00",
-    "2026-11-06T01:57:07+01:00",
-    "2026-11-06T01:57:08+01:00",
-    "2026-11-06T02:10:22+01:00",
-    "2026-11-06T02:10:23+01:00",
-    "2026-11-06T02:10:56+01:00",
-    "2026-11-06T02:10:57+01:00",
-    "2026-11-06T02:17:57+01:00",
-    "2026-11-06T02:17:58+01:00",
-    "2026-11-06T02:18:24+01:00",
-    "2026-11-06T02:18:29+01:00",
-    "2026-11-06T02:18:40+01:00",
-    "2026-11-06T02:18:41+01:00",
-    "2026-11-06T02:18:42+01:00"
+    "2026-11-08T14:16:44+01:00",
+    "2026-11-08T14:17:00+01:00",
+    "2026-11-08T14:17:01+01:00",
+    "2026-11-08T14:17:06+01:00",
+    "2026-11-08T14:17:35+01:00",
+    "2026-11-08T14:19:17+01:00",
+    "2026-11-08T14:19:23+01:00",
+    "2026-11-08T14:19:55+01:00",
+    "2026-11-08T14:21:53+01:00",
+    "2026-11-08T14:27:30+01:00",
+    "2026-11-08T14:29:07+01:00",
+    "2026-11-08T14:30:45+01:00",
+    "2026-11-08T14:30:46+01:00",
+    "2026-11-08T14:30:47+01:00",
+    "2026-11-08T14:30:56+01:00"
   ],
-  "rev": 40,
+  "rev": 16,
   "waiting": null,
   "waits": [
     {
-      "kind": "stop",
-      "from": "2026-11-06T01:35:38+01:00",
-      "to": "2026-11-06T01:36:28+01:00"
+      "kind": "briefing",
+      "from": "2026-11-08T14:17:35+01:00",
+      "to": "2026-11-08T14:19:17+01:00"
+    },
+    {
+      "kind": "briefing",
+      "from": "2026-11-08T14:19:55+01:00",
+      "to": "2026-11-08T14:21:53+01:00"
     }
   ],
   "log": [
     {
-      "t": "2026-11-06T01:32:19+01:00",
+      "t": "2026-11-08T14:16:44+01:00",
       "k": "init"
     },
     {
-      "t": "2026-11-06T01:32:26+01:00",
+      "t": "2026-11-08T14:17:01+01:00",
       "k": "stage",
       "id": "manifest",
       "act": "start"
     },
     {
-      "t": "2026-11-06T01:32:43+01:00",
+      "t": "2026-11-08T14:17:06+01:00",
       "k": "stage",
       "id": "briefing",
-      "act": "skip",
-      "note": "full strict: бриф с критериями приёмки, открытых вопросов нет"
-    },
-    {
-      "t": "2026-11-06T01:32:44+01:00",
-      "k": "stage",
-      "id": "spec",
       "act": "start"
     },
     {
-      "t": "2026-11-06T01:34:39+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": true,
-      "found": 3,
-      "fixed": 3,
-      "deferred": 0
-    },
-    {
-      "t": "2026-11-06T01:34:40+01:00",
-      "k": "stage",
-      "id": "plan",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-06T01:34:57+01:00",
-      "k": "tier",
-      "v": "T0"
-    },
-    {
-      "t": "2026-11-06T01:34:58+01:00",
-      "k": "tickets",
-      "n": 1
-    },
-    {
-      "t": "2026-11-06T01:34:58+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": false,
-      "problems": 8
-    },
-    {
-      "t": "2026-11-06T01:35:17+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-06T01:35:23+01:00",
-      "k": "tickets",
-      "n": 1
-    },
-    {
-      "t": "2026-11-06T01:35:23+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-06T01:35:24+01:00",
-      "k": "plan-models",
-      "provider": "anthropic",
-      "applied": false,
-      "tickets": 1,
-      "blocked": 1
-    },
-    {
-      "t": "2026-11-06T01:35:34+01:00",
-      "k": "stage",
-      "id": "plan",
-      "act": "done"
-    },
-    {
-      "t": "2026-11-06T01:35:34+01:00",
-      "k": "plan-models",
-      "provider": "anthropic",
-      "applied": true,
-      "tickets": 1,
-      "blocked": 0
-    },
-    {
-      "t": "2026-11-06T01:35:38+01:00",
+      "t": "2026-11-08T14:17:35+01:00",
       "k": "ask",
-      "kind": "stop",
-      "note": "новый чат: агенты зарегистрированы"
+      "kind": "briefing",
+      "note": "раунд 1: подтверждение, риск-таски Opus, момент вопроса, цена"
     },
     {
-      "t": "2026-11-06T01:36:28+01:00",
+      "t": "2026-11-08T14:19:17+01:00",
       "k": "answered",
-      "kind": "stop"
+      "kind": "briefing"
     },
     {
-      "t": "2026-11-06T01:36:28+01:00",
+      "t": "2026-11-08T14:19:23+01:00",
       "k": "gate",
-      "g": "G3",
+      "g": "G1",
+      "ok": false,
+      "open": 32,
+      "total": 32
+    },
+    {
+      "t": "2026-11-08T14:19:23+01:00",
+      "k": "stage",
+      "id": "spec",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-08T14:19:55+01:00",
+      "k": "ask",
+      "kind": "briefing",
+      "note": "две вещи: Opus против «Договорились», вопрос про остатки прошлой сборки"
+    },
+    {
+      "t": "2026-11-08T14:21:53+01:00",
+      "k": "answered",
+      "kind": "briefing"
+    },
+    {
+      "t": "2026-11-08T14:27:30+01:00",
+      "k": "gate",
+      "g": "G1",
       "ok": true,
-      "problems": 0
+      "open": 0,
+      "total": 33
     },
     {
-      "t": "2026-11-06T01:36:32+01:00",
+      "t": "2026-11-08T14:27:30+01:00",
       "k": "stage",
-      "id": "build",
+      "id": "spec",
       "act": "start"
     },
     {
-      "t": "2026-11-06T01:36:40+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "start"
+      "t": "2026-11-08T14:29:07+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 25,
+      "fixed": 21,
+      "deferred": 4
     },
     {
-      "t": "2026-11-06T01:55:01+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 668,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-06T01:55:05+01:00",
+      "t": "2026-11-08T14:30:45+01:00",
       "k": "stage",
-      "id": "review",
+      "id": "plan",
       "act": "start"
     },
     {
-      "t": "2026-11-06T01:57:06+01:00",
+      "t": "2026-11-08T14:30:46+01:00",
       "k": "tickets",
-      "n": 2
+      "n": 4
     },
     {
-      "t": "2026-11-06T01:57:06+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-06T01:57:07+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-06T01:57:08+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 5
-    },
-    {
-      "t": "2026-11-06T02:10:22+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 669,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-06T02:10:23+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "review"
-    },
-    {
-      "t": "2026-11-06T02:10:56+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done"
-    },
-    {
-      "t": "2026-11-06T02:10:57+01:00",
-      "k": "stage",
-      "id": "final",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-06T02:17:57+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 7,
-      "matched": 7
-    },
-    {
-      "t": "2026-11-06T02:17:58+01:00",
-      "k": "tests",
-      "passed": 669,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-06T02:18:24+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": true,
-      "open": 0,
-      "total": 7
-    },
-    {
-      "t": "2026-11-06T02:18:24+01:00",
-      "k": "stage",
-      "id": "spec",
-      "act": "done"
-    },
-    {
-      "t": "2026-11-06T02:18:29+01:00",
+      "t": "2026-11-08T14:30:47+01:00",
       "k": "gate",
       "g": "G3",
       "ok": true,
       "problems": 0
     },
     {
-      "t": "2026-11-06T02:18:29+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-06T02:18:29+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-06T02:18:29+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-06T02:18:40+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": true,
-      "open": 0,
-      "total": 7
-    },
-    {
-      "t": "2026-11-06T02:18:40+01:00",
-      "k": "stage",
-      "id": "spec",
-      "act": "done"
-    },
-    {
-      "t": "2026-11-06T02:18:41+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": true,
-      "found": 3,
-      "fixed": 3,
-      "deferred": 0
-    },
-    {
-      "t": "2026-11-06T02:18:42+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 7,
-      "matched": 7
-    },
-    {
-      "t": "2026-11-06T02:18:42+01:00",
-      "k": "finish",
-      "result": "Журнал прогона надёжнее: предупреждение без run_log.py, тест списка копирования, свод переживает испорченные строки, роль субагента в журнале"
+      "t": "2026-11-08T14:30:56+01:00",
+      "k": "tier",
+      "v": "T1"
     }
   ],
   "reqList": [
     {
-      "id": "R22q",
-      "text": "«Если run_log.py не импортируется, ap.py пишет одну строку предупреждения («run_log.py не найден, журнал не пишется»)»",
-      "status": "done"
+      "id": "R01",
+      "text": "«Портировать нужно не копированием: наш ap.py разошёлся с апстримом (подписанные гейты, блокеры, маршрутизация). Каждый фикс переписывается под наш код с одним регрессионным тестом (как в порте 2.2.1, коммиты a436a78).»",
+      "status": "in-ticket"
     },
     {
-      "id": "R22r",
-      "text": "«а report-run не говорит «журнал пуст» (ap.py:62, ap.py:2646). Команды при этом не ломаются.»",
-      "status": "done"
+      "id": "R02",
+      "text": "«A1. ap.py отказывает в третьем ticket NN repair и третьем ticket NN retry (лимит 2 на каждый). Отказ даёт команду, а не только текст фазы.»",
+      "status": "in-ticket"
     },
     {
-      "id": "R22s",
-      "text": "«Тест на список копирования: модули, которые импортирует ap.py из tools/, перечислены в phases/0-instruments.md; пропуск ловится тестом. Модули, которые намеренно запускаются из навыка, перечислены в тесте явно.»",
-      "status": "done"
+      "id": "R03",
+      "text": "«A2. Упавший таск (failed) снова идёт в работу только через ticket NN reset --by-user \"<цитата пользователя>\". Цитата пишется в таск (reopenedByUser) и в журнал, счётчики repairs и retries обнуляются. reset без --by-user на упавшем таске о…",
+      "status": "in-ticket"
     },
     {
-      "id": "R22t",
-      "text": "«report-run не падает на вручную испорченных строках журнала (пропускает с отметкой числа пропущенных)»",
-      "status": "done"
+      "id": "R04",
+      "text": "«A3. Слепая приёмка: не больше двух кругов за прогон (проверка, таск F2, одна перепроверка). Счётчик blindRounds, сбрасывается в reopen. Третий blind отказывает с подсказкой add report для остатка.»",
+      "status": "in-ticket"
     },
     {
-      "id": "R22u",
-      "text": "«запись без поля run не склеивает все прогоны в один свод.»",
-      "status": "done"
+      "id": "R05",
+      "text": "«A4. В phases/4-plan.md: таски, которые только проверяют («подтвердить готовность», «прогнать полную проверку»), запрещены.»",
+      "status": "in-ticket"
     },
     {
-      "id": "R22v",
-      "text": "«Роль субагента в журнале берётся из его профиля (executor, reviewer, explorer, acceptance), а не всегда executor; нужна для R26.»",
-      "status": "done"
+      "id": "R06",
+      "text": "«A5. В phases/5-repair.md: сбой окружения (таймаут, не грузится нативный модуль, порт, неработающий сервис, путь только на этой машине) это fail с вопросом пользователю, а не ремонт.»",
+      "status": "in-ticket"
     },
     {
-      "id": "R22w",
-      "text": "«Тесты на каждый из четырёх пунктов; запись в CHANGELOG.md.»",
-      "status": "done"
+      "id": "R07",
+      "text": "«A6. В phases/8-final.md: «один круг исправлений, потом отчёт, третьего взгляда нет».»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R08",
+      "text": "«A7. После сжатия контекста оркестратор перечитывает и 5-repair.md (правка в SKILL.md).»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R09",
+      "text": "«B1. G1 идёт за манифестом: вычисляется функцией от таблицы манифеста при каждой записи, а не только на этапе спецификации. Правка манифеста после spec не оставляет G1 красным или зелёным по устаревшим данным. (Именно это остановило R22d н…",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R10",
+      "text": "«B2. ticket NN done без --commit (и без ранее записанного коммита) отказывает. Отказ git при коммите это сбой машины: ticket NN fail --note, вопрос пользователю, не ремонт.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R11",
+      "text": "«B3. finish отказывает при: незакрытом G1–G4, таске не в done, таске без коммита, коммите не из HEAD. Это добавляется к уже существующим проверкам блокеров, подписи и отпечатка плана, а не заменяет их.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R12",
+      "text": "«B4. Сдать с отказами можно только finish --result \"…\" --by-user \"<цитата>\". В state.js пишется landedWith, строка реестра «сдан с оговорками», шапка дашборда «Сдано с оговорками».»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R13",
+      "text": "«B5. Расхождения слепой приёмки, оставшиеся после двух кругов, сдаются с той же оговоркой, а не блокируют finish.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R14",
+      "text": "«B6. В preflight git проверяется до брифинга (git add -- .gitignore или эквивалент без побочных эффектов). Отказ записи останавливает прогон сразу, с понятной причиной, а не на первом таске.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R15",
+      "text": "«B7. Дашборд (phases/dashboard-template.html) показывает «Сдано с оговорками». Живые проекты обновляются dashboard_upgrade.py, .autopilot/dashboard.html не копируется вручную.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R16",
+      "text": "«C1. По умолчанию ничего не меняется: Opus выключен, поведение и тесты «Opus не проходит» остаются, пока нет подтверждения.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R17",
+      "text": "«C2. Включение явное и на прогон: на этапе плана Autopilot показывает список тасков, где Opus уместен, и цену, пользователь отвечает да или нет. Ответ записывается в state.js вместе с цитатой, подписанно, как гейты.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R18",
+      "text": "«C3. В роутере отдельный уровень выше «сильной». Выбирается только для тасков с высоким риском (безопасность, конкурентность, миграции данных) или с явной пометкой в файле таска, и только при подтверждении по C2.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R19",
+      "text": "«C4. Кандидаты помимо рискованных тасков: ремонт, дважды вернувшийся с ревью; общее ревью ветки на большом диффе.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R20",
+      "text": "«C5. Нужно согласовать с claude_agent_guard.py, claude_attest.py и закреплёнными профилями в .claude/agents/: что в attest считается допустимой моделью, как guard проверяет подтверждение.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R21",
+      "text": "«C6. Тесты переписываются из «Opus не проходит» в «Opus не проходит без подтверждения, и проходит только для помеченного таска при подписанном подтверждении». Отдельный тест на поддельное подтверждение.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R22",
+      "text": "«C7. Дашборд и отчёт показывают, какие таски шли на Opus и сколько это стоило по measure-run.py.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R23",
+      "text": "«Все 669 тестов остаются зелёными, добавленные тесты идут вместе с кодом.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R24",
+      "text": "«Требование из manifest.md снимает только пользователь.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R25",
+      "text": "«Секреты не запрашиваются и не пишутся.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R26",
+      "text": "«Поведение по умолчанию (без --by-user, без подтверждения Opus) в рабочих прогонах не меняется, кроме новых отказов из A1, A3, B2 и B3: они и есть смысл брифа.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R27",
+      "text": "«state.js пишется только через state_io.py; харнессы, копирующие ap.py, копируют state_io.py, process_containment.py, run_log.py.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R28",
+      "text": "«README и документацию правим только там, где поведение изменилось (CHANGELOG.md, docs/autopilot/, три языка там, где нужно).»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R29",
+      "text": "«python3 -m unittest discover -s tests зелёный на 3.11 и 3.13.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R30",
+      "text": "«По одному регрессионному тесту на каждый пункт A1–A3, B1–B5 и C6.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R31",
+      "text": "«Слепая приёмка по этому брифу, не по спецификации.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R32",
+      "text": "«В CHANGELOG.md запись о порте и об Opus, с честной пометкой, что экономия Opus-субагентов не измерена.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "G01",
+      "text": "«Опус должен использоваться для суперсложных или суперответственных задач, или где, по твоему мнению, Zoned не справится.»",
+      "status": "in-ticket"
     }
   ],
   "gates": {
+    "G1": {
+      "ok": true,
+      "at": "2026-11-08T14:27:30+01:00",
+      "open": 0,
+      "total": 33
+    },
     "G2": {
       "ok": true,
-      "at": "2026-11-06T02:18:41+01:00",
-      "found": 3,
-      "fixed": 3,
-      "deferred": 0
+      "at": "2026-11-08T14:29:07+01:00",
+      "found": 25,
+      "fixed": 21,
+      "deferred": 4
     },
     "G3": {
       "ok": true,
-      "at": "2026-11-06T02:18:29+01:00",
+      "at": "2026-11-08T14:30:47+01:00",
       "problems": 0
-    },
-    "G4": {
-      "ok": true,
-      "at": "2026-11-06T02:18:42+01:00",
-      "checked": 7,
-      "matched": 7
-    },
-    "G1": {
-      "ok": true,
-      "at": "2026-11-06T02:18:40+01:00",
-      "open": 0,
-      "total": 7
     }
   },
-  "result": "Журнал прогона надёжнее: предупреждение без run_log.py, тест списка копирования, свод переживает испорченные строки, роль субагента в журнале",
-  "gateMark": "7d40b1d7ee1523b551f795b26c8705fd9fa8918556ee7cf32b166e04075dc92f",
+  "result": null,
+  "gateMark": "075edaa32264ebc925f7ec2fc549a2a7aa56c34b22c9b77395aeb0faa1558b3d",
   "skillVersion": "2.7.0",
-  "planContractDigest": "0e12c409876f72421a354a086e9d9f3658e083dff6220340acc6257c00f5702c",
-  "planValidationDigest": "6bfd0b27cb96eb08791e1acf9cf2d8659c524f599212e5c04e20c95d17365cfc",
-  "roleAgents": {
-    "reviewer": {
-      "agentType": "autopilot-reviewer-2026-11-06-r22d-run-log-hardening",
-      "agentFile": ".claude/agents/autopilot-reviewer-2026-11-06-r22d-run-log-hardening.md",
-      "model": "sonnet",
-      "effort": "high",
-      "effortEnforced": true,
-      "profileSha": "f7cf83703a04c9d69bb2caebad742168c42fc9ac8da39ee2c3be9b4009d44d05"
-    },
-    "acceptance": {
-      "agentType": "autopilot-acceptance-2026-11-06-r22d-run-log-hardening",
-      "agentFile": ".claude/agents/autopilot-acceptance-2026-11-06-r22d-run-log-hardening.md",
-      "model": "sonnet",
-      "effort": "medium",
-      "effortEnforced": true,
-      "profileSha": "fe89d9d0924033719b35ee3c3140bcbd3242806428872608e0feff84802c4ac1"
-    },
-    "explorer": {
-      "agentType": "autopilot-explorer-2026-11-06-r22d-run-log-hardening",
-      "agentFile": ".claude/agents/autopilot-explorer-2026-11-06-r22d-run-log-hardening.md",
-      "model": "haiku",
-      "effort": "low",
-      "effortEnforced": true,
-      "profileSha": "815cfa303b335b4b8dd415f03fb8b413c6f0e7f1473a9821fcd7a32de74ee678"
-    }
-  },
-  "repairAgent": {
-    "agentType": "autopilot-executor-repair-2026-11-06-r22d-run-log-hardening",
-    "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-06-r22d-run-log-hardening.md",
-    "model": "sonnet",
-    "effort": "high",
-    "effortEnforced": true,
-    "profileSha": "d159742ff58bc8748a564786b23140c77e47f5cacf373d907aa05e3c81c4b548"
-  },
-  "report": [
-    "Одна давняя битая строка в журнале попадает в «пропущено испорченных строк» каждого нового отчёта, пока файл не удалят (run_log.py:140, ap.py:2654)",
-    "Журнал из одних нечитаемых строк печатает «журнал пуст» и прячет счётчик пропущенных (ap.py:2655)",
-    "Последний прогон выбирается до проверки строки на целостность: испорченная последняя запись с run прячет настоящий прогон (ap.py:2659)",
-    "Роль в --share берётся из журнала как есть (run_log.py:197)",
-    "Тест списка копирования не краснит устаревшее имя в RUN_FROM_SKILL (tests/test_state_io.py)"
-  ]
+  "planContractDigest": "c445d2803ad8f12e457664c37a13fe1198978e2d0db7b695b463464bb2b119db",
+  "planValidationDigest": "b62b5bbfcf226ab280799de970a595c554d25fe4dfaec25fcb7884e9fdbbee97"
 }
