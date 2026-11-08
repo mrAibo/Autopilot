@@ -15,8 +15,17 @@ Upstream port 2.2.2/2.2.3 and Opus on the user's yes.
 - **`ap.py git-check`:** `phases/0-preflight.md` runs the copy from the skill's `tools/` before `init`, from the project root; the command checks the Git of the current directory, and a refused write stops the run at once.
 - **Phases:** no ticket only verifies (`4-plan.md`); an environment failure is `fail` with a question, not a repair (`5-repair.md`); "one round of fixes, then the report" (`8-final.md`); `SKILL.md` re-reads `5-repair.md` after a compaction.
 - **Opus on the user's confirmation:** `ap.py opus propose|approve|status`, signed `opusApproval`, Opus profiles for repair and the branch reviewer (diff over 3000 lines), a question in Phase 4 and, when `opusAgents` exists, for `repairs >= 2`; `opus approve --roles …` without `opusAgents` prints a `!` warning; the dashboard shows an «Opus enabled» line and the report names the tickets and the actual cost from `measure-run.py`. Fable stays closed. **The saving from Opus subagents is not measured**; Opus costs more than a Sonnet ticket.
-- **Known limitations:** Opus repair does not work yet: `ticket F route` does not assign the Opus repair profile, so the `repair` role approval is only recorded; `opus propose` prints candidate tickets only, not roles.
+- **Known limitations:** `opus propose` prints candidate tickets only, not roles. (The earlier note that Opus repair does not work is obsolete: see below.)
 - Docs: `model-routing.md`, `claude-code.md`, `dashboard-views.md`. READMEs unchanged (they do not say Opus is closed).
+
+Opus and gates without the user's hands (R01–R08).
+
+- **Opus repair works:** `ap.py ticket F<n> route` assigns the Opus repair profile (`opusAgents.repair`) to the branch fix ticket when the user approved the `repair` role and the signature holds; otherwise the usual `repairAgent`. `phases/5-repair.md` no longer calls it unfinished.
+- **`ap.py agent-for reviewer|repair [--diff-lines N]`:** prints the agent to call; the Opus reviewer only for an approved `reviewer` role and a branch diff over 3000 lines. `phases/6-review.md` and `phases/5-host-claude.md` call it instead of choosing by hand.
+- **Signatures bound to the run:** `opusApproval.sig` signs `{tickets, roles, run}`, new `opusApproval.agentsSig` signs `{opusAgents, run}` (`run = slug|startedAt`); `claude_agent_guard.py` checks both; `ap.py` verifies the approval in any run where the key exists, and `opus status` prints the signature verdict.
+- **Tools update themselves:** `ap.py upgrade-tools` (also in `init` and at every `stage <id>` while no ticket is `in-progress`/`review`/`repair`) copies the differing `.py` files from `skillDir/tools/` into `.autopilot/`; the manual `cp` in `phases/0-instruments.md` stays as a fallback before the first `init`. `phases/0-resume.md` points to it.
+- **Gates are not reset for nothing:** fix tickets `F<n>-*.md` are outside the plan contract, so `check-plan` after one keeps G1/G2/G4 and `blind`; changing an ordinary ticket or a requirement still resets them. Landing with caveats and the Opus approval remain the user's words (`--by-user`).
+- Docs: `phases/0-instruments.md`, `0-resume.md`, `4-plan.md`, `5-host-claude.md`, `5-repair.md`, `6-review.md`, `8-final.md`, `SKILL.md`, `model-routing.md`, `claude-code.md`. **The saving from Opus subagents is still not measured**; the actual cost is in the report via `measure-run.py`.
 
 Wave 1 process fixes.
 

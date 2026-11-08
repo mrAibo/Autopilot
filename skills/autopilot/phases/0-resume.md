@@ -32,7 +32,11 @@ answered questions, or run `init` on an unfinished run.
    any new executor must review and test residual source changes.
 3. **Restore the instruments:** use the current skill's Phase 0
    installation instructions (`phases/0-instruments.md`, §1) only
-   after confirming no other session is writing the run. Run bare
+   after confirming no other session is writing the run: with no ticket
+   in `in-progress`/`review`/`repair`, `python3 .autopilot/ap.py upgrade-tools`
+   refreshes the `.py` tools from the skill (it also runs by itself at
+   `stage <id>`); the manual `cp` of §1 stays only as a fallback before
+   the first `init` or when `.autopilot/ap.py` is missing. Run bare
    `python3 .autopilot/ap.py` to reopen the existing Dashboard
    server/port; re-point the new pane or show the local URL.
    **Do not run `ap.py init`** and do not edit `state.js` manually.
