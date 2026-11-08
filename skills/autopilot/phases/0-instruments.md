@@ -42,6 +42,7 @@ cp "${TPL%/phases/*}/tools/run_log.py" "$A/run_log.py"
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
 - `find -L` and no `*` in it: skills are installed through symlinks, which a plain `find` does not follow, and an unmatched glob aborts the whole line in zsh. Empty output → widen the search once by hand and carry on.
 - **`python3` not a working interpreter** — on Windows it can be the Microsoft Store stub → use `python` or `py -3` wherever this skill says `python3`.
+- **The `cp` list above is needed before the first `init`** (there is no `.autopilot/ap.py` yet). After that `ap.py init` and `ap.py stage <id>` refresh the `.py` tools in `.autopilot/` from `skillDir/tools/` by themselves — only when no ticket is `in-progress`/`review`/`repair`, `ap.py` replaces its own copy at the end of the command — and `ap.py upgrade-tools` does it by hand. It copies only files that already exist in `.autopilot/`, so a tool the skill added since needs the `cp` line once.
 - `index.html` is a symlink so the server answers `/` with the dashboard instead of a directory listing.
 - Never regenerate the template, never read it into context, never edit it.
 
@@ -106,7 +107,11 @@ Immediately after `init`, before Phase 1 asks anything.
 | a full check outside a ticket | `tests 34/0` (+ `--seconds 42` if you timed it) |
 | the run waits for the user — a briefing round, the manual spec or plan gate, a yes/no before an irreversible action, a stop condition | `ask briefing\|spec\|plan\|action\|stop --note "что ждём, одной строкой"` — chained with nothing: the message goes out after it |
 | the answer came | `answered` — or nothing, when the next call is a `stage` or `ticket`: those close the wait themselves |
-| the run lands | `finish --result "одна строка: что теперь есть"` |
+| the run lands | `finish --result "одна строка: что теперь есть"` — a landing with caveats only with the user's words: `finish --result "…" --by-user "<цитата>"` (writes `landedWith`) |
+| Git accepts writes (Phase 0, before `init`) | `git-check` — a refusal stops the run |
+| the user lifts a repair/retry limit or reopens a failed ticket | `ticket 02 reset --by-user "<цитата>"` — never without their words |
+| Opus (only by the user's yes) | `opus propose` (print only) · `opus approve [--tickets 03,05] [--roles repair,reviewer] --by-user "<цитата>"` · `opus status` (also checks the approval signature) · `agent-for reviewer\|repair [--diff-lines N]` — prints the agent to call, the Opus profile only if the user approved that role (`phases/4-plan.md`) |
+| the installed skill got newer tools (no ticket in `in-progress`/`review`/`repair`) | `upgrade-tools` — copies the `.py` that differ from `skillDir/tools/` and prints their names; `init` and every `stage <id>` do it by themselves |
 | where the time and tokens went (reads `.autopilot/run-log.jsonl`, never blocks) | `report-run` — `report-run --share` for an issue attachment, no project data (`docs/autopilot/run-log.md`) |
 | a resume, before anything relaunches | `commits` — every `done` ticket's commit still in `HEAD`; a `!` line is a ticket to reset (`phases/0-resume.md`) |
 

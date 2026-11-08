@@ -11,6 +11,7 @@ import unittest
 TOOLS = Path(__file__).resolve().parents[1] / "skills" / "autopilot" / "tools"
 sys.path.insert(0, str(TOOLS))
 import claude_agent_guard as guard
+import gate_sign
 
 
 class HookGuardTests(unittest.TestCase):
@@ -192,12 +193,14 @@ class HookGuardTests(unittest.TestCase):
         self.assertIn("isolation", why)
 
     def test_premium_or_inherited_model_is_denied(self):
+        self.assertNotIn("opusApproval", self.state)  # no user approval: the default
         self.file.write_text(self.file.read_text(encoding="utf-8").replace("haiku", "fable"), encoding="utf-8")
         ok, why = guard.decision(self.payload(), self.root)
         self.assertFalse(ok)
         self.assertIn("Premium", why)
 
     def test_every_opus_spelling_is_denied_by_the_shared_allowlist(self):
+        self.assertNotIn("opusApproval", self.state)  # without approval, stated explicitly
         original = self.file.read_text(encoding="utf-8")
         for model in ("us.anthropic.claude-opus-4-1-20250805-v1:0", "claude-3-opus-20240229",
                       "bedrock/anthropic.claude-opus-4-1", "Opus", "claude-fable-5", "gpt-6-luna"):
@@ -211,6 +214,311 @@ class HookGuardTests(unittest.TestCase):
         source = (Path(guard.__file__)).read_text(encoding="utf-8")
         self.assertNotIn("claude-opus", source)
         self.assertIn("is_allowed_subagent_model", source)
+
+    # --- Opus: allowed only under the user's signed approval (opusApproval) ---
+
+    def pin(self, path, model, effort="high"):
+        """Rewrite model/effort in a profile; returns its new sha."""
+        lines = [("model: " + model) if line.startswith("model: ")
+                 else ("effort: " + effort) if line.startswith("effort: ") else line
+                 for line in path.read_text(encoding="utf-8").split("\n")]
+        path.write_text("\n".join(lines), encoding="utf-8")
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def advertise(self, models):
+        (self.ap / "model-capabilities.json").write_text(json.dumps({
+            "provider": "anthropic", "model_selection": True, "models": models}), encoding="utf-8")
+
+    def opus_executor(self, model="opus"):
+        """Signed run: the ticket 01 executor profile and its route pinned to `model`, route re-signed."""
+        route = self.state["tickets"][0]["routing"]
+        route.update(model=model, effort="high", profileSha=self.pin(self.file, model))
+        route["sig"] = gate_sign.sign(gate_sign.routing_payload("01", route))
+        self.advertise({model: ["high"]})
+        self.save()
+
+    def add_profile(self, name, model="opus"):
+        path = self.agents / (name + ".md")
+        path.write_text("---\nname: %s\ndescription: Test\nmodel: %s\neffort: high\n---\nTask\n"
+                        % (name, model), encoding="utf-8")
+        self.advertise({model: ["high"]})
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def run_id(self):
+        return "%s|%s" % (self.state["slug"], self.state["startedAt"])
+
+    def approve(self, tickets=(), roles=()):
+        """Signed like ap.py: sig over {tickets, roles, run}; agentsSig over {opusAgents, run} if any."""
+        body = {"tickets": list(tickets), "roles": list(roles)}
+        self.state["opusApproval"] = dict(
+            body, quotes=[{"at": "2026-11-08T10:00:00", "quote": "да, Opus для 01"}],
+            sig=gate_sign.sign(dict(body, run=self.run_id())))
+        if "opusAgents" in self.state:
+            self.state["opusApproval"]["agentsSig"] = gate_sign.sign(
+                {"opusAgents": self.state["opusAgents"], "run": self.run_id()})
+        self.save()
+
+    def denied_as_premium(self, **args):
+        ok, why = guard.decision(self.payload(**args), self.root)
+        self.assertFalse(ok, why)
+        self.assertIn("Premium", why)
+
+    def test_opus_executor_is_denied_without_approval_even_in_a_signed_run(self):
+        self.signed_run()
+        self.opus_executor()
+        self.assertNotIn("opusApproval", self.state)
+        self.denied_as_premium()
+
+    def test_opus_executor_runs_only_for_the_approved_ticket(self):
+        self.signed_run()
+        self.opus_executor()
+        self.approve(tickets=["01"])
+        ok, why = guard.decision(self.payload(), self.root)
+        self.assertTrue(ok, why)
+        self.approve(tickets=["02"])  # the approval names another ticket
+        self.denied_as_premium()
+        self.approve(tickets=[], roles=["reviewer", "repair"])  # roles do not cover a plain executor
+        self.denied_as_premium()
+
+    def test_forged_approval_is_denied(self):
+        self.signed_run()
+        self.opus_executor()
+        self.approve(tickets=["01"])
+        honest = self.state["opusApproval"]
+        forgeries = {
+            "garbage signature": dict(honest, sig="0" * 64),
+            "no signature": dict(honest, sig=None),
+            "signature of another approval": dict(honest, sig=gate_sign.sign({"tickets": ["02"], "roles": []})),
+            "tickets widened after signing": dict(honest, tickets=["01", "02"]),
+            "roles added after signing": dict(honest, roles=["reviewer"]),
+            "tickets swapped after signing": dict(honest, tickets=["02"]),
+            "lists replaced by strings": dict(honest, tickets="01"),
+            "not a mapping": "yes",
+        }
+        for label, approval in forgeries.items():
+            with self.subTest(label):
+                self.state["opusApproval"] = approval
+                self.save()
+                self.denied_as_premium()
+        self.state["opusApproval"] = honest  # the honest one still passes
+        self.save()
+        self.assertTrue(guard.decision(self.payload(), self.root)[0])
+
+    def test_approval_without_a_signing_key_is_not_accepted(self):
+        from unittest import mock
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        with mock.patch.dict(os.environ, {"AUTOPILOT_HOME": home.name}):  # no gate.key here
+            route = self.state["tickets"][0]["routing"]
+            self.state["tickets"][0]["id"] = "01"
+            route.update(model="opus", effort="high", profileSha=self.pin(self.file, "opus"))
+            self.advertise({"opus": ["high"]})
+            for sig in (None, "0" * 64):
+                with self.subTest(sig=sig):
+                    self.state["opusApproval"] = {"tickets": ["01"], "roles": [], "quotes": [], "sig": sig}
+                    self.save()
+                    self.denied_as_premium()
+
+    def test_opus_reviewer_needs_its_role_its_name_and_a_valid_signature(self):
+        self.signed_run()
+        reviewer = "autopilot-reviewer-opus-x"
+        self.add_profile(reviewer)
+        self.state["opusAgents"] = {"reviewer": reviewer, "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(roles=["reviewer"])
+        ok, why = guard.decision(self.payload(agent=reviewer), self.root)
+        self.assertTrue(ok, why)
+        self.state["opusAgents"]["reviewer"] = "autopilot-reviewer-opus-y"  # not this run's opus reviewer
+        self.approve(roles=["reviewer"])
+        self.denied_as_premium(agent=reviewer)
+        self.state["opusAgents"]["reviewer"] = reviewer
+        for label, approval in {"repair role only": ([], ["repair"]), "task approval only": (["01"], [])}.items():
+            with self.subTest(label):
+                self.approve(*approval)
+                self.denied_as_premium(agent=reviewer)
+        self.approve(roles=["reviewer"])
+        self.state["opusApproval"]["sig"] = "0" * 64
+        self.save()
+        self.denied_as_premium(agent=reviewer)
+        explorer = "autopilot-explorer-opus-x"  # a role never stretches to another kind of agent
+        self.add_profile(explorer)
+        self.state["opusAgents"] = {"reviewer": explorer, "repair": reviewer}
+        self.approve(roles=["reviewer", "repair"])
+        self.denied_as_premium(agent=explorer)
+        self.denied_as_premium(agent=reviewer)
+        self.approve(roles=["reviewer"])
+        del self.state["opusAgents"]  # no opus profiles registered for the run
+        self.save()
+        self.denied_as_premium(agent=reviewer)
+
+    def test_opus_repair_executor_needs_the_repair_role_and_its_name(self):
+        self.signed_run()
+        name = "autopilot-executor-repair-opus-x"
+        route = {"agentType": name, "provider": "anthropic", "model": "opus", "effort": "high",
+                 "profileSha": self.add_profile(name), "verified": True}
+        route["sig"] = gate_sign.sign(gate_sign.routing_payload("F1", route))
+        self.state["tickets"].append({"id": "F1", "status": "repair", "routing": route})
+        self.state["repairAgent"] = {"agentType": name}
+        self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x", "repair": name}
+        self.approve(roles=["repair"])  # no task id: the role covers every fix ticket
+        ok, why = guard.decision(self.payload(agent=name), self.root)
+        self.assertTrue(ok, why)
+        self.approve(roles=["reviewer"])
+        self.denied_as_premium(agent=name)
+        self.approve(roles=["repair"])
+        self.state["opusAgents"]["repair"] = "autopilot-executor-repair-opus-y"
+        self.save()
+        self.denied_as_premium(agent=name)
+        self.state["opusAgents"]["repair"] = name
+        self.state["opusApproval"]["sig"] = "0" * 64
+        self.save()
+        self.denied_as_premium(agent=name)
+
+    def test_approval_is_bound_to_the_run(self):
+        self.signed_run()
+        self.opus_executor()
+        body = {"tickets": ["01"], "roles": []}
+        for label, signed in {"signed without run": body,
+                              "signed for another slug": dict(body, run="other|t0"),
+                              "signed for another start": dict(body, run="s|t1")}.items():
+            with self.subTest(label):
+                self.approve(tickets=["01"])
+                self.state["opusApproval"]["sig"] = gate_sign.sign(signed)
+                self.save()
+                self.denied_as_premium()
+        self.approve(tickets=["01"])
+        self.assertTrue(guard.decision(self.payload(), self.root)[0])
+
+    def opus_reviewer_run(self):
+        self.signed_run()
+        reviewer = "autopilot-reviewer-opus-x"
+        self.add_profile(reviewer)
+        self.state["opusAgents"] = {"reviewer": reviewer, "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(roles=["reviewer"])
+        return reviewer
+
+    def test_opus_agents_name_needs_a_valid_agents_signature(self):
+        reviewer = self.opus_reviewer_run()
+        agents = self.state["opusAgents"]
+        ok, why = guard.decision(self.payload(agent=reviewer), self.root)
+        self.assertTrue(ok, why)
+        swapped = dict(agents, reviewer="autopilot-reviewer-opus-y")
+        cases = {
+            "no agentsSig": None,
+            "garbage agentsSig": "0" * 64,
+            "agentsSig without run": gate_sign.sign({"opusAgents": agents}),
+            "agentsSig of another run": gate_sign.sign({"opusAgents": agents, "run": "other|t0"}),
+            "agentsSig over other names": gate_sign.sign({"opusAgents": swapped, "run": self.run_id()}),
+            "agentsSig is sig": self.state["opusApproval"]["sig"],
+        }
+        for label, agents_sig in cases.items():
+            with self.subTest(label):
+                self.state["opusApproval"]["agentsSig"] = agents_sig
+                self.save()
+                self.denied_as_premium(agent=reviewer)
+        # a name swapped into opusAgents after signing no longer matches the signature
+        self.approve(roles=["reviewer"])
+        self.state["opusAgents"]["reviewer"] = "autopilot-reviewer-opus-y"
+        self.add_profile("autopilot-reviewer-opus-y")
+        self.save()
+        self.denied_as_premium(agent="autopilot-reviewer-opus-y")
+
+    def test_ticket_route_needs_no_agents_signature(self):
+        self.signed_run()
+        self.opus_executor()
+        self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x",
+                                    "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(tickets=["01"])
+        del self.state["opusApproval"]["agentsSig"]
+        self.save()
+        ok, why = guard.decision(self.payload(), self.root)
+        self.assertTrue(ok, why)
+        self.state["opusApproval"]["sig"] = "0" * 64  # but the route still needs a valid sig
+        self.save()
+        self.denied_as_premium()
+
+    def opus_repair_run(self, *tickets):
+        """Signed run with the opus repair profile registered and `tickets` = [(id, status)] routed to it."""
+        self.signed_run()
+        name = "autopilot-executor-repair-opus-x"
+        route = {"agentType": name, "provider": "anthropic", "model": "opus", "effort": "high",
+                 "profileSha": self.add_profile(name), "verified": True}
+        for tid, status in tickets:
+            self.state["tickets"].append({"id": tid, "status": status, "routing": dict(
+                route, sig=gate_sign.sign(gate_sign.routing_payload(tid, route)))})
+        self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x", "repair": name}
+        self.approve(roles=["repair"])
+        return name
+
+    def test_opus_repair_runs_for_one_active_fix_ticket_without_repair_agent(self):
+        for tickets in ([("F1", "in-progress")], [("F1", "done"), ("F2", "repair")]):
+            with self.subTest(tickets=tickets):
+                self.setUp()
+                name = self.opus_repair_run(*tickets)  # opusAgents.repair alone stands for repairAgent
+                self.assertNotIn("repairAgent", self.state)
+                ok, why = guard.decision(self.payload(agent=name), self.root)
+                self.assertTrue(ok, why)
+
+    def test_opus_repair_is_denied_for_a_plain_or_a_second_active_ticket(self):
+        for tickets in ([("02", "in-progress")], [("02", "repair")], [("F1", "pending")],
+                        [("F1", "in-progress"), ("F2", "repair")], [("F1", "review")], []):
+            with self.subTest(tickets=tickets):
+                self.setUp()
+                name = self.opus_repair_run(*tickets)
+                ok, why = guard.decision(self.payload(agent=name), self.root)
+                self.assertFalse(ok)
+                self.assertIn("approved Autopilot task", why)
+
+    def test_fable_is_denied_even_with_a_valid_approval(self):
+        self.signed_run()
+        reviewer = "autopilot-reviewer-opus-x"
+        self.state["opusAgents"] = {"reviewer": reviewer, "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(tickets=["01"], roles=["reviewer", "repair"])
+        for model in ("fable", "claude-fable-5", "us.anthropic.claude-fable-5-v1:0", "opusplan",
+                      "claude-opus-4-1/haiku", "claude-fable-5/claude-opus-4"):
+            with self.subTest(model=model):
+                self.opus_executor(model)
+                self.denied_as_premium()
+                self.add_profile(reviewer, model)
+                self.denied_as_premium(agent=reviewer)
+
+    def test_every_opus_spelling_passes_the_shared_allowlist_under_approval(self):
+        self.signed_run()
+        self.approve(tickets=["01"])
+        for model in ("us.anthropic.claude-opus-4-1-20250805-v1:0", "claude-3-opus-20240229",
+                      "bedrock/anthropic.claude-opus-4-1", "Opus"):
+            with self.subTest(model=model):
+                self.opus_executor(model)
+                ok, why = guard.decision(self.payload(), self.root)
+                self.assertTrue(ok, why)
+
+    def test_approval_of_one_ticket_does_not_cover_another_sharing_the_profile(self):
+        self.signed_run()
+        self.opus_executor()
+        first = self.state["tickets"][0]["routing"]
+        first["verified"] = False  # ticket 01 is approved but its route is not the verified one
+        first["sig"] = gate_sign.sign(gate_sign.routing_payload("01", first))
+        second = dict(first, verified=True)
+        second["sig"] = gate_sign.sign(gate_sign.routing_payload("02", second))
+        self.state["tickets"].append({"id": "02", "routing": second})
+        self.approve(tickets=["01"])
+        self.denied_as_premium()
+
+    def test_approval_does_not_weaken_the_other_checks(self):
+        self.signed_run()
+        self.opus_executor()
+        self.approve(tickets=["01"])
+        self.assertTrue(guard.decision(self.payload(), self.root)[0])
+        original = self.file.read_text(encoding="utf-8")
+        self.file.write_text(original + "extra\n", encoding="utf-8")
+        self.assertIn("changed since", guard.decision(self.payload(), self.root)[1])
+        self.file.write_text(original, encoding="utf-8")
+        self.advertise({"haiku": ["low"]})
+        self.assertIn("advertised", guard.decision(self.payload(), self.root)[1])
+        self.advertise({"opus": ["high"]})
+        self.assertIn("overrides", guard.decision(self.payload(model="sonnet"), self.root)[1])
+        self.state["tickets"][0]["routing"]["score"] = 99  # forged route field, old signature
+        self.save()
+        self.assertIn("signature", guard.decision(self.payload(), self.root)[1])
 
     def test_state_with_bom_and_trailing_semicolon_is_read(self):
         body = "window.STATE =\n" + json.dumps(self.state) + ";"

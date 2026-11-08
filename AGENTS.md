@@ -20,12 +20,14 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 5 минут; один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 7 минут (730 тестов, 5 пропущены); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Тесты, копирующие `ap.py` в харнесс, копируют и `state_io.py`, и `process_containment.py`.
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
 - Ключ подписи гейтов — `~/.autopilot/gate.key` (или `$AUTOPILOT_HOME`), запись «прогон начат подписанным» — `$AUTOPILOT_HOME/runs/`; в strict-прогоне `.autopilot/*.py` закрыты от Write/Edit.
-- Допустимые модели субагентов задаёт `model_router.is_allowed_subagent_model`; Opus и Fable не проходят ни в каком написании.
+- Допустимые модели субагентов задаёт `model_router.is_allowed_subagent_model(name, premium_ok=…)`; Opus допускается только при подписанном подтверждении пользователя, Fable не проходит никогда.
+- Подтверждение Opus — поле `opusApproval` в `state.js` (подпись `sig`); пишется только `ap.py opus approve --tickets 03,05 --roles repair,reviewer --by-user "<слова пользователя>"`, `opus propose` лишь печатает. Подписи (`sig`, `agentsSig`) привязаны к прогону (`run = slug|startedAt`), guard сверяет обе; Opus-ремонтник назначается `ticket F<n> route` при подтверждённой роли `repair` и допускается только на fix-таск в работе; профили зовут по `ap.py agent-for reviewer|repair`.
+- Упавший таск возвращается только `ticket NN reset --by-user "<цитата>"` (на не упавшем счётчики не обнуляются); сдача с отказами — `finish --by-user`, жёсткие причины (блокер, подпись) цитатой не снимаются; `git-check` смотрит git из cwd.
 - Темы дашборда — реестр `VIEWS` в `skills/autopilot/phases/dashboard-template.html` (`docs/autopilot/dashboard-views.md`); пункты рейки строятся по тем якорям `mission/tasks/models/quality`, что есть на странице темы (у «Обзора» нет `models`), `VIEW_HOME` задаёт пункт текущей темы; «Классика» держит старые цвета, остальные темы — палитру макетов. `.autopilot/dashboard.html` — копия шаблона: в живом проекте обновляй `dashboard_upgrade.py`, а не копированием.
 - Отпечаток таска считается по нормализованному тексту (LF, без BOM и хвостовых пробелов): окончания строк не страшны. Правка смысла сданного таска останавливает `ap.py tickets` с командой `ticket NN accept-edit --note "..."`. Версию Claude Code проверяет `ap.py claude-version` до `init`. Исполнители коммитят `git commit --only <файлы зоны>`, без `git stash`.
 - Журнал прогона — `.autopilot/run-log.jsonl` (только метаданные, пишет `run_log.py`, сбой записи глотается); свод — `ap.py report-run [--share]`; харнессы, копирующие `ap.py` или `claude_attest.py`, копируют и `run_log.py`.

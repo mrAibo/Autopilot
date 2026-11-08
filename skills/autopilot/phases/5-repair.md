@@ -2,7 +2,9 @@
 
 Read only when a ticket comes back as anything other than a clean `DONE` — a `BLOCKING` finding, a red check, `BLOCKED`, `NEEDS_CONTEXT`, or a build that proved the plan wrong. Most tickets never open this file.
 
-Two counters, both capped at two: `repairs` (дозапросы) and `retries` (fresh restarts). Running out of either means the cut was wrong, and that belongs in the report, not in another attempt.
+Two counters, both capped at two: `repairs` (дозапросы) and `retries` (fresh restarts). Running out of either means the cut was wrong, and that belongs in the report, not in another attempt. `ap.py` holds both limits: a third `repair` or `retry` is refused by the tool, and the refusal is final for the orchestrator. Only the user lifts it: `ap.py ticket NN reset --by-user "<цитата пользователя>"` (it resets the counters only on a `failed` ticket and records `reopenedByUser`: first `ap.py ticket NN fail`, then `reset --by-user`; on a ticket that is not `failed` the third `repair` is refused again); never your own call, never a paraphrase.
+
+**Repair on Opus** applies to the whole-branch fix ticket `F<n>` (Phase 6) only: a дозапрос on an ordinary ticket goes by message to the same executor and never changes its profile. When the user approved the `repair` role (Phase 4, or later with `ap.py opus approve --roles repair --by-user "<цитата>"` — `plan-models --apply` builds both Opus profiles as soon as any approval exists), `ap.py ticket F<n> route` assigns the Opus repair profile by itself, if the approval signature is valid and `opusAgents.repair` has its profile file; otherwise it assigns the usual `repairAgent`. To call the agent by hand use `ap.py agent-for repair`. Ask the user once, when the branch review creates `F<n>`: «Ремонт ветки на Opus? Дороже Sonnet-таска, не измерено.» / "Repair the branch on Opus? Costs more than a Sonnet ticket, not measured." A yes → `opus approve --roles repair --by-user "<цитата>"` (`opus status` shows what is approved and whether the signature holds), then `route`. Without `opusAgents` do not ask: there is no profile to run it on. The extra cost over Sonnet is not measured.
 
 ## Repair — two kinds, two addresses
 
@@ -51,6 +53,8 @@ Not a failure. If the dependency fits a decision the spec already made, add it t
 ## When a ticket fails
 
 `ap.py ticket NN retry --cause tests|unknown` only after diagnosing the root cause (optionally run `python .autopilot/retry_policy.py --kind tests`). In strict runs the cause is mandatory and an approved native model profile is required. Environment/dependency/requirement/security failures and reasoning replan cases **block** naive retries; remedy the actual cause first. Never automatically upgrade for missing tools or access. Retry and repair counts are capped at two per ticket. Isolated worktrees must be reused safely; do not silently discard uncommitted executor changes. See `docs/autopilot/retry-policy.md`. A second retry only **with a changed approach** — a different design decision, a different library, a path the ticket now names explicitly; the same attempt with more hope is the one forbidden move.
+
+**An environment failure is not a repair.** A timeout, a native module that does not load, a busy port, a service that is down, a path that exists only on this machine: `ap.py ticket NN fail --note "что именно с окружением"` and a plain question to the user — what to fix or allow. No `repair`, no `retry` for it.
 
 After that the flight stops for this ticket: `ap.py ticket NN fail --note "что блокирует"`, the reason in its manifest rows' Основание, and a plain sentence to the user — what is blocking, what you need from them, and which tickets are now waiting on it. Never improvise around a blocker and never narrow the ticket to whatever happened to work: a quietly reduced ticket is a lost requirement. Its wave-mates are independent by construction — let them land.
 

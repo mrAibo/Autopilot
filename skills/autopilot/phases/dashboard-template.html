@@ -1075,7 +1075,7 @@ const I18N = {
       plan:"Посмотри план и скажи «ок»",action:"Нужно твоё решение перед необратимым шагом",stop:"Сборка остановлена — нужен ты"},
     waitHint:"Ответ — в чате. Дальше сборка пойдёт сама",waitBig:"ждём ответа · часы сборки стоят",
     failState:"Сборка остановилась",failH2:n=>`Этап «${n}» не прошёл`,
-    doneState:"Сдано",doneDefault:"Сборка сдана",
+    doneState:"Сдано",landedState:"Сдано с оговорками",landedLead:"Сдано с оговорками. Что осталось:",doneDefault:"Сборка сдана",
     doneNeed:(k,p)=>`Для настоящего запуска ${[k ? `впиши <b>${k} ${plural(k,'ключ','ключа','ключей')}</b> в .env` : '', p ? `замени <b>${p} ${plural(p,'заглушку','заглушки','заглушек')}</b> своими данными` : ''].filter(Boolean).join(' и ')}.`,
     doneNothing:"От тебя ничего не нужно — можно пользоваться.",
     doneBig:t=>`в работе · сдано в ${t}`,
@@ -1153,7 +1153,7 @@ const I18N = {
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
       tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",
-      tFeedAll:"Все события",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
+      tFeedAll:"Все события",opusOn:"Opus включён",opusNote:"дороже Sonnet-таска, не измерено; стоимость — по measure-run.py в отчёте",opusTickets:"таски",opusRoles:"роли",tRoutes:"Маршруты моделей",tTokens:"Токены",tIsolation:"Рабочие копии и изоляция",
       tDebt:"Остатки",tSummary:"Состав итога",cTask:"Таск",cProvider:"Провайдер",cModel:"Модель",cScore:"Сложность",
       cWhy:"Почему",planned:"план",blocked:"заблокировано",cResult:"Результат сборки",
       notDone:"Сборка ещё не сдана — итог появится в конце.",
@@ -1207,7 +1207,7 @@ const I18N = {
       plan:"Look at the plan and say “ok”",action:"Your call is needed before an irreversible step",stop:"The build has stopped — you are needed"},
     waitHint:"Answer in the chat. The build carries on by itself",waitBig:"waiting for you · the build clock is stopped",
     failState:"The build has stopped",failH2:n=>`Stage “${n}” failed`,
-    doneState:"Done",doneDefault:"The build is done",
+    doneState:"Done",landedState:"Landed with caveats",landedLead:"Landed with caveats. What is left:",doneDefault:"The build is done",
     doneNeed:(k,p)=>`To run it for real, ${[k ? `put <b>${k} ${en(k,'key','keys')}</b> into .env` : '', p ? `replace <b>${p} ${en(p,'placeholder','placeholders')}</b> with your data` : ''].filter(Boolean).join(' and ')}.`,
     doneNothing:"Nothing is needed from you — it is ready to use.",
     doneBig:t=>`working time · done at ${t}`,
@@ -1280,7 +1280,7 @@ const I18N = {
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
       tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",
-      tFeedAll:"All events",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
+      tFeedAll:"All events",opusOn:"Opus enabled",opusNote:"costs more than a Sonnet ticket, not measured; actual cost via measure-run.py in the report",opusTickets:"tickets",opusRoles:"roles",tRoutes:"Model routing",tTokens:"Tokens",tIsolation:"Worktrees and isolation",
       tDebt:"Leftovers",tSummary:"What the summary has",cTask:"Ticket",cProvider:"Provider",cModel:"Model",cScore:"Score",
       cWhy:"Why",planned:"plan",blocked:"blocked",cResult:"Build result",
       notDone:"The build is not done yet — the summary appears at the end.",
@@ -1703,9 +1703,11 @@ function render(lang){
   if (fin) {
     heroCls = 'won';
     const k = (S.debt?.emptyEnv || []).length, p = (S.debt?.placeholders || []).length;
-    stateLine = `<span class="badge-ic">${ic('check','xs')}</span>${L.doneState}`;
+    const lw = S.landedWith, lp = lw && Array.isArray(lw.problems) ? lw.problems : [];
+    stateLine = `<span class="badge-ic">${ic('check','xs')}</span>${lw ? L.landedState : L.doneState}`;
     h2 = esc(S.result || L.doneDefault);
     lead = k || p ? L.doneNeed(k, p) : L.doneNothing;
+    if (lw) lead = `${L.landedLead}<ul>${lp.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` + lead;
     big = fmtClock(activeMs(S.startedAt, S.finishedAt));
     bigSub = L.doneBig(hhmm(S.finishedAt));
   } else if (waiting) {
@@ -2028,7 +2030,10 @@ function render(lang){
       + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
       + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
     : '';
-  const routeNotes = (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
+  const oa = S.opusApproval, opusNote = oa && ((oa.tickets || []).length || (oa.roles || []).length)
+    ? `<p class="muted" id="opus-approval-notice"><b>${L.vw.opusOn}</b> — ${L.vw.opusTickets}: ${esc((oa.tickets || []).join(', ') || '—')}; ${L.vw.opusRoles}: ${esc((oa.roles || []).join(', ') || '—')}. `
+      + (oa.quotes || []).map(x => '«' + esc(x.quote) + '»').join(' ') + ` (${L.vw.opusNote})</p>` : '';
+  const routeNotes = opusNote + (S.sequentialHost ? '<p class="muted" id="sequential-host-notice">' +
       (langRu ? 'Последовательный режим: один таск за раз, тесты проверяет хост. Модель и Effort текущей GUI-сессии не подтверждены Autopilot; субагент не создаётся.' :
       'Sequential host mode: one ticket at a time, tests verified by the host. The current GUI model and Effort are NOT attested by Autopilot; no child agent is created.') +
       '</p>' : '')

@@ -15,7 +15,40 @@ import sys
 
 import gate_sign
 import state_io
-from model_router import is_allowed_subagent_model
+from model_router import is_allowed_subagent_model, is_opus_model
+
+
+def opus_approved(state, name):
+    """True when the user's signed opusApproval covers agent `name`, else False.
+
+    Covers an executor whose every route belongs to an approved ticket, the run's opus
+    reviewer (role `reviewer`) or opus repair executor (role `repair`). The signature is
+    checked with gate_sign.verify and is bound to this run (slug|startedAt), so an approval
+    copied from another run fails; a run without a key never has a valid approval. A name taken
+    from `opusAgents` additionally needs a valid `agentsSig`; the ticket route does not.
+    """
+    approval = state.get("opusApproval")
+    if not isinstance(approval, dict):
+        return False
+    tickets, roles = approval.get("tickets"), approval.get("roles")
+    if not isinstance(tickets, list) or not isinstance(roles, list):
+        return False
+    run = gate_sign._run_id(state)
+    if not gate_sign.verify({"tickets": tickets, "roles": roles, "run": run}, approval.get("sig")):
+        return False
+    agents = state.get("opusAgents")  # the role must also fit the agent kind
+    if isinstance(agents, dict) and any(
+            role in roles and agents.get(role) == name and name.startswith(prefix)
+            for role, prefix in (("reviewer", "autopilot-reviewer-"), ("repair", "autopilot-executor-"))
+    ) and gate_sign.verify({"opusAgents": agents, "run": run}, approval.get("agentsSig")):
+        return True
+    if not name.startswith("autopilot-executor-"):
+        return False
+    # Every ticket that routes to this profile must be approved, not just one of them:
+    # the later route match could otherwise settle on an unapproved sibling.
+    ids = [t.get("id") for t in state.get("tickets", []) if isinstance(t, dict)
+           and isinstance(t.get("routing"), dict) and t["routing"].get("agentType") == name]
+    return bool(ids) and all(i in tickets for i in ids)
 
 
 def read_state(root):
@@ -273,7 +306,8 @@ def decision(payload, root):
     model, effort = fields.get("model"), fields.get("effort")
     if not model or model == "inherit":
         return False, "Agent model must be pinned"
-    if not is_allowed_subagent_model(model):
+    if not is_allowed_subagent_model(
+            model, premium_ok=is_opus_model(model) and opus_approved(state, name)):
         return False, "Premium or non-allowlisted subagent models are blocked by strict policy"
     # Claude Code resolves these variables after reading the profile.
     # In particular a forced model can silently ignore a pinned profile,
@@ -310,10 +344,13 @@ def decision(payload, root):
     if name.startswith("autopilot-executor-"):
         tickets = state.get("tickets") or []
         repair = state.get("repairAgent")
-        if isinstance(repair, dict) and repair.get("agentType") == name:
-            # The run's repair executor serves fix tickets one at a time: only the
-            # one fix ticket being built or repaired right now may call it.
+        opus_agents = state.get("opusAgents")
+        if (isinstance(repair, dict) and repair.get("agentType") == name) or (
+                isinstance(opus_agents, dict) and opus_agents.get("repair") == name):
+            # The run's repair executor (plain or opus) serves fix tickets one at a time:
+            # only the one fix ticket (F<n>) being built or repaired right now may call it.
             tickets = [t for t in tickets if isinstance(t, dict)
+                       and re.fullmatch(r"F\d+", str(t.get("id")))
                        and t.get("status") in ("in-progress", "repair")]
         known = [(t.get("id"), t.get("routing") or {}) for t in tickets]
         matching = [r for _, r in known if r.get("agentType") == name and

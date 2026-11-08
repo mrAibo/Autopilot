@@ -54,6 +54,8 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 | `dropped` / `deferred` | нет | expected — in the report as not built |
 | — | реализовано, но не из брифа | scope that grew without a parent — reported |
 
+**At most two rounds, and no third look.** Round 1 is this acceptance. A 🔴 goes to one round of fixes (the G2-style fix tickets, `F2`), then **one** re-check by a fresh blind checker, then the report. `ap.py` counts the rounds (`blindRounds`, cap `BLIND_ROUNDS = 2`) and refuses a third `blind`. In the brief's words: «один круг исправлений, потом отчёт, третьего взгляда нет». What is still 🔴 after round 2 goes to the report as it is, in «Открытые вопросы». Judge by the brief, not by the spec.
+
 Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. Hiding a drift is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot run here at all, that goes to «Что нужно от тебя», not into the accepted column.
 
 ## 2. Memory and ADRs
@@ -75,7 +77,8 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 | Что я добавил сверх заказанного | `state.js` → `additions`, checked against the spec's `A##` |
 | Что пошло не по плану | every `D##` row, every failed ticket |
 | Что осталось после ревью | `state.js` → `report` |
-| Открытые вопросы | `state.js` → `blind`, and `coverage` → `items` that ended up not built |
+| Открытые вопросы | `state.js` → `blind`, and `coverage` → `items` that ended up not built; if `landedWith` is set, its `problems` |
+| Opus *(only with `opusApproval`)* | which tickets and roles ran on Opus (`ap.py opus status`) and what it cost: `measure-run.py` for the run, as the actual figure — the extra cost over Sonnet is not measured, say so |
 | Память проекта *(only when the file is the user's)* | `memory-proposal.md` — one question: «Предлагаю дополнить твой `CLAUDE.md`: N пунктов — применить?»; in full, only a line naming the file |
 | Запустить / Где что лежит | `memoryFile`, `briefFile`, the commands the memory agent verified |
 
@@ -123,7 +126,7 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 
 ## 4. The progress file
 
-`.autopilot/PROGRESS.md` — where the work stands at landing: the next run reads it first (`phases/0-preflight.md` §5), a plain session because the memory file says to (`phases/0-memory.md`). **You write it, from files re-read now**, never from memory of the dialogue. Rewritten whole at every landing; preflight already read the previous one into `carried.md`.
+`.autopilot/PROGRESS.md` — where the work stands at landing: the next run reads it first (`phases/0-preflight.md` §5), a plain session because the memory file says to (`phases/0-memory.md`). **You write it, from files re-read now**, never from memory of the dialogue. Rewritten whole at every landing; preflight already read the previous one into `carried.md`. If the run used Opus (`opusApproval`), the «Договорились» line about Opus is updated: «Opus — по подтверждению пользователя: таски …, роли …» (the quote from `opus status`); without approval the line says Opus is off.
 
 ```markdown
 <!-- autopilot:progress -->
@@ -159,12 +162,13 @@ Placeholders and empty variables are not repeated here (they are in «Что н�
 
 ## 5. Landing
 
-**Before landing:** `finish` refuses any open `blockingFindings` (including those from `ticket NN repair --note`), legacy `repairFindings` without blocker reconciliation, and resolved fixes whose commits left Git history. Resolve with `ap.py blocker resolve --id BNN --commit SHA --tests N/0 --note "independent re-review verdict"` — only when the fix commit, passing tests and independent review really exist. Nonblocking `concerns` and `report` entries stay reportable, not blocking. `finish` also checks requirements and tickets against the verified G3 plan and all gates, and independently revalidates the plan. If it reports a stale or missing G3 contract (including an unfinished 2.3-dev run resumed from before this check existed), run `ap.py check-plan`, investigate unowned/duplicate requirements or changed tickets, and redo G1/G2/G4 if the plan changed. Never just rewrite `state.js` or mark a new requirement `done` to bypass this gate.
+**Before landing:** `finish` refuses any open `blockingFindings` (including those from `ticket NN repair --note`), legacy `repairFindings` without blocker reconciliation, and resolved fixes whose commits left Git history. Resolve with `ap.py blocker resolve --id BNN --commit SHA --tests N/0 --note "independent re-review verdict"` — only when the fix commit, passing tests and independent review really exist. Nonblocking `concerns` and `report` entries stay reportable, not blocking. `finish` also checks requirements and tickets against the verified G3 plan and all gates, and independently revalidates the plan. If it reports a stale or missing G3 contract (including an unfinished 2.3-dev run resumed from before this check existed), run `ap.py check-plan`, investigate unowned/duplicate requirements or changed tickets, and redo G1/G2/G4 if the plan changed. The fix tickets `F<n>` of the branch review are outside this contract: they alone neither make it stale nor reset the gates, so after them `check-plan` is not a reason to land with caveats — that stays the user's call (`finish --by-user`). Never just rewrite `state.js` or mark a new requirement `done` to bypass this gate.
 
 In this order, so the report names paths that exist:
 
 1. The memory file (or its proposal), the ADRs, the glossary and the progress file are written.
-2. `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and stops the server twelve seconds later, after the page fetched the final picture. A `!` line about the rename (name taken, index dirty): leave it — the suffix is cosmetic.
+2. **Landing with caveats.** `finish` refuses on a problem it cannot let through (a forged gate, a blocker). On the ones the user may waive it prints them: a gate G1–G4 not passed, a ticket that is not `done`, a `done` ticket without a commit or with a commit outside HEAD, no successful full test run, open manifest rows (a G4 mismatch after two blind rounds is not asked about: it lands as a caveat by itself; `concerns` are not checked by `finish`). Show the user those lines and ask. Only their words allow it: `python3 .autopilot/ap.py finish --result "…" --by-user "<цитата пользователя>"` — this writes `landedWith`, and the dashboard header reads «Сдано с оговорками» with the list. Never pass `--by-user` on your own. Otherwise:
+   `python3 .autopilot/ap.py finish --result "<одна строка: что теперь есть>"` — closes every stage, sets `finishedAt`, renames `<dir>--wip` to `<dir>` with `git mv`, closes the run's row in `.autopilot/README.md`, and stops the server twelve seconds later, after the page fetched the final picture. A `!` line about the rename (name taken, index dirty): leave it — the suffix is cosmetic.
 3. **The final commit** — exactly what this skill wrote since the plan commit, never the rest of the tree, where the user may have work of their own:
 
    ```bash
