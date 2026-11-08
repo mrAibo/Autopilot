@@ -3058,6 +3058,19 @@ class Run(unittest.TestCase):
         self.assertTrue(gate_sign.verify({"tickets": ["02", "01"], "roles": ["reviewer", "repair"]}, approval["sig"]))
         self.assertFalse(gate_sign.verify({"tickets": ["02"], "roles": []}, approval["sig"]))
 
+    def test_opus_approve_does_not_launder_an_edited_approval_in_a_strict_run(self):
+        self.opus_plan(strict=True)
+        self.assertEqual(self.ap("opus", "approve", "--tickets", "02", "--by-user", "да, приём")[0], 0)
+        signed = self.state()["opusApproval"]
+        # state.js правят без ключа: лишний таск и роль, подпись прежняя
+        self.edit_state(opusApproval=dict(signed, tickets=["02", "01"], roles=["repair"]))
+        code, out = self.ap("opus", "approve", "--roles", "reviewer", "--by-user", "и ревью")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("подпись подтверждения Opus", out)
+        approval = self.state()["opusApproval"]
+        self.assertEqual((approval["tickets"], approval["roles"], approval["sig"]), (["02", "01"], ["repair"], signed["sig"]))
+        self.assertEqual(len(approval["quotes"]), 1)
+
     def test_opus_approve_in_a_run_without_a_key_has_null_sig(self):
         self.opus_plan(strict=False)
         self.assertFalse(os.path.exists(gate_sign.key_path()))

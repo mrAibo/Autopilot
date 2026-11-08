@@ -1553,7 +1553,7 @@ def opus_approve(state, opt):
     if bad:
         die("opus approve: роль %s не бывает, допустимы %s" % (", ".join(bad), " и ".join(OPUS_ROLES)))
     quote = clean_quote(raw)
-    cur = state["opusApproval"] if isinstance(state.get("opusApproval"), dict) else {}
+    cur = opus_approval(state)               # прежнее подтверждение сперва проверено: подпись не отмывает правку
     tickets = list(dict.fromkeys(list(cur.get("tickets") or []) + names["tickets"]))
     roles = list(dict.fromkeys(list(cur.get("roles") or []) + names["roles"]))
     state["opusApproval"] = dict(cur, tickets=tickets, roles=roles, sig=opus_sig(state, tickets, roles),
@@ -1566,13 +1566,14 @@ def opus_approve(state, opt):
 
 
 def opus_approval(state):
-    """Подтверждение Opus для plan-models: {} если его нет. В строгом прогоне с неверной подписью — остановка."""
+    """Подтверждение Opus (plan-models и расширение в approve): {} если его нет.
+    В строгом прогоне с неверной подписью — остановка, чтобы правку state.js не подписал законный approve."""
     cur = state.get("opusApproval")
     if not isinstance(cur, dict) or not (cur.get("tickets") or cur.get("roles")):
         return {}
     if (state.get("strictRouting") is True or state.get("gateMark") is not None) and not _gs().verify(
             {"tickets": cur.get("tickets"), "roles": cur.get("roles")}, cur.get("sig")):
-        die("plan-models: подпись подтверждения Opus отсутствует или неверна — повтори `opus approve`")
+        die("подпись подтверждения Opus отсутствует или неверна: state.js правили без ключа")
     return cur
 
 
