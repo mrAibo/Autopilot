@@ -1560,9 +1560,12 @@ def opus_approve(state, opt):
                                  quotes=list(cur.get("quotes") or []) + [{"at": state["updatedAt"], "quote": quote}])
     log(state, "opus-approve", tickets=tickets, roles=roles, quote=quote)
     late = [t["id"] for t in state.get("tickets") or [] if t["id"] in names["tickets"] and t.get("routing")]
+    no_agents = ([] if not names["roles"] or isinstance(state.get("opusAgents"), dict) else
+                 ["! профилей Opus для ролей нет (opusAgents пуст): они появятся при plan-models --apply, "
+                  "а Claude Code увидит их только в новой сессии; Opus-ремонт `ticket F route` пока не назначает"])
     return (["Opus подтверждён: таски %s; роли %s" % (", ".join(tickets) or "—", ", ".join(roles) or "—")] +
             ["! таск %s уже получил маршрут: Opus на него не перейдёт (подтверждать надо до plan-models --apply)" % i
-             for i in late])
+             for i in late] + no_agents)
 
 
 def opus_approval(state):
@@ -2731,12 +2734,13 @@ def cmd_git_check():
     --refresh` для этого не годится: без изменений он молча терпит занятый замок.)"""
     err = None
     try:
-        r = subprocess.run(["git", "-C", ROOT, "rev-parse", "--git-path", "index.lock"],
+        # git смотрим из cwd: preflight запускает копию из tools/ навыка, она лежит вне репозитория пользователя
+        r = subprocess.run(["git", "rev-parse", "--git-path", "index.lock"],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         if r.returncode:
             err = next((x.strip() for x in r.stderr.splitlines() if x.strip()), "git вернул код %d" % r.returncode)
         else:
-            lock = os.path.join(ROOT, r.stdout.strip())
+            lock = os.path.join(os.getcwd(), r.stdout.strip())
             try:
                 os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
                 os.remove(lock)

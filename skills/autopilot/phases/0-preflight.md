@@ -30,7 +30,7 @@ For an existing repository, use the **independent read-only** `repo_doctor.py --
 
 No repo → `git init` now. Write `.gitignore` before anything else is created, with at least `.env`, `.env.*`, `!.env.example`, `node_modules/`, `__pycache__/`, `.DS_Store`. `.autopilot/` is **committed**, not ignored — it is the user's record of what was promised and delivered; only its `serve.*` files are ignored, and `init` adds that line. The first commit happens at the end of Phase 4 (`phases/4-plan.md`).
 
-**Before the briefing and before `init`**, check that Git accepts writes: `python3 "$A/ap.py" git-check` (it takes `.git/index.lock` itself and releases it; no side effects on the tree). A refusal (locked index, read-only `.git`, no rights) stops the run at once with its reason in one plain sentence to the user; do not go on to the briefing and do not wait for the first ticket to fail. No repository yet → `git init` first, then the check.
+**Before the briefing and before `init`**, check that Git accepts writes: run the copy from the skill's `tools/` (the instruments are not copied yet), from the project root: `python3 "<skill-dir>/tools/ap.py" git-check` (it checks the Git of the current directory, takes `.git/index.lock` itself and releases it; no side effects on the tree). A refusal (locked index, read-only `.git`, no rights) stops the run at once with its reason in one plain sentence to the user; do not go on to the briefing and do not wait for the first ticket to fail. No repository yet → `git init` first, then the check.
 
 A dirty working tree → say so in one line and continue; never stash, reset or clean the user's work, and never commit it: every commit this skill makes names its paths.
 

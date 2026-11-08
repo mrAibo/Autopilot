@@ -2773,6 +2773,26 @@ class Run(unittest.TestCase):
         self.assertIn("git: запись разрешена", out)
         self.assertFalse(os.path.exists(os.path.join(self.a, "state.js")))
 
+    def test_git_check_looks_at_the_git_of_the_cwd_not_of_the_script_dir(self):
+        # preflight runs the copy from the skill's tools/, which lies outside the user's repository
+        outside = tempfile.mkdtemp(prefix="ap-skill-")
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+        tools = os.path.join(outside, "tools")
+        shutil.copytree(os.path.join(SKILL, "tools"), tools, ignore=shutil.ignore_patterns("__pycache__"))
+        env = dict(os.environ, AUTOPILOT_NO_UPDATE_CHECK="1", AUTOPILOT_HOME=self.home)
+
+        def check():
+            r = subprocess.run([sys.executable, os.path.join(tools, "ap.py"), "git-check"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace",
+                               env=env, cwd=self.root)
+            return r.returncode, r.stdout
+        self.assertEqual(check(), (0, "git: запись разрешена\n"))
+        lock = os.path.join(self.root, ".git", "index.lock")
+        open(lock, "w").close()
+        code, out = check()
+        self.assertEqual(code, 2, out)
+        self.assertIn("index.lock", out)
+
     def test_reopen_puts_wip_back(self):
         self.ready_to_finish()
         self.ap("finish", "--result", "готово")
@@ -3070,6 +3090,19 @@ class Run(unittest.TestCase):
         approval = self.state()["opusApproval"]
         self.assertEqual((approval["tickets"], approval["roles"], approval["sig"]), (["02", "01"], ["repair"], signed["sig"]))
         self.assertEqual(len(approval["quotes"]), 1)
+
+    def test_opus_approve_of_roles_warns_while_there_are_no_opus_profiles(self):
+        self.opus_plan(strict=False)
+        code, out = self.ap("opus", "approve", "--tickets", "02", "--by-user", "да")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("!", out)                              # только таски: профили не нужны
+        code, out = self.ap("opus", "approve", "--roles", "repair", "--by-user", "и ремонт")
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"(?m)^\s*! .*opusAgents")
+        self.edit_state(opusAgents={"reviewer": "r", "repair": "p"})
+        code, out = self.ap("opus", "approve", "--roles", "reviewer", "--by-user", "и ревью")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("opusAgents", out)
 
     def test_opus_approve_in_a_run_without_a_key_has_null_sig(self):
         self.opus_plan(strict=False)
