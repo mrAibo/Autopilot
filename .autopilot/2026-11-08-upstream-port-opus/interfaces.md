@@ -39,3 +39,19 @@
 - `tests/test_model_router.py`: `premium_ok`, `choose_route(premium=True)`, Fable закрыт при флаге.
 - `tests/test_claude_agent_guard.py`: opus-профиль допущен только при верной подписи и при совпадении таск/роль; поддельная подпись → отказ.
 - `tests/test_dashboard_views.py` или соседний: `landedWith` и `opusApproval` отрисованы.
+
+## Построено: таск 02 (Opus: политика, guard, профили)
+- model_router: `is_opus_model(name)`, `is_allowed_subagent_model(name, policy=None, *, premium_ok=False)` (отличие от плана: policy остался вторым позиционным), `choose_route(..., premium=False)`, `premium_candidate(route_or_scores)`, `DEFAULT_POLICY.providers.anthropic.premium = {model: opus, effort: high}`. Fable закрыт при любом флаге; `opusplan` и `opus/haiku` не считаются opus.
+- claude_agent_guard: `opus_approved(state, name) -> bool`; executor допускается, только если все таски с этим agentType одобрены; роли reviewer/repair привязаны к префиксам имён (`opusAgents` не подписан сам — подпись на `opusApproval`).
+- agent_profiles: `prepare(..., premium=False)`; в CLI флага `--premium` нет.
+
+## Построено: таск 01 (лимиты, G1, finish, git-check)
+- ap.py: `refresh_g1(state, create=False)` (вызывается из `save()`), `landing_problems(state) -> (refuse, caveat)`, `BLIND_ROUNDS = 2`; команды `git-check` (берёт `.git/index.lock` сам через O_EXCL и снимает), `ticket NN reset --by-user "…"`, `finish --result … --by-user "…"`.
+- state.js: `blindRounds`, `tickets[].reopenedByUser`, `landedWith {problems, byUser}`. G1 со сбросом `plan-changed` снимает только повторный `stage spec`.
+- `finish` пересчитывает G1 по манифесту; в тексте отказа перечисляет оставшиеся гейты (G2, G3, G4).
+
+## Построено: таск 03 (команда opus, подтверждение, plan-models)
+- CLI: `ap.py opus propose` (только печать) | `opus approve [--tickets 03,05] [--roles repair,reviewer] --by-user "<цитата>"` | `opus status`; событие журнала `opus-approve`.
+- state.js: `opusApproval {tickets, roles, quotes[{at,quote}], sig, agentsSig?}`; `sig = gate_sign.sign({tickets, roles})`, в strict без ключа approve отказывает; `agentsSig` подписывает `opusAgents` вместе с run-id, **guard его пока не сверяет**. `opusAgents {reviewer, repair}` пишется при `plan-models --apply` (anthropic, strict, подтверждение непустое).
+- Профили: `autopilot-reviewer-opus-<run>`, `autopilot-executor-repair-opus-<run>` (model opus, effort high). `plan-models` ведёт одобренные таски через `choose_route/prepare(premium=True)`; неверная подпись в strict останавливает команду.
+- `redact_secrets(text) -> (str, int)`, `clean_quote(raw)`; секреты в `--by-user` заменяются на `[REDACTED:<NAME>]` (reset, finish, opus approve). `ticket F route` на opus-ремонт не сделан.
