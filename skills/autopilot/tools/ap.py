@@ -15,6 +15,8 @@
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
     python3 .autopilot/ap.py ticket 03 retry | fail --note "…" | reset
+    python3 .autopilot/ap.py ticket 03 reset --by-user "<цитата>"   # упавший таск — только по словам пользователя
+    python3 .autopilot/ap.py git-check                  # может ли git писать здесь (до init и брифинга)
     python3 .autopilot/ap.py ticket 02 accept-edit --note "…"   # осознанная правка сданного таска
     python3 .autopilot/ap.py claude-version [--text "2.1.302"]  # версия Claude Code (до init)
     python3 .autopilot/ap.py stage build done | fail --note "…"
@@ -27,6 +29,7 @@
     python3 .autopilot/ap.py ask briefing --note "три вопроса в чате"   # ждём пользователя
     python3 .autopilot/ap.py answered                   # ответил (stage/ticket закрывают сами)
     python3 .autopilot/ap.py finish --result "Бот принимает заявки и пишет их в таблицу"
+    python3 .autopilot/ap.py finish --result "…" --by-user "<цитата>"   # сдать с оговорками — только словами пользователя
     python3 .autopilot/ap.py reopen                     # второй бриф в сданном прогоне
     python3 .autopilot/ap.py commits                    # коммиты сданных тасков ещё в истории?
     python3 .autopilot/ap.py report-run [--share]       # свод журнала прогона (run-log.jsonl)
@@ -102,6 +105,7 @@ TICKET_STATUSES = {"start": "in-progress", "review": "review", "repair": "repair
                    "done": "done", "fail": "failed", "retry": "in-progress", "reset": "pending",
                    "route": "pending"}
 LISTS = {"concerns", "additions", "report", "debt.placeholders", "debt.assumptions", "debt.emptyEnv"}
+BLIND_ROUNDS = 2        # слепая приёмка: проверка и одна перепроверка после таска F2
 
 
 def now():
@@ -161,6 +165,7 @@ def read_state():
 
 
 def save(state):
+    refresh_g1(state)                                  # G1 идёт за манифестом при каждой записи
     state["rev"] = (state.get("rev") or 0) + 1        # дашборд перерисовывается по нему
     try:
         state_io.write_state_file(STATE, state, prefix="window.STATE =\n")
@@ -230,6 +235,21 @@ def set_gate(state, g, ok, **kw):
     rec.update({k: v for k, v in kw.items() if v is not None})
     state.setdefault("gates", {})[g] = rec
     log(state, "gate", g=g, ok=bool(ok), **kw)
+
+
+def refresh_g1(state, create=False):
+    """G1 равен манифесту: открытых строк (кроме D) нет. Гейта нет и create=False — выход.
+    Гейт, сброшенный сменой плана (plan-changed), снимает только повторный `stage spec`."""
+    cur = (state.get("gates") or {}).get("G1")
+    if (cur is None and not create) or (cur or {}).get("reason") == "plan-changed":
+        return
+    rows = [r for r in manifest_table(state) or [] if not r["id"].startswith("D")]
+    if not rows:
+        return
+    n = sum(1 for r in rows if r["status"] == "open")
+    if cur and (cur.get("ok"), cur.get("open"), cur.get("total")) == (n == 0, n, len(rows)):
+        return
+    set_gate(state, "G1", n == 0, open=n, total=len(rows))
 
 
 def close_wait(state):
@@ -1110,10 +1130,10 @@ def cmd_stage(state, pos, opt):
     if isinstance(opt.get("note"), str):
         s["note"] = opt["note"]
     if sid == "spec" and action in ("start", "done"):
-        rows = [r for r in manifest_table(state) or [] if not r["id"].startswith("D")]
-        if rows:
-            n = sum(1 for r in rows if r["status"] == "open")
-            set_gate(state, "G1", n == 0, open=n, total=len(rows))
+        g1 = (state.get("gates") or {}).get("G1")
+        if g1:
+            g1.pop("reason", None)                    # спецификацию открыли заново — plan-changed снят
+        refresh_g1(state, create=True)
     log(state, "stage", id=sid, act=action,
         note=opt["note"] if action in ("skip", "fail") and isinstance(opt.get("note"), str) else None)
 
@@ -1632,6 +1652,13 @@ def cmd_ticket(state, pos, opt):
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        quote = None
+        if act == "reset" and tk.get("status") == "failed":
+            quote = opt.get("by-user")
+            if not isinstance(quote, str) or not quote.strip():
+                die("таск %s упал — дальше решает пользователь: спроси его и, если он велел "
+                    "продолжать, повтори `ticket %s reset --by-user \"<его слова>\"`" % (i, i))
+            quote = quote.strip()
         if state.get("sequentialHost") and act == "route":
             die("таск %s: sequential-host не создаёт и не запускает нативных субагентов" % i)
         if state.get("sequentialHost") and act in ("start", "retry") and sequential_occupied(state, i):
@@ -1723,6 +1750,10 @@ def cmd_ticket(state, pos, opt):
             if not validation or validation["passed"] < 1 or validation["failed"] != 0:
                 die("таск %s: нельзя принять без успешных тестов" % i)
             rev = opt.get("commit") or tk.get("commit")
+            if not rev:
+                die("таск %s: нет --commit и записанного коммита. Если git отказал в коммите — "
+                    "это сбой машины, не ремонт: `ticket %s fail --note \"что отказал git\"` "
+                    "и вопрос пользователю" % (i, i))
             if not verified_commit(rev):
                 die("таск %s: требуется существующий коммит в HEAD" % i)
             resolved = [b for b in blocker_ledger(state)
@@ -1740,7 +1771,8 @@ def cmd_ticket(state, pos, opt):
             attempts = tk.get("retries", 0)
             repairs = tk.get("repairs", 0)
             if (act == "retry" and attempts >= 2) or (act == "repair" and repairs >= 2):
-                die("таск %s: предел повторов/ремонтов достигнут; нужна диагностика" % i)
+                die("таск %s: предел повторов/ремонтов достигнут (2). Не ходи по кругу: "
+                    "`ticket %s fail --note \"что блокирует\"` и вопрос пользователю" % (i, i))
             if act == "retry":
                 kind = opt.get("cause") or "unknown"
                 if state.get("strictRouting") and not opt.get("cause"):
@@ -1876,7 +1908,10 @@ def cmd_ticket(state, pos, opt):
         elif act == "reset":
             for k in ("startedAt", "finishedAt"):
                 tk.pop(k, None)
-            log(state, "ticket-reset", id=i, reason="manual")
+            if quote:                                 # упавший таск вернул пользователь
+                tk.setdefault("reopenedByUser", []).append(quote)
+                tk["repairs"] = tk["retries"] = 0
+            log(state, "ticket-reset", id=i, reason="by-user" if quote else "manual", quote=quote)
         if act == "done":
             close_requirements(state, tk, opt, t)
         if opt.get("tests"):
@@ -2287,8 +2322,12 @@ def cmd_numbers(state, name, pos, multi):
     if name == "blind":
         if d["matched"] > d["checked"]:
             die("blind: matched=%d больше checked=%d" % (d["matched"], d["checked"]))
+        if (state.get("blindRounds") or 0) >= BLIND_ROUNDS:
+            die("blind: уже %d круга слепой приёмки за прогон. Остаток расхождений — в отчёт: "
+                "`add report \"что осталось\"`" % BLIND_ROUNDS)
         d["mismatches"] = multi.get("mismatch", [])
         state[name] = d
+        state["blindRounds"] = (state.get("blindRounds") or 0) + 1
         valid = (isinstance(d.get("checked"), int) and d["checked"] > 0
                  and isinstance(d.get("matched"), int)
                  and 0 <= d["matched"] <= d["checked"]
@@ -2319,6 +2358,46 @@ def cmd_ask(state, pos, opt):
     log(state, "ask", kind=kind, note=note)
 
 
+def landing_problems(state):
+    """-> (refuse, caveat). refuse — отменяемые отказы finish (снимает только --by-user);
+    caveat — оговорки, которые сдаче не мешают (G4 красный после BLIND_ROUNDS кругов)."""
+    refuse, caveat = [], []
+    done = [tk for tk in state.get("tickets") or [] if tk.get("status") == "done"]
+    nocommit = [tk.get("id", "?") for tk in done if not tk.get("commit")]
+    if nocommit:
+        refuse.append("сданные таски без коммита: " + ", ".join(nocommit))
+    # The run may have been reset/rebased after its tickets were accepted.
+    # Reject stale Git ancestry *at the final gate*, not just at ticket done;
+    # 'commits' remains a separate read-only diagnostic for manual recovery.
+    stale = [tk.get("id", "?") for tk in done
+             if tk.get("commit") and not verified_commit(tk["commit"])]
+    if stale:
+        refuse.append("коммиты сданных тасков отсутствуют в HEAD: " + ", ".join(stale))
+    gates = state.get("gates") or {}
+    missing = [g for g in ("G1", "G2", "G3", "G4") if not (gates.get(g) or {}).get("ok")]
+    g4 = gates.get("G4") or {}
+    if ("G4" in missing and (state.get("blindRounds") or 0) >= BLIND_ROUNDS
+            and state.get("blind") and not g4.get("reason")):
+        missing.remove("G4")
+        caveat.append("слепая приёмка: расхождения остались после %d кругов (%d из %d)"
+                      % (BLIND_ROUNDS, len((state["blind"] or {}).get("mismatches") or []),
+                         (state["blind"] or {}).get("checked") or 0))
+    if missing:
+        refuse.append("проверки %s не пройдены" % ", ".join(missing))
+    incomplete = [tk["id"] for tk in state.get("tickets") or [] if tk.get("status") != "done"]
+    if incomplete or not state.get("tickets"):
+        refuse.append("незавершённые таски: %s" %
+                      (", ".join(incomplete) if incomplete else "нет опубликованных тасков"))
+    test = state.get("tests") or {}
+    if test.get("passed", 0) < 1 or test.get("failed") != 0:
+        refuse.append("нет успешного полного прогона тестов")
+    open_rows = [rid for rid, st in manifest_rows(state) or []
+                 if not rid.startswith("D") and st in ("open", "in-spec", "in-ticket")]
+    if open_rows:
+        refuse.append("требования не закрыты: " + ", ".join(open_rows))
+    return refuse, caveat
+
+
 def cmd_finish(state, opt):
     if state.get("gateMark") is not None:
         gate_signed(state)  # never re-sign the record over a forged state
@@ -2344,29 +2423,24 @@ def cmd_finish(state, opt):
     if stale_resolution:
         die("finish заблокирован: коммиты закрытия блокирующих замечаний отсутствуют в HEAD: "
             + ", ".join(stale_resolution))
-    # The run may have been reset/rebased after its tickets were accepted.
-    # Reject stale Git ancestry *at the final gate*, not just at ticket done;
-    # 'commits' remains a separate read-only diagnostic for manual recovery.
-    stale = [tk.get("id", "?") for tk in state.get("tickets") or []
-             if tk.get("status") == "done"
-             and not verified_commit(tk.get("commit"))]
-    if stale:
-        die("finish заблокирован: коммиты сданных тасков отсутствуют в HEAD: %s"
-            % ", ".join(stale))
-    missing = [g for g in ("G1", "G2", "G3", "G4")
-               if not state.get("gates", {}).get(g, {}).get("ok")]
-    if missing:
-        die("finish заблокирован: проверки %s не пройдены" % ", ".join(missing))
+    refresh_g1(state, create=True)
+    refuse, caveat = landing_problems(state)
+    hard = []                                         # неотменяемое: --by-user его не снимает
     saved_contract = state.get("planContractDigest")
     if (not isinstance(saved_contract, str)
             or saved_contract != plan_contract_digest(state)):
-        die("finish заблокирован: требования изменились после G3 "
-            "или нет отпечатка старого прогона; повтори check-plan "
-            "и при необходимости G2/G4")
-    problems = check_plan(state)
-    if problems:
-        die("finish заблокирован: повторная G3 проверка плана не пройдена: "
-            + "; ".join(problems))
+        hard.append("требования изменились после G3 или нет отпечатка старого прогона; "
+                    "повтори check-plan и при необходимости G2/G4")
+    else:
+        hard += ["повторная G3 проверка плана не пройдена: " + p for p in check_plan(state)]
+    by_user = opt.get("by-user")
+    by_user = by_user.strip() if isinstance(by_user, str) and by_user.strip() else None
+    if hard or (refuse and not by_user):
+        lines = ["finish заблокирован:"] + ["  - " + x for x in hard + refuse]
+        if refuse and not hard:
+            lines.append("Сдать как есть можно только словами пользователя: "
+                         "finish --result \"…\" --by-user \"<его цитата>\"")
+        die("\n".join(lines))
     t = now()
     notes = []
     for s in state.get("stages") or []:
@@ -2377,18 +2451,6 @@ def cmd_finish(state, opt):
             s["status"], s["finishedAt"] = "done", t
         elif s.get("status") == "pending":
             s["status"], s["note"], s["finishedAt"] = "skipped", s.get("note") or "не понадобился", t
-    incomplete = [tk["id"] for tk in state.get("tickets") or []
-                  if tk.get("status") != "done"]
-    if incomplete or not state.get("tickets"):
-        die("finish заблокирован: незавершённые таски: %s" %
-            (", ".join(incomplete) if incomplete else "нет опубликованных тасков"))
-    test = state.get("tests") or {}
-    if test.get("passed", 0) < 1 or test.get("failed") != 0:
-        die("finish заблокирован: нет успешного полного прогона тестов")
-    open_rows = [rid for rid, st in manifest_rows(state) or []
-                 if not rid.startswith("D") and st in ("open", "in-spec", "in-ticket")]
-    if open_rows:
-        die("finish заблокирован: требования не закрыты: %s" % ", ".join(open_rows))
     d = state.get("dir") or ""
     if d.endswith("--wip"):
         new = d[: -len("--wip")]
@@ -2401,9 +2463,15 @@ def cmd_finish(state, opt):
             notes.append("! не смог переименовать %s — оставляю как есть" % d)
     state["finishedAt"] = t
     state["result"] = opt.get("result") if isinstance(opt.get("result"), str) else None
-    register_row(state, "сдан", state["result"])
+    problems = refuse + caveat
+    if problems:
+        state["landedWith"] = {"problems": problems, "byUser": by_user}
+        notes.append("! сдано с оговоркой — " + "; ".join(problems))
+    else:
+        state.pop("landedWith", None)
+    register_row(state, "сдан с оговорками" if problems else "сдан", state["result"])
     sync_run_record(state)
-    log(state, "finish", result=state["result"])
+    log(state, "finish", result=state["result"], problems=len(problems))
     return notes
 
 
@@ -2419,6 +2487,8 @@ def cmd_reopen(state):
         state["dir"] = d + "--wip"
     state["finishedAt"] = None
     state["blind"] = None
+    state["blindRounds"] = 0
+    state.pop("landedWith", None)
     for s in state.get("stages") or []:
         if s.get("id") != "preflight":
             for k in ("startedAt", "finishedAt", "note"):
@@ -2476,6 +2546,32 @@ def claude_version_report(version, min_version=CLAUDE_MIN_VERSION, warn_below=CL
     return "ok", ["Claude Code %s — ok" % v]
 
 
+def cmd_git_check():
+    """Может ли git писать здесь — до брифинга, а не на первом таске. Как `git add`, берём и
+    снимаем index.lock, не трогая ни индекс, ни файлы; state.js не нужен. (`update-index
+    --refresh` для этого не годится: без изменений он молча терпит занятый замок.)"""
+    err = None
+    try:
+        r = subprocess.run(["git", "-C", ROOT, "rev-parse", "--git-path", "index.lock"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+        if r.returncode:
+            err = next((x.strip() for x in r.stderr.splitlines() if x.strip()), "git вернул код %d" % r.returncode)
+        else:
+            lock = os.path.join(ROOT, r.stdout.strip())
+            try:
+                os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+                os.remove(lock)
+            except OSError as exc:
+                err = "%s: %s" % (lock, exc.strerror or exc)
+    except (OSError, subprocess.SubprocessError) as exc:
+        err = "%s: %s" % (type(exc).__name__, exc)
+    if err is None:
+        print("git: запись разрешена")
+        return 0
+    print("git не может писать здесь: %s. Это сбой машины, не кода" % err)
+    return 2
+
+
 def cmd_claude_version(opt):
     text = opt.get("text")
     if text is None:
@@ -2507,6 +2603,8 @@ def main():
     cmd = pos[0] if pos else ""
     if cmd == "claude-version":
         sys.exit(cmd_claude_version(opt))
+    if cmd == "git-check":
+        sys.exit(cmd_git_check())
     notes = []
     if cmd == "init":
         state, notes = cmd_init(opt)

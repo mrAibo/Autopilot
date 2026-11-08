@@ -2377,7 +2377,8 @@ class Run(unittest.TestCase):
         self.ap("ticket", "02", "done", "--tests", "2/0", "--commit", sha2)
         code, out = self.ap("finish", "--result", "ложный успех")
         self.assertNotEqual(code, 0)
-        self.assertIn("проверки G1, G2, G3, G4", out)
+        # G1 идёт за манифестом: открытых строк нет, finish пересчитал его в зелёный сам
+        self.assertIn("проверки G2, G3, G4", out)
 
     def test_ticket_done_rejects_failed_tests_and_invalid_commit(self):
         self.plan()
@@ -2464,6 +2465,7 @@ class Run(unittest.TestCase):
         self.assertTrue(all(x["status"] in ("done", "skipped") for x in s["stages"]))
         self.assertIn("| сдан | Бот принимает заявки |", read(os.path.join(self.a, "README.md")))
         self.assertEqual(s["result"], "Бот принимает заявки")
+        self.assertNotIn("landedWith", s)       # без проблем оговорки нет
         self.assertIn("R", self.git("status", "--short").stdout)    # переименование через git mv
 
     def test_finish_rechecks_requirement_added_after_g3_even_if_marked_done(self):
@@ -2579,11 +2581,205 @@ class Run(unittest.TestCase):
         self.assertEqual(after["stages"], old_state["stages"])
         self.assertNotIn("ложная сдача после rebase", read(os.path.join(self.a, "README.md")))
 
+    # ── порт апстрима 2.2.2/2.2.3: лимиты, G1, слепая приёмка, finish с оговорками ──
+
+    def failed_ticket(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        self.ap("ticket", "01", "retry", "--cause", "tests")
+        self.ap("ticket", "01", "repair", "--note", "ключ схемы — R01")
+        self.assertEqual(self.ap("ticket", "01", "fail", "--note", "упал")[0], 0)
+
+    def test_failed_ticket_returns_only_by_the_users_words(self):
+        self.failed_ticket()
+        for args in (["reset"], ["reset", "--by-user"], ["reset", "--by-user", "  "]):
+            code, out = self.ap("ticket", "01", *args)
+            self.assertNotEqual(code, 0, args)
+            self.assertIn("упал — дальше решает пользователь", out)
+            self.assertEqual(self.state()["tickets"][0]["status"], "failed")
+        code, out = self.ap("ticket", "01", "reset", "--by-user", "да, попробуй ещё раз")
+        self.assertEqual(code, 0, out)
+        tk = self.state()["tickets"][0]
+        self.assertEqual((tk["status"], tk["repairs"], tk["retries"]), ("pending", 0, 0))
+        self.assertEqual(tk["reopenedByUser"], ["да, попробуй ещё раз"])
+        entry = [e for e in self.state()["log"] if e["k"] == "ticket-reset"][-1]
+        self.assertEqual((entry["reason"], entry["quote"]), ("by-user", "да, попробуй ещё раз"))
+        # не упавший таск сбрасывается, как раньше
+        self.ap("ticket", "02", "start")
+        self.assertEqual(self.ap("ticket", "02", "reset")[0], 0)
+        self.assertNotIn("reopenedByUser", self.state()["tickets"][1])
+
+    def test_third_repair_and_third_retry_name_fail_and_the_user(self):
+        self.plan()
+        self.ap("tickets")
+        for n in (1, 2):
+            self.assertEqual(self.ap("ticket", "01", "repair", "--note", "замечание %d" % n)[0], 0)
+            self.assertEqual(self.ap("ticket", "02", "retry", "--cause", "tests")[0], 0)
+        code, out = self.ap("ticket", "01", "repair", "--note", "замечание 3")
+        self.assertNotEqual(code, 0)
+        self.assertIn("ticket 01 fail --note", out)
+        self.assertIn("пользователю", out)
+        code, out = self.ap("ticket", "02", "retry", "--cause", "tests")
+        self.assertNotEqual(code, 0)
+        self.assertIn("ticket 02 fail --note", out)
+        self.assertIn("пользователю", out)
+        t = {x["id"]: x for x in self.state()["tickets"]}
+        self.assertEqual((t["01"]["repairs"], t["02"]["retries"]), (2, 2))
+
+    def test_third_blind_round_is_refused_and_changes_nothing(self):
+        self.ready_to_finish()                                  # круг 1: 4 из 4
+        self.assertEqual(self.ap("blind", "checked=4", "matched=3", "--mismatch", "R02 — не видно")[0], 0)
+        before = self.state()
+        self.assertEqual((before["blindRounds"], before["gates"]["G4"]["ok"]), (2, False))
+        code, out = self.ap("blind", "checked=4", "matched=4")
+        self.assertNotEqual(code, 0)
+        self.assertIn("add report", out)
+        after = self.state()
+        self.assertEqual(after["blindRounds"], 2)
+        self.assertEqual(after["blind"], before["blind"])
+        self.assertEqual(after["gates"]["G4"], before["gates"]["G4"])
+
+    def test_blind_round_is_not_counted_when_the_call_fails(self):
+        self.init()
+        self.assertNotEqual(self.ap("blind", "checked=3", "matched=4")[0], 0)
+        self.assertNotIn("blindRounds", self.state())
+
+    def test_g1_follows_the_manifest_after_spec(self):
+        self.plan()
+        self.ap("stage", "spec", "done")
+        self.assertTrue(self.state()["gates"]["G1"]["ok"])
+        self.write("manifest.md", MANIFEST.replace("| R02 | «складывает в таблицу» | in-spec",
+                                                   "| R02 | «складывает в таблицу» | open"))
+        self.ap("add", "concerns", "любая записывающая команда")
+        g = self.state()["gates"]["G1"]
+        self.assertEqual((g["ok"], g["open"], g["total"]), (False, 1, 4))
+        self.write("manifest.md", MANIFEST)
+        self.ap("add", "concerns", "ещё одна")
+        g = self.state()["gates"]["G1"]
+        self.assertEqual((g["ok"], g["open"]), (True, 0))
+
+    def test_done_without_commit_is_a_machine_failure_not_a_repair(self):
+        self.plan()
+        self.ap("tickets")
+        self.ap("ticket", "01", "start")
+        code, out = self.ap("ticket", "01", "done", "--tests", "3/0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("сбой машины, не ремонт", out)
+        self.assertIn("ticket 01 fail --note", out)
+        self.assertEqual(self.state()["tickets"][0]["status"], "in-progress")
+
+    def refused_then_landed(self, needle):
+        """finish без --by-user отказывает по `needle` и называет команду; с цитатой сдаёт с оговоркой."""
+        code, out = self.ap("finish", "--result", "итог")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn(needle, out)
+        self.assertIn('finish --result "…" --by-user', out)
+        self.assertIsNone(self.state()["finishedAt"])
+        self.assertNotIn("landedWith", self.state())
+        code, out = self.ap("finish", "--result", "итог", "--by-user", "сдавай как есть")
+        self.assertEqual(code, 0, out)
+        s = self.state()
+        self.assertTrue(s["finishedAt"])
+        self.assertEqual(s["landedWith"]["byUser"], "сдавай как есть")
+        self.assertTrue(any(needle in p for p in s["landedWith"]["problems"]), s["landedWith"])
+        self.assertIn("| сдан с оговорками | итог |", read(os.path.join(self.a, "README.md")))
+        self.assertIn("сдано с оговоркой", out)
+
+    def test_finish_refuses_red_gate_unless_the_user_says_so(self):
+        self.ready_to_finish()
+        self.ap("coverage", "found=2", "fixed=0", "deferred=0")
+        self.refused_then_landed("проверки G2")
+
+    def test_finish_refuses_ticket_not_done_unless_the_user_says_so(self):
+        self.ready_to_finish()
+        self.ap("ticket", "02", "review")
+        self.refused_then_landed("незавершённые таски: 02")
+
+    def test_finish_refuses_done_ticket_without_commit_unless_the_user_says_so(self):
+        self.ready_to_finish()
+        st = self.state()
+        del st["tickets"][0]["commit"]
+        self.edit_state(tickets=st["tickets"])
+        self.refused_then_landed("сданные таски без коммита: 01")
+
+    def test_finish_refuses_commit_outside_head_unless_the_user_says_so(self):
+        self.ready_to_finish()
+        self.assertEqual(self.git("reset", "--soft", self.state()["tickets"][0]["commit"]).returncode, 0)
+        self.refused_then_landed("коммиты сданных тасков отсутствуют в HEAD: 02")
+
+    def test_finish_refuses_missing_tests_unless_the_user_says_so(self):
+        self.ready_to_finish()
+        self.edit_state(tests=None)
+        self.refused_then_landed("нет успешного полного прогона тестов")
+
+    def test_finish_open_blocker_ignores_by_user(self):
+        self.ready_to_finish()
+        self.ap("blocker", "open", "--note", "Security: обход доступа")
+        code, out = self.ap("finish", "--result", "итог", "--by-user", "сдавай как есть")
+        self.assertNotEqual(code, 0)
+        self.assertIn("B01", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_changed_plan_contract_ignores_by_user(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest().replace("«принимает заявки»", "«удаляет заявки»"))
+        code, out = self.ap("finish", "--result", "итог", "--by-user", "сдавай как есть")
+        self.assertNotEqual(code, 0)
+        self.assertIn("изменились после G3", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_with_red_plan_check_ignores_by_user(self):
+        self.ready_to_finish()
+        self.write("manifest.md", self.manifest().replace("| placeholder |", "| bogus |", 1))
+        code, out = self.ap("finish", "--result", "итог", "--by-user", "сдавай как есть")
+        self.assertNotEqual(code, 0)
+        self.assertIn("повторная G3 проверка плана не пройдена", out)
+        self.assertIn("неизвестный статус", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_finish_with_forged_gate_record_ignores_by_user(self):
+        self.ready_to_finish()
+        gate_sign.ensure_key()                                  # ключ в AUTOPILOT_HOME
+        os.makedirs(os.path.dirname(self.record_file()), exist_ok=True)
+        with open(self.record_file(), "w", encoding="utf-8") as f:
+            f.write("не запись")
+        self.edit_state(gateMark="forged-mark")
+        code, out = self.ap("finish", "--result", "итог", "--by-user", "сдавай как есть")
+        self.assertNotEqual(code, 0)
+        self.assertIn("маркер подписи", out)
+        self.assertIsNone(self.state()["finishedAt"])
+
+    def test_blind_mismatches_after_two_rounds_are_a_caveat_not_a_block(self):
+        self.ready_to_finish()
+        self.ap("blind", "checked=4", "matched=3", "--mismatch", "R02 — не видно")
+        self.assertFalse(self.state()["gates"]["G4"]["ok"])
+        code, out = self.ap("finish", "--result", "итог")          # без --by-user
+        self.assertEqual(code, 0, out)
+        s = self.state()
+        self.assertTrue(any("слепая приёмка" in p for p in s["landedWith"]["problems"]))
+        self.assertIsNone(s["landedWith"]["byUser"])
+        self.assertIn("| сдан с оговорками | итог |", read(os.path.join(self.a, "README.md")))
+
+    def test_git_check_reports_a_busy_index_lock_without_state(self):
+        lock = os.path.join(self.root, ".git", "index.lock")
+        open(lock, "w").close()
+        code, out = self.ap("git-check")
+        self.assertEqual(code, 2, out)
+        self.assertIn("git не может писать здесь", out)
+        os.remove(lock)
+        code, out = self.ap("git-check")
+        self.assertEqual(code, 0, out)
+        self.assertIn("git: запись разрешена", out)
+        self.assertFalse(os.path.exists(os.path.join(self.a, "state.js")))
+
     def test_reopen_puts_wip_back(self):
         self.ready_to_finish()
         self.ap("finish", "--result", "готово")
+        self.assertEqual(self.state()["blindRounds"], 1)
         self.ap("reopen")
         s = self.state()
+        self.assertEqual(s["blindRounds"], 0)
         self.assertTrue(s["dir"].endswith("--wip"))
         self.assertIsNone(s["finishedAt"])
         self.assertEqual(self.stage("manifest")["status"], "active")

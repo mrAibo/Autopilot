@@ -1,4 +1,6 @@
 """Retry policy is deterministic and never auto-upgrades to a costly model."""
+import contextlib
+import io
 import pathlib
 import sys
 import unittest
@@ -45,6 +47,13 @@ class Triage(unittest.TestCase):
         self.assertEqual(retry_policy.classify(pad + " secret leaked"), "security")
         half = "a" * (retry_policy.SECURITY_SCAN_MAX // 2 + 100)
         self.assertEqual(retry_policy.classify(half + " secret leaked " + half), "unknown")  # in the gap
+
+    def test_environment_failure_never_allows_a_retry(self):
+        # ap.py пускает повтор только при repair/investigate; сбой окружения — вопрос пользователю
+        for retries in (0, 1):
+            self.assertNotIn(retry_policy.decide("environment", retries)["action"], ("repair", "investigate"))
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(retry_policy.main(["--kind", "environment"]), 2)
 
     def test_limits_are_absolute(self):
         self.assertEqual(retry_policy.decide("tests", retries=2)["action"], "stop")
