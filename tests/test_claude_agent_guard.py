@@ -244,11 +244,18 @@ class HookGuardTests(unittest.TestCase):
         self.advertise({model: ["high"]})
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
+    def run_id(self):
+        return "%s|%s" % (self.state["slug"], self.state["startedAt"])
+
     def approve(self, tickets=(), roles=()):
+        """Signed like ap.py: sig over {tickets, roles, run}; agentsSig over {opusAgents, run} if any."""
         body = {"tickets": list(tickets), "roles": list(roles)}
         self.state["opusApproval"] = dict(
             body, quotes=[{"at": "2026-11-08T10:00:00", "quote": "да, Opus для 01"}],
-            sig=gate_sign.sign(body))
+            sig=gate_sign.sign(dict(body, run=self.run_id())))
+        if "opusAgents" in self.state:
+            self.state["opusApproval"]["agentsSig"] = gate_sign.sign(
+                {"opusAgents": self.state["opusAgents"], "run": self.run_id()})
         self.save()
 
     def denied_as_premium(self, **args):
@@ -348,8 +355,8 @@ class HookGuardTests(unittest.TestCase):
         name = "autopilot-executor-repair-opus-x"
         route = {"agentType": name, "provider": "anthropic", "model": "opus", "effort": "high",
                  "profileSha": self.add_profile(name), "verified": True}
-        route["sig"] = gate_sign.sign(gate_sign.routing_payload("02", route))
-        self.state["tickets"].append({"id": "02", "status": "repair", "routing": route})
+        route["sig"] = gate_sign.sign(gate_sign.routing_payload("F1", route))
+        self.state["tickets"].append({"id": "F1", "status": "repair", "routing": route})
         self.state["repairAgent"] = {"agentType": name}
         self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x", "repair": name}
         self.approve(roles=["repair"])  # no task id: the role covers every fix ticket
@@ -365,6 +372,101 @@ class HookGuardTests(unittest.TestCase):
         self.state["opusApproval"]["sig"] = "0" * 64
         self.save()
         self.denied_as_premium(agent=name)
+
+    def test_approval_is_bound_to_the_run(self):
+        self.signed_run()
+        self.opus_executor()
+        body = {"tickets": ["01"], "roles": []}
+        for label, signed in {"signed without run": body,
+                              "signed for another slug": dict(body, run="other|t0"),
+                              "signed for another start": dict(body, run="s|t1")}.items():
+            with self.subTest(label):
+                self.approve(tickets=["01"])
+                self.state["opusApproval"]["sig"] = gate_sign.sign(signed)
+                self.save()
+                self.denied_as_premium()
+        self.approve(tickets=["01"])
+        self.assertTrue(guard.decision(self.payload(), self.root)[0])
+
+    def opus_reviewer_run(self):
+        self.signed_run()
+        reviewer = "autopilot-reviewer-opus-x"
+        self.add_profile(reviewer)
+        self.state["opusAgents"] = {"reviewer": reviewer, "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(roles=["reviewer"])
+        return reviewer
+
+    def test_opus_agents_name_needs_a_valid_agents_signature(self):
+        reviewer = self.opus_reviewer_run()
+        agents = self.state["opusAgents"]
+        ok, why = guard.decision(self.payload(agent=reviewer), self.root)
+        self.assertTrue(ok, why)
+        swapped = dict(agents, reviewer="autopilot-reviewer-opus-y")
+        cases = {
+            "no agentsSig": None,
+            "garbage agentsSig": "0" * 64,
+            "agentsSig without run": gate_sign.sign({"opusAgents": agents}),
+            "agentsSig of another run": gate_sign.sign({"opusAgents": agents, "run": "other|t0"}),
+            "agentsSig over other names": gate_sign.sign({"opusAgents": swapped, "run": self.run_id()}),
+            "agentsSig is sig": self.state["opusApproval"]["sig"],
+        }
+        for label, agents_sig in cases.items():
+            with self.subTest(label):
+                self.state["opusApproval"]["agentsSig"] = agents_sig
+                self.save()
+                self.denied_as_premium(agent=reviewer)
+        # a name swapped into opusAgents after signing no longer matches the signature
+        self.approve(roles=["reviewer"])
+        self.state["opusAgents"]["reviewer"] = "autopilot-reviewer-opus-y"
+        self.add_profile("autopilot-reviewer-opus-y")
+        self.save()
+        self.denied_as_premium(agent="autopilot-reviewer-opus-y")
+
+    def test_ticket_route_needs_no_agents_signature(self):
+        self.signed_run()
+        self.opus_executor()
+        self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x",
+                                    "repair": "autopilot-executor-repair-opus-x"}
+        self.approve(tickets=["01"])
+        del self.state["opusApproval"]["agentsSig"]
+        self.save()
+        ok, why = guard.decision(self.payload(), self.root)
+        self.assertTrue(ok, why)
+        self.state["opusApproval"]["sig"] = "0" * 64  # but the route still needs a valid sig
+        self.save()
+        self.denied_as_premium()
+
+    def opus_repair_run(self, *tickets):
+        """Signed run with the opus repair profile registered and `tickets` = [(id, status)] routed to it."""
+        self.signed_run()
+        name = "autopilot-executor-repair-opus-x"
+        route = {"agentType": name, "provider": "anthropic", "model": "opus", "effort": "high",
+                 "profileSha": self.add_profile(name), "verified": True}
+        for tid, status in tickets:
+            self.state["tickets"].append({"id": tid, "status": status, "routing": dict(
+                route, sig=gate_sign.sign(gate_sign.routing_payload(tid, route)))})
+        self.state["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-x", "repair": name}
+        self.approve(roles=["repair"])
+        return name
+
+    def test_opus_repair_runs_for_one_active_fix_ticket_without_repair_agent(self):
+        for tickets in ([("F1", "in-progress")], [("F1", "done"), ("F2", "repair")]):
+            with self.subTest(tickets=tickets):
+                self.setUp()
+                name = self.opus_repair_run(*tickets)  # opusAgents.repair alone stands for repairAgent
+                self.assertNotIn("repairAgent", self.state)
+                ok, why = guard.decision(self.payload(agent=name), self.root)
+                self.assertTrue(ok, why)
+
+    def test_opus_repair_is_denied_for_a_plain_or_a_second_active_ticket(self):
+        for tickets in ([("02", "in-progress")], [("02", "repair")], [("F1", "pending")],
+                        [("F1", "in-progress"), ("F2", "repair")], [("F1", "review")], []):
+            with self.subTest(tickets=tickets):
+                self.setUp()
+                name = self.opus_repair_run(*tickets)
+                ok, why = guard.decision(self.payload(agent=name), self.root)
+                self.assertFalse(ok)
+                self.assertIn("approved Autopilot task", why)
 
     def test_fable_is_denied_even_with_a_valid_approval(self):
         self.signed_run()

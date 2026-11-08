@@ -23,7 +23,9 @@ def opus_approved(state, name):
 
     Covers an executor whose every route belongs to an approved ticket, the run's opus
     reviewer (role `reviewer`) or opus repair executor (role `repair`). The signature is
-    checked with gate_sign.verify: a run without a key never has a valid approval.
+    checked with gate_sign.verify and is bound to this run (slug|startedAt), so an approval
+    copied from another run fails; a run without a key never has a valid approval. A name taken
+    from `opusAgents` additionally needs a valid `agentsSig`; the ticket route does not.
     """
     approval = state.get("opusApproval")
     if not isinstance(approval, dict):
@@ -31,12 +33,14 @@ def opus_approved(state, name):
     tickets, roles = approval.get("tickets"), approval.get("roles")
     if not isinstance(tickets, list) or not isinstance(roles, list):
         return False
-    if not gate_sign.verify({"tickets": tickets, "roles": roles}, approval.get("sig")):
+    run = gate_sign._run_id(state)
+    if not gate_sign.verify({"tickets": tickets, "roles": roles, "run": run}, approval.get("sig")):
         return False
-    agents = state.get("opusAgents")  # not signed: the role must also fit the agent kind
+    agents = state.get("opusAgents")  # the role must also fit the agent kind
     if isinstance(agents, dict) and any(
             role in roles and agents.get(role) == name and name.startswith(prefix)
-            for role, prefix in (("reviewer", "autopilot-reviewer-"), ("repair", "autopilot-executor-"))):
+            for role, prefix in (("reviewer", "autopilot-reviewer-"), ("repair", "autopilot-executor-"))
+    ) and gate_sign.verify({"opusAgents": agents, "run": run}, approval.get("agentsSig")):
         return True
     if not name.startswith("autopilot-executor-"):
         return False
@@ -340,10 +344,13 @@ def decision(payload, root):
     if name.startswith("autopilot-executor-"):
         tickets = state.get("tickets") or []
         repair = state.get("repairAgent")
-        if isinstance(repair, dict) and repair.get("agentType") == name:
-            # The run's repair executor serves fix tickets one at a time: only the
-            # one fix ticket being built or repaired right now may call it.
+        opus_agents = state.get("opusAgents")
+        if (isinstance(repair, dict) and repair.get("agentType") == name) or (
+                isinstance(opus_agents, dict) and opus_agents.get("repair") == name):
+            # The run's repair executor (plain or opus) serves fix tickets one at a time:
+            # only the one fix ticket (F<n>) being built or repaired right now may call it.
             tickets = [t for t in tickets if isinstance(t, dict)
+                       and re.fullmatch(r"F\d+", str(t.get("id")))
                        and t.get("status") in ("in-progress", "repair")]
         known = [(t.get("id"), t.get("routing") or {}) for t in tickets]
         matching = [r for _, r in known if r.get("agentType") == name and
