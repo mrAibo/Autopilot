@@ -54,7 +54,7 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 | `dropped` / `deferred` | нет | expected — in the report as not built |
 | — | реализовано, но не из брифа | scope that grew without a parent — reported |
 
-**At most two rounds, and no third look.** Round 1 is this acceptance. A 🔴 goes to one round of fixes (the G2-style fix tickets, `F2`), then **one** re-check by a fresh blind checker, then the report. `ap.py` counts the rounds (`blindRounds`, cap `BLIND_ROUNDS = 2`) and refuses a third `blind`. What is still 🔴 after round 2 goes to the report as it is, in «Открытые вопросы». Judge by the brief, not by the spec.
+**At most two rounds, and no third look.** Round 1 is this acceptance. A 🔴 goes to one round of fixes (the G2-style fix tickets, `F2`), then **one** re-check by a fresh blind checker, then the report. `ap.py` counts the rounds (`blindRounds`, cap `BLIND_ROUNDS = 2`) and refuses a third `blind`. In the brief's words: «один круг исправлений, потом отчёт, третьего взгляда нет». What is still 🔴 after round 2 goes to the report as it is, in «Открытые вопросы». Judge by the brief, not by the spec.
 
 Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. Hiding a drift is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot run here at all, that goes to «Что нужно от тебя», not into the accepted column.
 
