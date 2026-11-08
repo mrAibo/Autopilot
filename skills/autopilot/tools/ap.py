@@ -19,6 +19,9 @@
     python3 .autopilot/ap.py git-check                  # может ли git писать здесь (до init и брифинга)
     python3 .autopilot/ap.py ticket 02 accept-edit --note "…"   # осознанная правка сданного таска
     python3 .autopilot/ap.py claude-version [--text "2.1.302"]  # версия Claude Code (до init)
+    python3 .autopilot/ap.py opus propose               # где Opus уместен (только печать)
+    python3 .autopilot/ap.py opus approve --tickets 03,05 --roles repair,reviewer --by-user "<цитата>"
+    python3 .autopilot/ap.py opus status                # что пользователь подтвердил
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
     python3 .autopilot/ap.py add debt.emptyEnv TELEGRAM_BOT_TOKEN
@@ -115,6 +118,43 @@ def now():
 def die(msg):
     print("ошибка: " + msg)
     sys.exit(1)
+
+
+# Формы секретов — те же, что в редакторе брифа (phases/1-manifest.md §1); сначала узкие, общая — последней.
+_B64 = r"[A-Za-z0-9_-]"
+SECRET_SHAPES = [(name, re.compile(rx)) for name, rx in (
+    ("PRIVATE_KEY", r"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----|[\s\S]*$)"),
+    ("DATABASE_URL", r"\b[A-Za-z][A-Za-z0-9+.-]*://[^\s:/@]+:[^\s@]+@\S+"),
+    ("API_KEY", r"\b(?:sk|rk|pk)[-_]" + _B64 + r"{8,}"),
+    ("GITHUB_TOKEN", r"\b(?:gh[pous]_" + _B64 + r"{20,}|github_pat_" + _B64 + r"{20,})"),
+    ("AWS_ACCESS_KEY_ID", r"\b(?:AKIA|ASIA)[A-Z0-9]{12,}"),
+    ("GOOGLE_API_KEY", r"\b(?:AIza" + _B64 + r"{20,}|ya29\." + _B64 + r"{20,})"),
+    ("SLACK_TOKEN", r"\bxox[bpa]-[A-Za-z0-9-]{10,}"),
+    ("TELEGRAM_BOT_TOKEN", r"\b\d{8,10}:" + _B64 + r"{35}\b"),
+    ("JWT", r"\beyJ" + _B64 + r"{5,}\." + _B64 + r"{5,}(?:\." + _B64 + r"*)?"),
+    ("SECRET", r"(?i)(?:key|token|secret|password|ключ\w*|токен\w*|пароль|доступ\w*)\W{1,12}[A-Za-z0-9+/=_-]{32,}"),
+)]
+
+
+def redact_secrets(text):
+    """Текст без значений, похожих на секреты, и число вырезанных. Значение нигде не повторяется."""
+    hits = 0
+    for name, rx in SECRET_SHAPES:
+        text, n = rx.subn("[REDACTED:%s]" % name, text)
+        hits += n
+    return text, hits
+
+
+def clean_quote(raw):
+    """`--by-user` → слова пользователя без секретов (R25) или None, если слов нет."""
+    text = raw.strip() if isinstance(raw, str) else ""
+    if not text:
+        return None
+    text, hits = redact_secrets(text)
+    if hits:
+        print("! в словах пользователя был ключ — я его не сохранил. Впиши его сам в `.env`, "
+              "а этот лучше отзови и выпусти новый")
+    return text
 
 
 # ── состояние ───────────────────────────────────────────────────────────────
@@ -1423,6 +1463,119 @@ def repair_agent_type(state):
     return entry.get("agentType") if isinstance(entry, dict) else None
 
 
+OPUS_ROLES = ("repair", "reviewer")
+OPUS_USAGE = ("opus propose | opus approve [--tickets 03,05] [--roles repair,reviewer] "
+              "--by-user \"<слова пользователя>\" | opus status")
+
+
+def opus_propose(state):
+    """Кандидаты на Opus среди pending-тасков: пометка `Модель: opus` или premium_candidate. Только печать."""
+    try:
+        import model_router as router
+    except ImportError as exc:
+        die("opus propose: " + str(exc))
+    out = []
+    for tk in state.get("tickets") or []:
+        if tk.get("status") != "pending":
+            continue
+        why = []
+        mark = (tk.get("model") or "").strip()
+        if re.match(r"opus\b", mark, re.I):
+            why.append("пометка в файле таска: «%s»" % mark)
+        files = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % tk["id"]))
+        text = ""
+        if len(files) == 1:
+            try:
+                with open(files[0], encoding="utf-8") as stream:
+                    text = stream.read()
+            except (OSError, UnicodeDecodeError):
+                pass
+        if text and router.premium_candidate(router.assess_ticket(text)):
+            why.append("высокий риск по тексту таска (безопасность, ключи, миграции, удаление данных)")
+        if why:
+            out += ["  %s · %s" % (tk["id"], tk.get("title") or ""), "    причина: " + "; ".join(why),
+                    "    дороже Sonnet-таска, не измерено"]
+    if not out:
+        return ["Кандидатов на Opus нет: все таски идут как обычно"]
+    return (["Opus можно включить для этих тасков; решает пользователь:"] + out +
+            ["Его «да» — `opus approve --tickets <id,…> --by-user \"<его слова>\"`; «нет» — ничего не делать."])
+
+
+def opus_status(state):
+    cur = state.get("opusApproval")
+    if not isinstance(cur, dict) or not (cur.get("tickets") or cur.get("roles")):
+        return ["Opus не включён"]
+    out = ["Opus включён пользователем:",
+           "  таски: " + (", ".join(cur.get("tickets") or []) or "—"),
+           "  роли: " + (", ".join(cur.get("roles") or []) or "—"),
+           "  подпись: " + ("есть" if cur.get("sig") else "нет (прогон без ключа: строгий допуск не примет)")]
+    if isinstance(state.get("opusAgents"), dict):
+        out.append("  профили: " + ", ".join("%s=%s" % kv for kv in sorted(state["opusAgents"].items())))
+    return out + ["  слова пользователя:"] + ["    %s — «%s»" % (q.get("at"), q.get("quote"))
+                                             for q in cur.get("quotes") or []]
+
+
+def opus_sig(state, tickets, roles):
+    """sig, который примет claude_agent_guard.opus_approved: HMAC над {tickets, roles}.
+    Строгий прогон без ключа — отказ; прогон без ключа — None (guard такое не примет)."""
+    strict = state.get("strictRouting") is True or state.get("gateMark") is not None
+    try:
+        if strict:
+            gate_signed(state)               # поддельный state.js и пропавший ключ останавливают
+        if _gs().load_key() is not None:
+            return _gs().sign({"tickets": tickets, "roles": roles})
+    except ImportError:                      # харнесс без gate_sign: подписывать нечем
+        pass
+    if strict:
+        die("строгий прогон не принимает Opus без подписи: нет ключа ~/.autopilot/gate.key "
+            "(или gate_sign.py) — запусти init заново или восстанови ключ")
+    return None
+
+
+def opus_approve(state, opt):
+    """Подтверждение пользователя: тексты — его слова (--by-user), ничего сверх них. Расширяет прежнее."""
+    raw = opt.get("by-user")
+    if not isinstance(raw, str) or not raw.strip():
+        die("opus approve требует --by-user \"<слова пользователя>\": Opus включает только он")
+    names = {}
+    for key in ("tickets", "roles"):
+        v = opt.get(key)
+        if v is not None and not isinstance(v, str):
+            die("opus approve: --%s — список через запятую" % key)
+        names[key] = [x.strip() for x in (v or "").split(",") if x.strip()]
+    if not names["tickets"] and not names["roles"]:
+        die("opus approve требует --tickets 03,05 и/или --roles repair,reviewer")
+    known = {t["id"] for t in state.get("tickets") or []}
+    unknown = [x for x in names["tickets"] if x not in known]
+    if unknown:
+        die("opus approve: таска %s нет — сначала `ap.py tickets`" % ", ".join(unknown))
+    bad = [x for x in names["roles"] if x not in OPUS_ROLES]
+    if bad:
+        die("opus approve: роль %s не бывает, допустимы %s" % (", ".join(bad), " и ".join(OPUS_ROLES)))
+    quote = clean_quote(raw)
+    cur = state["opusApproval"] if isinstance(state.get("opusApproval"), dict) else {}
+    tickets = list(dict.fromkeys(list(cur.get("tickets") or []) + names["tickets"]))
+    roles = list(dict.fromkeys(list(cur.get("roles") or []) + names["roles"]))
+    state["opusApproval"] = dict(cur, tickets=tickets, roles=roles, sig=opus_sig(state, tickets, roles),
+                                 quotes=list(cur.get("quotes") or []) + [{"at": state["updatedAt"], "quote": quote}])
+    log(state, "opus-approve", tickets=tickets, roles=roles, quote=quote)
+    late = [t["id"] for t in state.get("tickets") or [] if t["id"] in names["tickets"] and t.get("routing")]
+    return (["Opus подтверждён: таски %s; роли %s" % (", ".join(tickets) or "—", ", ".join(roles) or "—")] +
+            ["! таск %s уже получил маршрут: Opus на него не перейдёт (подтверждать надо до plan-models --apply)" % i
+             for i in late])
+
+
+def opus_approval(state):
+    """Подтверждение Opus для plan-models: {} если его нет. В строгом прогоне с неверной подписью — остановка."""
+    cur = state.get("opusApproval")
+    if not isinstance(cur, dict) or not (cur.get("tickets") or cur.get("roles")):
+        return {}
+    if (state.get("strictRouting") is True or state.get("gateMark") is not None) and not _gs().verify(
+            {"tickets": cur.get("tickets"), "roles": cur.get("roles")}, cur.get("sig")):
+        die("plan-models: подпись подтверждения Opus отсутствует или неверна — повтори `opus approve`")
+    return cur
+
+
 def cmd_plan_models(state, opt):
     """Phase 4: plan all ticket models; --apply atomically installs profiles.
 
@@ -1475,6 +1628,7 @@ def cmd_plan_models(state, opt):
         import agent_profiles
         policy = router.load_policy(policy_path)
         caps = router.load_json(cap_path) if cap_path else None
+        approval = opus_approval(state)      # {} без подтверждения пользователя: тогда путь прежний
         plans = []
         for tk in state["tickets"]:
             tid = tk["id"]
@@ -1486,7 +1640,8 @@ def cmd_plan_models(state, opt):
             if not state_io.fingerprint_matches(tk.get("fingerprint"), raw):
                 die("plan-models: tickets изменены; повтори ap.py tickets и check-plan")
             scores = router.assess_ticket(raw.decode("utf-8"))
-            route = router.choose_route(provider, scores, policy, caps)
+            premium = tid in (approval.get("tickets") or [])     # пометка `Модель: opus` без подтверждения не считается
+            route = router.choose_route(provider, scores, policy, caps, premium=premium)
             proposal = {
                 "ticket": tid, "provider": provider, "model": route["model"],
                 "effort": route["effort"],
@@ -1500,10 +1655,10 @@ def cmd_plan_models(state, opt):
             if route["status"] != "ready":
                 proposal["error"] = route["error"]
             item = {"ticket": tk, "file": candidates[0], "scores": scores,
-                    "route": route, "proposal": proposal}
+                    "route": route, "proposal": proposal, "premium": premium}
             if apply and route["status"] == "ready":
                 profile = agent_profiles.prepare(ROOT, candidates[0], provider, cap_path,
-                                                 "executor", policy_path, scores, False)
+                                                 "executor", policy_path, scores, False, premium=premium)
                 relative = profile["agent_file"]
                 path = os.path.join(ROOT, relative)
                 target = os.path.realpath(path)
@@ -1538,13 +1693,18 @@ def cmd_plan_models(state, opt):
             role_brief = os.path.join(run_dir(state), "roles", run_id + ".md")
             repair_brief = os.path.join(run_dir(state), "roles",
                                         "repair-" + run_id[:51].rstrip("-") + ".md")
+            # Names `autopilot-reviewer-opus-<run>` / `autopilot-executor-repair-opus-<run>`; the slug stays within 58.
+            opus_reviewer_brief = os.path.join(run_dir(state), "roles", "opus-" + run_id[:53].rstrip("-") + ".md")
+            opus_repair_brief = os.path.join(run_dir(state), "roles",
+                                             "repair-opus-" + run_id[:46].rstrip("-") + ".md")
+        opus_agents = {}
         if apply:
             created = []
             try:
                 for p in plans:
                     existed = os.path.isfile(p["profilePath"])
                     agent_profiles.prepare(ROOT, p["file"], provider, cap_path,
-                                           "executor", policy_path, p["scores"], True)
+                                           "executor", policy_path, p["scores"], True, premium=p["premium"])
                     if not existed:
                         created.append(p["profilePath"])
                 if claude_roles:
@@ -1580,6 +1740,19 @@ def cmd_plan_models(state, opt):
                               "profileSha": digest}
                     if policy_relative is not None:
                         repair.update(policyFile=policy_relative, policySha=policy_sha)
+                    if approval:
+                        # Claude Code sees only agents that existed at session start, so the pinned
+                        # opus profiles are made now; the guard admits them only by the signed approval.
+                        for key, brief, body, role, scores in (
+                                ("reviewer", opus_reviewer_brief, ROLE_BRIEF, "reviewer", ROLE_SCORES["reviewer"]),
+                                ("repair", opus_repair_brief, REPAIR_BRIEF, "executor", REPAIR_SCORES)):
+                            with open(brief, "w", encoding="utf-8", newline="\n") as stream:
+                                stream.write(body)
+                            profile = agent_profiles.prepare(ROOT, brief, provider, cap_path, role,
+                                                             policy_path, scores, True, premium=True)
+                            if profile["action"] == "created":
+                                created.append(os.path.join(ROOT, profile["agent_file"]))
+                            opus_agents[key] = profile["agent_type"]
             except (OSError, ValueError, TypeError) as exc:
                 for path in created:
                     os.unlink(path)
@@ -1609,6 +1782,12 @@ def cmd_plan_models(state, opt):
         if roles:
             state["roleAgents"] = result["roleAgents"] = roles
             state["repairAgent"] = result["repairAgent"] = repair
+            if opus_agents:
+                state["opusAgents"] = result["opusAgents"] = opus_agents
+                # opusAgents is outside `sig` (the guard verifies only tickets/roles): its own signature,
+                # bound to this run, for a guard that wants to compare it.
+                approval["agentsSig"] = _gs().sign({"opusAgents": opus_agents, "run": "%s|%s" % (
+                    state.get("slug"), state.get("startedAt"))}) if _gs().load_key() else None
             # Phase 4 ends here with a new-chat stop: the state must read plan done, build pending.
             cmd_stage(state, ["plan", "done"], {})
         log(state, "plan-models", provider=provider, applied=apply, tickets=len(plans),
@@ -1658,7 +1837,7 @@ def cmd_ticket(state, pos, opt):
             if not isinstance(quote, str) or not quote.strip():
                 die("таск %s упал — дальше решает пользователь: спроси его и, если он велел "
                     "продолжать, повтори `ticket %s reset --by-user \"<его слова>\"`" % (i, i))
-            quote = quote.strip()
+            quote = clean_quote(quote)
         if state.get("sequentialHost") and act == "route":
             die("таск %s: sequential-host не создаёт и не запускает нативных субагентов" % i)
         if state.get("sequentialHost") and act in ("start", "retry") and sequential_occupied(state, i):
@@ -2433,8 +2612,7 @@ def cmd_finish(state, opt):
                     "повтори check-plan и при необходимости G2/G4")
     else:
         hard += ["повторная G3 проверка плана не пройдена: " + p for p in check_plan(state)]
-    by_user = opt.get("by-user")
-    by_user = by_user.strip() if isinstance(by_user, str) and by_user.strip() else None
+    by_user = clean_quote(opt.get("by-user"))
     if hard or (refuse and not by_user):
         lines = ["finish заблокирован:"] + ["  - " + x for x in hard + refuse]
         if refuse and not hard:
@@ -2646,6 +2824,11 @@ def main():
                 die("schedule: %s" % exc)
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return
+        if cmd == "opus" and rest != ["approve"]:
+            if rest not in (["propose"], ["status"]):
+                die(OPUS_USAGE)
+            print("\n".join(opus_propose(state) if rest == ["propose"] else opus_status(state)))
+            return                                    # только печать: state.js не трогаем
         if cmd not in ("", "sync", "commits"):
             # Время события ставится до команды: ей самой и ленте нужна одна метка.
             state["updatedAt"] = now()
@@ -2682,6 +2865,8 @@ def main():
             else:
                 state.pop("planContractDigest", None)
                 state.pop("planValidationDigest", None)
+        elif cmd == "opus":
+            notes += opus_approve(state, opt)
         elif cmd == "worktree":
             notes.append(cmd_worktree(state, rest, opt))
         elif cmd == "usage":
