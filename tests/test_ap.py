@@ -3068,15 +3068,19 @@ class Run(unittest.TestCase):
         self.assertEqual((approval["tickets"], approval["roles"]), (["02"], []))
         self.assertEqual([q["quote"] for q in approval["quotes"]], ["да, Opus для приёма"])
         self.assertIn("at", approval["quotes"][0])
-        self.assertTrue(gate_sign.verify({"tickets": ["02"], "roles": []}, approval["sig"]))
+        st = self.state()
+        run = "%s|%s" % (st["slug"], st["startedAt"])
+        self.assertTrue(gate_sign.verify({"tickets": ["02"], "roles": [], "run": run}, approval["sig"]))
+        self.assertFalse(gate_sign.verify({"tickets": ["02"], "roles": []}, approval["sig"]))   # без run подпись не та
         code, out = self.ap("opus", "approve", "--tickets", "01", "--roles", "reviewer,repair",
                             "--by-user", "и ревью с ремонтом тоже")
         self.assertEqual(code, 0, out)
         approval = self.state()["opusApproval"]
         self.assertEqual((approval["tickets"], approval["roles"]), (["02", "01"], ["reviewer", "repair"]))
         self.assertEqual([q["quote"] for q in approval["quotes"]], ["да, Opus для приёма", "и ревью с ремонтом тоже"])
-        self.assertTrue(gate_sign.verify({"tickets": ["02", "01"], "roles": ["reviewer", "repair"]}, approval["sig"]))
-        self.assertFalse(gate_sign.verify({"tickets": ["02"], "roles": []}, approval["sig"]))
+        self.assertTrue(gate_sign.verify({"tickets": ["02", "01"], "roles": ["reviewer", "repair"], "run": run},
+                                         approval["sig"]))
+        self.assertFalse(gate_sign.verify({"tickets": ["02"], "roles": [], "run": run}, approval["sig"]))
 
     def test_opus_approve_does_not_launder_an_edited_approval_in_a_strict_run(self):
         self.opus_plan(strict=True)
@@ -3221,6 +3225,206 @@ class Run(unittest.TestCase):
         self.assertIn("подпись подтверждения Opus", out)
         self.assertTrue(all(not t.get("routing") for t in self.state()["tickets"]))
         self.assertFalse(os.path.isdir(os.path.join(self.root, ".claude", "agents")))
+
+    # ── Opus без ручных шагов: подпись с run, Opus-ремонтник, agent-for, upgrade-tools, гейты ──
+
+    def approved_opus_run(self, roles="repair,reviewer"):
+        """Строгий прогон: пользователь подтвердил роли, plan-models --apply создал opusAgents и agentsSig."""
+        self.opus_plan(strict=True)
+        cap = self.write_opus_caps()
+        self.assertEqual(self.ap("opus", "approve", "--roles", roles, "--by-user", "да, Opus для ремонта и ревью")[0], 0)
+        self.apply_models(cap)
+        return cap
+
+    def route_of(self, tid):
+        return next(t for t in self.state()["tickets"] if t["id"] == tid)["routing"]
+
+    def test_opus_sig_is_bound_to_the_run(self):
+        self.opus_plan(strict=True)
+        self.assertEqual(self.ap("opus", "approve", "--tickets", "02", "--by-user", "да")[0], 0)
+        self.assertIn("подпись: верна", self.ap("opus", "status")[1])
+        for field, other in (("startedAt", "2020-01-01T00:00:00+00:00"), ("slug", "other-bot")):
+            with self.subTest(field=field):
+                original = self.state()[field]
+                self.edit_state(**{field: other})            # то же подтверждение, но «из другого прогона»
+                self.assertIn("НЕ СХОДИТСЯ", self.ap("opus", "status")[1])
+                code, out = self.ap("opus", "approve", "--roles", "reviewer", "--by-user", "и ревью")
+                self.assertNotEqual(code, 0, out)
+                self.assertIn("подпись подтверждения Opus", out)
+                self.edit_state(**{field: original})
+
+    def test_opus_signature_is_checked_in_a_non_strict_run_with_a_key(self):
+        gate_sign.ensure_key()
+        self.opus_plan(strict=False)
+        self.assertEqual(self.ap("opus", "approve", "--tickets", "02", "--by-user", "да")[0], 0)
+        approval = self.state()["opusApproval"]
+        self.assertIsNotNone(approval["sig"])
+        self.assertIn("подпись: верна", self.ap("opus", "status")[1])
+        self.edit_state(opusApproval=dict(approval, tickets=["02", "01"]))        # правка без ключа
+        self.assertIn("НЕ СХОДИТСЯ", self.ap("opus", "status")[1])
+        for args in (("opus", "approve", "--roles", "reviewer", "--by-user", "и ревью"),
+                     ("plan-models", "--provider", "anthropic")):
+            with self.subTest(args=args[0]):
+                code, out = self.ap(*args)
+                self.assertNotEqual(code, 0, out)
+                self.assertIn("подпись подтверждения Opus", out)
+
+    def test_fix_ticket_routes_to_the_opus_repairer_when_repair_is_approved(self):
+        import claude_agent_guard
+        cap = self.approved_opus_run()
+        agents = self.state()["opusAgents"]
+        self.fix_ticket("F1", cap)
+        route = self.route_of("F1")
+        self.assertEqual((route["agentType"], route["model"], route["effort"], route["effortEnforced"], route["verified"]),
+                         (agents["repair"], "opus", "high", True, True))
+        self.assertTrue(gate_sign.verify(gate_sign.routing_payload("F1", route), route["sig"]))
+        self.assertEqual(self.ap("ticket", "F1", "start")[0], 0)
+        ok, why = claude_agent_guard.decision(
+            {"tool_name": "Agent", "tool_input": {"subagent_type": agents["repair"]}}, self.root)
+        self.assertTrue(ok, why)
+
+    def test_fix_ticket_keeps_the_plain_repairer_without_a_signed_repair_approval(self):
+        self.opus_plan(strict=True)
+        cap = self.write_opus_caps()
+        self.assertEqual(self.ap("opus", "approve", "--roles", "reviewer", "--by-user", "да, только ревью")[0], 0)
+        self.apply_models(cap)                      # профили Opus есть, но роли repair нет
+        plain = self.state()["repairAgent"]["agentType"]
+        self.assertIn("repair", self.state()["opusAgents"])
+        self.fix_ticket("F1", cap)
+        self.assertEqual(self.route_of("F1")["agentType"], plain)
+        self.assertEqual(self.ap("opus", "approve", "--roles", "repair", "--by-user", "и ремонт")[0], 0)
+        approval = self.state()["opusApproval"]
+        self.edit_state(opusApproval=dict(approval, agentsSig="0" * 64))        # список профилей подделан
+        self.fix_ticket("F2", cap)
+        self.assertEqual(self.route_of("F2")["agentType"], plain)
+
+    def test_agent_for_names_the_opus_profile_for_an_approved_role_and_a_big_diff(self):
+        self.approved_opus_run()
+        state = self.state()
+        agents, plain_reviewer = state["opusAgents"], state["roleAgents"]["reviewer"]["agentType"]
+        before = read(os.path.join(self.a, "state.js"))
+
+        def asked(*args):
+            code, out = self.ap("agent-for", *args)
+            self.assertEqual(code, 0, out)
+            return out.strip()
+
+        self.assertEqual(asked("reviewer", "--diff-lines", "3001"), agents["reviewer"])
+        self.assertEqual(asked("reviewer", "--diff-lines", "3000"), plain_reviewer)
+        self.assertEqual(asked("reviewer"), plain_reviewer)
+        self.assertEqual(asked("repair"), agents["repair"])
+        self.assertEqual(read(os.path.join(self.a, "state.js")), before)
+
+    def test_agent_for_gives_plain_profiles_without_approval(self):
+        self.applied_strict_claude_plan()
+        state = self.state()
+        code, out = self.ap("agent-for", "reviewer", "--diff-lines", "99999")
+        self.assertEqual((code, out.strip()), (0, state["roleAgents"]["reviewer"]["agentType"]))
+        code, out = self.ap("agent-for", "repair")
+        self.assertEqual((code, out.strip()), (0, state["repairAgent"]["agentType"]))
+        self.assertNotEqual(self.ap("agent-for", "executor")[0], 0)
+
+    def test_agent_for_ignores_a_role_the_user_did_not_approve(self):
+        self.approved_opus_run(roles="reviewer")
+        state = self.state()
+        self.assertEqual(self.ap("agent-for", "repair")[1].strip(), state["repairAgent"]["agentType"])
+        self.assertEqual(self.ap("agent-for", "reviewer", "--diff-lines", "4000")[1].strip(),
+                         state["opusAgents"]["reviewer"])
+
+    def test_fable_is_refused_even_with_an_opus_approval(self):
+        import model_router
+        for name in ("fable", "claude-fable-1", "opus/fable"):
+            with self.subTest(name=name):
+                self.assertFalse(model_router.is_allowed_subagent_model(name, premium_ok=True))
+        self.assertTrue(model_router.is_allowed_subagent_model("opus", premium_ok=True))
+        self.assertFalse(model_router.is_allowed_subagent_model("opus"))
+
+    def fake_skill(self):
+        """Копия tools навыка, которую можно «обновить» в тесте."""
+        base = tempfile.mkdtemp(prefix="ap-skill-")
+        self.addCleanup(shutil.rmtree, base, ignore_errors=True)
+        shutil.copytree(os.path.join(SKILL, "tools"), os.path.join(base, "tools"),
+                        ignore=shutil.ignore_patterns("__pycache__"))
+        return base
+
+    def bump(self, skill, *names):
+        for name in names:
+            with open(os.path.join(skill, "tools", name), "a", encoding="utf-8", newline="\n") as f:
+                f.write("\n# новая версия\n")
+
+    def test_upgrade_tools_copies_only_differing_files_that_exist_in_the_run_folder(self):
+        skill = self.fake_skill()
+        self.init()
+        self.edit_state(skillDir=skill)
+        self.bump(skill, "ap.py", "retry_policy.py", "claude_attest.py")      # claude_attest.py в .autopilot/ нет
+        code, out = self.ap("upgrade-tools")
+        self.assertEqual(code, 0, out)
+        self.assertIn("retry_policy.py", out)
+        self.assertIn("ap.py", out)
+        self.assertNotIn("claude_attest", out)
+        for name in ("ap.py", "retry_policy.py"):
+            self.assertTrue(read(os.path.join(self.a, name)).endswith("# новая версия\n"), name)
+        self.assertFalse(os.path.exists(os.path.join(self.a, "claude_attest.py")))
+        self.assertIn("уже совпадают", self.ap("upgrade-tools")[1])
+
+    def test_upgrade_tools_does_nothing_while_a_ticket_is_in_work(self):
+        skill = self.fake_skill()
+        self.plan()
+        self.ap("tickets")
+        self.edit_state(skillDir=skill)
+        self.assertEqual(self.ap("ticket", "01", "start")[0], 0)
+        self.bump(skill, "retry_policy.py")
+        mine = os.path.join(self.a, "retry_policy.py")
+        code, out = self.ap("upgrade-tools")
+        self.assertNotEqual(code, 0, out)
+        self.assertIn("в работе", out)
+        self.assertEqual(self.ap("stage", "build")[0], 0)                     # stage тоже молчит и не трогает
+        self.assertFalse(read(mine).endswith("# новая версия\n"))
+        self.assertEqual(self.ap("ticket", "01", "reset")[0], 0)
+        code, out = self.ap("stage", "build")
+        self.assertEqual(code, 0, out)
+        self.assertIn("инструменты обновлены из навыка: retry_policy.py", out)
+        self.assertTrue(read(mine).endswith("# новая версия\n"))
+
+    def test_init_upgrades_the_run_folder_and_replaces_ap_py_at_the_end(self):
+        skill = self.fake_skill()
+        self.bump(skill, "ap.py", "model_router.py")
+        code, out = self.ap("init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", skill)
+        self.assertEqual(code, 0, out)
+        self.assertIn("инструменты обновлены из навыка: ap.py, model_router.py", out)
+        for name in ("ap.py", "model_router.py"):
+            self.assertTrue(read(os.path.join(self.a, name)).endswith("# новая версия\n"), name)
+        self.assertEqual(self.ap("opus", "status")[1].strip(), "Opus не включён")      # новая копия работает
+
+    def accepted_plan(self):
+        """Верный план и принятые G1/G2/G4 + слепая приёмка."""
+        self.plan()
+        self.ap("tickets")
+        self.assertEqual(self.ap("check-plan")[0], 0)
+        gates = dict(self.state()["gates"], **{g: {"ok": True, "at": "2026-01-01T00:00:00+00:00"} for g in ("G1", "G2", "G4")})
+        self.edit_state(gates=gates, blind={"checked": 3, "matched": 3, "mismatches": []})
+
+    def test_check_plan_after_a_fix_ticket_keeps_the_gates_and_blind_result(self):
+        self.accepted_plan()
+        digest = self.state()["planContractDigest"]
+        self.write("tickets/F1-branch-fix.md", ticket("F1", "Ремонт ветки", "R01", "—", ["src/core/"], 3))
+        self.assertEqual(self.ap("tickets")[0], 0)
+        code, out = self.ap("check-plan")
+        self.assertEqual(code, 0, out)
+        state = self.state()
+        self.assertEqual(state["planContractDigest"], digest)
+        self.assertTrue(all(state["gates"][g]["ok"] for g in ("G1", "G2", "G3", "G4")), state["gates"])
+        self.assertEqual(state["blind"]["matched"], 3)
+
+    def test_check_plan_after_editing_an_ordinary_ticket_resets_the_gates(self):
+        self.accepted_plan()
+        self.write("tickets/02-priem.md", ticket("02", "Приём иначе", "R01.1, R02, A01", "01", ["src/bot/"], 2))
+        self.assertEqual(self.ap("tickets")[0], 0)
+        self.assertEqual(self.ap("check-plan")[0], 0)
+        state = self.state()
+        for g in ("G1", "G2", "G4"):
+            self.assertEqual((state["gates"][g]["ok"], state["gates"][g].get("reason")), (False, "plan-changed"))
+        self.assertIsNone(state["blind"])
 
 
 class Wave2Docs(unittest.TestCase):

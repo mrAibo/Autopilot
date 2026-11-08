@@ -21,7 +21,10 @@
     python3 .autopilot/ap.py claude-version [--text "2.1.302"]  # версия Claude Code (до init)
     python3 .autopilot/ap.py opus propose               # где Opus уместен (только печать)
     python3 .autopilot/ap.py opus approve --tickets 03,05 --roles repair,reviewer --by-user "<цитата>"
-    python3 .autopilot/ap.py opus status                # что пользователь подтвердил
+    python3 .autopilot/ap.py opus status                # что пользователь подтвердил, подпись верна?
+    python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
+    python3 .autopilot/ap.py agent-for repair
+    python3 .autopilot/ap.py upgrade-tools              # обновить .autopilot/*.py из навыка (init и stage делают сами)
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
     python3 .autopilot/ap.py add debt.emptyEnv TELEGRAM_BOT_TOKEN
@@ -381,6 +384,9 @@ def manifest_rows(state):
     return None if rows is None else [(r["id"], r["status"]) for r in rows]
 
 
+FIX_TICKET_FILE = re.compile(r"F\d+-.*\.md$")
+
+
 def plan_contract_digest(state):
     """Bind G3 to requirement wording and the exact planned ticket files.
 
@@ -394,6 +400,8 @@ def plan_contract_digest(state):
     contract = [[r["id"], r["text"], r["why"]] for r in rows]
     tickets = []
     for path in sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md"))):
+        if FIX_TICKET_FILE.match(os.path.basename(path)):
+            continue                      # fix-таски (F<n>-*.md) создаёт ревью ветки: контракт плана их не включает
         try:
             with open(path, "rb") as source:
                 digest = hashlib.sha256(source.read()).hexdigest()
@@ -1058,6 +1066,61 @@ def archive_old_state(old):
     return dst.replace(os.sep, "/")
 
 
+SELF_UPGRADE = []        # новая копия ap.py: подменяется в конце команды (main), а не посреди неё
+
+
+def upgrade_tools(state, auto=False):
+    """Копирует из `skillDir/tools/` в `.autopilot/` отличающиеся `.py`, что там уже есть; ap.py — в конце команды.
+    Возвращает имена. Ручной вызов отказывает, пока таск в работе; auto (init, stage) молча пропускает."""
+    src = os.path.join(state.get("skillDir") or "", "tools")
+    busy = [t["id"] for t in state.get("tickets") or [] if t.get("status") in ACTIVE_EXECUTOR]
+    if not state.get("skillDir") or not os.path.isfile(os.path.join(src, "ap.py")) or (
+            os.path.realpath(src) == os.path.realpath(A)):
+        if auto:
+            return []
+        die("upgrade-tools: нет skillDir/tools/ap.py (init без --skill-dir, навык убран) или это сама папка инструментов")
+    if busy:
+        if auto:
+            return []
+        die("upgrade-tools: таск в работе (%s) — обнови инструменты между тасками" % ", ".join(busy))
+    done = []
+    for name in sorted(os.listdir(src)):
+        old, new = os.path.join(A, name), os.path.join(src, name)
+        if not name.endswith(".py") or not os.path.isfile(old) or not os.path.isfile(new):
+            continue
+        with open(old, "rb") as f1, open(new, "rb") as f2:
+            data = f2.read()
+            if f1.read() == data:
+                continue
+        if name == "ap.py":
+            SELF_UPGRADE.append(data)
+        else:
+            tmp = old + ".new"
+            with open(tmp, "wb") as stream:
+                stream.write(data)
+            os.replace(tmp, old)
+        done.append(name)
+    return done
+
+
+def upgrade_note(state):
+    """Автообновление в init/stage: строка для вывода или []. Сбой записи не валит команду."""
+    try:
+        done = upgrade_tools(state, auto=True)
+    except OSError as exc:
+        return ["! инструменты не обновлены (%s): запусти `ap.py upgrade-tools`" % type(exc).__name__]
+    return ["инструменты обновлены из навыка: " + ", ".join(done)] if done else []
+
+
+def finish_self_upgrade():
+    """Конец команды: заменить свою копию ap.py (идущий процесс уже прочитал её целиком)."""
+    while SELF_UPGRADE:
+        tmp = os.path.join(A, "ap.py.new")
+        with open(tmp, "wb") as stream:
+            stream.write(SELF_UPGRADE.pop())
+        os.replace(tmp, os.path.join(A, "ap.py"))
+
+
 def cmd_init(opt):
     if opt.get("sequential-host") and opt.get("strict-routing"):
         die("init: --sequential-host и --strict-routing несовместимы; "
@@ -1095,7 +1158,7 @@ def cmd_init(opt):
     ensure_gitignore()
     register_row(state, "в работе", None)
     notes.append("папка прогона: .autopilot/%s" % state["dir"])
-    return state, notes
+    return state, notes + upgrade_note(state)
 
 
 def cmd_execution(state, pos, opt):
@@ -1370,7 +1433,7 @@ def check_claude_attestation(state, ticket, root):
             raw = stream.read().splitlines()
     except (OSError, UnicodeDecodeError) as exc:
         return False, "нет читаемого .autopilot/attestations.jsonl (%s)" % type(exc).__name__
-    if agent == repair_agent_type(state):
+    if agent in repair_agent_types(state):
         # Shared repair executor: count only lines appended since this ticket's start.
         start = ticket.get("attestFrom")
         if type(start) is not int or start < 0 or start > len(raw):
@@ -1463,6 +1526,12 @@ def repair_agent_type(state):
     return entry.get("agentType") if isinstance(entry, dict) else None
 
 
+def repair_agent_types(state):
+    """Обычный и Opus-ремонтник — один пул: одновременно работает один fix-таск, общий attestations.jsonl."""
+    agents = state.get("opusAgents")
+    return {a for a in (repair_agent_type(state), agents.get("repair") if isinstance(agents, dict) else None) if a}
+
+
 OPUS_ROLES = ("repair", "reviewer")
 OPUS_USAGE = ("opus propose | opus approve [--tickets 03,05] [--roles repair,reviewer] "
               "--by-user \"<слова пользователя>\" | opus status")
@@ -1501,14 +1570,90 @@ def opus_propose(state):
             ["Его «да» — `opus approve --tickets <id,…> --by-user \"<его слова>\"`; «нет» — ничего не делать."])
 
 
+def run_id(state):
+    """Прогон, к которому привязаны подписи Opus: `slug|startedAt` (как gate_sign._run_id, его читает guard)."""
+    return "%s|%s" % (state.get("slug"), state.get("startedAt"))
+
+
+def opus_sig_state(state, cur):
+    """ok | bad | nokey: сверка `sig` подтверждения {tickets, roles, run} с ключом из ~/.autopilot."""
+    try:
+        gs = _gs()
+    except ImportError:                      # харнесс без gate_sign: сверять нечем
+        return "nokey"
+    if gs.load_key() is None:
+        return "nokey"
+    ok = gs.verify({"tickets": cur.get("tickets"), "roles": cur.get("roles"), "run": run_id(state)}, cur.get("sig"))
+    return "ok" if ok else "bad"
+
+
+def opus_profile(state, role):
+    """Имя Opus-профиля роли `reviewer`/`repair`, если роль подтверждена, обе подписи верны и профиль есть, иначе None.
+    Неверная `sig` останавливает команду (opus_approval); неверная `agentsSig` — просто закрывает Opus, как в guard."""
+    cur = opus_approval(state)
+    agents = state.get("opusAgents")
+    name = agents.get(role) if isinstance(agents, dict) else None
+    if role not in (cur.get("roles") or []) or not isinstance(name, str) or not name:
+        return None
+    if opus_sig_state(state, cur) != "ok":
+        return None
+    return name if _gs().verify({"opusAgents": agents, "run": run_id(state)}, cur.get("agentsSig")) else None
+
+
+def opus_repair_entry(name):
+    """Запись агента ремонта для Opus-профиля: модель и effort читаются из самого файла профиля."""
+    if not name:
+        return None
+    rel = ".claude/agents/%s.md" % name
+    try:
+        with open(os.path.join(ROOT, rel), "rb") as stream:
+            raw = stream.read()
+    except OSError:
+        return None
+    head = raw.decode("utf-8", "replace").split("\n---", 1)[0]
+    fields = dict(re.findall(r"(?m)^(model|effort): (\S+)\s*$", head))
+    if "model" not in fields:
+        return None
+    # effort в файле нет, когда хост его не держит; политика премиума — high
+    return {"agentType": name, "agentFile": rel, "model": fields["model"],
+            "effort": fields.get("effort", "high"), "effortEnforced": "effort" in fields,
+            "profileSha": hashlib.sha256(raw).hexdigest()}
+
+
+OPUS_REVIEW_DIFF = 3000        # ревью ветки длиннее этого — на Opus-ревьюера, если роль подтверждена
+
+
+def cmd_agent_for(state, pos, opt):
+    """Имя агента, которого звать для `reviewer`/`repair`: Opus-профиль или обычный. Ничего не пишет."""
+    if len(pos) != 1 or pos[0] not in OPUS_ROLES:
+        die("agent-for reviewer|repair [--diff-lines N]")
+    role = pos[0]
+    lines = opt.get("diff-lines", 0)
+    if not isinstance(lines, str) or not lines.isdigit():
+        if "diff-lines" in opt:
+            die("agent-for: --diff-lines — число строк диффа")
+        lines = 0
+    if role == "repair" or int(lines) > OPUS_REVIEW_DIFF:
+        name = opus_profile(state, role)
+        if name:
+            return name
+    plain = (state.get("repairAgent") if role == "repair" else (state.get("roleAgents") or {}).get("reviewer"))
+    name = plain.get("agentType") if isinstance(plain, dict) else None
+    if not name:
+        die("agent-for: профиль роли %s не зарегистрирован — `plan-models --apply` в строгом Claude-прогоне" % role)
+    return name
+
+
 def opus_status(state):
     cur = state.get("opusApproval")
     if not isinstance(cur, dict) or not (cur.get("tickets") or cur.get("roles")):
         return ["Opus не включён"]
+    verdict = {"ok": "верна", "bad": "НЕ СХОДИТСЯ (state.js правили без ключа или это другой прогон)",
+               "nokey": "нет ключа (строгий допуск не примет)"}[opus_sig_state(state, cur)]
     out = ["Opus включён пользователем:",
            "  таски: " + (", ".join(cur.get("tickets") or []) or "—"),
            "  роли: " + (", ".join(cur.get("roles") or []) or "—"),
-           "  подпись: " + ("есть" if cur.get("sig") else "нет (прогон без ключа: строгий допуск не примет)")]
+           "  подпись: " + verdict]
     if isinstance(state.get("opusAgents"), dict):
         out.append("  профили: " + ", ".join("%s=%s" % kv for kv in sorted(state["opusAgents"].items())))
     return out + ["  слова пользователя:"] + ["    %s — «%s»" % (q.get("at"), q.get("quote"))
@@ -1516,14 +1661,14 @@ def opus_status(state):
 
 
 def opus_sig(state, tickets, roles):
-    """sig, который примет claude_agent_guard.opus_approved: HMAC над {tickets, roles}.
+    """sig, который примет claude_agent_guard.opus_approved: HMAC над {tickets, roles, run}.
     Строгий прогон без ключа — отказ; прогон без ключа — None (guard такое не примет)."""
     strict = state.get("strictRouting") is True or state.get("gateMark") is not None
     try:
         if strict:
             gate_signed(state)               # поддельный state.js и пропавший ключ останавливают
         if _gs().load_key() is not None:
-            return _gs().sign({"tickets": tickets, "roles": roles})
+            return _gs().sign({"tickets": tickets, "roles": roles, "run": run_id(state)})
     except ImportError:                      # харнесс без gate_sign: подписывать нечем
         pass
     if strict:
@@ -1570,13 +1715,16 @@ def opus_approve(state, opt):
 
 def opus_approval(state):
     """Подтверждение Opus (plan-models и расширение в approve): {} если его нет.
-    В строгом прогоне с неверной подписью — остановка, чтобы правку state.js не подписал законный approve."""
+    Неверная подпись (правка state.js, другой прогон) — остановка в любом прогоне, где есть ключ, чтобы
+    законный approve не подписал чужую правку; строгий прогон без ключа тоже стоит."""
     cur = state.get("opusApproval")
     if not isinstance(cur, dict) or not (cur.get("tickets") or cur.get("roles")):
         return {}
-    if (state.get("strictRouting") is True or state.get("gateMark") is not None) and not _gs().verify(
-            {"tickets": cur.get("tickets"), "roles": cur.get("roles")}, cur.get("sig")):
-        die("подпись подтверждения Opus отсутствует или неверна: state.js правили без ключа")
+    verdict = opus_sig_state(state, cur)
+    if verdict == "bad" or (verdict == "nokey" and (
+            state.get("strictRouting") is True or state.get("gateMark") is not None)):
+        die("подпись подтверждения Opus отсутствует или неверна: state.js правили без ключа "
+            "или подтверждение из другого прогона")
     return cur
 
 
@@ -1693,14 +1841,14 @@ def cmd_plan_models(state, opt):
                 route = router.choose_route(provider, scores, policy, caps)
                 if route["status"] != "ready":
                     die("plan-models: blocked — %s: %s" % (role, route["error"]))
-            run_id = re.sub(r"--wip$", "", state["dir"])[:58].rstrip("-")
-            role_brief = os.path.join(run_dir(state), "roles", run_id + ".md")
+            run_name = re.sub(r"--wip$", "", state["dir"])[:58].rstrip("-")
+            role_brief = os.path.join(run_dir(state), "roles", run_name + ".md")
             repair_brief = os.path.join(run_dir(state), "roles",
-                                        "repair-" + run_id[:51].rstrip("-") + ".md")
+                                        "repair-" + run_name[:51].rstrip("-") + ".md")
             # Names `autopilot-reviewer-opus-<run>` / `autopilot-executor-repair-opus-<run>`; the slug stays within 58.
-            opus_reviewer_brief = os.path.join(run_dir(state), "roles", "opus-" + run_id[:53].rstrip("-") + ".md")
+            opus_reviewer_brief = os.path.join(run_dir(state), "roles", "opus-" + run_name[:53].rstrip("-") + ".md")
             opus_repair_brief = os.path.join(run_dir(state), "roles",
-                                             "repair-opus-" + run_id[:46].rstrip("-") + ".md")
+                                             "repair-opus-" + run_name[:46].rstrip("-") + ".md")
         opus_agents = {}
         if apply:
             created = []
@@ -1788,10 +1936,9 @@ def cmd_plan_models(state, opt):
             state["repairAgent"] = result["repairAgent"] = repair
             if opus_agents:
                 state["opusAgents"] = result["opusAgents"] = opus_agents
-                # opusAgents is outside `sig` (the guard verifies only tickets/roles): its own signature,
-                # bound to this run, for a guard that wants to compare it.
-                approval["agentsSig"] = _gs().sign({"opusAgents": opus_agents, "run": "%s|%s" % (
-                    state.get("slug"), state.get("startedAt"))}) if _gs().load_key() else None
+                # opusAgents is outside `sig`: its own signature, bound to this run; the guard checks it.
+                approval["agentsSig"] = _gs().sign(
+                    {"opusAgents": opus_agents, "run": run_id(state)}) if _gs().load_key() else None
             # Phase 4 ends here with a new-chat stop: the state must read plan done, build pending.
             cmd_stage(state, ["plan", "done"], {})
         log(state, "plan-models", provider=provider, applied=apply, tickets=len(plans),
@@ -1888,12 +2035,12 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
         if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
             die("таск %s: строгая маршрутизация требует подтверждённой модели" % i)
-        shared = repair_agent_type(state)
-        on_repair = shared is not None and (tk.get("routing") or {}).get("agentType") == shared
+        shared = repair_agent_types(state)
+        on_repair = (tk.get("routing") or {}).get("agentType") in shared
         if act in ("start", "retry") and on_repair:
             busy = [x["id"] for x in state.get("tickets") or [] if x.get("id") != i
                     and x.get("status") in ACTIVE_EXECUTOR
-                    and (x.get("routing") or {}).get("agentType") == shared]
+                    and (x.get("routing") or {}).get("agentType") in shared]
             if busy:
                 die("таск %s: агент ремонта занят таском %s" % (i, ", ".join(busy)))
         if act == "start" and on_repair:
@@ -2003,7 +2150,9 @@ def cmd_ticket(state, pos, opt):
             if (provider == "anthropic" and state.get("strictRouting") is True
                     and re.fullmatch(r"F\d+", i) and isinstance(repair, dict)):
                 # A profile created now is invisible to this Claude session (T17):
-                # fix tickets go to the repair executor registered in Phase 4.
+                # fix tickets go to the repair executor registered in Phase 4
+                # (the opus one when the user approved role `repair`: signed, profile present).
+                repair = opus_repair_entry(opus_profile(state, "repair")) or repair
                 if not isinstance(reason, str) or not reason.strip():
                     die("route требует --reason")
                 if model not in (None, repair.get("model")) or effort not in (None, repair.get("effort")):
@@ -2834,6 +2983,19 @@ def main():
                 die(OPUS_USAGE)
             print("\n".join(opus_propose(state) if rest == ["propose"] else opus_status(state)))
             return                                    # только печать: state.js не трогаем
+        if cmd == "agent-for":
+            print(cmd_agent_for(state, rest, opt))
+            return                                    # только печать: state.js не трогаем
+        if cmd == "upgrade-tools":
+            if rest:
+                die("upgrade-tools: лишние аргументы")
+            try:
+                done = upgrade_tools(state)
+            except OSError as exc:
+                die("upgrade-tools: %s" % exc)
+            finish_self_upgrade()
+            print("обновлено: " + ", ".join(done) if done else "инструменты в .autopilot/ уже совпадают с навыком")
+            return                                    # state.js не трогаем
         if cmd not in ("", "sync", "commits"):
             # Время события ставится до команды: ей самой и ленте нужна одна метка.
             state["updatedAt"] = now()
@@ -2843,6 +3005,7 @@ def main():
         if cmd == "execution":
             notes.append(cmd_execution(state, rest, opt))
         elif cmd == "stage":
+            notes += upgrade_note(state)
             cmd_stage(state, rest, opt)
         elif cmd == "ticket":
             cmd_ticket(state, rest, opt)
@@ -2927,6 +3090,10 @@ def main():
         print("  " + (line if line.startswith("!") else "· " + line))
     for line in audit(state)[:5]:
         print("  ! " + line)
+    try:
+        finish_self_upgrade()
+    except OSError as exc:
+        print("  ! ap.py не обновлён (%s): запусти `ap.py upgrade-tools`" % type(exc).__name__)
     if cmd == "check-plan" and problems:
         sys.exit(2)
     if opt.get("check-update"):
