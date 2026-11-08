@@ -8,6 +8,15 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Upstream port 2.2.2/2.2.3 and Opus on the user's yes.
+
+- **Limits and gates:** `ap.py` holds the repair/retry limits (a third is refused; the user lifts it with `ticket NN reset --by-user "<quote>"`); G1 is recomputed from the manifest; `done` needs a commit; blind acceptance is at most two rounds (`blindRounds`, then the report).
+- **Landing with caveats:** `finish --result … --by-user "<quote>"` lands with `landedWith`; the dashboard header reads «Сдано с оговорками» / "Landed with caveats" and lists the problems.
+- **`ap.py git-check`:** `phases/0-preflight.md` runs it before `init`; a refused write stops the run at once.
+- **Phases:** no ticket only verifies (`4-plan.md`); an environment failure is `fail` with a question, not a repair (`5-repair.md`); "one round of fixes, then the report" (`8-final.md`); `SKILL.md` re-reads `5-repair.md` after a compaction.
+- **Opus on the user's confirmation:** `ap.py opus propose|approve|status`, signed `opusApproval`, Opus profiles for repair and the branch reviewer (diff over 3000 lines), a question in Phase 4 and for `repairs >= 2`; the dashboard shows an «Opus enabled» line and the report names the tickets and the actual cost from `measure-run.py`. Fable stays closed. **The saving from Opus subagents is not measured**; Opus costs more than a Sonnet ticket.
+- Docs: `model-routing.md`, `claude-code.md`, `dashboard-views.md`. READMEs unchanged (they do not say Opus is closed).
+
 Wave 1 process fixes.
 
 - **R01 ticket fingerprint by normalized text:** `state_io.ticket_fingerprint` hashes the ticket as LF text without BOM and trailing spaces, so changing line endings no longer resets a `done` ticket; `tickets`, `plan-models` and `codex_dispatch.py` compare through `state_io.fingerprint_matches`.

@@ -11,7 +11,7 @@ Claude Code project agents live in `.claude/agents/<name>.md`. Relevant frontmat
 - Model precedence: per-invocation `model` > frontmatter > `CLAUDE_CODE_SUBAGENT_MODEL` > main model. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` ignores frontmatter; an `availableModels` allowlist can substitute a model.
 - `/tasks` shows model and effort per running subagent (v2.1.242+).
 
-Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Tiers: cheap haiku/low · balanced sonnet/medium · strong sonnet/high · critical sonnet/xhigh (risk >= 10 and algorithm >= 20). Opus and Fable are not used as subagents by default.
+Autopilot already writes those profiles from one Phase-4 `plan-models --provider anthropic` pass, choosing models by ticket complexity and risk. Tiers: cheap haiku/low · balanced sonnet/medium · strong sonnet/high · critical sonnet/xhigh (risk >= 10 and algorithm >= 20). Opus and Fable are not used as subagents by default. **Opus is a confirmed route:** after `ap.py opus approve --by-user "<quote>"` (signed with the gate key in strict runs) `plan-models --apply` also registers `autopilot-reviewer-opus-<run>` and `autopilot-executor-repair-opus-<run>` (model `opus`, effort `high`) and writes `opusAgents`; the guard lets an Opus profile start only when the signature is valid and the ticket and role match the approval. Fable stays closed in every spelling. Opus costs more than a Sonnet ticket; the saving or loss is not measured.
 
 Tool rules per role (field names are case-sensitive; Claude Code silently ignores misspelled fields):
 - executor: `tools: Read, Grep, Glob, Bash, Edit, Write`.

@@ -106,7 +106,10 @@ Immediately after `init`, before Phase 1 asks anything.
 | a full check outside a ticket | `tests 34/0` (+ `--seconds 42` if you timed it) |
 | the run waits for the user — a briefing round, the manual spec or plan gate, a yes/no before an irreversible action, a stop condition | `ask briefing\|spec\|plan\|action\|stop --note "что ждём, одной строкой"` — chained with nothing: the message goes out after it |
 | the answer came | `answered` — or nothing, when the next call is a `stage` or `ticket`: those close the wait themselves |
-| the run lands | `finish --result "одна строка: что теперь есть"` |
+| the run lands | `finish --result "одна строка: что теперь есть"` — a landing with caveats only with the user's words: `finish --result "…" --by-user "<цитата>"` (writes `landedWith`) |
+| Git accepts writes (Phase 0, before `init`) | `git-check` — a refusal stops the run |
+| the user lifts a repair/retry limit or reopens a failed ticket | `ticket 02 reset --by-user "<цитата>"` — never without their words |
+| Opus (only by the user's yes) | `opus propose` (print only) · `opus approve [--tickets 03,05] [--roles repair,reviewer] --by-user "<цитата>"` · `opus status` (`phases/4-plan.md`) |
 | where the time and tokens went (reads `.autopilot/run-log.jsonl`, never blocks) | `report-run` — `report-run --share` for an issue attachment, no project data (`docs/autopilot/run-log.md`) |
 | a resume, before anything relaunches | `commits` — every `done` ticket's commit still in `HEAD`; a `!` line is a ticket to reset (`phases/0-resume.md`) |
 

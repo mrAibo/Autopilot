@@ -62,7 +62,7 @@ The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberat
 | critical | `gpt-6.1-sol`, high (same as strong) | `sonnet`, xhigh |
 | restricted / not automatically dispatched | `gpt-6-astra` | `fable`, `claude-fable-5` |
 
-These are defaults, **not a guarantee of host availability**. API model IDs and CLI aliases may differ; actual host capability discovery must resolve them. The default policy does not escalate to Opus, Astra or Fable. A model's accepted reasoning effort may differ across versions.
+These are defaults, **not a guarantee of host availability**. API model IDs and CLI aliases may differ; actual host capability discovery must resolve them. The default policy does not escalate to Opus, Astra or Fable. **Opus is the one exception, and only by the user:** `ap.py opus propose` prints candidates (never writes), `opus approve [--tickets …] [--roles repair,reviewer] --by-user "<quote>"` stores `opusApproval` (signed in strict runs), and only then `choose_route(..., premium=True)` / `agent_profiles.prepare(..., premium=True)` may return `providers.anthropic.premium` (`opus`, high) for the approved tickets and roles; `is_allowed_subagent_model(name, premium_ok=True)` admits it. Without the flag the result is unchanged, and Fable is rejected whatever the flag. The extra cost of Opus subagents is not measured; the run report shows the actual figure from `measure-run.py`. A model's accepted reasoning effort may differ across versions.
 
 Models/prices/availability can change. The host must advertise supported model/effort pairs before dispatch; never infer access from the current orchestrator model.
 

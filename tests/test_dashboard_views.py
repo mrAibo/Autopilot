@@ -173,7 +173,11 @@ def _fixtures():
     notes["tickets"][2]["review"] = "да — check the edges <img src=x onerror=alert(1)>"
     notes["tickets"][3]["repairFindings"] = ["first finding", "a.py:3 - last finding <b>x</b>"]
     notes["tickets"][4]["concerns"] = ["db.py:9 - cannot connect", "long " * 60 + "THE-END"]
-    return {"notes": notes, "empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin}
+    landed = dict(json.loads(json.dumps(done)), landedWith={"problems": ["G4: <b>hole</b> in R02"], "byUser": "ship it"})
+    opus = dict(json.loads(json.dumps(running)), opusApproval={
+        "tickets": ["03"], "roles": ["repair"], "quotes": [{"at": "2026-11-03T08:00:00Z", "quote": "ok, opus for 03"}], "sig": None})
+    return {"notes": notes, "empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin,
+            "landed": landed, "opus": opus}
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -191,7 +195,7 @@ class TemplateRuns(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def test_every_view_renders_every_fixture_without_exceptions(self):
-        self.assertEqual(len(self.out["renders"]), 7 * len(VIEW_IDS) * 2)
+        self.assertEqual(len(self.out["renders"]), 9 * len(VIEW_IDS) * 2)
         for key, res in self.out["renders"].items():
             with self.subTest(key=key):
                 self.assertNotIn("error", res)
@@ -201,6 +205,26 @@ class TemplateRuns(unittest.TestCase):
                 self.assertIn('data-view="%s" aria-pressed="true"' % key.split("/")[1], page)
                 for junk in ("undefined", "NaN", "[object"):
                     self.assertNotIn(junk, page)
+
+    def test_landed_with_caveats_header_lists_problems_and_plain_finish_keeps_old_header(self):
+        for view in ("overview", "classic"):
+            for lang, text in (("en", "Landed with caveats"), ("ru", "Сдано с оговорками")):
+                with self.subTest(view=view, lang=lang):
+                    html = self.out["renders"]["landed/%s/%s" % (view, lang)]["html"]
+                    self.assertIn(text, html)
+                    self.assertIn("G4: &lt;b&gt;hole&lt;/b&gt; in R02", html)  # escaped
+                    self.assertNotIn("Landed with caveats", self.out["renders"]["finished/%s/en" % view]["html"])
+                    self.assertNotIn("Сдано с оговорками", self.out["renders"]["finished/%s/ru" % view]["html"])
+
+    def test_models_view_shows_opus_line_only_with_approval(self):
+        for view in ("resources", "classic"):
+            with self.subTest(view=view):
+                html = self.out["renders"]["opus/%s/en" % view]["html"]
+                self.assertIn("Opus enabled", html)
+                self.assertIn("ok, opus for 03", html)
+                self.assertIn("measure-run.py", html)
+                self.assertNotIn("Opus enabled", self.out["renders"]["running/%s/en" % view]["html"])
+        self.assertIn("Opus включён", self.out["renders"]["opus/resources/ru"]["html"])
 
     def test_empty_state_says_nothing_yet_instead_of_blank(self):
         for view in [v for v in VIEW_IDS if v != "classic"]:  # classic is the old layout, unchanged

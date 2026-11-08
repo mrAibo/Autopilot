@@ -51,6 +51,8 @@ The rail shows a link only for an anchor (`mission`, `tasks`, `models`, `quality
 
 ## Update an existing project's dashboard
 
+Two optional state fields add to the page: `landedWith` (a landing the user accepted with caveats) turns the header into «Сдано с оговорками» / "Landed with caveats" with the list of `problems`; `opusApproval` adds an «Opus включён» / "Opus enabled" line to the models view with the user's quotes, tickets and roles (more expensive than a Sonnet ticket, not measured; the actual cost is in the report via `measure-run.py`). Without these fields the page is as before.
+
 Projects keep their own copy of the page, so a skill update does not change it. Run:
 
 ```bash
