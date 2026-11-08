@@ -3103,6 +3103,7 @@ class Run(unittest.TestCase):
         code, out = self.ap("opus", "approve", "--roles", "repair", "--by-user", "и ремонт")
         self.assertEqual(code, 0, out)
         self.assertRegex(out, r"(?m)^\s*! .*opusAgents")
+        self.assertNotIn("не назначает", out)                   # Opus-ремонт `ticket F route` теперь назначается
         self.edit_state(opusAgents={"reviewer": "r", "repair": "p"})
         code, out = self.ap("opus", "approve", "--roles", "reviewer", "--by-user", "и ревью")
         self.assertEqual(code, 0, out)
@@ -3385,6 +3386,42 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("инструменты обновлены из навыка: retry_policy.py", out)
         self.assertTrue(read(mine).endswith("# новая версия\n"))
+
+    def test_signed_run_upgrades_only_from_the_skill_dir_pinned_at_init(self):
+        skill = self.fake_skill()
+        code, out = self.ap("init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", skill, "--strict-routing")
+        self.assertEqual(code, 0, out)
+        self.dir = os.path.join(self.a, self.state()["dir"])
+        names = ("ap.py", "gate_sign.py", "claude_agent_guard.py")
+        evil = self.fake_skill()
+        self.bump(evil, *names)
+        before = {n: read(os.path.join(self.a, n)) for n in names if os.path.isfile(os.path.join(self.a, n))}
+        self.edit_state(skillDir=evil)                          # правка state.js подменяет источник
+        code, out = self.ap("stage", "build")
+        self.assertEqual(code, 0, out)
+        self.assertIn("инструменты не обновлены", out)
+        self.assertNotEqual(self.ap("upgrade-tools")[0], 0)
+        for n, text in before.items():
+            self.assertEqual(read(os.path.join(self.a, n)), text, n)
+        self.edit_state(skillDir=skill)                         # зафиксированный init каталог по-прежнему работает
+        self.bump(skill, "retry_policy.py")
+        code, out = self.ap("stage", "build")
+        self.assertEqual(code, 0, out)
+        self.assertIn("инструменты обновлены из навыка: retry_policy.py", out)
+
+    def test_failed_write_in_the_middle_of_an_upgrade_leaves_ap_py_and_modules_untouched(self):
+        skill = self.fake_skill()
+        self.init()
+        self.edit_state(skillDir=skill)
+        self.bump(skill, "ap.py", "model_router.py", "retry_policy.py")
+        os.mkdir(os.path.join(self.a, "retry_policy.py.new"))   # запись retry_policy.py упадёт с OSError
+        names = ("ap.py", "model_router.py", "retry_policy.py")
+        before = {n: read(os.path.join(self.a, n)) for n in names}
+        code, out = self.ap("stage", "build")
+        self.assertEqual(code, 0, out)
+        self.assertIn("инструменты не обновлены", out)
+        for n in names:
+            self.assertEqual(read(os.path.join(self.a, n)), before[n], n)
 
     def test_init_upgrades_the_run_folder_and_replaces_ap_py_at_the_end(self):
         skill = self.fake_skill()

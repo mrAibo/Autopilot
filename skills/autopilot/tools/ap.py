@@ -1069,9 +1069,49 @@ def archive_old_state(old):
 SELF_UPGRADE = []        # новая копия ap.py: подменяется в конце команды (main), а не посреди неё
 
 
+def skill_pin_path():
+    """Куда init кладёт skillDir подписанного прогона: рядом с признаком подписи, вне проекта."""
+    return str(_gs().record_path(ROOT)) + ".skill"
+
+
+def _skill_key(path):
+    return os.path.normcase(os.path.realpath(path))
+
+
+def write_skill_pin(state):
+    """Подписанный прогон: зафиксировать skillDir при init (правка state.js источник не меняет)."""
+    body = {"run": run_id(state), "skillDir": _skill_key(state.get("skillDir") or "")}
+    body["sig"] = _gs().sign(body)
+    try:
+        with open(skill_pin_path(), "w", encoding="utf-8") as stream:
+            json.dump(body, stream)
+    except OSError as exc:
+        die("не удалось записать skillDir прогона: %s" % exc)
+
+
+def skill_dir_trusted(state):
+    """Неподписанный прогон — всегда; подписанный — только если skillDir тот, что был при init."""
+    try:
+        if _gs().run_status(state, ROOT) == "unsigned":
+            return True
+        with open(skill_pin_path(), encoding="utf-8") as stream:
+            pin = json.load(stream)
+        return (isinstance(pin, dict) and _gs().verify({k: v for k, v in pin.items() if k != "sig"}, pin.get("sig"))
+                and pin.get("run") == run_id(state) and pin.get("skillDir") == _skill_key(state.get("skillDir") or ""))
+    except ImportError:  # харнесс без gate_sign подписанных прогонов не ведёт
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+NOT_PINNED = ("skillDir не совпадает с зафиксированным при init (прогон подписан): инструменты из него не копирую; "
+              "верни skillDir или сделай init заново")
+
+
 def upgrade_tools(state, auto=False):
     """Копирует из `skillDir/tools/` в `.autopilot/` отличающиеся `.py`, что там уже есть; ap.py — в конце команды.
-    Возвращает имена. Ручной вызов отказывает, пока таск в работе; auto (init, stage) молча пропускает."""
+    Возвращает имена. Ручной вызов отказывает, пока таск в работе; auto (init, stage) молча пропускает.
+    Подписанный прогон берёт только skillDir, зафиксированный при init; сбой записи не оставляет половину обновления."""
     src = os.path.join(state.get("skillDir") or "", "tools")
     busy = [t["id"] for t in state.get("tickets") or [] if t.get("status") in ACTIVE_EXECUTOR]
     if not state.get("skillDir") or not os.path.isfile(os.path.join(src, "ap.py")) or (
@@ -1083,30 +1123,50 @@ def upgrade_tools(state, auto=False):
         if auto:
             return []
         die("upgrade-tools: таск в работе (%s) — обнови инструменты между тасками" % ", ".join(busy))
-    done = []
-    for name in sorted(os.listdir(src)):
-        old, new = os.path.join(A, name), os.path.join(src, name)
-        if not name.endswith(".py") or not os.path.isfile(old) or not os.path.isfile(new):
-            continue
-        with open(old, "rb") as f1, open(new, "rb") as f2:
-            data = f2.read()
-            if f1.read() == data:
+    if not skill_dir_trusted(state):
+        raise UntrustedSkillDir(NOT_PINNED)
+    todo, tmps = [], []
+    try:
+        for name in sorted(os.listdir(src)):
+            old, new = os.path.join(A, name), os.path.join(src, name)
+            if not name.endswith(".py") or not os.path.isfile(old) or not os.path.isfile(new):
                 continue
-        if name == "ap.py":
-            SELF_UPGRADE.append(data)
-        else:
-            tmp = old + ".new"
-            with open(tmp, "wb") as stream:
-                stream.write(data)
-            os.replace(tmp, old)
-        done.append(name)
-    return done
+            with open(old, "rb") as f1, open(new, "rb") as f2:
+                data = f2.read()
+                if f1.read() == data:
+                    continue
+            if name != "ap.py":
+                tmp = old + ".new"
+                tmps.append(tmp)
+                with open(tmp, "wb") as stream:
+                    stream.write(data)
+            todo.append((name, old, data))
+        for name, old, data in todo:
+            if name == "ap.py":
+                SELF_UPGRADE.append(data)
+            else:
+                os.replace(old + ".new", old)
+    except OSError:
+        SELF_UPGRADE.clear()                  # ap.py и модули не должны разойтись по версиям
+        for tmp in tmps:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
+    return [name for name, _, _ in todo]
+
+
+class UntrustedSkillDir(Exception):
+    pass
 
 
 def upgrade_note(state):
     """Автообновление в init/stage: строка для вывода или []. Сбой записи не валит команду."""
     try:
         done = upgrade_tools(state, auto=True)
+    except UntrustedSkillDir:
+        return ["! инструменты не обновлены: " + NOT_PINNED]
     except OSError as exc:
         return ["! инструменты не обновлены (%s): запусти `ap.py upgrade-tools`" % type(exc).__name__]
     return ["инструменты обновлены из навыка: " + ", ".join(done)] if done else []
@@ -1144,6 +1204,7 @@ def cmd_init(opt):
     if state["gateSigned"]:
         state["gateMark"] = _gs().run_mark(state)
         write_run_record(state)
+        write_skill_pin(state)
     else:
         drop_run_record()
     try:  # версия навыка для шапки дашборда; нечитаемый SKILL.md — просто без неё
@@ -1707,7 +1768,7 @@ def opus_approve(state, opt):
     late = [t["id"] for t in state.get("tickets") or [] if t["id"] in names["tickets"] and t.get("routing")]
     no_agents = ([] if not names["roles"] or isinstance(state.get("opusAgents"), dict) else
                  ["! профилей Opus для ролей нет (opusAgents пуст): они появятся при plan-models --apply, "
-                  "а Claude Code увидит их только в новой сессии; Opus-ремонт `ticket F route` пока не назначает"])
+                  "а Claude Code увидит их только в новой сессии"])
     return (["Opus подтверждён: таски %s; роли %s" % (", ".join(tickets) or "—", ", ".join(roles) or "—")] +
             ["! таск %s уже получил маршрут: Opus на него не перейдёт (подтверждать надо до plan-models --apply)" % i
              for i in late] + no_agents)
@@ -2991,8 +3052,10 @@ def main():
                 die("upgrade-tools: лишние аргументы")
             try:
                 done = upgrade_tools(state)
-            except OSError as exc:
+            except UntrustedSkillDir as exc:
                 die("upgrade-tools: %s" % exc)
+            except OSError as exc:
+                die("upgrade-tools: инструменты не обновлены (%s)" % exc)
             finish_self_upgrade()
             print("обновлено: " + ", ".join(done) if done else "инструменты в .autopilot/ уже совпадают с навыком")
             return                                    # state.js не трогаем
