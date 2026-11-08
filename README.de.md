@@ -18,26 +18,44 @@ Autopilot ist ein Entwicklungs-Framework in Form eines Skills. Er nimmt deine Id
 
 Er funktioniert für sich allein: Du musst nichts weiter installieren.
 
-> **Entwicklungsstand und Übergabe:** [STATUS.md](STATUS.md) hält den gemergten Stand von main, die aktuelle Validierung, ungelöste Blocker und Anweisungen zum Weitermachen fest.
+## Wozu Autopilot
 
-> **Cargo-Testprüfung nach dem Release:** [Vertrauenswürdige Offline-Cargo-Integrationstests](docs/autopilot/trusted-cargo-tests.md) werden auf dem aktuellen Entwicklungsstand `main` für eingeschränkte, eigenständige Rust-Crates ohne Abhängigkeiten unterstützt, mit Test/Manifest/Lock fest an die Basis gebunden, unabhängigem Wiederholungslauf auf dem Host und ohne beliebige Befehle. Das ändert **nicht** den veröffentlichten, rein Python-basierten Tag `v2.3.0` und bedeutet keine Sandbox.
+**Erst die Schienen, dann der Zug.** Autopilot legt die Strecke, bevor die erste Codezeile entsteht: Deine Worte werden zu einer nummerierten Anforderungsliste, dann zu einer Spezifikation, dann zu kleinen Tasks. Erst danach beginnt der Bau. Nichts von dem, was du bestellt hast, geht unterwegs stillschweigend verloren.
 
-> **Git-Vorabprüfung für bestehende Projekte:** Eine [schreibgeschützte Repository-Diagnose](docs/autopilot/repository-preflight.md) erkennt grundlegende Hindernisse für die Git-Isolation, ohne Dateien zu ändern oder Dateinamen preiszugeben. Das ist projektunabhängige Autopilot-Funktionalität.
+- **Große Projekte bleiben beherrschbar.** Die Arbeit wird in kleine Tasks zerlegt. Jeden erledigt ein frischer Agent, der nur seinen Task, den passenden Teil der Spezifikation und die vereinbarten Schnittstellen bekommt. So versinkt ein langer Bau nicht im eigenen Kontext.
+- **Weniger Nacharbeit.** Weil der Plan vor dem Code steht, musst du seltener korrigieren, weder während des Schreibens noch danach. Reviews und eine abschließende Blindprüfung gegen deine ursprünglichen Worte fangen ab, was durchrutscht. „Weniger“ ist das ehrliche Wort: Die Prüfungen schicken selbst manchmal einen Task zur Korrektur zurück.
+- **Schneller zu einem lauffähigen Ergebnis.** Du diktierst einmal und beantwortest nur die Fragen, an denen sich die Idee wirklich verzweigt. Unabhängige Tasks laufen nebeneinander; Spezifikation und Code musst du nicht lesen.
+- **Tokens gehen dorthin, wo sie zählen.** Jeder Task bekommt Modell und Aufwand passend zu seiner Schwierigkeit: ein günstiges Modell für Routine, ein starkes nur dort, wo es sich lohnt. Ein frischer, kurzer Kontext pro Task ist günstiger als eine lange Sitzung, weil jeder Schritt alles Vorherige neu liest. `ap.py budget` deckelt die Ausgaben, `measure-run.py` zeigt, was tatsächlich angefallen ist.
 
-> **Routing nur nach Modell (Änderung nach 2.3):** Wenn ein Host das Modell des benannten Agenten wirklich durchsetzen, aber keinen Effort setzen kann, erlaubt `effort_selection:false` Profile ohne Effort-Feld. Der angezeigte Effort ist nur ein Hinweis. Die Prüfungen von Modell, Name und Host bleiben Pflicht; die native Agentenunterstützung der Codex-GUI wird durch diese Änderung **nicht** freigeschaltet. Siehe [Modell-Routing](docs/autopilot/model-routing.md).
+Was **nicht** behauptet wird: Eine gemessene Zahl „X % weniger Tokens“ gibt es nicht. Die zusätzlichen Review-Stufen kosten ebenfalls Tokens. Was gemessen ist und was nicht, steht in [measuring-cost.md](docs/autopilot/measuring-cost.md).
 
-> **Automatische Modellwahl bei der Planung:** `ap.py plan-models` wählt Modell und Reasoning Effort **pro Ticket** nach Komplexität und Risiko. `--apply` registriert alle Profile nur bei vom Host unterstützten Fähigkeiten. Siehe [adaptives Routing](docs/autopilot/model-routing.md). Das belegt nicht die tatsächliche Ausführung in der GUI.
+### Schnellstart
 
-> **Sicherer sequenzieller Fallback:** Der [hostverifizierte Ein-Ticket-Modus](docs/autopilot/sequential-host.md) nutzt echte Git-Worktrees und unabhängige Tests, wenn benannte GUI-Subagenten nicht verfügbar sind. Das verifiziert weder das aktuelle GUI-Modell/den Effort noch die Token-Abrechnung. Hat Codex einen noch nicht gestarteten Lauf wegen der Subagenten-Prüfung angehalten, schaltet `py -3 .autopilot/ap.py execution sequential-host --no-serve` ihn ohne `init` um. Nötig ist eine verifizierte Git-Basis; die veröffentlichte 2.3.0 akzeptiert Python unittest, spätere Entwicklung brachte einen begrenzten Cargo-Testadapter.
+1. **Installieren** und den Agenten neu starten (Skills werden beim Start geladen): `npx skills add mrAibo/Autopilot`. Details und eine Variante ohne Terminal: [Installation](#installation).
+2. **Beschreiben**: `/autopilot Ich möchte einen Telegram-Bot, der Reparaturanfragen annimmt`, bei einer großen Idee `/autopilot brief.md`. Je mehr du erzählst, desto weniger wird geraten.
+3. **Bauen**: In Claude Code hält Autopilot nach dem Plan an; öffne einen **neuen Chat** im selben Ordner und tippe `/autopilot` (der Grund steht in [So benutzt du es](#so-benutzt-du-es)). Codex läuft in einem Durchgang.
 
-> **Release-Qualifikation:** [R01–R06-Nachweise und der abgegrenzte Support in 2.3.0](docs/autopilot/release-readiness.md) — der sequenzielle Host-Modus von Codex ist veröffentlicht; native benannte GUI-Agenten und Modellerzwingung sind weiterhin nicht verifiziert; das strikte Routing von Claude Code ist in 2.4.0 stabil (Desktop-App und Terminal-CLI).
+### Ohne und mit Autopilot
 
-> **Autopilot 2.3.0 — eingeschränkter Codex-Release.** Unterstützter Ablauf: expliziter [sequenzieller Host-Modus](docs/autopilot/sequential-host.md) mit jeweils einem Git-isolierten Ticket und unabhängiger Verifikation per Python-unittest auf dem Host. **Nicht enthalten:** garantierte native benannte Subagenten der Codex-GUI, erzwungenes GUI-Modell/Effort, verifizierte Abo-Abrechnung oder automatische CLI-/API-Inferenz. Siehe [Release-Umfang](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md) und [brief.md](brief.md).
+| | Ohne | Mit Autopilot |
+|---|---|---|
+| Deine Anforderungen | Schrumpfen unterwegs still | Wörtlich nummeriert; nur du kannst eine streichen |
+| Lücken in der Beschreibung | Du findest sie nach dem Bau | Für dich durchdacht, so tief wie eingestellt |
+| Kontext | Ein langer Chat liest alles neu | Ein frischer Agent und ein Commit pro Task |
+| Prüfung | Du liest den Code | Blindabnahme gegen deine eigenen Worte |
+| Nächste Sitzung | Der Agent lernt das Projekt neu | `AGENTS.md` entsteht vor der ersten Codezeile |
+| Abgebrochener Chat | Von vorn anfangen | `/autopilot` macht anhand der Dateien weiter |
+| Deine Rolle | Manager von Agenten | Auftraggeber |
 
-> **Autopilot 2.4.0 — Claude Code.** Claude Code mit Abonnement wird im strikten Routing-Modus unterstützt und wurde live in der Desktop-App und in der Terminal-CLI (headless `claude -p`) qualifiziert: siehe [claude-code.md](docs/autopilot/claude-code.md) und die [Qualifikationsergebnisse](docs/autopilot/claude-qualification.md). Bekannte Grenzen:
-> - parallele Tickets sind nur mit `--isolated-tickets` (Autopilot-eigene Worktrees) live getestet; in einem gemeinsamen Baum führe sie einzeln aus;
-> - nutze `/subtask` und `/fork` nicht während strikter Tickets;
-> - ein eigener `ANTHROPIC_BASE_URL`-/`ANTHROPIC_MODEL`-Router ändert, was läuft und was die Attestierung sieht.
+### Was du bekommst
+
+- [Anforderungen gehen nicht verloren, Lücken werden durchdacht](#zwei-dinge-die-autopilot-anders-macht)
+- [Vier Modi und ein Tiefenregler](#vier-modi): wie viel du gefragt wirst und wie viel für dich durchdacht wird
+- [Ein Dashboard, das sich selbst öffnet](#der-fortschritt-ist-immer-sichtbar)
+- [Ein Projekt, das sich selbst erinnert](#das-projekt-erinnert-sich-selbst)
+- [Ein vorhandenes Projekt fortsetzen oder prüfen](#ein-vorhandenes-projekt-weiterentwickeln) und [nach einem Abbruch fortsetzen](#fortsetzen-wenn-ein-agent-oder-chat-unterbrochen-wurde)
+- [Schlüssel werden nie verlangt](#schlüssel-passwörter-und-zugänge), du nennst sie nur
+- [Kostenkontrolle](#sparsamer-arbeiten)
 
 <p align="center">
   <a href="assets/dashboard-31-desktop.png"><img src="assets/dashboard-31-desktop.png" width="650" alt="Dashboard 3.1, Desktop-Layout mit synthetischen Daten"></a>
@@ -66,6 +84,31 @@ Reine Forschungs-API-Piloten und zusätzliche Supervisoren sind **nicht nötig**
 [Host-Werkzeuge](docs/autopilot/controller.md).
 
 Gemessene Ergebnisse für 2.2 gegenüber 2.3 findest du im [reproduzierbaren Offline-Benchmark R06](docs/autopilot/r06-offline-benchmark.md). Er misst reine Host-Git-/CLI-Prüfungen ohne Modellaufrufe. **Einsparungen bei KI-Tokens zwischen 2.2 und 2.3 sind nicht belegt**; was das Modell der Hauptsitzung und das Ticket-Routing sparen, ist in [measuring-cost.md](docs/autopilot/measuring-cost.md) gemessen.
+
+## Stand und Grenzen
+
+Alles Folgende sind Release-Stand und bekannte Grenzen; danach kommt die Installation.
+
+> **Entwicklungsstand und Übergabe:** [STATUS.md](STATUS.md) hält den gemergten Stand von main, die aktuelle Validierung, ungelöste Blocker und Anweisungen zum Weitermachen fest.
+
+> **Cargo-Testprüfung nach dem Release:** [Vertrauenswürdige Offline-Cargo-Integrationstests](docs/autopilot/trusted-cargo-tests.md) werden auf dem aktuellen Entwicklungsstand `main` für eingeschränkte, eigenständige Rust-Crates ohne Abhängigkeiten unterstützt, mit Test/Manifest/Lock fest an die Basis gebunden, unabhängigem Wiederholungslauf auf dem Host und ohne beliebige Befehle. Das ändert **nicht** den veröffentlichten, rein Python-basierten Tag `v2.3.0` und bedeutet keine Sandbox.
+
+> **Git-Vorabprüfung für bestehende Projekte:** Eine [schreibgeschützte Repository-Diagnose](docs/autopilot/repository-preflight.md) erkennt grundlegende Hindernisse für die Git-Isolation, ohne Dateien zu ändern oder Dateinamen preiszugeben. Das ist projektunabhängige Autopilot-Funktionalität.
+
+> **Routing nur nach Modell (Änderung nach 2.3):** Wenn ein Host das Modell des benannten Agenten wirklich durchsetzen, aber keinen Effort setzen kann, erlaubt `effort_selection:false` Profile ohne Effort-Feld. Der angezeigte Effort ist nur ein Hinweis. Die Prüfungen von Modell, Name und Host bleiben Pflicht; die native Agentenunterstützung der Codex-GUI wird durch diese Änderung **nicht** freigeschaltet. Siehe [Modell-Routing](docs/autopilot/model-routing.md).
+
+> **Automatische Modellwahl bei der Planung:** `ap.py plan-models` wählt Modell und Reasoning Effort **pro Ticket** nach Komplexität und Risiko. `--apply` registriert alle Profile nur bei vom Host unterstützten Fähigkeiten. Siehe [adaptives Routing](docs/autopilot/model-routing.md). Das belegt nicht die tatsächliche Ausführung in der GUI.
+
+> **Sicherer sequenzieller Fallback:** Der [hostverifizierte Ein-Ticket-Modus](docs/autopilot/sequential-host.md) nutzt echte Git-Worktrees und unabhängige Tests, wenn benannte GUI-Subagenten nicht verfügbar sind. Das verifiziert weder das aktuelle GUI-Modell/den Effort noch die Token-Abrechnung. Hat Codex einen noch nicht gestarteten Lauf wegen der Subagenten-Prüfung angehalten, schaltet `py -3 .autopilot/ap.py execution sequential-host --no-serve` ihn ohne `init` um. Nötig ist eine verifizierte Git-Basis; die veröffentlichte 2.3.0 akzeptiert Python unittest, spätere Entwicklung brachte einen begrenzten Cargo-Testadapter.
+
+> **Release-Qualifikation:** [R01–R06-Nachweise und der abgegrenzte Support in 2.3.0](docs/autopilot/release-readiness.md) — der sequenzielle Host-Modus von Codex ist veröffentlicht; native benannte GUI-Agenten und Modellerzwingung sind weiterhin nicht verifiziert; das strikte Routing von Claude Code ist in 2.4.0 stabil (Desktop-App und Terminal-CLI).
+
+> **Autopilot 2.3.0 — eingeschränkter Codex-Release.** Unterstützter Ablauf: expliziter [sequenzieller Host-Modus](docs/autopilot/sequential-host.md) mit jeweils einem Git-isolierten Ticket und unabhängiger Verifikation per Python-unittest auf dem Host. **Nicht enthalten:** garantierte native benannte Subagenten der Codex-GUI, erzwungenes GUI-Modell/Effort, verifizierte Abo-Abrechnung oder automatische CLI-/API-Inferenz. Siehe [Release-Umfang](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md) und [brief.md](brief.md).
+
+> **Autopilot 2.4.0 — Claude Code.** Claude Code mit Abonnement wird im strikten Routing-Modus unterstützt und wurde live in der Desktop-App und in der Terminal-CLI (headless `claude -p`) qualifiziert: siehe [claude-code.md](docs/autopilot/claude-code.md) und die [Qualifikationsergebnisse](docs/autopilot/claude-qualification.md). Bekannte Grenzen:
+> - parallele Tickets sind nur mit `--isolated-tickets` (Autopilot-eigene Worktrees) live getestet; in einem gemeinsamen Baum führe sie einzeln aus;
+> - nutze `/subtask` und `/fork` nicht während strikter Tickets;
+> - ein eigener `ANTHROPIC_BASE_URL`-/`ANTHROPIC_MODEL`-Router ändert, was läuft und was die Attestierung sieht.
 
 ## Installation
 
