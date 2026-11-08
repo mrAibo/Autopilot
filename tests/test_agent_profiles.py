@@ -199,9 +199,40 @@ class ProfileTests(unittest.TestCase):
                 "anthropic": {"cheap": {"model": "fable", "effort": "low"}}
             }
         }), encoding="utf-8")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # no premium flag: no user approval of Opus
+            agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps, "executor",
+                                   policy=policy, scores=self.easy(), install=True, premium=False)
+        with self.assertRaises(ValueError):  # the same without passing the flag at all
             agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,
                                    "executor", policy=policy, scores=self.easy(), install=True)
+
+    def test_premium_flag_pins_an_opus_profile_and_without_it_none_is_created(self):
+        self.capabilities("anthropic", "opus", "high")
+        scores = dict(self.easy(), risk=10)
+        with self.assertRaises(agent_profiles.ProfileError):  # no flag: the route is sonnet, host has only opus
+            agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,
+                                   "executor", scores=scores, install=True, premium=False)
+        self.assertFalse((self.root / ".claude").exists())
+        result = agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps,
+                                        "executor", scores=scores, install=True, premium=True)
+        self.assertEqual((result["model"], result["effort"], result["action"]), ("opus", "high", "created"))
+        text = (self.root / result["agent_file"]).read_text(encoding="utf-8")
+        self.assertIn("model: opus\n", text)
+        self.assertIn("effort: high\n", text)
+
+    def test_premium_flag_does_not_open_fable_or_change_openai(self):
+        self.capabilities("anthropic", "fable", "high")
+        policy = self.root / "policy.json"
+        policy.write_text(json.dumps({"providers": {
+            "anthropic": {"premium": {"model": "fable", "effort": "high"}}}}), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            agent_profiles.prepare(self.root, self.ticket, "anthropic", self.caps, "executor",
+                                   policy=policy, scores=self.easy(), install=True, premium=True)
+        self.capabilities("openai", "gpt-6-luna", "low")
+        result = agent_profiles.prepare(self.root, self.ticket, "openai", self.caps,
+                                        "executor", scores=self.easy(), premium=True)
+        self.assertEqual(result["model"], "gpt-6-luna")
+        self.assertFalse((self.root / ".claude").exists())
 
     def test_security_sensitive_routes_to_stronger_model(self):
         self.capabilities("anthropic", "sonnet", "high")

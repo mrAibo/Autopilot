@@ -15,7 +15,36 @@ import sys
 
 import gate_sign
 import state_io
-from model_router import is_allowed_subagent_model
+from model_router import is_allowed_subagent_model, is_opus_model
+
+
+def opus_approved(state, name):
+    """True when the user's signed opusApproval covers agent `name`, else False.
+
+    Covers an executor whose every route belongs to an approved ticket, the run's opus
+    reviewer (role `reviewer`) or opus repair executor (role `repair`). The signature is
+    checked with gate_sign.verify: a run without a key never has a valid approval.
+    """
+    approval = state.get("opusApproval")
+    if not isinstance(approval, dict):
+        return False
+    tickets, roles = approval.get("tickets"), approval.get("roles")
+    if not isinstance(tickets, list) or not isinstance(roles, list):
+        return False
+    if not gate_sign.verify({"tickets": tickets, "roles": roles}, approval.get("sig")):
+        return False
+    agents = state.get("opusAgents")  # not signed: the role must also fit the agent kind
+    if isinstance(agents, dict) and any(
+            role in roles and agents.get(role) == name and name.startswith(prefix)
+            for role, prefix in (("reviewer", "autopilot-reviewer-"), ("repair", "autopilot-executor-"))):
+        return True
+    if not name.startswith("autopilot-executor-"):
+        return False
+    # Every ticket that routes to this profile must be approved, not just one of them:
+    # the later route match could otherwise settle on an unapproved sibling.
+    ids = [t.get("id") for t in state.get("tickets", []) if isinstance(t, dict)
+           and isinstance(t.get("routing"), dict) and t["routing"].get("agentType") == name]
+    return bool(ids) and all(i in tickets for i in ids)
 
 
 def read_state(root):
@@ -273,7 +302,8 @@ def decision(payload, root):
     model, effort = fields.get("model"), fields.get("effort")
     if not model or model == "inherit":
         return False, "Agent model must be pinned"
-    if not is_allowed_subagent_model(model):
+    if not is_allowed_subagent_model(
+            model, premium_ok=is_opus_model(model) and opus_approved(state, name)):
         return False, "Premium or non-allowlisted subagent models are blocked by strict policy"
     # Claude Code resolves these variables after reading the profile.
     # In particular a forced model can silently ignore a pinned profile,

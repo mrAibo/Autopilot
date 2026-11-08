@@ -38,6 +38,9 @@ DEFAULT_POLICY = {
             "balanced": {"model": "sonnet", "effort": "medium"},
             "strong": {"model": "sonnet", "effort": "high"},
             "critical": {"model": "sonnet", "effort": "xhigh"},
+            # Exceptional tier, never picked by assess_scores: only choose_route(premium=True),
+            # which the caller may set only after the user's signed Opus approval.
+            "premium": {"model": "opus", "effort": "high"},
         },
     },
 }
@@ -52,6 +55,9 @@ PREMIUM_FAMILIES = ("opus", "fable")
 # haiku / sonnet, optionally claude-, a leading 3-5 / 3 and trailing version or date.
 ALLOWED_SUBAGENT_RE = re.compile(
     r"(claude-)?(\d+([.-]\d+)*-)?(haiku|sonnet)(-\d+([.-]\d+)*)?(\[\w+\])?")
+# Same shape for opus (plus the `-latest` alias); only reachable through premium_ok / premium.
+OPUS_RE = re.compile(
+    r"(claude-)?(\d+([.-]\d+)*-)?opus(-\d+([.-]\d+)*)?(-latest)?(\[\w+\])?")
 
 
 def normalize_model_name(name):
@@ -72,20 +78,37 @@ def is_premium_model(name):
     return any(f in raw or f in normalize_model_name(name) for f in PREMIUM_FAMILIES)
 
 
-def is_allowed_subagent_model(name, policy=None):
+def is_opus_model(name):
+    """True for the opus family in any spelling (bedrock prefixes, `@date`, `[1m]`).
+
+    Fable never counts, even hidden elsewhere in the raw name; hybrids such as
+    `opusplan` and names that show a different family after a `/` are not opus.
+    """
+    if not isinstance(name, str):
+        return False
+    raw = name.casefold()
+    if any(f in raw for f in PREMIUM_FAMILIES if f != "opus"):
+        return False
+    return OPUS_RE.fullmatch(normalize_model_name(name)) is not None
+
+
+def is_allowed_subagent_model(name, policy=None, *, premium_ok=False):
     """True only for haiku/sonnet families that no policy list restricts.
 
-    Opus, fable and everything unrecognized are refused in any spelling.
+    Opus, fable and everything unrecognized are refused in any spelling, except that
+    `premium_ok=True` (the caller holds the user's verified Opus approval) also admits
+    opus. Fable is refused whatever the flag says. `policy` stays the second argument.
     """
     if not isinstance(name, str) or not name.strip():
         return False
     normalized = normalize_model_name(name)
-    if is_premium_model(name):
+    opus = premium_ok is True and is_opus_model(name)
+    if is_premium_model(name) and not opus:
         return False
     denied = [m.casefold() for m in (policy or DEFAULT_POLICY).get("restricted", {}).get("anthropic", [])]
     if name.strip().casefold() in denied or normalized in denied:
         return False
-    return ALLOWED_SUBAGENT_RE.fullmatch(normalized) is not None
+    return opus or ALLOWED_SUBAGENT_RE.fullmatch(normalized) is not None
 
 
 def load_json(path):
@@ -208,9 +231,28 @@ def assess_ticket(text):
     }
 
 
-def choose_route(provider, scores, policy=None, capabilities=None):
+def premium_candidate(route_or_scores):
+    """True when a ticket may be offered the Opus tier: risk >= 10 or a critical profile.
+
+    Takes a route from choose_route (reads `profile` and `factors`) or a plain scores dict.
+    Only a proposal for the user; it never selects Opus by itself.
+    """
+    if not isinstance(route_or_scores, dict):
+        return False
+    if route_or_scores.get("profile") == "critical":
+        return True
+    scores = route_or_scores.get("factors", route_or_scores)
+    risk = scores.get("risk") if isinstance(scores, dict) else None
+    return type(risk) is int and risk >= 10
+
+
+def choose_route(provider, scores, policy=None, capabilities=None, premium=False):
+    """Pick model and effort. `premium=True` (anthropic only) uses the opus tier instead of
+    the scored one; the caller sets it only for a ticket the user approved. Fable and Astra
+    stay closed, and without the flag the result is what it always was."""
     policy = policy or DEFAULT_POLICY
     score, profile = assess_scores(scores)
+    use_premium = premium is True and provider == "anthropic"
     if not isinstance(policy, dict) or not isinstance(policy.get("providers"), dict):
         raise PolicyError("policy providers must be a mapping")
     if provider not in DEFAULT_POLICY["providers"] or provider not in policy["providers"]:
@@ -218,9 +260,10 @@ def choose_route(provider, scores, policy=None, capabilities=None):
     provider_profiles = policy["providers"][provider]
     if not isinstance(provider_profiles, dict):
         raise PolicyError("provider profiles must be a mapping")
-    assignment = provider_profiles.get(profile)
+    tier = "premium" if use_premium else profile
+    assignment = provider_profiles.get(tier)
     if not isinstance(assignment, dict):
-        raise PolicyError("missing profile %s for %s" % (profile, provider))
+        raise PolicyError("missing profile %s for %s" % (tier, provider))
     model, effort = assignment.get("model"), assignment.get("effort")
     if not isinstance(model, str) or not model or model != model.strip():
         raise PolicyError("profile model must be an exact nonempty name")
@@ -239,7 +282,8 @@ def choose_route(provider, scores, policy=None, capabilities=None):
     denied += [m.casefold() for m in denied_names]
     restricted = (model.lower() in denied or
                   (provider == "openai" and model.lower().startswith("gpt-6-astra")) or
-                  (provider == "anthropic" and is_premium_model(model)))
+                  (provider == "anthropic" and is_premium_model(model) and
+                   not (use_premium and is_opus_model(model))))
     if restricted and policy.get("allow_restricted_subagents") is not True:
         raise PolicyError("restricted model %s may not run as a subagent" % model)
     parallel = policy.get("max_parallel", 2)
@@ -247,6 +291,8 @@ def choose_route(provider, scores, policy=None, capabilities=None):
         raise PolicyError("max_parallel must be between 1 and 3")
     reason = ("score=%d; profile=%s; high-risk=%s" %
               (score, profile, scores["risk"] >= 8))
+    if use_premium:
+        reason += "; premium tier"
     route = {"provider": provider, "model": model, "effort": effort,
              "profile": profile, "score": score, "factors": scores,
              "reason": reason, "max_parallel": parallel,

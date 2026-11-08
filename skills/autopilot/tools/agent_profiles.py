@@ -111,7 +111,9 @@ def definition(provider, name, role, route, ticket, text=""):
     raise ProfileError("Unknown provider")
 
 
-def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None, install=False):
+def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None, install=False,
+            premium=False):
+    """`premium=True` pins the opus profile; the caller passes it only under the user's Opus approval."""
     root = Path(root).resolve()
     ticket = Path(ticket).resolve()
     if not root.is_dir() or not ticket.is_file() or not within(ticket, root):
@@ -126,6 +128,7 @@ def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None
         scores if scores is not None else model_router.assess_ticket(text),
         model_router.load_policy(policy),
         model_router.load_json(capabilities),
+        premium=premium,
     )
     if result["status"] != "ready":
         raise ProfileError("Route blocked: " + result.get("error", "unavailable"))
