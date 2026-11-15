@@ -786,10 +786,12 @@ def write_snapshot(state):
         page = open(PAGE, encoding="utf-8").read()
     except FileNotFoundError:
         return "страницы нет — перекопируй dashboard.html из навыка"
-    i, j = page.find(BEGIN), page.find(END)
+    i, j = page.find(BEGIN), page.rfind(END)      # END один в шаблоне; rfind лечит старые снимки с сырым END внутри
     if i < 0 or j < 0:
         return "страница без маркеров снимка — перекопируй dashboard.html из навыка"
-    payload = "window.STATE=" + json.dumps(state, ensure_ascii=False).replace("</", "<\\/") + ";"
+    # `*\/` в JSON — тот же `*/`, но маркер снимка не закрывает
+    payload = ("window.STATE=" + json.dumps(state, ensure_ascii=False).replace("</", "<\\/").replace("*/", "*\\/")
+               + ";")
     new = page[: i + len(BEGIN)] + payload + page[j:]
     if new != page:
         tmp = PAGE + ".tmp"
@@ -986,7 +988,8 @@ def make_server(directory, port, token):
                     and hmac.compare_digest(given.encode(), token.encode()))
 
         def tokenless_page(self):
-            """Страница без верного токена — тело с `window.STATE=null`; None, если отдавать как есть."""
+            """Открытая страница без верного токена: тело с `window.STATE=null`; b"" — подмена не удалась
+            (файл не отдаём, будет 403); None — иная страница или токен верный, отдаём как есть."""
             url = urllib.parse.urlsplit(self.path)
             path = urllib.parse.unquote(url.path)
             if path not in OPEN_PAGES:
@@ -998,10 +1001,10 @@ def make_server(directory, port, token):
                 with open(self.translate_path("/index.html" if path == "/" else path), "rb") as f:
                     page = f.read().decode("utf-8")
             except (OSError, UnicodeDecodeError):
-                return None
-            i, j = page.find(BEGIN), page.find(END)
+                return b""
+            i, j = page.find(BEGIN), page.rfind(END)
             if i < 0 or j < i:
-                return None
+                return b""
             page = page[: i + len(BEGIN)] + "window.STATE=null;" + page[j:]
             # без токена state.js всё равно 403: тег убираем, чтобы в консоли не было лишней ошибки
             return page.replace('<script src="state.js"></script>', "").encode("utf-8")
@@ -1012,14 +1015,23 @@ def make_server(directory, port, token):
             body = self.tokenless_page()
             if body is None:
                 return super().do_GET()
+            self.send_page(body)
+
+        def send_page(self, body, head=False):
+            if not body:
+                return self.send_error(403)
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(body)
+            if not head:
+                self.wfile.write(body)
 
         def do_HEAD(self):
-            super().do_HEAD() if self.allowed() else self.send_error(403)
+            if not self.allowed():
+                return self.send_error(403)
+            body = self.tokenless_page()
+            return super().do_HEAD() if body is None else self.send_page(body, head=True)
 
         def list_directory(self, path):
             self.send_error(403)                      # состав каталога не показываем
@@ -1385,7 +1397,15 @@ def refresh_dashboard(state):
         with open(template, encoding="utf-8") as f, open(PAGE, encoding="utf-8") as g:
             if bare(f.read()) == bare(g.read()):
                 return ""
-        import dashboard_upgrade
+        try:
+            import dashboard_upgrade
+        except ImportError:                       # upgrade_tools копирует только уже существующие файлы
+            if not skill_dir_trusted(state):
+                return "! дашборд не обновлён из шаблона: " + NOT_PINNED
+            spec = importlib.util.spec_from_file_location(
+                "dashboard_upgrade", os.path.join(state["skillDir"], "tools", "dashboard_upgrade.py"))
+            dashboard_upgrade = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(dashboard_upgrade)
         done = dashboard_upgrade.upgrade(ROOT, template)
     except (OSError, ImportError, ValueError) as exc:         # UpgradeError — это ValueError
         return "! дашборд не обновлён из шаблона (%s)" % type(exc).__name__
