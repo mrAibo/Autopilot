@@ -20,11 +20,15 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 7 минут (<!-- tests:count -->865<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 8 минут (<!-- tests:count -->865<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
+- Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token`; адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
+- Файлы тасков искать только через `ticket_files(state, pattern)` в `ap.py` (там `glob.escape`): прямой glob по пути проекта ломается на `[`.
+- Этап хранит `segments: [{startedAt, finishedAt|null}]`; минуты — сумма отрезков, нет `segments` — старый расчёт (`docs/adr/0006`).
+- Класс таска — `**Класс:** механический|обычный|сложный` в файле таска; роутер ниже расчёта по зоне его не опускает; профиль `cheap` разделён на `cheap_read` (haiku/low) и `cheap_code` (haiku/high); как старое имя `cheap` ведёт себя в сохранённых маршрутах, не проверено (`docs/adr/0002`, `0003`).
 - Тесты, копирующие `ap.py` в харнесс, копируют и `state_io.py`, и `process_containment.py`.
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
-- Ключ подписи гейтов — `~/.autopilot/gate.key` (или `$AUTOPILOT_HOME`), запись «прогон начат подписанным» — `$AUTOPILOT_HOME/runs/`; в strict-прогоне `.autopilot/*.py` закрыты от Write/Edit.
+- Ключ подписи гейтов — `~/.autopilot/gate.key` (или `$AUTOPILOT_HOME`), запись «прогон начат подписанным» — `$AUTOPILOT_HOME/runs/`; в strict-прогоне `.autopilot/*.py` закрыты от Write/Edit. На Windows `gate.key` хранит блок `dpapi:` (читать и писать только через `gate_sign.py`; старый открытый файл переписывается защищённым); на остальных ОС — файл. `bash_gate` запрещает субагенту запись, удаление, копирование и перенос в `.autopilot/`, `~/.autopilot/`, `.claude/agents/`; принятые пробелы: `>|`, `case…esac`, `find -exec sh -c`, `perl -pi`, heredoc, подстановки `$(...)`.
 - Допустимые модели субагентов задаёт `model_router.is_allowed_subagent_model(name, premium_ok=…)`; Opus допускается только при подписанном подтверждении пользователя, Fable не проходит никогда.
 - Подтверждение Opus — поле `opusApproval` в `state.js` (подпись `sig`); пишется только `ap.py opus approve --tickets 03,05 --roles repair,reviewer --by-user "<слова пользователя>"`, `opus propose` лишь печатает. Подписи (`sig`, `agentsSig`) привязаны к прогону (`run = slug|startedAt`), guard сверяет обе; Opus-ремонтник назначается `ticket F<n> route` при подтверждённой роли `repair` и допускается только на fix-таск в работе; профили зовут по `ap.py agent-for reviewer|repair`.
 - Упавший таск возвращается только `ticket NN reset --by-user "<цитата>"` (на не упавшем счётчики не обнуляются); сдача с отказами — `finish --by-user`, жёсткие причины (блокер, подпись) цитатой не снимаются; `git-check` смотрит git из cwd.
