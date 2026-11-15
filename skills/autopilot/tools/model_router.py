@@ -269,7 +269,8 @@ def assess_ticket(text):
     klass = CLASS_RE.search(text)
     klass = klass.group(1).casefold().strip(".,;") if klass else ""
     if klass in ("механический", "mechanical"):
-        scores.update(MECHANICAL)
+        # never below what the zone and text already scored
+        scores.update({k: max(scores[k], v) for k, v in MECHANICAL.items()})
     elif klass in ("сложный", "complex"):
         scores["algorithm"] = max(scores["algorithm"], 20)
     return scores

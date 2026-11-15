@@ -68,6 +68,13 @@ class TicketClassTests(unittest.TestCase):
         self.assertEqual(scores["risk"], 10)
         self.assertEqual(router.assess_scores(scores)[1], "strong")
 
+    def test_mechanical_class_never_lowers_computed_scores(self):
+        body = "Алгоритм обхода, уточнить детали."
+        plain = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body))
+        mech = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body, "механический"))
+        self.assertTrue(all(mech[k] >= plain[k] for k in plain))
+        self.assertNotEqual(router.assess_scores(mech)[1], "cheap")
+
     def test_ordinary_and_missing_class_equal_old_behavior(self):
         plain = router.assess_ticket(ticket(["src/app.py"], "Правка."))
         self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Правка.", "обычный")), plain)
