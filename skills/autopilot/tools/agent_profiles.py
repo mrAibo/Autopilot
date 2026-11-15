@@ -123,10 +123,14 @@ def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None
     if provider not in ("openai", "anthropic"):
         raise ProfileError("Unsupported provider")
     text = ticket.read_text(encoding="utf-8")
+    loaded = model_router.load_policy(policy)
+    tiers = loaded["providers"][provider]
+    if role == "explorer":  # a scout reads: even a mechanical ticket gets the cheap_read profile
+        tiers["cheap_code"] = tiers["cheap_read"]
     result = model_router.choose_route(
         provider,
         scores if scores is not None else model_router.assess_ticket(text),
-        model_router.load_policy(policy),
+        loaded,
         model_router.load_json(capabilities),
         premium=premium,
     )

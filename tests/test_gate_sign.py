@@ -1,5 +1,7 @@
 """gate_sign: HMAC key and signatures, key location via AUTOPILOT_HOME."""
+import contextlib
 import hashlib
+import io
 import os
 from pathlib import Path
 import sys
@@ -32,17 +34,19 @@ class GateSignTests(unittest.TestCase):
 
     def test_ensure_key_creates_once_with_private_mode(self):
         path = gate_sign.ensure_key()
-        first = path.read_bytes()
+        first = gate_sign.load_key()
         self.assertEqual(len(first), 32)
-        self.assertEqual(gate_sign.ensure_key().read_bytes(), first)
+        self.assertEqual(gate_sign.load_key(), first)
+        gate_sign.ensure_key()
+        self.assertEqual(gate_sign.load_key(), first)
         if os.name == "posix":
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
     def test_empty_key_file_counts_as_missing_and_is_recreated(self):
         (self.home / "gate.key").write_bytes(b"")
         self.assertIsNone(gate_sign.load_key())
-        self.assertEqual(len(gate_sign.ensure_key().read_bytes()), 32)
-        self.assertIsNotNone(gate_sign.load_key())
+        gate_sign.ensure_key()
+        self.assertEqual(len(gate_sign.load_key()), 32)
 
     def test_run_mark_covers_slug_and_start_but_not_the_renamed_dir(self):
         gate_sign.ensure_key()
@@ -66,6 +70,45 @@ class GateSignTests(unittest.TestCase):
         sig = gate_sign.sign({"a": 1})
         (self.home / "gate.key").write_bytes(b"another key")
         self.assertFalse(gate_sign.verify({"a": 1}, sig))
+
+
+@unittest.skipUnless(os.name == "nt", "DPAPI exists only on Windows")
+class DpapiKeyTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        patcher = mock.patch.dict(os.environ, {"AUTOPILOT_HOME": tmp.name})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.path = Path(tmp.name) / "gate.key"
+
+    def test_new_key_is_a_dpapi_block_that_reads_back_as_32_bytes(self):
+        gate_sign.ensure_key()
+        self.assertTrue(self.path.read_bytes().startswith(b"dpapi:"))
+        key = gate_sign.load_key()
+        self.assertEqual(len(key), 32)
+        self.assertNotIn(key, self.path.read_bytes())          # the plain bytes are not in the file
+        self.assertTrue(gate_sign.verify({"a": 1}, gate_sign.sign({"a": 1})))
+
+    def test_old_plain_key_is_read_and_rewritten_by_ensure_key_with_the_same_bytes(self):
+        plain = bytes(range(32))
+        self.path.write_bytes(plain)
+        self.assertEqual(gate_sign.load_key(), plain)           # a read alone never rewrites
+        self.assertEqual(self.path.read_bytes(), plain)
+        gate_sign.ensure_key()
+        self.assertTrue(self.path.read_bytes().startswith(b"dpapi:"))
+        self.assertEqual(gate_sign.load_key(), plain)           # signatures of old gates stay valid
+
+    def test_dpapi_failure_keeps_the_plain_file_and_warns_once(self):
+        gate_sign._warned = False
+        err = io.StringIO()
+        with mock.patch.object(gate_sign, "_dpapi", side_effect=OSError("no dpapi")), \
+                contextlib.redirect_stderr(err):
+            gate_sign.ensure_key()
+            gate_sign._protected(b"x" * 32)
+        self.assertEqual(len(self.path.read_bytes()), 32)
+        self.assertEqual(len(gate_sign.load_key()), 32)
+        self.assertEqual(len(err.getvalue().strip().splitlines()), 1)
 
 
 class RunRecordTests(unittest.TestCase):
@@ -96,6 +139,24 @@ class RunRecordTests(unittest.TestCase):
         # A key made for another project must not stop an old unsigned run here.
         self.assertEqual(self.status(gateMark=None), "unsigned")
         self.assertEqual(self.status(), "unsigned")  # moved or renamed project: lookup by hash misses
+
+    def test_crash_between_write_and_replace_leaves_the_old_record_whole(self):
+        gate_sign.write_run_record(self.root, self.state)
+        path = gate_sign.record_path(self.root)
+        before = path.read_text(encoding="utf-8")
+        with mock.patch.object(gate_sign.state_io, "replace_with_retry", side_effect=OSError("crash")):
+            with self.assertRaises(OSError):
+                gate_sign.write_run_record(self.root, dict(self.state, finishedAt="2026-11-03"))
+        self.assertEqual(path.read_text(encoding="utf-8"), before)
+        self.assertEqual([p.name for p in path.parent.iterdir()], [path.name])   # no stray temp file
+        self.assertEqual(self.status(), "signed")
+
+    def test_crash_on_the_first_write_leaves_no_record_at_all(self):
+        with mock.patch.object(gate_sign.state_io, "replace_with_retry", side_effect=OSError("crash")):
+            with self.assertRaises(OSError):
+                gate_sign.write_run_record(self.root, self.state)
+        self.assertFalse(gate_sign.record_path(self.root).exists())
+        self.assertEqual(self.status(), "unsigned")
 
     def test_matching_record_is_signed(self):
         gate_sign.write_run_record(self.root, self.state)

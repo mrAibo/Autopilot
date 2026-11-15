@@ -59,6 +59,18 @@ class Triage(unittest.TestCase):
         self.assertEqual(retry_policy.decide("tests", retries=2)["action"], "stop")
         self.assertEqual(retry_policy.decide("tests", repairs=2)["action"], "stop")
 
+    def test_escalation_only_for_haiku_after_first_retry_on_red_tests(self):
+        allowed = retry_policy.escalation_allowed
+        self.assertTrue(allowed("haiku", 1, "tests"))
+        self.assertTrue(allowed("claude-haiku-5-5", 1, "tests"))
+        self.assertFalse(allowed("haiku", 0, "tests"))        # not before the first retry
+        self.assertFalse(allowed("haiku", 1, "reasoning"))    # only a red check
+        self.assertFalse(allowed("haiku", 2, "tests"))        # second escalation / limit reached
+        self.assertFalse(allowed("sonnet", 1, "tests"))       # already escalated: Sonnet stays Sonnet
+        self.assertFalse(allowed("opus", 1, "tests"))
+        self.assertFalse(allowed(None, 1, "tests"))
+        self.assertFalse(allowed("haiku", True, "tests"))
+
     def test_invalid_arguments_rejected(self):
         with self.assertRaises(ValueError):
             retry_policy.decide("garbage")

@@ -14,6 +14,7 @@ import re
 import sys
 
 import gate_sign
+import claude_agent_guard
 from claude_agent_guard import project_root, read_state
 try:
     import run_log
@@ -74,6 +75,29 @@ def record(payload, root):
     return line
 
 
+def model_effort(line, root):
+    """(model, effort) of the subagent: its profile .claude/agents/<agent_type>.md, else the run's
+    attestations (resolvedModel / effort of the same agent), else (None, None). Never raises."""
+    try:
+        profile = Path(root) / ".claude" / "agents" / (line["agent_type"] + ".md")
+        fields = claude_agent_guard.parse_frontmatter(profile) if profile.is_file() else {}
+        model, effort = _str(fields.get("model")), _str(fields.get("effort"))
+        if not (model and effort):
+            log = Path(root) / ".autopilot" / "attestations.jsonl"
+            for raw in reversed(log.read_text(encoding="utf-8").splitlines()) if log.is_file() else ():
+                try:
+                    row = json.loads(raw)
+                except ValueError:
+                    continue
+                if isinstance(row, dict) and row.get("agent_type") == line["agent_type"] and (
+                        not line.get("agent_id") or row.get("agent_id") == line["agent_id"]):
+                    model = model or _str(row.get("resolved_model"))
+                    effort = effort or _str(row.get("effort"))
+        return model, effort
+    except Exception:
+        return None, None
+
+
 def log_usage(line, root):
     """SubagentStop: tokens from the subagent transcript -> run-log.jsonl. Never raises."""
     try:
@@ -81,8 +105,9 @@ def log_usage(line, root):
             return
         usage = run_log.usage_from_transcript(line["transcript_path"]) if line.get("transcript_path") else None
         if usage:
+            model, effort = model_effort(line, root)
             run_log.append(str(Path(root) / ".autopilot"), "executor", agent_type=line["agent_type"],
-                           role=run_log.role_of(line["agent_type"]),
+                           role=run_log.role_of(line["agent_type"]), model=model, effort=effort,
                            run=(read_state(root) or {}).get("dir"), **usage)
     except Exception:
         pass

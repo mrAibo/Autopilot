@@ -824,5 +824,28 @@ class HookGuardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class ProtectedPathCommandTests(unittest.TestCase):
+    """bash_decision: no write, delete, copy or move may name .autopilot/, ~/.autopilot/, .claude/agents/."""
+
+    def denied(self, command):
+        return not guard.bash_decision(command)[0]
+
+    def test_writes_to_protected_paths_are_denied(self):
+        for command in ("cp x .autopilot/gate.key", "rm -rf ~/.autopilot", "mv a .claude/agents/b",
+                        "echo x > .autopilot/state.js", "echo x >> ~/.autopilot/gate.key",
+                        "tee .claude/agents/x.md", "sed -i s/a/b/ .autopilot/ap.py",
+                        "rm -rf .Autopilot/x", r"del D:\keys\.autopilot\gate.key",
+                        'bash -c "rm .autopilot/x"', "ls && cp a .claude/agents/a.md"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_reads_and_other_commands_are_not_touched(self):
+        for command in ("cat .autopilot/state.js", "ls ~/.autopilot", "python .autopilot/ap.py ticket 02 x",
+                        "cp a.py src/b.py", "rm -rf build", "echo ok > notes.md", "rm -rf .autopilot-old",
+                        "git commit --only a.py -m x", "python -m unittest discover -s tests 2>&1 | tail -3"):
+            with self.subTest(command=command):
+                self.assertFalse(self.denied(command))
+
+
 if __name__ == "__main__":
     unittest.main()

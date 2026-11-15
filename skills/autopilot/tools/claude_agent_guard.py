@@ -205,12 +205,48 @@ def shell_command(args):
     return None
 
 
+# Run files and the key store are off limits to a subagent's shell on any OS: no write, delete,
+# copy or move may name them. Match on path components after backslash -> `/` and casefold.
+PROTECTED_PATH_RE = re.compile(r"(?:^|[/=:~])\.autopilot(?:/|$)|(?:^|/)\.claude/agents(?:/|$)|autopilot_home")
+WRITE_VERBS = frozenset((
+    "cp", "mv", "rm", "rmdir", "ln", "tee", "touch", "mkdir", "install", "dd", "truncate", "shred",
+    "chmod", "chown", "rsync", "unlink", "patch", "del", "erase", "copy", "move", "ren", "rename",
+    "xcopy", "robocopy", "rd", "md", "remove-item", "copy-item", "move-item", "set-content",
+    "add-content", "out-file", "new-item", "rename-item", "set-itemproperty"))
+REDIRECT_RE = re.compile(r">>?\s*[\"']?([^\s\"';&|]+)")
+
+
+def _is_protected_word(word):
+    return PROTECTED_PATH_RE.search(word.replace(chr(92), "/").casefold().strip("\"'")) is not None
+
+
+def protected_path_denial(part, words):
+    """Reason to deny when one command part writes to .autopilot/, ~/.autopilot/ or .claude/agents/.
+
+    A write is a verb from WRITE_VERBS (or `sed -i`) with a protected path among its arguments,
+    or a `>` / `>>` redirect to one.
+    shortcut: a relative path reached after `cd` is not seen; the hook runs before the shell does.
+    """
+    # shlex eats Windows backslashes (`C:\x\.autopilot` -> `C:x.autopilot`): look at the raw words too
+    words = list(words) + part.replace(chr(92), "/").split()
+    names = [command_name(w).removesuffix(".exe") for w in words]
+    writes = any(n in WRITE_VERBS for n in names) or (
+        "sed" in names and any(w.startswith("-i") or w == "--in-place" for w in words))
+    if (writes and any(_is_protected_word(w) for w in words)) or any(
+            _is_protected_word(m) for m in REDIRECT_RE.findall(part)):
+        return "writes to .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
+    return None
+
+
 def _denial(command, depth):
     for part in split_unquoted(command if isinstance(command, str) else ""):
         try:
             words = shlex.split(part)
         except ValueError:
             words = part.split()
+        why = protected_path_denial(part, words)
+        if why:
+            return why
         for i, word in enumerate(words):
             name = command_name(word)
             if name in GIT_NAMES:
@@ -228,6 +264,7 @@ def _denial(command, depth):
 def bash_decision(command):
     """Pure check of one Bash command: deny git stash / reset / checkout -- / restore . / clean -f.
 
+    Also denies writes (cp, mv, rm, redirects, ...) naming .autopilot/, ~/.autopilot/ or .claude/agents/.
     Splits on ; && || | & and newlines outside quotes; program names match by file name
     (git, git.exe, any path, any case); `bash|sh|zsh|dash -c "<string>"` is checked recursively.
     shortcut: a command hidden in a script, `eval` or `$(...)` is not seen; documented in

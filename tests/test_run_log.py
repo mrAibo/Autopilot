@@ -1,6 +1,7 @@
 """Журнал прогона: skills/autopilot/tools/run_log.py (метаданные, без исключений, ротация, сводка)."""
 import json
 import os
+import pathlib
 import sys
 import tempfile
 import unittest
@@ -47,6 +48,24 @@ class RunLogTests(unittest.TestCase):
         self.assertFalse(run_log.append(self.d, "phase", id=object()))      # не сериализуется
         os.mkdir(self.path)                                                  # журнал — каталог
         self.assertFalse(run_log.append(self.d, "phase", id="spec", act="start"))
+
+    def test_executor_row_carries_model_and_effort(self):
+        self.assertTrue(run_log.append(self.d, "executor", agent_type="autopilot-executor-01-x",
+                                       role="executor", model="haiku", effort="high", turns=3))
+        row = self.rows()[0]
+        self.assertEqual((row["model"], row["effort"]), ("haiku", "high"))
+
+    def test_failed_write_is_counted_in_run_log_fail(self):
+        fail = os.path.join(self.d, "run-log.fail")
+        os.mkdir(self.path)                                   # журнал — каталог: запись невозможна
+        self.assertFalse(run_log.append(self.d, "phase", id="spec"))
+        self.assertEqual(pathlib.Path(fail).read_text(encoding="utf-8"), "1")
+        self.assertFalse(run_log.append(self.d, "phase", id="spec"))
+        self.assertEqual(pathlib.Path(fail).read_text(encoding="utf-8"), "2")
+
+    def test_successful_write_leaves_no_failure_counter(self):
+        self.assertTrue(run_log.append(self.d, "phase", id="spec"))
+        self.assertFalse(os.path.exists(os.path.join(self.d, "run-log.fail")))
 
     def test_rotation_keeps_both_parts_in_order_and_skips_broken_lines(self):
         with open(self.path, "w", encoding="utf-8") as f:

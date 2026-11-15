@@ -11,7 +11,7 @@ import json
 import os
 import re
 
-NAME, ROTATED = "run-log.jsonl", "run-log.1.jsonl"
+NAME, ROTATED, FAIL = "run-log.jsonl", "run-log.1.jsonl", "run-log.fail"
 ROTATE_BYTES = 1024 * 1024
 VALUE_MAX = 120
 KINDS = {
@@ -21,7 +21,7 @@ KINDS = {
     "tests": ("passed", "failed", "seconds", "source"),
     "reset": ("what", "id", "reason"),
     "wait": ("kind", "act"),
-    "executor": ("agent_type", "role", "turns", "input", "output", "cache_read", "cache_write"),
+    "executor": ("agent_type", "role", "model", "effort", "turns", "input", "output", "cache_read", "cache_write"),
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
 ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-")
@@ -64,7 +64,23 @@ def append(autopilot_dir, kind, /, **fields):   # `kind` позиционный:
             f.write(line)
         return True
     except Exception:
+        _count_failure(autopilot_dir)
         return False
+
+
+def _count_failure(autopilot_dir):
+    """Число сбоев записи в run-log.fail: владелец видит, что журнал неполный. Не бросает."""
+    try:
+        path = os.path.join(autopilot_dir, FAIL)
+        try:
+            with open(path, encoding="utf-8") as f:
+                count = int(f.read().strip() or 0)
+        except (OSError, ValueError):
+            count = 0
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(str(count + 1))
+    except Exception:
+        pass
 
 
 def read_all(autopilot_dir):

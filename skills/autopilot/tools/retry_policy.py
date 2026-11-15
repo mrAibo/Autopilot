@@ -69,6 +69,16 @@ def decide(kind, retries=0, repairs=0):
     return {"category": kind, "action": action, "model": model, "why": why}
 
 
+def escalation_allowed(model, retries, cause):
+    """True only for the one Haiku -> Sonnet escalation: Haiku, red tests, after exactly the first retry.
+
+    A second escalation is refused by itself: the escalated task already runs on Sonnet, and two
+    retries end in `stop` (see `decide`). Every other case keeps the "do not upgrade" rule.
+    """
+    return (isinstance(model, str) and "haiku" in model.casefold() and cause == "tests"
+            and type(retries) is int and retries == 1)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kind", choices=KINDS, help="explicitly diagnosed category")

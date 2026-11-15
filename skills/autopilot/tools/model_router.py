@@ -29,12 +29,18 @@ DEFAULT_POLICY = {
     "providers": {
         "openai": {
             "cheap": {"model": "gpt-6-luna", "effort": "low"},
+            "cheap_read": {"model": "gpt-6-luna", "effort": "low"},
+            "cheap_code": {"model": "gpt-6-luna", "effort": "low"},
             "balanced": {"model": "gpt-6-luna", "effort": "high"},
             "strong": {"model": "gpt-6.1-sol", "effort": "high"},
             "critical": {"model": "gpt-6.1-sol", "effort": "high"},
         },
         "anthropic": {
+            # `cheap` is the legacy name of cheap_read (load_policy keeps them in step);
+            # choose_route takes cheap_code for the mechanical-ticket score band, see CODE_MIN_SCORE.
             "cheap": {"model": "haiku", "effort": "low"},
+            "cheap_read": {"model": "haiku", "effort": "low"},
+            "cheap_code": {"model": "haiku", "effort": "high"},
             "balanced": {"model": "sonnet", "effort": "medium"},
             "strong": {"model": "sonnet", "effort": "high"},
             "critical": {"model": "sonnet", "effort": "xhigh"},
@@ -162,6 +168,10 @@ def load_policy(path=None):
                             value != value.strip()):
                         raise PolicyError("model and effort must be nonempty exact names")
                     result["providers"][provider][tier][field] = value
+                # `cheap` and `cheap_read` are one profile under two names
+                for src, dst in (("cheap", "cheap_read"), ("cheap_read", "cheap")):
+                    if src in profiles and dst not in profiles:
+                        result["providers"][provider][dst] = dict(result["providers"][provider][src])
     if "restricted" in custom:
         restricted = custom["restricted"]
         if not isinstance(restricted, dict):
@@ -175,6 +185,12 @@ def load_policy(path=None):
                 if name.casefold() not in {x.casefold() for x in result["restricted"][provider]}:
                     result["restricted"][provider].append(name)
     return result
+
+
+# Cheap scores above this sum mean a coding ticket (cheap_code); at or below it, reading (cheap).
+CODE_MIN_SCORE = 10
+# A planner's `**Класс:** механический`: cheap, and above the reading band.
+MECHANICAL = {"algorithm": 5, "coupling": 5, "uncertainty": 0, "context": 0, "testing": 5}
 
 
 def assess_scores(scores):
@@ -203,25 +219,46 @@ RISK_RE = re.compile(
     r"\b(?:токен\w*|секрет\w*|вебхук\w*|деплой\w*|деплои\w*|шифр\w*|"
     r"ключ(?:а|и|е|ом|ей|ам|ами|ах|у)?|подпис(?:ь|и|ью|ей)|"
     r"прод(?:а|е|у|ом|акшен\w*|акшн\w*)?)\b")
+# Former substrings, now on a word boundary: "author" is not "auth".
+WORD_RISK_RE = re.compile(
+    r"\b(?:auth|authn|authz|authenticat\w*|authoriz\w*|sessions?|passwords?|credentials?|"
+    r"payments?|migrations?|delete data|парол\w*|сесси\w*|платеж\w*|миграц\w*|"
+    r"удалени\w*|авторизац\w*|ключи доступа)\b")
+# Zones that are sensitive by where they live, whatever the ticket text says.
+SENSITIVE_ZONE_RE = re.compile(
+    r"claude_agent_guard|gate_sign|model_router|state_io|auth|payment|migration|secret|\.env|"
+    r"gate\.key|credential|авториз|платеж|миграц|ключ|секрет", re.I)
+CLASS_RE = re.compile(r"^\*\*(?:Класс|Class):\*\*\s*(\S+)", re.M)
+
+
+def docs_only(zones):
+    """True when every zone path is Markdown or under docs/ (no zones: not docs-only)."""
+    return bool(zones) and all(z.lower().endswith(".md") or z.replace("\\", "/").lower().startswith("docs/")
+                               for z in zones)
 
 
 def assess_ticket(text):
-    """Conservative, deterministic first-pass heuristic; annotations may refine it."""
+    """Conservative, deterministic first-pass heuristic; annotations may refine it.
+
+    Risk comes from the zone and whole words: a docs-only zone is risk 0; a sensitive zone is
+    risk 10; otherwise the risk words must occur as whole words. A planner's
+    `**Класс:** механический|обычный|сложный` sets the other scores to cheap / as computed /
+    strong but never lowers the risk computed from the zone.
+    """
     zones = re.findall(r"\`([^\`]+)\`", next((s for s in text.splitlines()
                                               if s.startswith("**Зона:**") or
                                               s.startswith("**Zone:**")), ""))
     lines = int(re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text).group(1)) \
         if re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text) else 0
     body = text.lower()
-    important = RISK_RE.search(body) is not None or any(k in body for k in (
-        "auth", "session", "password", "credential", "secret", "payment",
-        "migration", "delete data", "парол", "сесси", "платеж", "миграц",
-        "удалени", "авторизац", "ключи доступа"))
+    important = (not docs_only(zones) and (
+        any(SENSITIVE_ZONE_RE.search(z) for z in zones)
+        or RISK_RE.search(body) is not None or WORD_RISK_RE.search(body) is not None))
     hard = any(k in body for k in (
         "algorithm", "race condition", "consistency", "distributed",
         "encryption", "алгоритм", "гонк", "шифрован", "конкурент"))
     vague = any(k in body for k in ("tbd", "to decide", "неизвестно", "уточнить"))
-    return {
+    scores = {
         "algorithm": 20 if hard else 5,
         "coupling": min(20, max(0, (len(zones) - 1) * 5)),
         "uncertainty": 15 if vague else 0,
@@ -229,6 +266,13 @@ def assess_ticket(text):
         "testing": 10 if hard or important else 5,
         "risk": 10 if important else 0,
     }
+    klass = CLASS_RE.search(text)
+    klass = klass.group(1).casefold().strip(".,;") if klass else ""
+    if klass in ("механический", "mechanical"):
+        scores.update(MECHANICAL)
+    elif klass in ("сложный", "complex"):
+        scores["algorithm"] = max(scores["algorithm"], 20)
+    return scores
 
 
 def premium_candidate(route_or_scores):
@@ -261,6 +305,8 @@ def choose_route(provider, scores, policy=None, capabilities=None, premium=False
     if not isinstance(provider_profiles, dict):
         raise PolicyError("provider profiles must be a mapping")
     tier = "premium" if use_premium else profile
+    if tier == "cheap" and score > CODE_MIN_SCORE and "cheap_code" in provider_profiles:
+        tier = "cheap_code"
     assignment = provider_profiles.get(tier)
     if not isinstance(assignment, dict):
         raise PolicyError("missing profile %s for %s" % (tier, provider))

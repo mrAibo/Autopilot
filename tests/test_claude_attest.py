@@ -135,6 +135,32 @@ class AttestTests(unittest.TestCase):
         self.assertEqual(len(self.lines()), 1)                    # аттестация записана как прежде
         self.assertNotIn("private", (self.ap / "run-log.jsonl").read_text(encoding="utf-8"))
 
+    def usage_row(self, line):
+        path = self.root / "agent.jsonl"
+        path.write_text(json.dumps({"message": {"id": "a", "role": "assistant",
+                                                "usage": {"input_tokens": 1}}}) + "\n", encoding="utf-8")
+        attest.log_usage(dict(line, event="SubagentStop", transcript_path=str(path)), self.root)
+        return json.loads((self.ap / "run-log.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+
+    def test_run_log_model_and_effort_come_from_the_agent_profile(self):
+        agents = self.root / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        (agents / "autopilot-executor-01-calc.md").write_bytes(
+            b"---\nname: autopilot-executor-01-calc\nmodel: haiku\neffort: high\n---\nbody\n")
+        row = self.usage_row({"agent_type": "autopilot-executor-01-calc", "agent_id": "a1"})
+        self.assertEqual((row["model"], row["effort"]), ("haiku", "high"))
+
+    def test_run_log_model_falls_back_to_resolved_model_of_the_attestation(self):
+        attest.record(PRE_INSIDE, self.root)                       # effort: low
+        attest.record(POST_AGENT, self.root)                       # resolvedModel: claude-haiku-5-5
+        row = self.usage_row({"agent_type": "autopilot-executor-01-calc", "agent_id": "a1"})
+        self.assertEqual((row["model"], row["effort"]), ("claude-haiku-5-5", "low"))
+
+    def test_run_log_model_and_effort_stay_empty_without_any_evidence(self):
+        row = self.usage_row({"agent_type": "autopilot-executor-01-calc", "agent_id": "a1"})
+        self.assertNotIn("model", row)
+        self.assertNotIn("effort", row)
+
     def test_run_log_role_follows_the_profile_name(self):
         reply = json.dumps({"message": {"id": "a", "role": "assistant", "usage": {"input_tokens": 1}}})
         names = {"autopilot-reviewer-x": "reviewer", "autopilot-explorer-x": "explorer",

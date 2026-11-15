@@ -2,15 +2,21 @@
 """HMAC signing of strict-run gate records (routing, attestations, test evidence).
 
 The key lives in the user's home (~/.autopilot/gate.key, or $AUTOPILOT_HOME),
-outside the project, so editing project files cannot forge a signature. It does
-not protect against a process that can read the home directory.
+outside the project, so editing project files cannot forge a signature. On Windows
+the key is wrapped with DPAPI (`dpapi:` + base64), so the file alone is useless to
+another user; elsewhere it is a 0600 file. Neither protects against a process that
+runs as the same user and can read the home directory.
 """
+import base64
 import hashlib
 import hmac
 import json
 import os
 from pathlib import Path
 import secrets
+import sys
+
+import state_io
 
 MISSING_KEY_MESSAGE = ("нет ключа подписи, запусти init заново "
                        "или восстанови ~/.autopilot/gate.key")
@@ -21,27 +27,103 @@ def key_path():
     return (Path(home) if home else Path.home() / ".autopilot") / "gate.key"
 
 
+DPAPI_PREFIX = b"dpapi:"
+_warned = False
+
+
+def _warn(text):
+    """One warning line per process: the key stays a plain file, signing keeps working."""
+    global _warned
+    if not _warned:
+        _warned = True
+        print("gate_sign: " + text, file=sys.stderr)
+
+
+def _dpapi(data, protect):
+    """Windows DPAPI (CryptProtectData / CryptUnprotectData) for the current user; raises OSError."""
+    import ctypes
+    from ctypes import wintypes
+
+    class Blob(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_ubyte))]
+
+    crypt32, kernel32 = ctypes.windll.crypt32, ctypes.windll.kernel32
+    call = crypt32.CryptProtectData if protect else crypt32.CryptUnprotectData
+    call.argtypes = [ctypes.POINTER(Blob), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                     ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(Blob)]
+    call.restype = wintypes.BOOL
+    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+    buf = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+    src, out = Blob(len(data), buf), Blob()
+    if not call(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
+        raise ctypes.WinError()
+    try:
+        return ctypes.string_at(out.pbData, out.cbData)
+    finally:
+        kernel32.LocalFree(out.pbData)
+
+
+def _write_key_file(path, data):
+    """Temp file + replace_with_retry: a crash never leaves a half-written key."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(path.name + ".tmp")
+    try:
+        fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(data)
+        state_io.replace_with_retry(temp, path)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def _protected(key):
+    """Key as stored on this OS: DPAPI block on Windows (plain bytes if DPAPI fails), else as is."""
+    if os.name == "nt":
+        try:
+            return DPAPI_PREFIX + base64.b64encode(_dpapi(key, True))
+        except Exception as exc:
+            _warn("DPAPI недоступен (%s), ключ хранится обычным файлом" % type(exc).__name__)
+    return key
+
+
 def ensure_key():
-    """Create the key (0600) if absent. Only `init --strict-routing` calls this."""
+    """Create the key (0600, DPAPI-wrapped on Windows) if absent. Only `init --strict-routing` calls this."""
     path = key_path()
     if not path.exists() or path.stat().st_size == 0:  # an empty key would sign nothing
         path.parent.mkdir(parents=True, exist_ok=True)
         path.unlink(missing_ok=True)
+        data = _protected(secrets.token_bytes(32))
         try:
             fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         except FileExistsError:
             return path
         with os.fdopen(fd, "wb") as stream:
-            stream.write(secrets.token_bytes(32))
+            stream.write(data)
+    elif os.name == "nt" and not path.read_bytes().startswith(DPAPI_PREFIX):
+        # an old plain key: same bytes, now under DPAPI (this is the only place that rewrites it;
+        # tools copies from before this change cannot read the block, so upgrade them together)
+        plain = path.read_bytes()
+        wrapped = _protected(plain)
+        if wrapped != plain:
+            try:
+                _write_key_file(path, wrapped)
+            except OSError as exc:
+                _warn("ключ не переписан под DPAPI (%s)" % type(exc).__name__)
     return path
 
 
 def load_key():
+    """The raw key bytes (plain or DPAPI block), or None. Read-only: only ensure_key rewrites the file."""
     try:
-        key = key_path().read_bytes()
+        stored = key_path().read_bytes()
     except OSError:
         return None
-    return key or None
+    if stored.startswith(DPAPI_PREFIX):
+        try:
+            return _dpapi(base64.b64decode(stored[len(DPAPI_PREFIX):]), False) or None
+        except Exception:
+            return None
+    return stored or None
 
 
 def sign(payload):
@@ -95,7 +177,12 @@ def write_run_record(root, state):
     body = {"run": _run_id(state), "finished": bool(state.get("finishedAt"))}
     body["sig"] = sign(body)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(body), encoding="utf-8")  # shortcut: not atomic, a torn file reads as forged
+    temp = path.with_name(path.name + ".tmp")
+    try:
+        temp.write_text(json.dumps(body), encoding="utf-8")
+        state_io.replace_with_retry(temp, path)  # a crash between the two leaves the old record whole
+    finally:
+        temp.unlink(missing_ok=True)
 
 
 def remove_run_record(root):
