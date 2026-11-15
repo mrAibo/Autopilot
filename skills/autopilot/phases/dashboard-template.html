@@ -989,6 +989,9 @@
   .tc-chip{font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);border-radius:6px;padding:0 6px;color:var(--tx2)}
   .tc-why{font-size:12.5px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .tcard.fail .tc-why{color:var(--bad-tx);-webkit-line-clamp:5}
+  .tc-esc,.tp-esc{font-size:12.5px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere}
+  .sp-h{margin:14px 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .logbadge{display:inline-block;margin:0 0 12px}
   .rcard{background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;min-width:0}
   .rcard p{margin:4px 0 0;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .rcard small{display:block;margin-top:4px;color:var(--mut)}
@@ -1231,6 +1234,7 @@ const I18N = {
       strip:{ph:"Нужны твои данные",def:"Отложено",drop:"Снято"},
       panelLabel:"История таска",close:"Закрыть",
       todo:"Что делать",reqs:"Требования",zone:"Зона",model:"Модель и почему",events:"Лента событий",tests:"Тесты",commit:"Коммит",review:"Замечания ревью",
+      escalated:(a,b)=>`начат на ${a}, доделан на ${b}`,
       noModel:"модель ещё не назначена",planned:"в плане: ",noEvents:"событий ещё нет",noTests:"ещё нет",noCommit:"ещё нет",noReview:"замечаний нет",noZone:"не указана"},
     hrt:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
       risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению"},
@@ -1263,7 +1267,11 @@ const I18N = {
       nMis:id=>`Реши по ${id}`,nMisD:"починить сейчас или принять как есть",
       nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить",
       upd:"обновлено",notCreated:"не создана",
-      tDetHistory:"История сборок"}},
+      tDetHistory:"История сборок",tSpend:"Расход токенов",sRole:"По ролям",sModel:"По моделям",sTicket:"Сколько стоил таск",
+      cName:"Что",cRuns:"Запусков",spendWhy:"журнал расхода не вёлся или в нём не записана модель",unkModel:"не указана",
+      hNone:"прошлых сборок ещё нет",hCmp:"Эта сборка и прошлые",hNow:"Эта сборка",hAvg:"В среднем по прошлым",hBuild:"Сборка",hTime:"Длительность",
+      hTickets:"Тасков",hRepairs:"Починок",hResult:"Итог",
+      logBadge:n=>`журнал неполный: ${n} строк не записано`}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -1377,6 +1385,7 @@ const I18N = {
       strip:{ph:"Your data needed",def:"Deferred",drop:"Dropped"},
       panelLabel:"Ticket history",close:"Close",
       todo:"What to do",reqs:"Requirements",zone:"Zone",model:"Model and why",events:"Events",tests:"Tests",commit:"Commit",review:"Review notes",
+      escalated:(a,b)=>`started on ${a}, finished on ${b}`,
       noModel:"no model assigned yet",planned:"planned: ",noEvents:"no events yet",noTests:"none yet",noCommit:"none yet",noReview:"no notes",noZone:"not given"},
     hrt:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
       risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation"},
@@ -1409,7 +1418,11 @@ const I18N = {
       nMis:id=>`Decide on ${id}`,nMisD:"fix it now or accept it as it is",
       nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled",
       upd:"updated",notCreated:"not created",
-      tDetHistory:"Build history"}}
+      tDetHistory:"Build history",tSpend:"Token spend",sRole:"By role",sModel:"By model",sTicket:"What a ticket cost",
+      cName:"What",cRuns:"Runs",spendWhy:"the spend log was not kept or has no model recorded",unkModel:"not specified",
+      hNone:"no past builds yet",hCmp:"This build and past ones",hNow:"This build",hAvg:"Past average",hBuild:"Build",hTime:"Duration",
+      hTickets:"Tickets",hRepairs:"Repairs",hResult:"Result",
+      logBadge:n=>`log incomplete: ${n} lines not written`}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1759,10 +1772,11 @@ const VIEWS = {
       req: part('mission', c.reqBoard + c.matrixCard + c.wordsView),
       sum: part('mission', c.sumHero + (c.ganttFull || c.emptyGantt) + (c.fin ? c.board : '') + c.verdictCard + (c.mismatchCard || c.blindCard)
         + c.reportCard + c.concernsCard + (c.fin ? '' : c.summaryCard)),
-      det: part('mission', `<div class="det-slot" data-slot="models">${c.routesCard}</div><div class="det-slot" data-slot="spend">${c.tokensCard}</div>`
-        + `<div class="det-slot" data-slot="checks">${c.gatesPlain}</div><div class="det-slot" data-slot="history">${c.historySlot}</div>`)
+      det: part('mission', `${c.logBadge}<div class="det-slot" data-slot="models">${c.routesCard}</div><div class="det-slot" data-slot="spend">${c.spendCard}</div>`
+        + `<div class="det-slot" data-slot="checks">${c.gatesPlain}</div><div class="det-slot" data-slot="history">${c.historyCard}</div>`)
     };
-    return `${c.askBar}${c.nowTabs}${body[c.tab] || body.now}`;
+    // Бейдж неполного журнала — под вкладками «Сейчас»; в «Подробностях» он стоит в самом блоке.
+    return `${c.askBar}${c.nowTabs}${c.tab === 'det' ? '' : c.logBadge}${body[c.tab] || body.now}`;
   },
   // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки); больше ничего.
   // Ход сборки по волнам — это сам Гант (волна подписана в каждой строке), второго списка тасков нет.
@@ -2215,6 +2229,14 @@ function render(lang){
   const countedTokens = tokensInput + tokensOutput;
   const budgetPercent = budget && usageEvents.length ? Math.min(100,Math.round(100*countedTokens/budget)) : null;
   const numberFormat = n => new Intl.NumberFormat(langRu?'ru-RU':'en-US').format(n);
+  // Расход из журнала (state.spend): сообщений usageEvents может не быть, а журнал уже полон — «ещё нет» тогда было бы враньём.
+  const spendRaw = S.spend && typeof S.spend === 'object' ? S.spend : {};
+  const spendRows = b => Object.entries(spendRaw[b] && typeof spendRaw[b] === 'object' ? spendRaw[b] : {})
+    .filter(([, a]) => a && Number.isSafeInteger(a.n) && Number.isSafeInteger(a.tokens) && a.n >= 0 && a.tokens >= 0)
+    .sort((x, y) => y[1].tokens - x[1].tokens || String(x[0]).localeCompare(String(y[0])));
+  const spendRole = spendRows('byRole');
+  const spendSum = f => spendRole.reduce((n, [, a]) => n + (Number.isSafeInteger(a[f]) ? a[f] : 0), 0);
+  const spendRuns = spendSum('n'), spendTokens = spendSum('tokens');
   const tokenSummary = usageEvents.length
     ? '<div class="resource-usage" aria-label="' + (langRu ? 'Учтённые токены' : 'Reported tokens') + '">'
       + '<div><b>' + numberFormat(tokensInput) + '</b><span>' + (langRu ? 'Входные' : 'Input') + '</span></div>'
@@ -2222,6 +2244,10 @@ function render(lang){
       + '<div><b>' + numberFormat(cacheRead) + '</b><span>' + (langRu ? 'Кэш чтения' : 'Cache read') + '</span></div>'
       + '<div><b>' + numberFormat(cacheWrite) + '</b><span>' + (langRu ? 'Кэш записи' : 'Cache write') + '</span></div>'
       + '</div>'
+    : spendRuns
+    ? '<div class="resource-usage" aria-label="' + (langRu ? 'Токены из журнала' : 'Tokens from the log') + '">'
+      + '<div><b>' + numberFormat(spendSum('input')) + '</b><span>' + (langRu ? 'Входные' : 'Input') + '</span></div>'
+      + '<div><b>' + numberFormat(spendSum('output')) + '</b><span>' + (langRu ? 'Выходные' : 'Output') + '</span></div></div>'
     : '<p class="muted">' + (langRu ? 'Учёт токенов: данных пока нет.' : 'Token telemetry: no data yet.') + '</p>';
   const budgetLine = budget
     ? '<div class="resource-budget"><div class="resource-budget-head"><span>'
@@ -2311,6 +2337,7 @@ function render(lang){
   const redo = retries + repairs;
   const kpiRow = '<div class="tiles">'
     + (usageEvents.length ? kpi(W.kTokens, numberFormat(countedTokens), `${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}`)
+      : spendRuns ? kpi(W.kTokens, numberFormat(spendTokens), `${W.kIn} ${numberFormat(spendSum('input'))} · ${W.kOut} ${numberFormat(spendSum('output'))}`)
       : kpi(W.kTokens, '—', W.empty, true))
     + (T.length ? kpi(W.kActive, ofT(activeWorkers.length), activeWorkers.length ? esc(activeWorkers.map(t => t.id).join(', ')) : W.empty)
       : kpi(W.kActive, '—', W.empty, true))
@@ -2372,8 +2399,40 @@ function render(lang){
   const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
     ? `<div class="tablewrap"><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
       routeRows.map(routeRow).join('')}</tbody></table></div>` : emptyBox(W.empty)}</section>`;
-  const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
+  const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length || spendRuns}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
   const isolationView = isolationBlock || emptyCard(W.tIsolation, W.empty);
+
+  // «Подробности»: расход по ролям, моделям и таскам; без журнала — «ещё нет» и причина, но есть usageEvents — старая карточка.
+  const spendLabel = (b, k) => b === 'byModel' && k === 'не указана' ? W.unkModel
+    : b === 'byTicket' ? ((byId[k] || byId['T' + k]) ? k + ' · ' + (byId[k] || byId['T' + k]).title : k) : k;
+  const spendTable = (head, b) => spendRows(b).length
+    ? `<h4 class="sp-h">${head}</h4><div class="tablewrap"><table class="routes sp"><thead><tr><th>${W.cName}</th><th>${W.cRuns}</th><th>${W.tTokens}</th></tr></thead><tbody>${
+      spendRows(b).map(([k, a]) => `<tr><td>${esc(spendLabel(b, k))}</td><td class="mono">${numberFormat(a.n)}</td><td class="mono">${numberFormat(a.tokens)}</td></tr>`).join('')}</tbody></table></div>` : '';
+  const spendCard = spendRuns
+    ? `<section class="card w resource-card" data-spend><div class="whead"><h3 class="wt">${W.tSpend}</h3><span>${numberFormat(spendTokens)}</span></div>${
+      tokenSummary}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
+    : usageEvents.length ? tokensCard : emptyCard(W.tSpend, `${W.empty} — ${W.spendWhy}`);
+  // Лента прошлых сборок (до 20, как отдал ap.py) и сравнение этой сборки со средним по ним; нет прошлых — нет и сравнения.
+  const hist = (Array.isArray(S.history) ? S.history : []).filter(h => h && typeof h === 'object').slice(0, 20);
+  const num = v => typeof v === 'number' && Number.isFinite(v) ? v : null;
+  const avgOf = (f, skipZero) => { const v = hist.map(h => num(h[f])).filter(x => x != null && !(skipZero && x === 0));
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
+  const nowMs = S.startedAt ? activeMs(S.startedAt, S.finishedAt || null) : null;
+  const cmpNow = {minutes: nowMs == null ? null : Math.round(nowMs / 60000), tickets: T.length, repairs,
+    tokens: spendRuns ? spendTokens : usageEvents.length ? countedTokens : null};
+  const cmpCell = (f, v) => v == null ? '—' : f === 'minutes' ? fmtDur(v) : numberFormat(v);
+  const cmpRow = (f, head, skipZero) => `<tr><td>${head}</td><td class="mono">${cmpCell(f, cmpNow[f])}</td><td class="mono">${cmpCell(f, avgOf(f, skipZero))}</td></tr>`;
+  const cmpBlock = hist.length ? `<h4 class="sp-h">${W.hCmp}</h4><div class="tablewrap"><table class="routes sp" data-compare><thead><tr><th></th><th>${W.hNow}</th><th>${W.hAvg}</th></tr></thead><tbody>${
+    cmpRow('minutes', W.hTime)}${cmpRow('tickets', W.hTickets)}${cmpRow('repairs', W.hRepairs)}${cmpRow('tokens', W.tTokens, true)}</tbody></table></div>` : '';
+  const histRow = h => `<tr><td>${esc(h.title || h.dir || '—')}</td><td class="mono">${cmpCell('minutes', num(h.minutes))}</td><td class="mono">${cmpCell('tickets', num(h.tickets))}</td><td class="mono">${
+    cmpCell('repairs', num(h.repairs))}</td><td class="mono">${num(h.tokens) ? numberFormat(h.tokens) : '—'}</td><td>${esc(h.result || '—')}</td></tr>`;
+  const historyCard = hist.length
+    ? `<section class="card w" data-history><div class="whead"><h3 class="wt">${W.tDetHistory}</h3><span>${hist.length}</span></div>${cmpBlock}<div class="tablewrap"><table class="routes sp"><thead><tr><th>${W.hBuild}</th><th>${W.hTime}</th><th>${
+      W.hTickets}</th><th>${W.hRepairs}</th><th>${W.tTokens}</th><th>${W.hResult}</th></tr></thead><tbody>${hist.map(histRow).join('')}</tbody></table></div></section>`
+    : emptyCard(W.tDetHistory, W.hNone);
+  // Неполный журнал: бейдж в «Сейчас» и в «Подробностях», при нуле его нет.
+  const logBadge = Number.isSafeInteger(S.logFailures) && S.logFailures > 0
+    ? `<p class="pill p-bad logbadge" role="status">${esc(W.logBadge(S.logFailures))}</p>` : '';
 
   const checks = [[W.cResult, fin && S.result], [L.tTests, tests], [L.blind, B], [L.report, report.length], [L.assumptions, asm.length], [L.concerns, concerns.length]];
   const summaryCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tSummary}</h3></div>${fin ? '' : `<p class="muted">${W.notDone}</p>`}${
@@ -2600,6 +2659,10 @@ function render(lang){
   const colOf = t => t.status === 'done' ? 'done' : t.status === 'in-progress' ? 'write' : ['review', 'repair'].includes(t.status) ? 'check' : 'wait';
   const routeOf = t => t.routing && t.routing.model ? t.routing : t.plannedRouting && t.plannedRouting.model ? t.plannedRouting : null;
   const modelOf = t => { const r = routeOf(t); return r ? String(r.model) + (r.effort ? ' · ' + r.effort : '') : String(t.model || ''); };
+  // Эскалированный таск (escalatedFrom — исходная модель): «начат на Haiku, доделан на Sonnet»; текущая модель — из маршрута.
+  const family = m => { const x = /haiku|sonnet|opus/i.exec(String(m)); return x ? x[0][0].toUpperCase() + x[0].slice(1).toLowerCase() : String(m); };
+  const escOf = t => { const f = t.escalatedFrom && typeof t.escalatedFrom === 'object' ? t.escalatedFrom.model : t.escalatedFrom;
+    return f ? BD.escalated(family(f), family(t.routing && t.routing.model || 'sonnet')) : ''; };
   // Строка «почему ждёт / что сказало ревью»: заметка таска (ревью, ремонт, причина падения) или состояние словами.
   const whyOf = t => {
     const n = noteOf(t);
@@ -2616,13 +2679,15 @@ function render(lang){
     const col = t.status === 'failed' ? 'fail' : colOf(t), reqs = (t.requirements || []).map(String), model = modelOf(t), why = whyOf(t);
     const tries = t.status === 'pending' ? 0 : 1 + (+t.retries || 0) + (+t.repairs || 0);
     const back = col === 'check' && t.repairs > 0 ? BD.returned(t.repairs) : '';
-    const label = [`${t.id}. ${t.title}`, t.status === 'failed' ? L.chip.bad : L.chip[kindOf(t).k], back, why, BD.openCard].filter(Boolean).join('. ');
+    const esca = escOf(t);
+    const label = [`${t.id}. ${t.title}`, t.status === 'failed' ? L.chip.bad : L.chip[kindOf(t).k], back, esca, why, BD.openCard].filter(Boolean).join('. ');
     return `<li><button type="button" class="tcard ${col}" data-card="${esc(t.id)}" aria-haspopup="dialog" aria-label="${esc(label)}">
       <span class="tc-top"><span class="gx-id">${esc(t.id)}</span><span class="tc-time">${t.status === 'pending' ? '' : taskTime(t)}</span></span>
       <b class="tc-title">${esc(t.title)}</b>
       <span class="tc-meta">${reqs.slice(0, 4).map(r => `<span class="tc-chip">${esc(r)}</span>`).join('')}${reqs.length > 4 ? `<span class="tc-chip">+${reqs.length - 4}</span>` : ''}${
         model ? `<span class="tc-chip">${esc(model)}</span>` : ''}${tries ? `<span class="tc-chip">${esc(BD.attempt(tries))}</span>` : ''}${
         back ? `<span class="pill p-rev">${esc(back)}</span>` : ''}</span>
+      ${esca ? `<span class="tc-esc">${esc(esca)}</span>` : ''}
       ${why ? `<span class="tc-why">${esc(why)}</span>` : ''}</button></li>`;
   };
   const sortedT = T.slice().sort(byTicketId);
@@ -2674,7 +2739,8 @@ function render(lang){
       ${sec(BD.todo, `<p>${esc(t.title)}</p><p>${esc([t.status === 'failed' ? L.chip.bad : L.chip[kindOf(t).k], attempts ? BD.attempt(attempts) : '', t.repairs ? BD.returned(t.repairs) : ''].filter(Boolean).join(' · '))}</p>`)}
       ${sec(BD.reqs, (t.requirements || []).length ? li(t.requirements.map(id => `<b>${esc(id)}</b>${reqText(String(id)) ? ' — ' + esc(reqText(String(id))) : ''}`)) : '<p>—</p>')}
       ${sec(BD.zone, (t.zone || []).length ? `<p>${t.zone.map(z => `<code>${esc(z)}</code>`).join(' ')}</p>` : `<p>${BD.noZone}</p>`)}
-      ${sec(BD.model, r ? `<p><span class="tc-chip">${esc(modelOf(t))}</span> ${esc((t.routing && t.routing.model ? '' : BD.planned) + (r.reason ? humanRoute(r, L) : ''))}</p>` : `<p>${esc(modelOf(t) || BD.noModel)}</p>`)}
+      ${sec(BD.model, (r ? `<p><span class="tc-chip">${esc(modelOf(t))}</span> ${esc((t.routing && t.routing.model ? '' : BD.planned) + (r.reason ? humanRoute(r, L) : ''))}</p>` : `<p>${esc(modelOf(t) || BD.noModel)}</p>`)
+        + (escOf(t) ? `<p class="tp-esc">${esc(escOf(t))}</p>` : ''))}
       ${sec(BD.events, mine.length ? li(mine.map(([e, text]) => `<em>${hhmm(e.t)}</em>${esc(text)}`)) : `<p>${BD.noEvents}</p>`)}
       ${sec(BD.tests, `<p>${t.tests ? esc(BD.testsLine({passed: +t.tests.passed || 0, failed: +t.tests.failed || 0})) : BD.noTests}</p>`)}
       ${sec(BD.commit, `<p>${t.commit ? `<code>${esc(t.commit)}</code>` : BD.noCommit}</p>`)}
@@ -2693,7 +2759,6 @@ function render(lang){
   if (!['now','req','sum','det'].includes(UI.tab)) UI.tab = 'now';
   const nowTabs = `<div class="ntabs" role="tablist" aria-label="${esc(L.ntabsLabel)}">${['now','req','sum','det'].map(id =>
     `<button type="button" role="tab" data-ntab="${id}" aria-selected="${UI.tab === id}">${esc(L.ntabs[id])}</button>`).join('')}</div>`;
-  const historySlot = emptyCard(W.tDetHistory, W.empty);  // историю сборок рисует следующий блок
 
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
@@ -2738,7 +2803,7 @@ function render(lang){
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
     isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
     ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
-    askBar, nowTabs, tab: UI.tab, gatesPlain, historySlot, board, reqBoard});
+    askBar, nowTabs, tab: UI.tab, gatesPlain, historyCard, spendCard, logBadge, board, reqBoard});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
