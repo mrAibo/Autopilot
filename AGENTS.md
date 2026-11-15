@@ -20,7 +20,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 7 минут (<!-- tests:count -->863<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 7 минут (<!-- tests:count -->865<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Тесты, копирующие `ap.py` в харнесс, копируют и `state_io.py`, и `process_containment.py`.
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
