@@ -180,6 +180,18 @@ class Server(unittest.TestCase):
         self.assertEqual(ask("/state.js"), 403)
         self.assertEqual(ask("/state.js?t=" + token, host="evil.example"), 403)
 
+    def test_token_never_reaches_the_server_log(self):
+        # serve.log — это stderr сервера: в строках запросов токена `?t=` быть не должно
+        import contextlib
+        import io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(self.get("/state.js?t=" + self.TOKEN), 200)
+            self.assertEqual(self.get("/state.js?t=" + self.TOKEN, host="evil.example"), 403)
+            self.assertEqual(self.get("/serve.token?t=" + self.TOKEN), 403)
+        self.assertIn("/state.js", err.getvalue())                          # запросы в журнале есть
+        self.assertNotIn(self.TOKEN, err.getvalue())
+
     def test_own_server_is_recognised_by_its_command_line(self):
         m = self.ap
         self.assertTrue(m.is_ours("%s %s --serve 8123" % (sys.executable, m.__file__)))

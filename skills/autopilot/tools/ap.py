@@ -963,6 +963,11 @@ def make_server(directory, port, token):
             self.send_error(403)                      # состав каталога не показываем
             return None
 
+        def log_message(self, fmt, *args):
+            # serve.log лежит рядом с проектом: query (`?t=<токен>`) в него не пишем
+            sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(),
+                                                   re.sub(r"\?\S*", "?", fmt % args)))
+
         def end_headers(self):
             self.send_header("Referrer-Policy", "no-referrer")   # токен в адресе не уходит дальше
             self.send_header("Cache-Control", "no-store")
