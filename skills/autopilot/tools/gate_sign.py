@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import secrets
 import sys
+import time
 
 import state_io
 
@@ -86,16 +87,13 @@ def _protected(key):
     return key
 
 
-def _create_key_atomically(path, data, replace_empty):
+def _create_key_atomically(path, data):
     """Full key in a temp file, then os.link: the key appears whole or not at all, a loser keeps the winner's."""
     temp = path.with_name("%s.%d.%s.tmp" % (path.name, os.getpid(), secrets.token_hex(4)))
     try:
         fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as stream:
             stream.write(data)
-        if replace_empty:  # an old empty file: nothing worth keeping, swap it for the full key
-            state_io.replace_with_retry(temp, path)
-            return
         try:
             os.link(str(temp), str(path))
         except FileExistsError:
@@ -113,6 +111,46 @@ def _create_key_atomically(path, data, replace_empty):
         temp.unlink(missing_ok=True)
 
 
+def _claim_empty(path):
+    """Rename an old empty key to an orphan name: exactly one racer wins; the rest get False (nothing to do)."""
+    orphan = path.with_name("%s.%d.%s.old" % (path.name, os.getpid(), secrets.token_hex(4)))
+    for _ in range(100):
+        try:
+            os.rename(str(path), str(orphan))
+            break
+        except FileNotFoundError:
+            return False
+        except PermissionError:  # Windows: a reader holds the file for an instant
+            time.sleep(0.02)
+    else:
+        return False
+    try:
+        try:
+            filled = orphan.stat().st_size
+        except OSError:  # seen on Windows: the renamed file is already gone; a lost link race is harmless
+            return True
+        if filled:  # someone filled it between our stat and rename: give the real key back
+            try:
+                os.link(str(orphan), str(path))
+            except OSError:
+                pass
+            return False
+        return True
+    finally:
+        orphan.unlink(missing_ok=True)
+
+
+def _wait_for_key(path):
+    """A loser of the race returns only once the winner's key is in place (it is whole by construction)."""
+    for _ in range(250):
+        try:
+            if path.stat().st_size:
+                return
+        except OSError:
+            pass
+        time.sleep(0.02)
+
+
 def ensure_key():
     """Create the key (0600, DPAPI-wrapped on Windows) if absent. Only `init --strict-routing` calls this."""
     path = key_path()
@@ -121,12 +159,21 @@ def ensure_key():
         size = path.stat().st_size
     except FileNotFoundError:
         size = None
-    if size is None or size == 0:  # an empty key would sign nothing
-        _create_key_atomically(path, _protected(secrets.token_bytes(32)), size == 0)
-    elif os.name == "nt" and not path.read_bytes().startswith(DPAPI_PREFIX):
+    if size == 0 and not _claim_empty(path):  # an empty key would sign nothing; one racer swaps it
+        _wait_for_key(path)
+    elif size is None or size == 0:
+        _create_key_atomically(path, _protected(secrets.token_bytes(32)))
+        _wait_for_key(path)
+    elif os.name == "nt":
+        try:
+            plain = path.read_bytes()
+        except FileNotFoundError:  # a racer briefly holds the key aside (see _claim_empty)
+            _wait_for_key(path)
+            return path
+        if plain.startswith(DPAPI_PREFIX):
+            return path
         # an old plain key: same bytes, now under DPAPI (this is the only place that rewrites it;
         # tools copies from before this change cannot read the block, so upgrade them together)
-        plain = path.read_bytes()
         wrapped = _protected(plain)
         if wrapped != plain:
             try:

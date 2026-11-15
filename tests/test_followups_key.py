@@ -98,6 +98,28 @@ class AtomicKey(unittest.TestCase):
         self.assertEqual(len(gate_sign.load_key()), 32)
         self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])
 
+    def test_processes_racing_over_an_old_empty_file_share_one_key_and_none_crashes(self):
+        self.path.write_bytes(b"")
+        code = ("import sys, threading; sys.path.insert(0, sys.argv[1]); import gate_sign\n"
+                "out, err = [], []\n"
+                "def job():\n"
+                "    try:\n"
+                "        gate_sign.ensure_key(); out.append(gate_sign.load_key())\n"
+                "    except BaseException as exc:\n"
+                "        err.append(type(exc).__name__)\n"
+                "ts = [threading.Thread(target=job) for _ in range(4)]\n"
+                "[t.start() for t in ts]; [t.join() for t in ts]\n"
+                "print(','.join(sorted({k.hex() if k else 'none' for k in out})), '|', ','.join(err))\n")
+        procs = [subprocess.Popen([sys.executable, "-c", code, TOOLS], stdout=subprocess.PIPE, text=True,
+                                  env=dict(os.environ, AUTOPILOT_HOME=str(self.home))) for _ in range(8)]
+        lines = [p.communicate(timeout=120)[0].strip() for p in procs]
+        keys = {line.split("|")[0].strip() for line in lines}
+        errors = [line.split("|")[1].strip() for line in lines if line.split("|")[1].strip()]
+        self.assertEqual(errors, [])
+        self.assertEqual(len(keys), 1, lines)
+        self.assertEqual(len(next(iter(keys))), 64)
+        self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])
+
     def test_an_existing_key_is_kept(self):
         gate_sign.ensure_key()
         first = gate_sign.load_key()

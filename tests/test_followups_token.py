@@ -126,17 +126,17 @@ class AddressPrinting(unittest.TestCase):
             self.assertNotIn("?t=", self.m.serve(state))
             self.assertIn("?t=", self.m.serve(state, with_token=True))
 
-    def test_only_the_bare_command_asks_serve_for_the_token(self):
+    def test_no_command_form_asks_serve_for_the_token(self):
         asked = []
 
         def fake(state, with_token=False):
             asked.append(with_token)
             return "сервер"
-        for argv, want in (([], True), (["sync"], False)):
+        for argv in ([], ["sync"]):
             with mock.patch.object(self.m, "serve", fake), mock.patch.object(sys, "argv", ["ap.py"] + argv), \
                     contextlib.redirect_stdout(io.StringIO()) as out:
                 self.m.main()
-            self.assertEqual(asked[-1], want, argv)
+            self.assertFalse(asked[-1], argv)
             self.assertNotIn("?t=", out.getvalue())
 
     def test_url_command_prints_the_address_with_the_token_and_creates_it(self):

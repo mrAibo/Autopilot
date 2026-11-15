@@ -8,7 +8,7 @@
 | Команда | Что делает |
 |---------|------------|
 | `—` | Установка не нужна: только стандартная библиотека Python |
-| `python3 skills/autopilot/tools/ap.py` | Поднять дашборд (в проектах — `.autopilot/ap.py`) |
+| `python3 skills/autopilot/tools/ap.py` | Поднять дашборд, адрес без токена (в проектах — `.autopilot/ap.py`); адрес с токеном — `ap.py url` |
 | `python3 -m unittest discover -s tests` | Все тесты (CI запускает то же на Python 3.11 и 3.13, Ubuntu и Windows) |
 | `python3 -m compileall -q skills/autopilot/tools tests` | Проверка синтаксиса |
 
@@ -22,7 +22,7 @@
 
 - Полный прогон тестов идёт около 8 минут (<!-- tests:count -->918<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
-- Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (и голый `ap.py`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
+- Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (голый `ap.py` и остальные команды печатают адрес без `?t=`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
 - Файлы тасков искать только через `ticket_files(state, pattern)` в `ap.py` (там `glob.escape`): прямой glob по пути проекта ломается на `[`.
 - Этап хранит `segments: [{startedAt, finishedAt|null}]`; минуты — сумма отрезков, нет `segments` — старый расчёт (`docs/adr/0006`).
 - Маршрут таска задаёт оценка планировщика в файле таска: `**Класс:** механический|обычный|сложный`, `**Риск:** обычный|высокий`, `**Причина класса:**` (до 200 знаков; `check-plan` требует класс и причину); слов по тексту роутер не ищет (`docs/adr/0007`), зона остаётся нижней границей риска; профиль `cheap` разделён на `cheap_read` (haiku/low) и `cheap_code` (haiku/high); как старое имя `cheap` ведёт себя в сохранённых маршрутах, не проверено (`docs/adr/0002`, `0003`).

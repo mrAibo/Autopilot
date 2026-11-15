@@ -25,7 +25,7 @@
     python3 .autopilot/ap.py opus status                # что пользователь подтвердил, подпись верна?
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
-    python3 .autopilot/ap.py url                        # адрес дашборда с токеном (в чат не вставлять)
+    python3 .autopilot/ap.py url                        # адрес дашборда с токеном — только эта команда (в чат не вставлять)
     python3 .autopilot/ap.py upgrade-tools              # обновить .autopilot/*.py из навыка (init и stage делают сами)
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
@@ -1055,7 +1055,7 @@ def run_server(port):
 
 
 def page_url(port, with_token=True):
-    """Адрес дашборда; токен — только когда его просит сам пользователь (`ap.py url`, голый `ap.py`)."""
+    """Адрес дашборда; токен — только для `ap.py url`."""
     base = "http://localhost:%d/dashboard.html" % port
     return base + "?t=" + serve_token() if with_token else base
 
@@ -3563,7 +3563,7 @@ def main():
     elif opt.get("no-serve"):
         srv = "сервер не проверялся"
     else:
-        srv = serve(state, with_token=(cmd == ""))
+        srv = serve(state)
     r = state.get("requirements") or {}
     print("%s · %s · требований %s, готово %s" % (snap, srv, r.get("total", 0), r.get("done", 0)))
     for line in notes:
