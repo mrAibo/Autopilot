@@ -15,9 +15,9 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "c9cfa13",
   "startedAt": "2026-11-16T00:32:00+01:00",
-  "updatedAt": "2026-11-16T00:36:30+01:00",
+  "updatedAt": "2026-11-16T00:51:58+01:00",
   "finishedAt": null,
   "stages": [
     {
@@ -70,18 +70,26 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-16T00:36:23+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-16T00:36:36+01:00"
         }
       ],
-      "startedAt": "2026-11-16T00:36:23+01:00"
+      "startedAt": "2026-11-16T00:36:23+01:00",
+      "finishedAt": "2026-11-16T00:36:36+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "active",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T00:36:36+01:00",
+          "finishedAt": null
+        }
+      ],
+      "startedAt": "2026-11-16T00:36:36+01:00"
     },
     {
       "id": "review",
@@ -94,8 +102,8 @@ window.STATE =
   ],
   "requirements": {
     "total": 7,
-    "done": 0,
-    "inTicket": 4,
+    "done": 4,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 3,
@@ -129,7 +137,7 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "9824b6a5e929a5892c66bb595392b22158e3a21a6bd4a0ab8b4578ea0d3429c7",
-      "status": "pending",
+      "status": "done",
       "retries": 0,
       "repairs": 0,
       "plannedRouting": {
@@ -155,10 +163,21 @@ window.STATE =
         "hostExecutionVerified": false,
         "error": "No verified host capabilities",
         "applied": false
-      }
+      },
+      "startedAt": "2026-11-16T00:36:37+01:00",
+      "finishedAt": "2026-11-16T00:51:58+01:00",
+      "placeholders": [],
+      "tests": {
+        "passed": 937,
+        "failed": 0
+      },
+      "commit": "a0214b0"
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 937,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -191,9 +210,12 @@ window.STATE =
     "2026-11-16T00:36:23+01:00",
     "2026-11-16T00:36:24+01:00",
     "2026-11-16T00:36:25+01:00",
-    "2026-11-16T00:36:30+01:00"
+    "2026-11-16T00:36:30+01:00",
+    "2026-11-16T00:36:36+01:00",
+    "2026-11-16T00:36:37+01:00",
+    "2026-11-16T00:51:58+01:00"
   ],
-  "rev": 14,
+  "rev": 19,
   "waiting": null,
   "waits": [
     {
@@ -291,23 +313,55 @@ window.STATE =
       "applied": false,
       "tickets": 1,
       "blocked": 1
+    },
+    {
+      "t": "2026-11-16T00:36:36+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T00:36:37+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T00:51:58+01:00",
+      "k": "tests",
+      "passed": 937,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-16T00:51:58+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 937,
+        "failed": 0
+      }
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«Сделай отдельную сборку по оптимизации расхода» — учёт субагентов видит кэш: чтение и запись кэша, доля попаданий («Учёт, который отвечает на вопрос „кто жжёт“»)",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«Сделай отдельную сборку по оптимизации расхода» — учёт видит оркестратора, главную сессию («в spend нет оркестратора»)",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
       "text": "«Сделай отдельную сборку по оптимизации расхода» — исполнители запускают проверки с коротким выводом (пункт 4 ревью)",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R04",
@@ -324,7 +378,7 @@ window.STATE =
     {
       "id": "R06i",
       "text": "(подразумевается) новые числа читаемы там, где пользователь уже смотрит расход: report-run и «Подробности» дашборда",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R07",

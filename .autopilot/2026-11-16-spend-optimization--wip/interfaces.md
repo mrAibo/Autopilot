@@ -21,3 +21,10 @@
 | `prompts/executor.md` «Ритм проверок» | правилами исполнителя | правило тихого вывода | — |
 
 Швы для тестов: `usage_by_model` и `compute_spend` — на фикстурных JSONL/списках строк во временной папке; `spend-orchestrator` — подпроцессом `ap.py` в харнессе (по образцу тестов `test_run_log*.py`) с `--transcript`; шаблон — jsdom-харнесс `test_dashboard_*.py`.
+
+## Построено (из возврата таска 01, a0214b0)
+- `run_log.usage_by_model(path, since, until=None) -> dict[str, {turns,input,output,cache_read,cache_write}] | None`
+- `ap.compute_spend`: на каждом ключе ещё `cache_read`, `cache_write`, `hit` (целые % или `None`); строка оркестратора — последняя на модель
+- `ap.py spend-orchestrator [--transcript PATH]`; `ap.spend_orchestrator(state, transcript=None) -> str` (не бросает); `ap.session_transcript() -> path | None`
+- `run_log.render_report`: «## Кэш по ролям» и, без `--share`, «## Кэш по профилям»
+- шаблон: `W.cCache` («Кэш, %» / «Cache, %»), четвёртая колонка `spendTable`
