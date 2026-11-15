@@ -219,11 +219,12 @@ RISK_RE = re.compile(
     r"\b(?:токен\w*|секрет\w*|вебхук\w*|деплой\w*|деплои\w*|шифр\w*|"
     r"ключ(?:а|и|е|ом|ей|ам|ами|ах|у)?|подпис(?:ь|и|ью|ей)|"
     r"прод(?:а|е|у|ом|акшен\w*|акшн\w*)?)\b")
-# Former substrings, now on a word boundary: "author" is not "auth".
+# Former substrings, now on a word boundary: "author" is not "auth". `_` is a boundary
+# (`session_id`, `auth_token`), unlike in `\b`: a neighbour counts only if it is a letter or digit.
 WORD_RISK_RE = re.compile(
-    r"\b(?:auth|authn|authz|authenticat\w*|authoriz\w*|sessions?|passwords?|credentials?|"
+    r"(?<![^\W_])(?:auth|authn|authz|authenticat\w*|authoriz\w*|sessions?|passwords?|credentials?|"
     r"payments?|migrations?|delete data|парол\w*|сесси\w*|платеж\w*|миграц\w*|"
-    r"удалени\w*|авторизац\w*|ключи доступа)\b")
+    r"удалени\w*|авторизац\w*|ключи доступа)(?![^\W_])")
 # Zones that are sensitive by where they live, whatever the ticket text says.
 SENSITIVE_ZONE_RE = re.compile(
     r"claude_agent_guard|gate_sign|model_router|state_io|auth|payment|migration|secret|\.env|"

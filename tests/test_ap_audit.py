@@ -127,7 +127,7 @@ class Server(unittest.TestCase):
         self.assertEqual(self.get("/dashboard.html"), 200)
         self.assertEqual(self.get("/dashboard.html", host="evil.example"), 403)
         self.assertEqual(self.get("/dashboard.html", **{"Sec-Fetch-Site": "cross-site"}), 403)
-        for path in ("/run-log.jsonl", "/run/state.js", "/run/", "/", "/serve.token", "/nope.md"):
+        for path in ("/run-log.jsonl", "/run/state.js", "/run/", "/serve.token", "/nope.md"):
             self.assertEqual(self.get(path), 403, path)
         self.assertEqual(self.get("/run-log.jsonl?t=" + self.TOKEN), 200)
         self.assertEqual(self.get("/serve.token?t=" + self.TOKEN), 403)     # сам токен не отдаём

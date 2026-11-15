@@ -46,6 +46,14 @@ class RiskByZoneTests(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Поправить " + word + "."))["risk"], 10)
 
+    def test_underscore_is_a_word_boundary_for_risk_words(self):
+        for ident in ("session_id", "password_hash", "auth_token", "run_migration"):
+            with self.subTest(ident=ident):
+                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Переименовать " + ident + "."))["risk"], 10)
+        for ident in ("author", "author_name", "authority"):
+            with self.subTest(ident=ident):
+                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Переименовать " + ident + "."))["risk"], 0)
+
     def test_words_in_code_zone_keep_risk(self):
         self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Читать token из .env."))["risk"], 10)
         self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Проверить подпись."))["risk"], 10)

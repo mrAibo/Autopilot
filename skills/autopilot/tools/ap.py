@@ -2196,7 +2196,9 @@ def escalate_ticket(state, tk, i, cause, attempts, t):
         die("таск %s: эскалация возможна только после первого дозапроса красной проверки "
             "(--cause tests, повторов ровно 1; сейчас: причина %s, повторов %s)" % (i, cause, attempts))
     repair = state.get("repairAgent")
-    if not isinstance(repair, dict) or "sonnet" not in str(repair.get("model") or "").casefold():
+    import model_router  # без premium_ok: Opus и Fable сюда не проходят
+    if (not isinstance(repair, dict) or "sonnet" not in str(repair.get("model") or "").casefold()
+            or not model_router.is_allowed_subagent_model(repair.get("model"))):
         die("таск %s: нет зарегистрированного Sonnet-исполнителя (repairAgent) — нечем эскалировать" % i)
     busy = [x["id"] for x in state.get("tickets") or [] if x.get("id") != i
             and x.get("status") in ACTIVE_EXECUTOR

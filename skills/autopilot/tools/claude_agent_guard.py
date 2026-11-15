@@ -330,7 +330,8 @@ def mask_quotes(part):
     """`part` with the blanks inside quoted strings and heredoc bodies made opaque (NUL).
 
     The raw word pass splits on whitespace and would read `then copy .autopilot/x` inside a commit
-    message as a command. `$(...)` inside double quotes stays live (it does run). An unclosed quote
+    message as a command. `$(...)` inside double quotes is not parsed (known,
+    accepted limitation: `bash_gate` does not resolve substitutions). An unclosed quote
     masks nothing, so the unpaired-quote forms keep being refused.
     """
     out, stack, i, n = [], ["u"], 0, len(part)

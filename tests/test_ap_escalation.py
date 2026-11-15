@@ -134,6 +134,20 @@ class Escalation(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("нет зарегистрированного Sonnet-исполнителя", out)
 
+    def test_repair_agent_on_opus_or_fable_is_refused(self):
+        # имя содержит «sonnet», но семейство — премиум: подстрокой это не отсечь
+        for model in ("claude-opus-4-1", "opus", "us.anthropic.claude-opus-4-1-20250805-v1:0",
+                      "fable", "fable-sonnet", "claude-opus-4/sonnet"):
+            with self.subTest(model=model):
+                self.prepare()
+                self.edit(lambda s: s["repairAgent"].update(model=model))
+                code, out = self.escalate()
+                self.assertNotEqual(code, 0, out)
+                self.assertIn("нет зарегистрированного Sonnet-исполнителя", out)
+                tk = self.state()["tickets"][0]
+                self.assertEqual(tk["routing"]["model"], "haiku")
+                self.assertNotIn("escalatedFrom", tk)
+
     def test_escalate_flag_needs_retry(self):
         self.prepare()
         code, out = self.ap("ticket", "01", "fail", "--escalate")
