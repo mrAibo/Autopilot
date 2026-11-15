@@ -864,6 +864,53 @@ class ProtectedPathCommandTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertTrue(self.denied(command))
 
+    def test_write_inside_shell_keywords_and_blocks_is_denied(self):
+        for command in ("for f in a; do rm .autopilot/x; done", "if true; then rm .autopilot/x; fi",
+                        "{ rm .autopilot/x; }", "! rm .autopilot/x", "(rm .autopilot/x)",
+                        "if rm .autopilot/x; then echo ok; fi", "true || rm .autopilot/x",
+                        'powershell -Command "& { rm .autopilot/x }"',
+                        'pwsh -c "if ($true) { Remove-Item .autopilot/x }"'):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_find_exec_xargs_and_wrapper_options_are_followed(self):
+        for command in (r"find .autopilot -exec rm {} \;", "find .autopilot -delete", "sudo -u root rm .autopilot/x",
+                        "env -u FOO cp a .autopilot/b", "xargs -n 1 rm .autopilot/x",
+                        "nohup rm .autopilot/x"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+        for command in (r"find .autopilot -name x -exec cat {} \;", "find src -exec rm {} ;", "sudo -u root ls .autopilot"):
+            with self.subTest(command=command):
+                self.assertFalse(self.denied(command))
+
+    def test_unpaired_or_escaped_quotes_do_not_hide_a_redirect(self):
+        for command in ("echo don't > .autopilot/x", r'echo \" > .autopilot/x', "echo it's > .autopilot/x; echo y",
+                        "echo \"a\" > .autopilot/x"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+        self.assertFalse(self.denied("echo \"a > .autopilot/x\""))
+        self.assertFalse(self.denied("echo don't > notes.md"))
+
+    def test_option_colon_value_and_dotdot_are_seen(self):
+        for command in ("Remove-Item -Path:.autopilot/x", "rm -rf .autopilot/..", "rm -rf .autopilot/../",
+                        "Copy-Item -Destination:.claude/agents/x a"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_powershell_cmd_options_paths_and_double_slash(self):
+        for command in ('powershell -ExecutionPolicy Bypass -Command "rm .autopilot/x"',
+                        'powershell -WindowStyle Hidden -Command "rm .autopilot/x"',
+                        r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "rm .autopilot/x"',
+                        r'"C:\Program Files\PowerShell\7\pwsh.exe" -Command "rm .autopilot/x"',
+                        r'C:\Windows\System32\cmd.exe /c "del .autopilot\x"',
+                        'cmd //c "del .autopilot\\x"'):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+        for command in ('powershell -ExecutionPolicy Bypass -Command "Get-Content .autopilot/x"',
+                        r'"C:\Program Files\PowerShell\7\pwsh.exe" -Command "ls"', 'cmd //c "type .autopilot\\x"'):
+            with self.subTest(command=command):
+                self.assertFalse(self.denied(command))
+
     def test_mentioning_a_protected_path_is_not_a_write(self):
         for command in ("grep copy .autopilot/ap.py", "grep -rn install .autopilot/",
                         'git commit -m "docs: update .autopilot/PROGRESS.md"', "git add .autopilot/PROGRESS.md",

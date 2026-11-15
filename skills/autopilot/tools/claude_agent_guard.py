@@ -214,40 +214,61 @@ WRITE_VERBS = frozenset((
     "xcopy", "robocopy", "rd", "md", "remove-item", "copy-item", "move-item", "set-content",
     "add-content", "out-file", "new-item", "rename-item", "set-itemproperty"))
 CD_VERBS = frozenset(("cd", "chdir", "pushd", "set-location", "sl"))
-WRAPPERS = frozenset(("sudo", "doas", "env", "command", "nohup", "time", "exec", "nice"))
-CMD_C_RE = re.compile(r"(?:^|[\s\"'])cmd(?:\.exe)?\s+(?:/\S+\s+)*?/[ck]\s+(.*)$", re.I | re.S)
-PS_C_RE = re.compile(r"(?:^|[\s\"'/])(?:powershell|pwsh)(?:\.exe)?\s+(?:-\S+\s+)*?-c(?:ommand)?\s+(.*)$",
+# Wrappers that run the next command; the value is their options that take a value.
+WRAPPERS = {"sudo": ("-u", "-g", "-h", "-p", "-C", "-r", "-t", "-U", "-D"), "doas": ("-u", "-C"),
+            "env": ("-u", "-C", "-S"), "command": (), "nohup": (), "time": (), "exec": (),
+            "nice": ("-n",), "xargs": ("-n", "-I", "-P", "-L", "-s", "-d", "-E", "-a")}
+# Words after which a new command starts (shell keywords and block openers); `if`/`while`... also
+# take a command as their condition.
+KEYWORDS = frozenset(("then", "do", "else", "elif", "if", "while", "until", "!", "{", "(", "&", "&&", "||", "|"))
+EXEC_OPTS = ("-exec", "-execdir", "-ok", "-okdir")
+VAR_ASSIGN = re.compile(r"[A-Za-z_]\w*=.*")
+CMD_C_RE = re.compile(r"(?:^|[\s\"'/\\])cmd(?:\.exe)?[\"']?\s+(?:/\S+\s+)*?/{1,2}[ck]\s+(.*)$", re.I | re.S)
+PS_C_RE = re.compile(r"(?:^|[\s\"'/\\])(?:powershell|pwsh)(?:\.exe)?[\"']?\s+(?:\S+\s+)*?-c(?:ommand)?\s+(.*)$",
                      re.I | re.S)
+DENY_WRITE = "writes to or cd into .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
 
 
 def _is_protected_word(word):
     """True when the word, as a path, is or lies inside .autopilot, or is .claude/agents.
 
-    Normalized first: backslashes, `//`, `./`, `..`, trailing dots, quotes, case. `--opt=PATH` and
-    `-tPATH` are looked at by their value too.
+    Normalized first: backslashes, `//`, `./`, trailing dots, quotes, case; `a/..` counts as `a`
+    (checked with and without collapsing `..`). `--opt=PATH`, `-Opt:PATH` and `-tPATH` are looked
+    at by their value too.
     """
     candidates = [word]
     if "=" in word:
         candidates.append(word.split("=", 1)[1])
-    if word.startswith("-") and not word.startswith("--") and len(word) > 2:
-        candidates.append(word[2:])
+    if word.startswith("-"):
+        if ":" in word:
+            candidates.append(word.split(":", 1)[1])
+        if not word.startswith("--") and len(word) > 2:
+            candidates.append(word[2:])
     for value in candidates:
-        path = posixpath.normpath(re.sub(r"/{2,}", "/", value.replace(chr(92), "/").strip("\"'").casefold()))
-        parts = [p.rstrip(". ") for p in path.split("/")]
-        if ".autopilot" in parts or "autopilot_home" in path or any(
-                a == ".claude" and b == "agents" for a, b in zip(parts, parts[1:])):
-            return True
+        path = re.sub(r"/{2,}", "/", value.replace(chr(92), "/").strip("\"'").casefold())
+        for spelling in (path, posixpath.normpath(path)):
+            parts = [p.rstrip(". ") for p in spelling.split("/")]
+            if ".autopilot" in parts or "autopilot_home" in spelling or any(
+                    a == ".claude" and b == "agents" for a, b in zip(parts, parts[1:])):
+                return True
     return False
 
 
 def redirect_targets(part):
-    """Words that follow a `>` / `>>` outside quotes (a `>` inside a quoted string is text)."""
+    """Words that follow a `>` / `>>` outside quotes (a `>` inside a quoted string is text).
+
+    A quote opens only at the start of a word, so an apostrophe inside one (`don't`) and an
+    escaped quote do not swallow the rest; a missed quote can only cause a refusal, never a pass.
+    """
     targets, quote, i = [], None, 0
     while i < len(part):
         c = part[i]
+        if c == chr(92) and quote != "'":
+            i += 2
+            continue
         if quote:
             quote = None if c == quote else quote
-        elif c in "'\"":
+        elif c in "'\"" and (i == 0 or part[i - 1] in " \t=;&|(<>"):
             quote = c
         elif c == ">":
             j = i + 1
@@ -263,40 +284,55 @@ def redirect_targets(part):
     return targets
 
 
-def command_position(words):
-    """Index of the command name: after VAR=val, sudo/env/nohup... and their options, else None.
-
-    shortcut: the value of a wrapper option (`sudo -u root rm`) is taken for the command name;
-    upgrade to per-wrapper option tables if such a form is ever needed.
-    """
-    for i, word in enumerate(words):
-        if re.fullmatch(r"[A-Za-z_]\w*=.*", word) or word.startswith("-") or (
-                command_name(word).removesuffix(".exe") in WRAPPERS):
-            continue
-        return i
-    return None
+def command_positions(words):
+    """Indexes of the words that are command names: the first one and every one after a keyword or
+    opener (`then do else if ! { (`, `;`-ended word, `find -exec`), skipping VAR=val and the
+    wrappers (sudo, env, nohup, xargs ...) with their options and option values."""
+    found, expect, wrapper, i = [], True, None, 0
+    while i < len(words):
+        word = words[i]
+        bare = word.lstrip("({") if len(word) > 1 else word
+        if wrapper:
+            if bare.startswith("-"):
+                i += 2 if bare in WRAPPERS[wrapper] else 1
+                continue
+            if not VAR_ASSIGN.fullmatch(bare):
+                wrapper, expect = None, True
+        if expect:
+            if bare == "" or bare in KEYWORDS or VAR_ASSIGN.fullmatch(bare):
+                i += 1
+                continue
+            found.append(i)
+            expect = False
+            name = command_name(bare).removesuffix(".exe")
+            wrapper = name if name in WRAPPERS else None
+        elif word in KEYWORDS or word in EXEC_OPTS or word.startswith(("{", "(")) or word.endswith(";"):
+            expect = True
+        i += 1
+    return found
 
 
 def protected_path_denial(part, words):
     """Reason to deny when one command part writes to .autopilot/, ~/.autopilot/ or .claude/agents/.
 
-    A write is a WRITE_VERBS command (or `sed -i`) in command position with a protected path among its
-    arguments, a `cd` into one, or a `>` / `>>` redirect to one. Words that merely mention a path
-    (`grep copy .autopilot/ap.py`, a commit message) do not count.
+    A write is a WRITE_VERBS command (or `sed -i`, `find -delete / -exec <write>`) in command
+    position with a protected path among its arguments, a `cd` into one, or a `>` / `>>` redirect to
+    one. Words that merely mention a path (`grep copy .autopilot/ap.py`, a commit message) do not count.
     shortcut: globs (`~/.auto*`), variables (`$D/x`) and code in `python -c` are not seen; the hook
     runs before the shell expands anything.
     """
     # shlex eats Windows backslashes (`C:\x\.autopilot` -> `C:x.autopilot`): look at the raw words too
     for ws in (list(words), part.replace(chr(92), "/").split()):
-        i = command_position(ws)
-        if i is None:
-            continue
-        name, args = command_name(ws[i]).removesuffix(".exe"), ws[i + 1:]
-        in_place = name == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args)
-        if (name in WRITE_VERBS or name in CD_VERBS or in_place) and any(_is_protected_word(a) for a in args):
-            return "writes to or cd into .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
+        for i in command_positions(ws):
+            name, args = command_name(ws[i].lstrip("({")).removesuffix(".exe"), ws[i + 1:]
+            writes = name in WRITE_VERBS or name in CD_VERBS or (
+                name == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args)) or (
+                name == "find" and ("-delete" in args or any(
+                    command_name(b) in WRITE_VERBS for a, b in zip(args, args[1:]) if a in EXEC_OPTS)))
+            if writes and any(_is_protected_word(a) for a in args):
+                return DENY_WRITE
     if any(_is_protected_word(t) for t in redirect_targets(part)):
-        return "writes to .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
+        return DENY_WRITE
     return None
 
 
