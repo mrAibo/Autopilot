@@ -90,11 +90,11 @@ class OfflineSupervisorRealGit(unittest.TestCase):
         cap = Path(h.a) / "model-capabilities.json"
         cap.write_text(json.dumps({
             "provider": "anthropic", "model_selection": True,
-            "models": {"haiku": ["low"]}
+            "models": {"haiku": ["low", "high"]}
         }), encoding="utf-8")
         for tid in ("01", "02"):
             rc, out = h.ap("ticket", tid, "route", "--provider", "anthropic",
-                           "--model", "haiku", "--effort", "low",
+                           "--model", "haiku", "--effort", "high",
                            "--reason", "offline-no-provider",
                            "--capabilities", str(cap))
             self.assertEqual(rc, 0, out)

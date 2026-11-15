@@ -98,11 +98,11 @@ class LoopRealGitTests(unittest.TestCase):
         capabilities = Path(h.a) / "model-capabilities.json"
         capabilities.write_text(json.dumps({
             "provider": "anthropic", "model_selection": True,
-            "models": {"haiku": ["low"]}
+            "models": {"haiku": ["low", "high"]}
         }), encoding="utf-8")
         for tid in ("01", "02"):
             rc, output = h.ap("ticket", tid, "route", "--provider", "anthropic",
-                              "--model", "haiku", "--effort", "low",
+                              "--model", "haiku", "--effort", "high",
                               "--reason", "offline-worktree-test",
                               "--capabilities", str(capabilities))
             self.assertEqual(rc, 0, output)
