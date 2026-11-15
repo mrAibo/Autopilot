@@ -157,7 +157,7 @@ class InstrumentsCopyListTests(unittest.TestCase):
     # надо внести либо в 0-instruments.md, либо сюда. Динамические импорты (importlib,
     # __import__) AST-разбор не видит — предел проверки.
     RUN_FROM_SKILL = {"bounded_api_pilot", "dashboard_upgrade",
-                      "offline_fixture_worker", "offline_supervisor", "process_gate", "repo_doctor"}
+                      "offline_fixture_worker", "offline_supervisor", "process_gate", "repo_doctor", "test_count"}
 
     def unlisted(self, copied, run_from_skill):
         return {p.stem for p in self.TOOLS.glob("*.py")} - copied - run_from_skill

@@ -39,3 +39,28 @@ the project's `.autopilot` bootstrap alongside `ap.py`, `model_router.py`
 and `worktrees.py`. The CLI allows a diagnosed `tests` repair or a tracked
 `unknown` investigation without silently escalating the model. For reasoning
 failures, first replan and explicitly reroute (no automatic Opus/Astra/Fable).
+
+## The one explicit escalation: Haiku -> Sonnet
+
+The rule above stays: **do not upgrade the model because a command failed** (environment,
+dependency, requirements, security, reasoning, unknown). There is exactly one exception,
+accepted by the project owner (audit item I12) because cheap Haiku tickets are not safe to
+widen without a safety net:
+
+```bash
+python3 .autopilot/ap.py ticket 03 retry --cause tests --escalate
+```
+
+It is allowed only when **all** hold (`retry_policy.escalation_allowed(model, retries, cause)`):
+the ticket's route is Haiku; the cause is `tests` (red checks, not a broken environment);
+exactly one retry has already been spent. The command then moves the ticket once to the
+Sonnet executor registered in Phase 4 (`repairAgent`: a profile created now would be invisible
+to the running Claude Code session), records the original route as `escalatedFrom`, signs the
+new route in a signed run, writes an `escalate` line to the dashboard feed and to
+`run-log.jsonl`. The dashboard marks the ticket «начат на Haiku, доделан на Sonnet».
+
+Refused with a plain line: a second escalation (`escalatedFrom` is set), a ticket not on
+Haiku, a ticket before its first retry, any cause other than `tests`, no registered Sonnet
+executor, a busy Sonnet executor. The escalation counts as the ticket's second retry, so the
+cap of two still ends it: a red Sonnet attempt means `ticket NN fail` and a question to the
+user. Opus, Astra and Fable are never a target.

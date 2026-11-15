@@ -20,7 +20,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 7 минут (730 тестов, 5 пропущены); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 7 минут (<!-- tests:count -->863<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Тесты, копирующие `ap.py` в харнесс, копируют и `state_io.py`, и `process_containment.py`.
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
@@ -31,5 +31,6 @@
 - Темы дашборда — реестр `VIEWS` в `skills/autopilot/phases/dashboard-template.html` (`docs/autopilot/dashboard-views.md`); пункты рейки строятся по тем якорям `mission/tasks/models/quality`, что есть на странице темы (у «Обзора» нет `models`), `VIEW_HOME` задаёт пункт текущей темы; «Классика» держит старые цвета, остальные темы — палитру макетов. `.autopilot/dashboard.html` — копия шаблона: в живом проекте обновляй `dashboard_upgrade.py`, а не копированием.
 - Отпечаток таска считается по нормализованному тексту (LF, без BOM и хвостовых пробелов): окончания строк не страшны. Правка смысла сданного таска останавливает `ap.py tickets` с командой `ticket NN accept-edit --note "..."`. Версию Claude Code проверяет `ap.py claude-version` до `init`. Исполнители коммитят `git commit --only <файлы зоны>`, без `git stash`.
 - Журнал прогона — `.autopilot/run-log.jsonl` (только метаданные, пишет `run_log.py`, сбой записи глотается); свод — `ap.py report-run [--share]`; харнессы, копирующие `ap.py` или `claude_attest.py`, копируют и `run_log.py`.
+- Единственная эскалация модели — `ticket NN retry --cause tests --escalate`: Haiku-таск после первого дозапроса уходит один раз на Sonnet-исполнителя `repairAgent`, в таск пишется `escalatedFrom`; остальные сбои модель не повышают (`docs/autopilot/retry-policy.md`).
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->

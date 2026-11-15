@@ -56,7 +56,8 @@ The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberat
 
 | Level | OpenAI / Codex | Anthropic / Claude Code |
 |---|---|---|
-| cheap | `gpt-6-luna`, low | `haiku`, low |
+| cheap / `cheap_read` | `gpt-6-luna`, low | `haiku`, low (scout: reads, writes `context-pack.md`) |
+| `cheap_code` | `gpt-6-luna`, low | `haiku`, **high** (executor of a mechanical ticket) |
 | balanced | `gpt-6-luna`, high | `sonnet`, medium |
 | strong | `gpt-6.1-sol`, high | `sonnet`, high |
 | critical | `gpt-6.1-sol`, high (same as strong) | `sonnet`, xhigh |
@@ -65,6 +66,12 @@ The Dashboard distinguishes these states in RU/EN. `--sequential-host` deliberat
 These are defaults, **not a guarantee of host availability**. API model IDs and CLI aliases may differ; actual host capability discovery must resolve them. The default policy does not escalate to Opus, Astra or Fable. **Opus is the one exception, and only by the user:** `ap.py opus propose` prints candidates (never writes), `opus approve [--tickets …] [--roles repair,reviewer] --by-user "<quote>"` stores `opusApproval` (signed in strict runs), and only then `choose_route(..., premium=True)` / `agent_profiles.prepare(..., premium=True)` may return `providers.anthropic.premium` (`opus`, high) for the approved tickets and roles; `is_allowed_subagent_model(name, premium_ok=True)` admits it. Without the flag the result is unchanged, and Fable is rejected whatever the flag. The signatures are bound to the run: `opusApproval.sig` signs `{tickets, roles, run}` and `opusApproval.agentsSig` signs `{opusAgents, run}` (`run = <slug>|<startedAt>`), so an approval from another run does not pass; they are checked in any run where the gate key exists, not only a strict one, and `ap.py opus status` prints «подпись: верна / НЕ СХОДИТСЯ / нет ключа». With the `repair` role approved, `ap.py ticket F<n> route` assigns the Opus repair profile to the branch fix ticket; `ap.py agent-for reviewer|repair [--diff-lines N]` prints the agent to call (Opus reviewer only for the approved `reviewer` role and a diff over 3000 lines; otherwise the usual profile). Approving Opus stays the user's (`--by-user`), as does landing with caveats. The extra cost of Opus subagents is not measured; the run report shows the actual figure from `measure-run.py`. A model's accepted reasoning effort may differ across versions.
 
 Models/prices/availability can change. The host must advertise supported model/effort pairs before dispatch; never infer access from the current orchestrator model.
+
+## Ticket class and the cheap profiles
+
+The planner may write two header lines in a ticket: `**Класс:** механический|обычный|сложный` and `**Причина класса:** …` (`phases/4-plan.md`). `assess_ticket` takes the class as an assessment: «механический» raises the other scores to the cheap-code band, «сложный» lifts the algorithm score; the **risk always comes from the zone and whole words**, never from the class (a docs-only zone is risk 0, a sensitive zone such as `gate_sign` or `claude_agent_guard` is risk 10). `ticket NN route --scores` still replaces everything.
+
+The `cheap` tier is split: `cheap_read` (`haiku` / low — the same profile the legacy name `cheap` keeps in step with) for scouts and `cheap_code` (`haiku` / **high**) for the executor of a mechanical ticket whose score is above the reading band. Cheap code on low effort was the reason Haiku was almost never picked; the host capabilities must list `haiku/high`. A Haiku ticket that returns red gets one explicit escalation to Sonnet (`retry-policy.md`). Opus still needs the user's signed approval and Fable is refused whatever the class says.
 
 ## Scoring (0–100)
 
@@ -203,7 +210,8 @@ When the GUI cannot prove named-subagent model/Effort selection, do **not** clai
 1. Diagnose first. Missing files, dependencies, permissions, tool limitations and unclear instructions do not justify an automatic model upgrade.
 2. A genuine reasoning failure may increase effort or move to the next allowed profile, with a new checked route.
 3. Never auto-upgrade to a restricted model; ask for explicit consent and adjust the policy deliberately.
-4. Stop after the configured repair/retry cap. Count all attempts when assessing cost and quality.
+4. The one exception to point 1: a Haiku ticket back with red tests after its first retry is moved once to Sonnet by `ap.py ticket NN retry --cause tests --escalate` ([retry-policy.md](retry-policy.md)).
+5. Stop after the configured repair/retry cap. Count all attempts when assessing cost and quality.
 
 ## Parallelism and safety
 

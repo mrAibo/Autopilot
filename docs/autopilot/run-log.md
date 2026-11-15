@@ -28,16 +28,18 @@ Every line has `t` (local time, ISO with offset), `run` (run folder name) and `k
 | `k` | Fields | When |
 |---|---|---|
 | `phase` | `id`, `act` = start / done / skip / fail | `stage` |
-| `ticket` | `id`, `act` = start / done / retry / fail / repair / review, `cause` | `ticket NN <act>`; `cause` is `tests-failed` or the short tag from `--cause` |
+| `ticket` | `id`, `act` = start / done / retry / fail / repair / review / escalate, `cause` | `ticket NN <act>`; `cause` is `tests-failed` or the short tag from `--cause`; `escalate` is the single Haiku -> Sonnet move of `retry --cause tests --escalate` (`retry-policy.md`) |
 | `gate` | `g`, `ok`, `reason` | G1-G4 decided; `reason` = `plan-changed` after a plan change |
 | `tests` | `passed`, `failed`, `seconds`, `source` = ticket / host / manual | `tests N/M [--seconds S]`, `ticket ... --tests`, `worktree NN verify` (measured) |
 | `reset` | `what` = ticket / gate, `id`, `reason` | edited unfinished ticket (`ticket-edited`), `ticket NN reset` (`manual`), gate reset (`plan-changed`) |
 | `wait` | `kind`, `act` = start / end | `ask` and `answered` |
-| `executor` | `agent_type`, `role`, `turns`, `input`, `output`, `cache_read`, `cache_write` | `SubagentStop`: summed from the subagent transcript by `claude_attest.py` (reads at most 5 MB) |
+| `executor` | `agent_type`, `role`, `model`, `effort`, `turns`, `input`, `output`, `cache_read`, `cache_write` | `SubagentStop`: summed from the subagent transcript by `claude_attest.py` (reads at most 5 MB) |
 
 `role` is `executor`, `reviewer`, `explorer` or `acceptance` by the profile name
 (`autopilot-<role>-...`; the repair executor is `executor`), otherwise `agent`. The line kind stays
-`executor`; older lines without `role` get it from `agent_type` in the report.
+`executor`; older lines without `role` get it from `agent_type` in the report. `model` and `effort` come from the subagent's profile `.claude/agents/<agent_type>.md`, else from the attested `resolvedModel`, else stay empty; the report shows such lines as «не указана». `report-run` also groups by model: tickets, share done at the first attempt, repairs, tokens per ticket.
+
+A failed write never stops a command, but it is counted in `.autopilot/run-log.fail`; `ap.py` shows the count as `state.logFailures` and the dashboard marks the log as incomplete.
 
 Other fields are dropped. A string longer than 120 characters is cut; a value holding a
 machine path (`C:\Users\...`, `/home/...`) becomes `"[path]"`.

@@ -15,6 +15,7 @@
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
     python3 .autopilot/ap.py ticket 03 retry | fail --note "…" | reset
+    python3 .autopilot/ap.py ticket 03 retry --cause tests --escalate   # Haiku-таск после 1-го дозапроса -> Sonnet, один раз
     python3 .autopilot/ap.py ticket 03 reset --by-user "<цитата>"   # упавший таск — только по словам пользователя
     python3 .autopilot/ap.py git-check                  # может ли git писать здесь (до init и брифинга)
     python3 .autopilot/ap.py ticket 02 accept-edit --note "…"   # осознанная правка сданного таска
@@ -270,6 +271,8 @@ def mirror_run_log(state, event, kw, extra):
             seconds=extra.get("seconds"), source="manual")
     elif event == "worktree" and kw.get("act") == "verify":
         put("tests", passed=kw.get("tests"), failed=0, seconds=extra.get("seconds"), source="host")
+    elif event == "escalate":
+        put("ticket", id=kw.get("id"), act="escalate", cause="tests")
     elif event == "ticket-reset":
         put("reset", what="ticket", id=kw.get("id"), reason=kw.get("reason"))
     elif event == "ask":
@@ -2169,6 +2172,53 @@ def cmd_accept_edit(state, ids, opt):
     log(state, "ticket-edit-accepted", id=ids[0], note=note)
 
 
+def attest_mark():
+    """Строк в attestations.jsonl сейчас: общий агент пишет в один файл, доказательства таска — после этой отметки."""
+    try:
+        with open(os.path.join(ROOT, ".autopilot", "attestations.jsonl"), encoding="utf-8") as stream:
+            return len(stream.read().splitlines())
+    except FileNotFoundError:
+        return 0
+    except (OSError, UnicodeDecodeError) as exc:
+        die("attestations.jsonl не читается (%s)" % type(exc).__name__)
+
+
+def escalate_ticket(state, tk, i, cause, attempts, t):
+    """Единственная эскалация Haiku -> Sonnet: красные тесты, после первого дозапроса, один раз.
+
+    Новый маршрут — зарегистрированный в фазе 4 Sonnet-исполнитель (`repairAgent`): профиль,
+    созданный сейчас, Claude Code в этой сессии не увидел бы. Всё, что не подходит, — отказ."""
+    route = tk.get("routing") or {}
+    if "haiku" not in str(route.get("model") or "").casefold():
+        die("таск %s: --escalate только для таска на Haiku (сейчас: %s)" % (i, route.get("model") or "модель не назначена"))
+    import retry_policy
+    if not retry_policy.escalation_allowed(route.get("model"), attempts, cause):
+        die("таск %s: эскалация возможна только после первого дозапроса красной проверки "
+            "(--cause tests, повторов ровно 1; сейчас: причина %s, повторов %s)" % (i, cause, attempts))
+    repair = state.get("repairAgent")
+    if not isinstance(repair, dict) or "sonnet" not in str(repair.get("model") or "").casefold():
+        die("таск %s: нет зарегистрированного Sonnet-исполнителя (repairAgent) — нечем эскалировать" % i)
+    busy = [x["id"] for x in state.get("tickets") or [] if x.get("id") != i
+            and x.get("status") in ACTIVE_EXECUTOR
+            and (x.get("routing") or {}).get("agentType") == repair.get("agentType")]
+    if busy:
+        die("таск %s: Sonnet-исполнитель занят таском %s" % (i, ", ".join(busy)))
+    new = dict({k: repair[k] for k in ("agentType", "agentFile", "model", "effort", "effortEnforced",
+                                       "profileSha", "policyFile", "policySha") if k in repair},
+               provider="anthropic", verified=True,
+               reason="эскалация Haiku -> Sonnet: красные тесты после первого дозапроса")
+    probe = dict(tk, routing=new)
+    if not profile_ok(probe):
+        die("таск %s: профиль Sonnet-исполнителя отсутствует или изменён" % i)
+    tk["escalatedFrom"] = {"model": route.get("model"), "effort": route.get("effort"),
+                           "agentType": route.get("agentType"), "at": t}
+    tk["routing"] = new
+    sign_routing(state, i, new)
+    tk.pop("plannedRouting", None)
+    tk["attestFrom"] = attest_mark()
+    log(state, "escalate", id=i, **{"from": route.get("model"), "to": new.get("model")})
+
+
 def cmd_ticket(state, pos, opt):
     if "accept-edit" in pos:
         return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
@@ -2177,12 +2227,17 @@ def cmd_ticket(state, pos, opt):
     if len(acts) != 1 or not ids:
         die("ticket <id…> start|review|repair|done|fail|retry|reset")
     act = acts[0]
+    if opt.get("escalate") and act != "retry":
+        die("--escalate работает только с `ticket NN retry --cause tests`")
     known = {t["id"]: t for t in state.get("tickets") or []}
     t = now()
     for i in ids:
         tk = known.get(i)
         if tk is None:
             die("таска %s нет — сначала `ap.py tickets`" % i)
+        if opt.get("escalate") and tk.get("escalatedFrom"):
+            die("таск %s: уже эскалирован с Haiku на Sonnet — вторая эскалация не допускается; "
+                "`ticket %s fail --note \"что блокирует\"` и вопрос пользователю" % (i, i))
         quote = None
         if act == "reset" and tk.get("status") == "failed":
             quote = opt.get("by-user")
@@ -2246,14 +2301,7 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: агент ремонта занят таском %s" % (i, ", ".join(busy)))
         if act == "start" and on_repair:
             # The agent is shared: only evidence appended after this start is this ticket's.
-            try:
-                with open(os.path.join(ROOT, ".autopilot", "attestations.jsonl"),
-                          encoding="utf-8") as stream:
-                    tk["attestFrom"] = len(stream.read().splitlines())
-            except FileNotFoundError:
-                tk["attestFrom"] = 0
-            except (OSError, UnicodeDecodeError) as exc:
-                die("таск %s: attestations.jsonl не читается (%s)" % (i, type(exc).__name__))
+            tk["attestFrom"] = attest_mark()
         if act == "done" and (state.get("strictRouting") or state.get("gateMark")) and (
                 not gate_signed(state)):
             print("предупреждение: прогон без подписи гейтов (начат до подписи); "
@@ -2322,6 +2370,8 @@ def cmd_ticket(state, pos, opt):
                     if actual.get("status") != "present" or tk["worktree"].get("status") != "prepared":
                         die("таск %s: рабочая копия не готова к повтору" % i)
                 tk["retryAdvice"] = advice
+                if opt.get("escalate"):
+                    escalate_ticket(state, tk, i, kind, attempts, t)
         if act == "route":
             provider = opt.get("provider")
             model = opt.get("model")
