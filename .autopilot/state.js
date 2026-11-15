@@ -1,79 +1,71 @@
 window.STATE =
 {
   "version": 2,
-  "slug": "opus-auto",
-  "dir": "2026-11-08-opus-auto",
-  "title": "Opus и гейты без вмешательства пользователя",
-  "mode": "full",
-  "depth": "strict",
-  "tier": "T1",
+  "slug": "audit-dashboard-haiku",
+  "dir": "2026-11-15-audit-dashboard-haiku--wip",
+  "title": "Правки аудита 2026-11-15: дашборд, маршрутизация, Haiku",
+  "mode": "semi",
+  "depth": "normal",
+  "tier": "T2",
   "strictRouting": true,
   "gateSigned": true,
   "sequentialHost": false,
   "isolateTickets": false,
-  "briefFile": "2026-11-08-brief.md",
+  "briefFile": "2026-11-15-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": "0e008a8",
-  "startedAt": "2026-11-08T16:28:02+01:00",
-  "updatedAt": "2026-11-08T19:13:16+01:00",
-  "finishedAt": "2026-11-08T19:13:16+01:00",
+  "baseCommit": null,
+  "startedAt": "2026-11-15T03:30:28+01:00",
+  "updatedAt": "2026-11-15T03:35:53+01:00",
+  "finishedAt": null,
   "stages": [
     {
       "id": "preflight",
       "status": "done",
-      "startedAt": "2026-11-08T16:28:02+01:00",
-      "finishedAt": "2026-11-08T16:28:09+01:00"
+      "startedAt": "2026-11-15T03:30:28+01:00",
+      "finishedAt": "2026-11-15T03:30:46+01:00"
     },
     {
       "id": "manifest",
       "status": "done",
-      "startedAt": "2026-11-08T16:28:09+01:00",
-      "finishedAt": "2026-11-08T16:28:23+01:00"
+      "startedAt": "2026-11-15T03:30:46+01:00",
+      "finishedAt": "2026-11-15T03:30:59+01:00"
     },
     {
       "id": "briefing",
-      "status": "skipped",
-      "startedAt": "2026-11-08T16:28:23+01:00",
-      "finishedAt": "2026-11-08T16:28:30+01:00",
-      "note": "полный автомат — самобрифинг"
+      "status": "done",
+      "startedAt": "2026-11-15T03:30:59+01:00",
+      "finishedAt": "2026-11-15T03:31:31+01:00"
     },
     {
       "id": "spec",
       "status": "done",
-      "startedAt": "2026-11-08T16:28:31+01:00",
-      "finishedAt": "2026-11-08T18:18:20+01:00"
+      "startedAt": "2026-11-15T03:31:31+01:00",
+      "finishedAt": "2026-11-15T03:33:59+01:00"
     },
     {
       "id": "plan",
-      "status": "done",
-      "startedAt": "2026-11-08T16:30:38+01:00",
-      "finishedAt": "2026-11-08T16:30:51+01:00"
+      "status": "active",
+      "startedAt": "2026-11-15T03:33:59+01:00"
     },
     {
       "id": "build",
-      "status": "done",
-      "startedAt": "2026-11-08T16:32:20+01:00",
-      "finishedAt": "2026-11-08T17:15:19+01:00"
+      "status": "pending"
     },
     {
       "id": "review",
-      "status": "done",
-      "startedAt": "2026-11-08T17:15:19+01:00",
-      "finishedAt": "2026-11-08T17:36:16+01:00"
+      "status": "pending"
     },
     {
       "id": "final",
-      "status": "done",
-      "startedAt": "2026-11-08T17:36:16+01:00",
-      "finishedAt": "2026-11-08T19:13:16+01:00"
+      "status": "pending"
     }
   ],
   "requirements": {
-    "total": 8,
-    "done": 8,
-    "inTicket": 0,
+    "total": 29,
+    "done": 0,
+    "inTicket": 29,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -82,210 +74,102 @@ window.STATE =
   "tickets": [
     {
       "id": "01",
-      "title": "ap.py: Opus-ремонт и ревью, подписи, самообновление, гейты",
+      "title": "ap.py: пути, сервер, этапы, данные для дашборда и отчёт по моделям",
       "requirements": [
         "R01",
         "R02",
         "R03",
         "R04",
-        "R05",
-        "R06",
         "R07",
-        "R08"
+        "R12",
+        "R19",
+        "R20",
+        "R26",
+        "R27"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
         "skills/autopilot/tools/ap.py",
-        "tests/test_ap.py"
+        "tests/test_ap_audit.py",
+        ".gitignore"
       ],
-      "review": "да — риск: подпись подтверждения Opus и самообновление инструментов",
-      "model": "сильная",
-      "fingerprint": "db1548cb35559203e789ecd74d110a2d37e11317a5943d9fcc577fc494b090cf",
-      "status": "done",
-      "startedAt": "2026-11-08T16:32:21+01:00",
-      "finishedAt": "2026-11-08T17:03:49+01:00",
+      "review": "да — риск: сервер дашборда отдаёт данные сборки",
+      "model": "обычная",
+      "fingerprint": "0a6d6cfcfe7af98ec4240620362dc3d404f58082ee5f350f92988fd280c2e4f4",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 748,
-        "failed": 0
-      },
-      "commit": "6e4434f",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
-        "score": 30,
-        "reason": "score=30; profile=strong; high-risk=True",
-        "verified": true,
-        "agentType": "autopilot-executor-01-ap-opus-auto-gates",
-        "agentFile": ".claude/agents/autopilot-executor-01-ap-opus-auto-gates.md",
-        "profileSha": "65850eba60239f22647c88f0112776dfc0fb340fa6d36c6c46c052c0de1c092b",
-        "sig": "d2342560c657151fd7b88acb9472e1210173021b77e85760f6b8142f22a1af5a"
-      },
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": true,
+        "effortEnforced": null,
         "profile": "strong",
-        "score": 30,
+        "score": 40,
         "factors": {
           "algorithm": 5,
-          "coupling": 5,
+          "coupling": 10,
           "uncertainty": 0,
-          "context": 0,
+          "context": 5,
           "testing": 10,
           "risk": 10
         },
-        "reason": "score=30; profile=strong; high-risk=True",
+        "reason": "score=40; profile=strong; high-risk=True",
         "requiresReview": true,
-        "status": "ready",
-        "fingerprint": "db1548cb35559203e789ecd74d110a2d37e11317a5943d9fcc577fc494b090cf",
+        "status": "blocked",
+        "fingerprint": "0a6d6cfcfe7af98ec4240620362dc3d404f58082ee5f350f92988fd280c2e4f4",
         "hostExecutionVerified": false,
-        "applied": true
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
-        "effort": "high",
-        "lines": 83
+        "error": "No verified host capabilities",
+        "applied": false
       }
     },
     {
       "id": "02",
-      "title": "guard: проверка подписей Opus и ремонтник",
+      "title": "Роутер, журнал расхода, ключ подписи и граница Bash",
       "requirements": [
-        "R01",
-        "R02",
-        "R03",
-        "R04",
         "R05",
-        "R08"
+        "R06",
+        "R08",
+        "R21",
+        "R23",
+        "R24",
+        "R27",
+        "R29"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
+        "skills/autopilot/tools/model_router.py",
+        "skills/autopilot/tools/retry_policy.py",
+        "skills/autopilot/tools/run_log.py",
+        "skills/autopilot/tools/claude_attest.py",
+        "skills/autopilot/tools/gate_sign.py",
         "skills/autopilot/tools/claude_agent_guard.py",
-        "tests/test_claude_agent_guard.py"
+        "skills/autopilot/tools/agent_profiles.py",
+        "skills/autopilot/tools/model-capabilities.json",
+        "tests/test_model_router.py",
+        "tests/test_retry_policy.py",
+        "tests/test_run_log.py",
+        "tests/test_claude_attest.py",
+        "tests/test_gate_sign.py",
+        "tests/test_claude_agent_guard.py",
+        "tests/test_agent_profiles.py",
+        "tests/test_audit_routing.py"
       ],
-      "review": "да — риск: допуск дорогой модели",
+      "review": "да — риск: подпись гейтов, ключ и граница Bash",
       "model": "сильная",
-      "fingerprint": "01c50c8af2f39e709e7a6bad218b2ea2eab304908d921e1ec2ee6a838bab3d4c",
-      "status": "done",
-      "startedAt": "2026-11-08T16:32:21+01:00",
-      "finishedAt": "2026-11-08T17:03:17+01:00",
+      "fingerprint": "f1151379fd6bb5942f1e94f4cf93b047e0a764b13b0c08ce733be8b52de7eb46",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 65,
-        "failed": 0
-      },
-      "commit": "1bbbcc1",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
-        "score": 30,
-        "reason": "score=30; profile=strong; high-risk=True",
-        "verified": true,
-        "agentType": "autopilot-executor-02-guard-opus-signatures",
-        "agentFile": ".claude/agents/autopilot-executor-02-guard-opus-signatures.md",
-        "profileSha": "daf236de70b248871f7d897f53e9d3e81ad9f21bca1fde1b3e5ca98c0ac4533e",
-        "sig": "130b9c41f6e0034cbddeec22db1c74822c8943d9a300f6b0fecc7cb930fa0cad"
-      },
       "plannedRouting": {
         "ticket": "02",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": true,
-        "profile": "strong",
-        "score": 30,
-        "factors": {
-          "algorithm": 5,
-          "coupling": 5,
-          "uncertainty": 0,
-          "context": 0,
-          "testing": 10,
-          "risk": 10
-        },
-        "reason": "score=30; profile=strong; high-risk=True",
-        "requiresReview": true,
-        "status": "ready",
-        "fingerprint": "01c50c8af2f39e709e7a6bad218b2ea2eab304908d921e1ec2ee6a838bab3d4c",
-        "hostExecutionVerified": false,
-        "applied": true
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
-        "effort": "high",
-        "lines": 23
-      }
-    },
-    {
-      "id": "03",
-      "title": "Фазы и документы",
-      "requirements": [
-        "R01",
-        "R02",
-        "R03",
-        "R04",
-        "R05",
-        "R06",
-        "R07",
-        "R08"
-      ],
-      "blockedBy": [
-        "01",
-        "02"
-      ],
-      "wave": 2,
-      "zone": [
-        "skills/autopilot/phases/",
-        "skills/autopilot/SKILL.md",
-        "docs/autopilot/",
-        "CHANGELOG.md",
-        "tests/test_dashboard_views.py"
-      ],
-      "review": "нет",
-      "model": "обычная",
-      "fingerprint": "38ebe8c8d9e7a4d48d6e23f59d5ba446427ed5ee82eccc14d04ebb69a61d34af",
-      "status": "done",
-      "startedAt": "2026-11-08T17:03:51+01:00",
-      "finishedAt": "2026-11-08T17:15:10+01:00",
-      "retries": 0,
-      "repairs": 0,
-      "tests": {
-        "passed": 748,
-        "failed": 0
-      },
-      "commit": "9c4c972",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
-        "score": 50,
-        "reason": "score=50; profile=strong; high-risk=True",
-        "verified": true,
-        "agentType": "autopilot-executor-03-phases-docs-opus-auto",
-        "agentFile": ".claude/agents/autopilot-executor-03-phases-docs-opus-auto.md",
-        "profileSha": "37970a42a04f59791aca5b5b588c04f557232eaaeaf4ac5fb105b30a12e80b57",
-        "sig": "3ebd9ae70612dbd03989d77018c83db6726c39d230c331e9411b7365dbea2119"
-      },
-      "plannedRouting": {
-        "ticket": "03",
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
+        "effortEnforced": null,
         "profile": "strong",
         "score": 50,
         "factors": {
@@ -298,69 +182,228 @@ window.STATE =
         },
         "reason": "score=50; profile=strong; high-risk=True",
         "requiresReview": true,
-        "status": "ready",
-        "fingerprint": "38ebe8c8d9e7a4d48d6e23f59d5ba446427ed5ee82eccc14d04ebb69a61d34af",
+        "status": "blocked",
+        "fingerprint": "f1151379fd6bb5942f1e94f4cf93b047e0a764b13b0c08ce733be8b52de7eb46",
         "hostExecutionVerified": false,
-        "applied": true
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
-        "effort": "high",
-        "lines": 54
+        "error": "No verified host capabilities",
+        "applied": false
       }
     },
     {
-      "id": "F1",
-      "title": "правки по ревью ветки",
+      "id": "03",
+      "title": "Эскалация Haiku → Sonnet в ap.py, документы фаз и счётчик тестов",
       "requirements": [
-        "R05",
-        "R06",
-        "R08"
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R28"
       ],
-      "blockedBy": [],
-      "wave": 3,
+      "blockedBy": [
+        "01",
+        "02"
+      ],
+      "wave": 2,
       "zone": [
         "skills/autopilot/tools/ap.py",
-        "tests/test_ap.py"
+        "skills/autopilot/tools/test_count.py",
+        "skills/autopilot/phases/3-spec.md",
+        "skills/autopilot/phases/4-plan.md",
+        "skills/autopilot/phases/5-subagents.md",
+        "skills/autopilot/prompts/",
+        "docs/autopilot/model-routing.md",
+        "docs/autopilot/retry-policy.md",
+        "docs/autopilot/run-log.md",
+        "docs/autopilot/claude-code.md",
+        "README.md",
+        "README.ru.md",
+        "README.de.md",
+        "AGENTS.md",
+        "tests/test_audit_docs.py",
+        "tests/test_ap_escalation.py"
       ],
-      "review": "да — ремонт ветки",
-      "model": "сильная",
-      "fingerprint": "ea2fd0c5761a7401250de4bdb2e98b1aad7987a062d7475c59c65cff7dc023fb",
-      "status": "done",
-      "startedAt": "2026-11-08T17:18:00+01:00",
-      "finishedAt": "2026-11-08T17:36:08+01:00",
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "826ba928799ae53c9505d5d7135accbad9d5c749f94d7716e371386752bb0897",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 750,
-        "failed": 0
-      },
-      "commit": "3ef2079",
-      "placeholders": [],
-      "routing": {
-        "agentType": "autopilot-executor-repair-2026-11-08-opus-auto",
-        "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-08-opus-auto.md",
+      "plannedRouting": {
+        "ticket": "03",
+        "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": true,
-        "profileSha": "3523976ce3993bc40965caae0db449bdd73f0c64935fab5580ce5d6541f0778b",
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 50,
+        "factors": {
+          "algorithm": 5,
+          "coupling": 20,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=50; profile=strong; high-risk=True",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "826ba928799ae53c9505d5d7135accbad9d5c749f94d7716e371386752bb0897",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "04",
+      "title": "Дашборд: страница «Сейчас», исправления ленты и этапов, человеческий язык",
+      "requirements": [
+        "R03",
+        "R04",
+        "R09",
+        "R10",
+        "R11",
+        "R13",
+        "R17"
+      ],
+      "blockedBy": [],
+      "wave": 1,
+      "zone": [
+        "skills/autopilot/phases/dashboard-template.html",
+        "docs/autopilot/dashboard-views.md",
+        "tests/test_dashboard_views.py",
+        "tests/test_dashboard_now.py"
+      ],
+      "review": "нет",
+      "model": "сильная",
+      "fingerprint": "3ec5d553a60661f0a69aa91c3c95a2c41de6a8a28e18adee054994e3dfc01cc5",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "04",
         "provider": "anthropic",
-        "reason": "ремонт ветки по ревью",
-        "verified": true,
-        "sig": "ba8d1a231755e02a9f1d30a2f156dbff4c501734601b37f21408afefcde4c3f5"
-      },
-      "attestation": {
-        "model": "claude-sonnet-5-5",
+        "model": "sonnet",
         "effort": "high",
-        "lines": 33
-      },
-      "attestFrom": 2837
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 45,
+        "factors": {
+          "algorithm": 5,
+          "coupling": 15,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=45; profile=strong; high-risk=True",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "3ec5d553a60661f0a69aa91c3c95a2c41de6a8a28e18adee054994e3dfc01cc5",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "05",
+      "title": "Дашборд: доска тасков, доска требований, панель таска, «нужен твой ответ»",
+      "requirements": [
+        "R14",
+        "R15",
+        "R16",
+        "R18"
+      ],
+      "blockedBy": [
+        "04"
+      ],
+      "wave": 2,
+      "zone": [
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_dashboard_boards.py"
+      ],
+      "review": "нет",
+      "model": "сильная",
+      "fingerprint": "1f39dd3cd036ad8ad93dc9764fc1952555fc2f453df9621b877ff57de9e0db05",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "05",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 30,
+        "factors": {
+          "algorithm": 5,
+          "coupling": 5,
+          "uncertainty": 0,
+          "context": 0,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=30; profile=strong; high-risk=True",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "1f39dd3cd036ad8ad93dc9764fc1952555fc2f453df9621b877ff57de9e0db05",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "06",
+      "title": "Дашборд: расход, история сборок, неполный журнал, эскалация",
+      "requirements": [
+        "R19",
+        "R20",
+        "R24",
+        "R27"
+      ],
+      "blockedBy": [
+        "01",
+        "05"
+      ],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_dashboard_details.py"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "ef8b4319b736dff36d6272677408bff03711c995b1516482fa5fa7b227e5928f",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "06",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 30,
+        "factors": {
+          "algorithm": 5,
+          "coupling": 5,
+          "uncertainty": 0,
+          "context": 0,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=30; profile=strong; high-risk=True",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "ef8b4319b736dff36d6272677408bff03711c995b1516482fa5fa7b227e5928f",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
     }
   ],
-  "tests": {
-    "passed": 750,
-    "failed": 0
-  },
+  "tests": null,
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -369,603 +412,277 @@ window.STATE =
     "emptyEnv": []
   },
   "additions": [],
-  "coverage": {
-    "found": 7,
-    "fixed": 0,
-    "deferred": 7,
-    "items": [
-      "«Автообновление .autopilot/*.py» покрыто наполовину: копируются только файлы из списка RUN_FROM_SKILL, и не при таске в работе — осознанное решение спецификации",
-      "«Opus-ремонт»: Opus только для fix-таска F<n>, ремонт обычного таска без Opus — осознанно, вне рамок",
-      "«Opus-ревью ветки»: порог diff больше 3000 строк взят из правила прошлой сборки, в брифе порога нет",
-      "Сверх брифа, но ради R05: подписи привязаны к прогону (run = slug|startedAt)",
-      "Сверх брифа, но ради R04: команда agent-for reviewer|repair",
-      "Сверх брифа, но ради R05: проверка подписи в нестрогом прогоне и вывод в opus status",
-      "Сверх брифа: из carried.md исключены пункты «Известные баги»"
-    ]
-  },
-  "concerns": [
-    "claude_agent_guard.py:36 зовёт приватный gate_sign._run_id; нужен тест на совпадение с run_id в ap.py",
-    "test_claude_agent_guard.py: нет теста на плохой agentsSig у Opus-ремонтника, когда F-таск не в approval.tickets",
-    "ap.py:1071-1121: сбой самообновления на полпути оставляет новые модули рядом со старым ap.py; копировать вместе",
-    "test_ap.py test_fable_is_refused проверяет только model_router; нужен тест, что agent-for и route отказывают Fable в opusAgents",
-    "ap.py:1075: upgrade_tools берёт код из state.skillDir без проверки источника",
-    "ap.py:1601-1620: нет сообщения, когда профиль Opus-ремонтника не найден и взят обычный",
-    "ap.py opus_sig_state: подтверждение без ключа после появления ключа выглядит как правка state.js"
-  ],
+  "coverage": null,
+  "concerns": [],
   "blockingFindings": [],
-  "blind": {
-    "checked": 7,
-    "matched": 7,
-    "mismatches": []
-  },
+  "blind": null,
   "beats": [
-    "2026-11-08T16:28:02+01:00",
-    "2026-11-08T16:28:09+01:00",
-    "2026-11-08T16:28:23+01:00",
-    "2026-11-08T16:28:30+01:00",
-    "2026-11-08T16:28:31+01:00",
-    "2026-11-08T16:30:01+01:00",
-    "2026-11-08T16:30:38+01:00",
-    "2026-11-08T16:30:39+01:00",
-    "2026-11-08T16:30:40+01:00",
-    "2026-11-08T16:30:51+01:00",
-    "2026-11-08T16:30:59+01:00",
-    "2026-11-08T16:31:00+01:00",
-    "2026-11-08T16:31:49+01:00",
-    "2026-11-08T16:32:20+01:00",
-    "2026-11-08T16:32:21+01:00",
-    "2026-11-08T16:41:05+01:00",
-    "2026-11-08T17:02:04+01:00",
-    "2026-11-08T17:02:05+01:00",
-    "2026-11-08T17:02:06+01:00",
-    "2026-11-08T17:03:17+01:00",
-    "2026-11-08T17:03:18+01:00",
-    "2026-11-08T17:03:49+01:00",
-    "2026-11-08T17:03:50+01:00",
-    "2026-11-08T17:03:51+01:00",
-    "2026-11-08T17:15:10+01:00",
-    "2026-11-08T17:15:12+01:00",
-    "2026-11-08T17:15:19+01:00",
-    "2026-11-08T17:17:59+01:00",
-    "2026-11-08T17:18:00+01:00",
-    "2026-11-08T17:34:37+01:00",
-    "2026-11-08T17:36:07+01:00",
-    "2026-11-08T17:36:08+01:00",
-    "2026-11-08T17:36:16+01:00",
-    "2026-11-08T17:44:44+01:00",
-    "2026-11-08T17:44:52+01:00",
-    "2026-11-08T17:45:21+01:00",
-    "2026-11-08T18:17:47+01:00",
-    "2026-11-08T18:18:20+01:00",
-    "2026-11-08T19:12:17+01:00",
-    "2026-11-08T19:13:14+01:00",
-    "2026-11-08T19:13:15+01:00",
-    "2026-11-08T19:13:16+01:00"
+    "2026-11-15T03:30:28+01:00",
+    "2026-11-15T03:30:45+01:00",
+    "2026-11-15T03:30:46+01:00",
+    "2026-11-15T03:30:59+01:00",
+    "2026-11-15T03:31:00+01:00",
+    "2026-11-15T03:31:30+01:00",
+    "2026-11-15T03:31:31+01:00",
+    "2026-11-15T03:33:59+01:00",
+    "2026-11-15T03:35:49+01:00",
+    "2026-11-15T03:35:50+01:00",
+    "2026-11-15T03:35:53+01:00"
   ],
-  "rev": 47,
+  "rev": 15,
   "waiting": null,
   "waits": [
     {
-      "kind": "stop",
-      "from": "2026-11-08T16:31:00+01:00",
-      "to": "2026-11-08T16:31:49+01:00"
+      "kind": "briefing",
+      "from": "2026-11-15T03:31:00+01:00",
+      "to": "2026-11-15T03:31:30+01:00"
     }
   ],
   "log": [
     {
-      "t": "2026-11-08T16:28:02+01:00",
+      "t": "2026-11-15T03:30:28+01:00",
       "k": "init"
     },
     {
-      "t": "2026-11-08T16:28:09+01:00",
+      "t": "2026-11-15T03:30:46+01:00",
       "k": "stage",
       "id": "manifest",
       "act": "start"
     },
     {
-      "t": "2026-11-08T16:28:23+01:00",
+      "t": "2026-11-15T03:30:59+01:00",
       "k": "stage",
       "id": "briefing",
       "act": "start"
     },
     {
-      "t": "2026-11-08T16:28:30+01:00",
-      "k": "stage",
-      "id": "briefing",
-      "act": "skip",
-      "note": "полный автомат — самобрифинг"
+      "t": "2026-11-15T03:31:00+01:00",
+      "k": "ask",
+      "kind": "briefing",
+      "note": "два вопроса — судьба восьми тем дашборда (I01), ключ подписи в хранилище ОС (I17)"
     },
     {
-      "t": "2026-11-08T16:28:31+01:00",
+      "t": "2026-11-15T03:31:30+01:00",
+      "k": "answered",
+      "kind": "briefing"
+    },
+    {
+      "t": "2026-11-15T03:31:31+01:00",
       "k": "gate",
       "g": "G1",
       "ok": false,
-      "open": 8,
-      "total": 8
+      "open": 29,
+      "total": 29
     },
     {
-      "t": "2026-11-08T16:28:31+01:00",
+      "t": "2026-11-15T03:31:31+01:00",
       "k": "stage",
       "id": "spec",
       "act": "start"
     },
     {
-      "t": "2026-11-08T16:30:01+01:00",
-      "k": "tier",
-      "v": "T1"
-    },
-    {
-      "t": "2026-11-08T16:30:01+01:00",
+      "t": "2026-11-15T03:31:31+01:00",
       "k": "gate",
       "g": "G1",
       "ok": true,
       "open": 0,
-      "total": 8
+      "total": 29
     },
     {
-      "t": "2026-11-08T16:30:38+01:00",
+      "t": "2026-11-15T03:33:59+01:00",
       "k": "stage",
       "id": "plan",
       "act": "start"
     },
     {
-      "t": "2026-11-08T16:30:39+01:00",
-      "k": "tickets",
-      "n": 3
+      "t": "2026-11-15T03:35:49+01:00",
+      "k": "tier",
+      "v": "T2"
     },
     {
-      "t": "2026-11-08T16:30:40+01:00",
+      "t": "2026-11-15T03:35:50+01:00",
+      "k": "tickets",
+      "n": 6
+    },
+    {
+      "t": "2026-11-15T03:35:50+01:00",
       "k": "gate",
       "g": "G3",
       "ok": true,
       "problems": 0
     },
     {
-      "t": "2026-11-08T16:30:51+01:00",
+      "t": "2026-11-15T03:35:53+01:00",
       "k": "plan-models",
       "provider": "anthropic",
       "applied": false,
-      "tickets": 3,
-      "blocked": 3
-    },
-    {
-      "t": "2026-11-08T16:30:51+01:00",
-      "k": "stage",
-      "id": "plan",
-      "act": "done"
-    },
-    {
-      "t": "2026-11-08T16:30:51+01:00",
-      "k": "plan-models",
-      "provider": "anthropic",
-      "applied": true,
-      "tickets": 3,
-      "blocked": 0
-    },
-    {
-      "t": "2026-11-08T16:31:00+01:00",
-      "k": "ask",
-      "kind": "stop",
-      "note": "новый чат: агенты зарегистрированы; затем G2 — независимая сверка брифа и спецификации"
-    },
-    {
-      "t": "2026-11-08T16:31:49+01:00",
-      "k": "answered",
-      "kind": "stop"
-    },
-    {
-      "t": "2026-11-08T16:31:49+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-08T16:32:20+01:00",
-      "k": "stage",
-      "id": "build",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T16:32:21+01:00",
-      "k": "ticket",
-      "ids": [
-        "01",
-        "02"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T16:41:05+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 65,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:02:04+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 748,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:02:05+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "review"
-    },
-    {
-      "t": "2026-11-08T17:02:06+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "review"
-    },
-    {
-      "t": "2026-11-08T17:03:17+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 65,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:03:18+01:00",
-      "k": "add",
-      "key": "concerns",
-      "n": 2
-    },
-    {
-      "t": "2026-11-08T17:03:49+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 748,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:03:50+01:00",
-      "k": "add",
-      "key": "concerns",
-      "n": 5
-    },
-    {
-      "t": "2026-11-08T17:03:51+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T17:15:10+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 748,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:15:12+01:00",
-      "k": "tickets",
-      "n": 3
-    },
-    {
-      "t": "2026-11-08T17:15:19+01:00",
-      "k": "stage",
-      "id": "review",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T17:17:59+01:00",
-      "k": "tickets",
-      "n": 4
-    },
-    {
-      "t": "2026-11-08T17:18:00+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-08T17:18:00+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T17:34:37+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 750,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:36:07+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 5
-    },
-    {
-      "t": "2026-11-08T17:36:08+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 750,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-08T17:36:16+01:00",
-      "k": "stage",
-      "id": "final",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-08T17:44:44+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": false,
-      "checked": 6,
-      "matched": 5
-    },
-    {
-      "t": "2026-11-08T17:44:52+01:00",
-      "k": "tests",
-      "passed": 750,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-08T17:45:21+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-08T17:45:21+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T17:45:21+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T17:45:21+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T18:17:47+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-08T18:17:47+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T18:17:47+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T18:17:47+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": false,
-      "reason": "plan-changed"
-    },
-    {
-      "t": "2026-11-08T18:18:20+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": true,
-      "open": 0,
-      "total": 8
-    },
-    {
-      "t": "2026-11-08T18:18:20+01:00",
-      "k": "stage",
-      "id": "spec",
-      "act": "done"
-    },
-    {
-      "t": "2026-11-08T19:12:17+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": true,
-      "found": 7,
-      "fixed": 0,
-      "deferred": 7
-    },
-    {
-      "t": "2026-11-08T19:13:14+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 7,
-      "matched": 7
-    },
-    {
-      "t": "2026-11-08T19:13:15+01:00",
-      "k": "tests",
-      "passed": 750,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-08T19:13:16+01:00",
-      "k": "finish",
-      "result": "Opus-ремонт и ревью ветки, подписи Opus привязаны к прогону, автообновление инструментов, fix-таски не сбрасывают гейты",
-      "problems": 0
+      "tickets": 6,
+      "blocked": 6
     }
   ],
   "reqList": [
     {
       "id": "R01",
-      "text": "«Давай доработаем.»",
-      "status": "done"
+      "text": "«A01: skills/autopilot/tools/ap.py:402,555,700,1615,1848,2024,2222,2243 — пути к таскам собираются через glob.glob от абсолютного пути проекта; [ и ] в пути читаются как шаблон, и файлы тасков не находятся»",
+      "status": "in-ticket"
     },
     {
       "id": "R02",
-      "text": "«Все должно работать в автоматическом режиме.»",
-      "status": "done"
+      "text": "«A02: skills/autopilot/tools/ap.py:865-866 — сервер дашборда отдаёт весь каталог .autopilot без проверки Host/Origin и без токена; state.js — это обычный скрипт window.STATE = {...}»",
+      "status": "in-ticket"
     },
     {
       "id": "R03",
-      "text": "«Без вмешательства пользователя.»",
-      "status": "done"
+      "text": "«A03: skills/autopilot/phases/dashboard-template.html:1137-1140, 1265-1268, 1912 и skills/autopilot/tools/ap.py:270-278, 3091 — при сбросе гейта из-за смены плана в ленту пишется запись без чисел, а дашборд рисует её обычным шаблоном»",
+      "status": "in-ticket"
     },
     {
       "id": "R04",
-      "text": "«Opus-ремонт и ревью ветки»",
-      "status": "done"
+      "text": "«A04: skills/autopilot/tools/ap.py:1279-1289 и skills/autopilot/phases/dashboard-template.html:1683, 2214-2216 — при возврате этапа время начала остаётся старым, а время конца переписывается; минуты этапа считаются по этим двум меткам»",
+      "status": "in-ticket"
     },
     {
       "id": "R05",
-      "text": "«Подпись opusAgents в guard»",
-      "status": "done"
+      "text": "«A05: skills/autopilot/tools/model_router.py:200-219 — риск таска определяется словами в его тексте: «подпись», «ключ», «token», «signature», а подстроки auth, session, migration ловятся даже внутри других слов («author»)»",
+      "status": "in-ticket"
     },
     {
       "id": "R06",
-      "text": "«Автообновление .autopilot/.py»",
-      "status": "done"
+      "text": "«A06: skills/autopilot/tools/run_log.py:24, skills/autopilot/tools/claude_attest.py:84-86 — в строках расхода журнала нет модели и effort»",
+      "status": "in-ticket"
     },
     {
       "id": "R07",
-      "text": "«Гейты не сбрасываются зря»",
-      "status": "done"
+      "text": "«A07: skills/autopilot/tools/ap.py:734-737 — снимок дашборда пишется голым os.replace, без повтора, который есть в state_io.replace_with_retry»",
+      "status": "in-ticket"
     },
     {
       "id": "R08",
-      "text": "«Оставить (Recommended)» — подтверждение Opus и цитата --by-user по-прежнему от пользователя",
-      "status": "done"
+      "text": "«A08: skills/autopilot/tools/gate_sign.py:98 — запись «прогон начат подписанным» пишется не атомарно (в коде помечено shortcut: not atomic)»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R09",
+      "text": "«A09: skills/autopilot/phases/dashboard-template.html:2460 — «обновлено N назад» в шапке рисуется и у сданной сборки»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R10",
+      "text": "«A10: skills/autopilot/phases/dashboard-template.html:1820 — в теме «Классика» счётчик повторов и починок виден только у сданного таска»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R11",
+      "text": "«A11: skills/autopilot/phases/dashboard-template.html:1764, 2120 — полоса этапов объявлена списком (role=\"list\"), а её элементы — без role=\"listitem\"»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R12",
+      "text": "«A12: .gitignore:2-8 — игнорируется только .autopilot/state.lock, а skills/autopilot/tools/state.lock лежит неотслеживаемым»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R13",
+      "text": "«I01: — Одна страница, которая сама показывает нужное по состоянию сборки, вместо восьми переключаемых тем — пользователь не должен выбирать, куда смотреть»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R14",
+      "text": "«I02: — Kanban-доска тасков как живой вид этапа «Разработка» — с одного взгляда видно, где всё сейчас и что застряло»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R15",
+      "text": "«I03: — Доска требований: твои фразы как карточки, которые идут «Разбирается → В плане → Делается → Проверяется → Принято» — ты видишь судьбу каждого своего слова, а не внутренние таски»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R16",
+      "text": "«I04: — Клик по таску открывает его историю в боковой панели — сейчас подробности одного таска разбросаны по четырём темам»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R17",
+      "text": "«I05: — Человеческий язык вместо служебного — навык обещает, что пользователь не читает спецификаций»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R18",
+      "text": "«I06: — «Нужен твой ответ» нельзя пропустить — пока сборка ждёт, время идёт впустую»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R19",
+      "text": "«I07: — Расход на виду: токены по ролям и моделям, «сколько стоил этот таск», сравнение с прошлыми сборками — это первый вопрос после «готово ли»»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R20",
+      "text": "«I08: — Лента прошлых сборок на дашборде: длительность, число тасков и починок, расход, итог — видно, становится ли быстрее и дешевле»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R21",
+      "text": "«I09: — Сложность таска оценивает планировщик, а не регулярное выражение — он прочитал спецификацию и понимает, что «документация про подписи» не опасна»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R22",
+      "text": "«I10: — «Haiku-таски» по замыслу плана: механическую работу планировщик выносит в отдельные маленькие таски — чёткая постановка появляется не сама, её нужно нарезать»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R23",
+      "text": "«I11: — Дешёвый профиль для кода — Haiku на высоком effort, а не на низком — сейчас cheap один на разведчика и исполнителя: haiku/low»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R24",
+      "text": "«I12: — Страховка: одна автоматическая эскалация Haiku → Sonnet, если дешёвый таск вернулся с красной проверкой после первого дозапроса — без неё расширять Haiku рискованно»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R25",
+      "text": "«I13: — Haiku собирает «пакет контекста» для Sonnet-исполнителя: нужные выдержки из файлов и интерфейсы одним файлом — чтение и есть основной расход»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R26",
+      "text": "«I14: — Замер вместо веры: report-run показывает по каждой модели долю тасков, сданных с первого раза, число починок и токены на таск; затем одна пробная сборка, где механические таски идут на Haiku»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R27",
+      "text": "«I15: — Счётчик «строк журнала не записано» в state.js и на дашборде — сбой записи журнала проглатывается по замыслу, но владелец должен видеть, что журнал неполный»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R28",
+      "text": "«I16: — Число тестов в AGENTS.md и README подставлять скриптом — сейчас там «730», прогон даёт 750»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R29",
+      "text": "«I17: — Сузить принятую границу Bash: запретить субагенту в bash_gate пути .autopilot/, ~/.autopilot/, .claude/agents/, ключ подписи держать в хранилище ОС — сейчас это задокументированное ограничение (docs/autopilot/claude-code.md:55), по…",
+      "status": "in-ticket"
     }
   ],
   "gates": {
     "G1": {
       "ok": true,
-      "at": "2026-11-08T18:18:20+01:00",
+      "at": "2026-11-15T03:31:31+01:00",
       "open": 0,
-      "total": 8
+      "total": 29
     },
     "G3": {
       "ok": true,
-      "at": "2026-11-08T18:17:47+01:00",
+      "at": "2026-11-15T03:35:50+01:00",
       "problems": 0
-    },
-    "G4": {
-      "ok": true,
-      "at": "2026-11-08T19:13:14+01:00",
-      "checked": 7,
-      "matched": 7
-    },
-    "G2": {
-      "ok": true,
-      "at": "2026-11-08T19:12:17+01:00",
-      "found": 7,
-      "fixed": 0,
-      "deferred": 7
     }
   },
-  "result": "Opus-ремонт и ревью ветки, подписи Opus привязаны к прогону, автообновление инструментов, fix-таски не сбрасывают гейты",
-  "gateMark": "3927b3198bb4f1b4109c5c59a3be44d104dbb95dde1848afe670d789e3af83fe",
+  "result": null,
+  "gateMark": "8d230a14c24d3c889f3dc86d9c6ed82684958693d10ceebb316c1022e15c1ff7",
   "skillVersion": "2.7.0",
-  "planContractDigest": "7b5e6fd85833c9fe460af40465f78c5d43cfcd60d4e29a2a39816052aadea0d3",
-  "planValidationDigest": "bd86c73d8ece60814229b24b1e9d325d6559970fde72f5ff9c2eba53eedb843e",
-  "roleAgents": {
-    "reviewer": {
-      "agentType": "autopilot-reviewer-2026-11-08-opus-auto",
-      "agentFile": ".claude/agents/autopilot-reviewer-2026-11-08-opus-auto.md",
-      "model": "sonnet",
-      "effort": "high",
-      "effortEnforced": true,
-      "profileSha": "b8abe524ff87a20dc0e62e5f6349a13efbbba51573f4c767be853ae5316f0cd6"
-    },
-    "acceptance": {
-      "agentType": "autopilot-acceptance-2026-11-08-opus-auto",
-      "agentFile": ".claude/agents/autopilot-acceptance-2026-11-08-opus-auto.md",
-      "model": "sonnet",
-      "effort": "medium",
-      "effortEnforced": true,
-      "profileSha": "810c985fb95051ea24b859f1a976e4b0ef70f66440ae82590d5b63b42f42ffa6"
-    },
-    "explorer": {
-      "agentType": "autopilot-explorer-2026-11-08-opus-auto",
-      "agentFile": ".claude/agents/autopilot-explorer-2026-11-08-opus-auto.md",
-      "model": "haiku",
-      "effort": "low",
-      "effortEnforced": true,
-      "profileSha": "1de311157dad0527d5cac748495aa30d36d187f910d7a95eb461de8befb65391"
-    }
-  },
-  "repairAgent": {
-    "agentType": "autopilot-executor-repair-2026-11-08-opus-auto",
-    "agentFile": ".claude/agents/autopilot-executor-repair-2026-11-08-opus-auto.md",
-    "model": "sonnet",
-    "effort": "high",
-    "effortEnforced": true,
-    "profileSha": "3523976ce3993bc40965caae0db449bdd73f0c64935fab5580ce5d6541f0778b"
-  },
-  "report": [
-    "Fable в профиле opusAgents отсекает только guard: route и agent-for сами не отказывают, и теста на это нет",
-    "Если файл профиля Opus-ремонтника не найден, route молча берёт обычного ремонтника",
-    "Подтверждение Opus, сделанное без ключа, после появления ключа сообщается как правка state.js",
-    "Нет теста на неверный agentsSig у Opus-ремонтника, когда fix-таск не в подтверждении; guard зовёт приватную gate_sign._run_id",
-    "Закрепление skillDir держит путь, а не содержимое: если skillDir лежит внутри проекта, агент с Bash может править файлы в нём; прогоны до F1 не самообновляются до нового init; сбой os.replace посреди обновления лечится повторным ap.py upgrade-tools"
-  ],
-  "blindRounds": 2
+  "planContractDigest": "9ef5e9d687b2299109a1996bbcd919803ce06f2c82bf7da740fa17c38f467d5e",
+  "planValidationDigest": "3384d03dc720b52d3465cad0bdbbe0a08a61d3f148294153c59d48e4862fb33d"
 }
