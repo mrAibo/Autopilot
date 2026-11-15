@@ -5,7 +5,7 @@ __pycache__/
 HANDOFF.local.md
 *.local.md
 .autopilot/serve.*
-.autopilot/state.lock
+state.lock
 .autopilot/dispatch-*.lock
 .autopilot/controller.lock
 .autopilot/gui-dispatch/
@@ -24,3 +24,4 @@ HANDOFF.local.md
 .autopilot/dashboard.html
 .autopilot/index.html
 .autopilot/run-log*.jsonl
+.autopilot/run-log.fail

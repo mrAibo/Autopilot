@@ -55,14 +55,19 @@ import hashlib
 import importlib.util
 import contextlib
 import glob
+import hmac
+import http.server
 import json
 import os
+import posixpath
 import re
+import secrets
 import socket
 import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # соседние модули инструментов
@@ -91,6 +96,8 @@ PAGE = os.path.join(A, "dashboard.html")
 README = os.path.join(A, "README.md")
 PIDF = os.path.join(A, "serve.pid")
 LOG = os.path.join(A, "serve.log")
+TOKEN_FILE = "serve.token"
+RUN_LOG_FAIL = os.path.join(A, "run-log.fail")
 LOCK = os.path.join(A, "state.lock")
 BEGIN, END = "/*STATE-BEGIN*/", "/*STATE-END*/"
 WIN = os.name == "nt"
@@ -314,6 +321,19 @@ def run_dir(state):
     return os.path.join(A, name)
 
 
+def ticket_files(state, pattern):
+    """Файлы тасков прогона по шаблону имени — единственный glob по `tickets/`.
+    Путь экранирован: `[`, `]` и `*` в папке проекта не читаются как шаблон."""
+    return glob.glob(os.path.join(glob.escape(run_dir(state)), "tickets", pattern))
+
+
+def artifact_present(state, art):
+    """Файл-след этапа (`manifest.md`, `tickets/*.md`) лежит в папке прогона?"""
+    if art.startswith("tickets/"):
+        return bool(ticket_files(state, art[len("tickets/"):]))
+    return os.path.exists(os.path.join(run_dir(state), art))
+
+
 def fresh_state(a):
     t = now()
     return {
@@ -399,7 +419,7 @@ def plan_contract_digest(state):
         return None
     contract = [[r["id"], r["text"], r["why"]] for r in rows]
     tickets = []
-    for path in sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md"))):
+    for path in sorted(ticket_files(state, "*.md")):
         if FIX_TICKET_FILE.match(os.path.basename(path)):
             continue                      # fix-таски (F<n>-*.md) создаёт ревью ветки: контракт плана их не включает
         try:
@@ -552,7 +572,7 @@ def check_machine_paths(state, files):
 
 
 def publish_tickets(state):
-    files = sorted(glob.glob(os.path.join(run_dir(state), "tickets", "*.md")))
+    files = sorted(ticket_files(state, "*.md"))
     if not files:
         return "в %s/tickets/ нет файлов" % state.get("dir")
     check_machine_paths(state, files)
@@ -674,6 +694,29 @@ def stage(state, sid):
     return s
 
 
+def stage_segments(s):
+    """Отрезки работы этапа. Старый state.js без них: один отрезок из startedAt/finishedAt."""
+    if "segments" not in s:
+        s["segments"] = ([{"startedAt": s["startedAt"], "finishedAt": s.get("finishedAt")}]
+                         if s.get("startedAt") else [])
+    return s["segments"]
+
+
+def segment_open(s, t):
+    """Этап открыт (или возвращён): новый отрезок, если прежний уже закрыт."""
+    segs = stage_segments(s)
+    if not segs or segs[-1].get("finishedAt"):
+        segs.append({"startedAt": t, "finishedAt": None})
+
+
+def segment_close(s, t):
+    segs = stage_segments(s)
+    if not segs:
+        segs.append({"startedAt": t, "finishedAt": t})     # этап закрыт, не открывшись
+    elif not segs[-1].get("finishedAt"):
+        segs[-1]["finishedAt"] = t
+
+
 def close_passed(state):
     """Инвариант: раньше открытого этапа не бывает другого открытого. Прошлый
     закрывается временем открытия ближайшего следующего. Этап, который прогон
@@ -687,6 +730,7 @@ def close_passed(state):
         later = sorted(o["startedAt"] for o in live
                        if rank[o["id"]] > rank[s["id"]] and o.get("startedAt"))
         if later:
+            segment_close(s, later[0])
             s["status"], s["finishedAt"] = "done", later[0]
             closed.append("%s закрыт (%s)" % (s["id"], later[0][11:19]))
     reached = [rank[s["id"]] for s in stages if s.get("status") in ("active", "done")]
@@ -697,7 +741,7 @@ def close_passed(state):
         art = ARTIFACT.get(s["id"])
         if s.get("status") != "pending" or rank[s["id"]] >= edge or not art or not state.get("dir"):
             continue
-        if glob.glob(os.path.join(run_dir(state), art)):
+        if artifact_present(state, art):
             nxt = [o["startedAt"] for o in stages if rank[o["id"]] > rank[s["id"]] and o.get("startedAt")]
             when = min(nxt) if nxt else state.get("updatedAt")
             s["status"], s["startedAt"], s["finishedAt"] = "done", s.get("startedAt") or when, when
@@ -732,9 +776,14 @@ def write_snapshot(state):
     new = page[: i + len(BEGIN)] + payload + page[j:]
     if new != page:
         tmp = PAGE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(new)
-        os.replace(tmp, PAGE)
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(new)
+            state_io.replace_with_retry(tmp, PAGE)
+        except OSError as e:                          # страницу держит читатель: команда не падает
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+            return "дашборд не обновлён (%s) — повтори команду" % e
     return "дашборд обновлён"
 
 
@@ -781,11 +830,19 @@ _OURS = re.compile(r"--directory\s+\"?" + re.escape(_norm(A)) + r"\"?(?=\s|$)")
 
 
 def is_ours(cmd):
-    """Сервер этого проекта — и только он: `-m http.server` и ровно наш --directory.
+    """Сервер этого проекта — и только он: наш `ap.py --serve <порт>` либо прежний
+    `-m http.server` с ровно нашим --directory (его гасим: токена у него нет).
     Узко намеренно: широкая проверка уже убивала чужие серверы."""
     c = cmd.replace("\\", "/")
     c = c.lower() if WIN else c
-    return bool(re.search(r"-m\s+http\.server\b", c)) and bool(_OURS.search(c))
+    return is_guarded_server(cmd) or (bool(re.search(r"-m\s+http\.server\b", c)) and bool(_OURS.search(c)))
+
+
+def is_guarded_server(cmd):
+    """Сервер с проверкой Host и токена: ровно наш ap.py с флагом --serve."""
+    c = cmd.replace("\\", "/")
+    c = c.lower() if WIN else c
+    return _norm(os.path.abspath(__file__)) in c and bool(re.search(r"\s--serve\s+\d+", c))
 
 
 def kill(pid):
@@ -847,6 +904,81 @@ def _detached():
     return {"start_new_session": True}
 
 
+# ── сервер дашборда: Host, Origin и токен ───────────────────────────────────
+
+OPEN_PAGES = ("/", "/dashboard.html", "/index.html")      # без токена: сама страница
+STATIC_NAME = re.compile(r"/[\w.-]+\.(?:svg|png|ico|css|woff2|jpg|webp)", re.I)   # и статика верхнего уровня
+
+
+def serve_token(directory=None):
+    """Токен сервера лежит в `serve.token` и переживает перезапуск ap.py; нет файла — создаётся."""
+    path = os.path.join(directory or A, TOKEN_FILE)
+    try:
+        with open(path, encoding="utf-8") as f:
+            token = f.read().strip()
+        if len(token) >= 16:
+            return token
+    except OSError:
+        pass
+    token = secrets.token_urlsafe(24)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(token + "\n")
+    return token
+
+
+def make_server(directory, port, token):
+    """HTTP-сервер каталога `directory` на 127.0.0.1. 403, если чужой Host/Origin,
+    `Sec-Fetch-Site: cross-site`, либо запрошено не страница и не статика, а токена `?t=` нет."""
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kw):
+            super().__init__(*args, directory=directory, **kw)
+
+        def allowed(self):
+            p = self.server.server_port
+            hosts = ("127.0.0.1:%d" % p, "localhost:%d" % p)
+            if (self.headers.get("Host") or "").lower() not in hosts:
+                return False
+            if (self.headers.get("Sec-Fetch-Site") or "").lower() == "cross-site":
+                return False
+            origin = (self.headers.get("Origin") or "").lower()
+            if origin and origin not in ["http://" + h for h in hosts]:
+                return False
+            url = urllib.parse.urlsplit(self.path)
+            path = urllib.parse.unquote(url.path)
+            if path in OPEN_PAGES or STATIC_NAME.fullmatch(path):
+                return True
+            given = (urllib.parse.parse_qs(url.query).get("t") or [""])[0]
+            return (posixpath.basename(path) != TOKEN_FILE
+                    and hmac.compare_digest(given.encode(), token.encode()))
+
+        def do_GET(self):
+            super().do_GET() if self.allowed() else self.send_error(403)
+
+        def do_HEAD(self):
+            super().do_HEAD() if self.allowed() else self.send_error(403)
+
+        def list_directory(self, path):
+            self.send_error(403)                      # состав каталога не показываем
+            return None
+
+        def end_headers(self):
+            self.send_header("Referrer-Policy", "no-referrer")   # токен в адресе не уходит дальше
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
+
+    return http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
+
+
+def run_server(port):
+    make_server(A, port, serve_token()).serve_forever()
+
+
+def page_url(port):
+    return "http://localhost:%d/dashboard.html?t=%s" % (port, serve_token())
+
+
 def serve(state):
     port, pid = recorded()
     if state.get("finishedAt"):
@@ -854,16 +986,15 @@ def serve(state):
         return "прогон закрыт"
     if os.environ.get("SSH_CONNECTION") or os.environ.get("CI"):
         return "удалённая сессия — без сервера, дашборд: %s" % PAGE
-    if port and pid and http_ok(port) and is_ours(cmdline(pid)):
-        return "http://localhost:%d/dashboard.html" % port
+    if port and pid and http_ok(port) and is_guarded_server(cmdline(pid)):
+        return page_url(port)
     kill_orphans()
     port = free_port(port)
     if not port:
         return "порт не нашёлся — дашборд открывается файлом: %s" % PAGE
     try:
         with open(LOG, "a", encoding="utf-8") as log:
-            srv = subprocess.Popen([sys.executable, "-m", "http.server", str(port),
-                                    "--bind", "127.0.0.1", "--directory", A],
+            srv = subprocess.Popen([sys.executable, os.path.abspath(__file__), "--serve", str(port)],
                                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                    stderr=log, **_detached())
     except OSError as e:
@@ -872,7 +1003,7 @@ def serve(state):
         if http_ok(port):
             with open(PIDF, "w", encoding="utf-8") as f:
                 f.write("%d %d\n" % (port, srv.pid))
-            return "сервер поднят: http://localhost:%d/dashboard.html" % port
+            return "сервер поднят: " + page_url(port)
         try:
             srv.wait(timeout=0.5)
             break
@@ -1003,7 +1134,8 @@ def ensure_gitignore():
         text = open(g, encoding="utf-8").read()
     except OSError:
         text = ""
-    entries = [".autopilot/serve.*", ".autopilot/state.lock",
+    entries = [".autopilot/serve.*", ".autopilot/serve.token", ".autopilot/state.lock",
+               ".autopilot/run-log.fail",
                ".autopilot/dispatch-*.lock", ".autopilot/controller.lock",
                ".autopilot/gui-dispatch/",
                ".autopilot/api-pilot/", ".autopilot/api-pilot-consent",
@@ -1276,16 +1408,19 @@ def cmd_stage(state, pos, opt):
     s = stage(state, sid)
     t = now()
     if action == "start":
+        segment_open(s, t)                            # до pop: у старого state.js отрезок берётся из finishedAt
         s["status"] = "active"
         s.setdefault("startedAt", t)
         s.pop("finishedAt", None)
     elif action == "done":
+        segment_close(s, t)
         s["status"] = "done"
         s.setdefault("startedAt", t)
         s["finishedAt"] = t
     elif action in ("skip", "fail"):
         if not opt.get("note"):
             die("%s требует --note с причиной" % action)
+        segment_close(s, t)
         s["status"] = "skipped" if action == "skip" else "failed"
         s.setdefault("startedAt", t)
         s["finishedAt"] = t
@@ -1612,7 +1747,7 @@ def opus_propose(state):
         mark = (tk.get("model") or "").strip()
         if re.match(r"opus\b", mark, re.I):
             why.append("пометка в файле таска: «%s»" % mark)
-        files = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % tk["id"]))
+        files = ticket_files(state, "%s-*.md" % tk["id"])
         text = ""
         if len(files) == 1:
             try:
@@ -1845,7 +1980,7 @@ def cmd_plan_models(state, opt):
         plans = []
         for tk in state["tickets"]:
             tid = tk["id"]
-            candidates = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % tid))
+            candidates = ticket_files(state, "%s-*.md" % tid)
             if len(candidates) != 1:
                 die("plan-models: tickets отличаются от опубликованного плана: %s" % tid)
             with open(candidates[0], "rb") as stream:
@@ -2021,7 +2156,7 @@ def cmd_accept_edit(state, ids, opt):
         die("таска %s нет — сначала `ap.py tickets`" % ids[0])
     if tk.get("status") != "done":
         die("таск %s не сдан: accept-edit только для done" % ids[0])
-    files = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % ids[0]))
+    files = ticket_files(state, "%s-*.md" % ids[0])
     if len(files) != 1:
         die("файл таска %s не найден или не один" % ids[0])
     with open(files[0], "rb") as stream:
@@ -2219,7 +2354,7 @@ def cmd_ticket(state, pos, opt):
                 if model not in (None, repair.get("model")) or effort not in (None, repair.get("effort")):
                     die("route: таск %s идёт на агента ремонта (%s/%s)" %
                         (i, repair.get("model"), repair.get("effort")))
-                if len(glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % i))) != 1:
+                if len(ticket_files(state, "%s-*.md" % i)) != 1:
                     die("route: не удалось однозначно найти файл таска %s" % i)
                 tk["routing"] = dict({k: repair[k] for k in (
                     "agentType", "agentFile", "model", "effort", "effortEnforced",
@@ -2240,7 +2375,7 @@ def cmd_ticket(state, pos, opt):
                 spec = importlib.util.spec_from_file_location("model_router", module_path)
                 router = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(router)
-                candidates = glob.glob(os.path.join(run_dir(state), "tickets", "%s-*.md" % i))
+                candidates = ticket_files(state, "%s-*.md" % i)
                 if len(candidates) != 1:
                     die("route: не удалось однозначно найти файл таска %s" % i)
                 source = open(candidates[0], encoding="utf-8").read()
@@ -2837,9 +2972,12 @@ def cmd_finish(state, opt):
     notes = []
     for s in state.get("stages") or []:
         if s.get("status") in ("active", "pending") and s.get("id") == "final":
+            if s.get("status") == "active":
+                segment_close(s, t)
             s["status"], s["finishedAt"] = "done", t
             s.setdefault("startedAt", t)
         elif s.get("status") == "active":
+            segment_close(s, t)
             s["status"], s["finishedAt"] = "done", t
         elif s.get("status") == "pending":
             s["status"], s["note"], s["finishedAt"] = "skipped", s.get("note") or "не понадобился", t
@@ -2883,7 +3021,7 @@ def cmd_reopen(state):
     state.pop("landedWith", None)
     for s in state.get("stages") or []:
         if s.get("id") != "preflight":
-            for k in ("startedAt", "finishedAt", "note"):
+            for k in ("startedAt", "finishedAt", "note", "segments"):
                 s.pop(k, None)
             s["status"] = "pending"
     stage(state, "manifest").update(status="active", startedAt=now())
@@ -2978,6 +3116,113 @@ def cmd_claude_version(opt):
         return 0
     print("\n".join(lines))
     return 2 if level == "refuse" else 0
+
+
+# ── данные для дашборда: расход, прошлые сборки, сбои журнала ────────────────
+
+HISTORY_KEPT = 20
+UNKNOWN_MODEL = "не указана"
+RUN_DIR_NAME = re.compile(r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*(?:--wip)?")
+EXEC_TICKET = re.compile(r"autopilot-executor-(?:(\d+)|f(\d+))-")
+
+
+def run_key(name):
+    """Имя прогона без `--wip`: журнал мог писаться до переименования папки."""
+    return str(name or "").removesuffix("--wip")
+
+
+def executor_ticket(agent_type):
+    """Номер таска из имени профиля `autopilot-executor-<NN|F<n>>-…`; у ремонтника и ревьюера его нет."""
+    m = EXEC_TICKET.match(agent_type) if isinstance(agent_type, str) else None
+    return (m.group(1) or "F" + m.group(2)) if m else None
+
+
+def _tokens(row, key):
+    v = row.get(key)
+    return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else 0
+
+
+def executor_rows(records, run):
+    """Строки расхода одного прогона."""
+    return [r for r in records if isinstance(r, dict) and r.get("k") == "executor"
+            and run_key(r.get("run")) == run_key(run)]
+
+
+def compute_spend(records, run):
+    """{byRole, byModel, byTicket}: на ключ — число запусков и токены (вход + выход).
+    Строка без модели — «не указана»; без таска в имени профиля — только в byRole и byModel."""
+    out = {"byRole": {}, "byModel": {}, "byTicket": {}}
+    for r in executor_rows(records, run):
+        tokens = {"n": 1, "input": _tokens(r, "input"), "output": _tokens(r, "output")}
+        role = r.get("role") if isinstance(r.get("role"), str) and r.get("role") else (
+            run_log.role_of(r.get("agent_type")) if run_log else "agent")
+        model = r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL
+        for bucket, key in (("byRole", role), ("byModel", model), ("byTicket", executor_ticket(r.get("agent_type")))):
+            if key is None:
+                continue
+            acc = out[bucket].setdefault(key, {"n": 0, "input": 0, "output": 0})
+            for k, v in tokens.items():
+                acc[k] += v
+    for bucket in out.values():
+        for acc in bucket.values():
+            acc["tokens"] = acc["input"] + acc["output"]
+    return out
+
+
+def _minutes(start, end, waits=()):
+    try:
+        secs = (dt.datetime.fromisoformat(end) - dt.datetime.fromisoformat(start)).total_seconds()
+        for w in waits:
+            secs -= (dt.datetime.fromisoformat(w["to"]) - dt.datetime.fromisoformat(w["from"])).total_seconds()
+    except (TypeError, ValueError, KeyError):
+        return None
+    return max(0, round(secs / 60))
+
+
+def compute_history(records, current):
+    """Прошлые сборки из архивных state.js своих папок: до 20, свежие первыми; битый файл пропущен.
+    Токены — из журнала по имени прогона."""
+    try:
+        names = sorted(n for n in os.listdir(A) if RUN_DIR_NAME.fullmatch(n) and run_key(n) != run_key(current))
+    except OSError:
+        return []
+    found = []
+    for name in names:
+        try:
+            old = state_io.read_state_file(os.path.join(A, name, "state.js"))
+            tickets = [t for t in old.get("tickets") or [] if isinstance(t, dict)]
+            tokens = sum(a["tokens"] for a in compute_spend(records, name)["byRole"].values())
+            found.append({"dir": name, "title": str(old.get("title") or name),
+                          "startedAt": old.get("startedAt"), "finishedAt": old.get("finishedAt"),
+                          "minutes": _minutes(old["startedAt"], old["finishedAt"], old.get("waits") or [])
+                          if old.get("startedAt") and old.get("finishedAt") else None,
+                          "tickets": len(tickets),
+                          "repairs": sum(t["repairs"] for t in tickets if isinstance(t.get("repairs"), int)),
+                          "tokens": tokens, "result": old.get("result")})
+        except (state_io.StateError, OSError, TypeError, ValueError, AttributeError, KeyError):
+            continue                                   # битый архив не мешает остальным
+    found.sort(key=lambda h: (str(h["startedAt"] or ""), h["dir"]), reverse=True)
+    return found[:HISTORY_KEPT]
+
+
+def log_failures():
+    """Сколько строк журнала не записано: число в `.autopilot/run-log.fail`, нет файла — 0."""
+    try:
+        with open(RUN_LOG_FAIL, encoding="utf-8") as f:
+            return max(0, int(f.read().strip()))
+    except (OSError, ValueError):
+        return 0
+
+
+def refresh_audit(state):
+    """state.spend, state.history, state.logFailures — для «Подробностей» дашборда."""
+    records = run_log.read_all(A) if run_log else []
+    try:
+        state["spend"] = compute_spend(records, state.get("dir"))
+        state["history"] = compute_history(records, state.get("dir"))
+    except Exception:                                  # расход не должен ронять команду
+        state["spend"], state["history"] = {"byRole": {}, "byModel": {}, "byTicket": {}}, []
+    state["logFailures"] = log_failures()
 
 
 def main():
@@ -3139,6 +3384,7 @@ def main():
     reconcile_requirements(state)
     recount(state)
     notes = close_passed(state) + notes
+    refresh_audit(state)
     save(state)
     snap = write_snapshot(state)
     if cmd == "finish" or opt.get("stop"):
@@ -3165,6 +3411,50 @@ def main():
             print("  ↑ " + note)
 
 
+def compute_model_report(records, run):
+    """По каждой модели: таски, доля сданных с первого раза, починки, токены на таск.
+    Модель таска — у его последнего запуска исполнителя (эскалация Haiku → Sonnet — на Sonnet);
+    нет строки расхода или в ней нет модели — «не указана»."""
+    tickets, usage = {}, {}
+    for r in records:
+        if not (isinstance(r, dict) and r.get("k") == "ticket" and run_key(r.get("run")) == run_key(run)):
+            continue
+        tid = r.get("id")
+        if not isinstance(tid, str) or tid.startswith("F"):        # F<n> — починка, не таск плана
+            continue
+        t = tickets.setdefault(tid, {"done": False, "again": False, "repairs": 0})
+        if r.get("act") == "done":
+            t["done"] = True
+        elif r.get("act") == "repair":
+            t["repairs"] += 1
+            t["again"] = True
+        elif r.get("act") in ("retry", "fail"):
+            t["again"] = True
+    model = {}
+    for r in executor_rows(records, run):
+        tid = executor_ticket(r.get("agent_type"))
+        if tid in tickets:
+            model[tid] = r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL
+            usage[tid] = usage.get(tid, 0) + _tokens(r, "input") + _tokens(r, "output")
+    rows = {}
+    for tid, t in tickets.items():
+        m = rows.setdefault(model.get(tid, UNKNOWN_MODEL),
+                            {"model": model.get(tid, UNKNOWN_MODEL), "tickets": 0, "first": 0, "repairs": 0, "tokens": 0})
+        m["tickets"] += 1
+        m["first"] += 1 if t["done"] and not t["again"] else 0
+        m["repairs"] += t["repairs"]
+        m["tokens"] += usage.get(tid, 0)
+    return sorted(rows.values(), key=lambda m: m["model"])
+
+
+def render_model_report(rows):
+    lines = ["", "## Модели", "| модель | тасков | сдано с первого раза | починок | токенов на таск |",
+             "|---|---|---|---|---|"]
+    lines += ["| %s | %d | %d%% | %d | %d |" % (m["model"], m["tickets"], round(100 * m["first"] / m["tickets"]),
+                                                  m["repairs"], round(m["tokens"] / m["tickets"])) for m in rows]
+    return lines if rows else lines + ["| — | 0 | — | 0 | — |"]
+
+
 def cmd_report_run(argv):
     """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
     if run_log is None:
@@ -3180,11 +3470,14 @@ def cmd_report_run(argv):
         return 0
     summary = run_log.summarize(records, run=runs[-1], skipped=unreadable)
     print(run_log.render_report(summary, share="--share" in argv), end="")
+    print("\n".join(render_model_report(compute_model_report(records, runs[-1]))))
     return 0
 
 
 if __name__ == "__main__":
-    if "--stop-now" in sys.argv:
+    if sys.argv[1:2] == ["--serve"] and len(sys.argv) == 3 and sys.argv[2].isdigit():
+        run_server(int(sys.argv[2]))                  # без state.lock: сервер живёт долго
+    elif "--stop-now" in sys.argv:
         main()
     elif sys.argv[1:2] == ["report-run"]:
         sys.exit(cmd_report_run(sys.argv[2:]))
