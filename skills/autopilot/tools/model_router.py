@@ -212,10 +212,22 @@ def assess_scores(scores):
     return score, profile
 
 
-# Zones that are sensitive by where they live, whatever the ticket text says.
-SENSITIVE_ZONE_RE = re.compile(
-    r"claude_agent_guard|gate_sign|model_router|state_io|auth|payment|migration|secret|\.env|"
-    r"gate\.key|credential|авториз|платеж|миграц|ключ|секрет", re.I)
+# Zones that are sensitive by where they live, whatever the ticket text says: whole path segments
+# (split on / \ . _ - and space) and exact file names, never a substring (`secretary` is not `secret`).
+SENSITIVE_WORDS = frozenset(
+    "auth payment payments migration migrations secret secrets credential credentials env "
+    "авторизация платеж платежи миграция миграции ключ ключи секрет секреты".split())
+SENSITIVE_FILES = frozenset(("claude_agent_guard", "gate_sign", "model_router", "state_io"))
+_SEGMENT_SPLIT = re.compile(r"[/\._\- ]")
+
+
+def sensitive_zone(zone):
+    path = zone.replace("\\", "/").lower()
+    name = path.rsplit("/", 1)[-1]
+    return (name == "gate.key" or name.rsplit(".", 1)[0] in SENSITIVE_FILES
+            or any(w in SENSITIVE_WORDS for w in _SEGMENT_SPLIT.split(path)))
+
+
 CLASS_RE = re.compile(r"^\*\*(?:Класс|Class):\*\*[ \t]*(\S*)", re.M)
 RISK_HEADER_RE = re.compile(r"^\*\*(?:Риск|Risk):\*\*[ \t]*(\S*)", re.M)
 WHY_RE = re.compile(r"^\*\*(?:Причина класса|Class reason):\*\*[ \t]*(.*?)[ \t]*$", re.M)
@@ -275,7 +287,7 @@ def assess_ticket(text):
     volume = re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text)
     lines = int(volume.group(1)) if volume else 0
     klass, planner_risk, _why = ticket_headers(text)
-    risky = planner_risk or (not docs_only(zones) and any(SENSITIVE_ZONE_RE.search(z) for z in zones))
+    risky = planner_risk or (not docs_only(zones) and any(sensitive_zone(z) for z in zones))
     scores = {
         "algorithm": 20 if klass == "complex" else 5,
         "coupling": min(20, max(0, (len(zones) - 1) * 5)),
@@ -284,6 +296,9 @@ def assess_ticket(text):
         "testing": 10 if klass == "complex" or risky else 5,
         "risk": 10 if risky else 0,
     }
+    if klass == "normal" and not docs_only(zones):
+        # ordinary code is never Haiku: 10 + 11 + the rest (5) is 26, the first sum above `cheap`
+        scores.update(algorithm=10, uncertainty=11)
     if klass == "mechanical":
         # never below what the zone already scored
         scores.update({k: max(scores[k], v) for k, v in MECHANICAL.items()})

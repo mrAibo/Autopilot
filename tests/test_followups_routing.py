@@ -30,7 +30,7 @@ def ticket(zone, body="", klass=None, risk=None, why="одна фраза"):
 def caps(model, *efforts):
     return {"provider": "anthropic", "model_selection": True, "models": {model: list(efforts)}}
 
-CLASS_LINES = "**Класс:** обычный\n**Риск:** обычный\n**Причина класса:** типовая задача\n"
+CLASS_LINES = "**Класс:** механический\n**Риск:** обычный\n**Причина класса:** типовая задача\n"
 
 
 def rewrite_tickets(h, change):
@@ -72,9 +72,33 @@ class AssessmentFromHeaders(unittest.TestCase):
 
     def test_no_headers_means_ordinary_with_risk_by_the_zone_alone(self):
         plain = router.assess_ticket(ticket(["src/a.py"], "Алгоритм, гонка, tbd, токен."))
-        self.assertEqual((plain["risk"], plain["algorithm"], plain["uncertainty"]), (0, 5, 0))
+        self.assertEqual((plain["risk"], plain["algorithm"], plain["uncertainty"]), (0, 10, 11))
         self.assertEqual(router.assess_ticket(ticket(["src/auth/login.py"], "x"))["risk"], 10)
         self.assertEqual(sorted(plain), sorted(router.WEIGHTS))
+
+    def test_ordinary_and_unclassed_code_tickets_are_not_cheap(self):
+        for zone in ("src/ui/", "src/author/", "src/secretary/"):
+            for klass in ("обычный", None):
+                with self.subTest(zone=zone, klass=klass):
+                    scores = router.assess_ticket(ticket([zone], "x", klass))
+                    self.assertEqual(router.assess_scores(scores)[1], "balanced")
+                    self.assertEqual(scores["risk"], 0)
+                    self.assertEqual(router.choose_route("anthropic", scores)["model"], "sonnet")
+
+    def test_docs_only_unclassed_stays_cheap_and_mechanical_stays_haiku(self):
+        docs = router.assess_ticket(ticket(["docs/a.md"], "x"))
+        self.assertEqual(router.assess_scores(docs)[1], "cheap")
+        mech = router.assess_ticket(ticket(["src/ui/"], "x", "механический"))
+        self.assertEqual(router.choose_route("anthropic", mech)["model"], "haiku")
+
+    def test_sensitive_zone_is_whole_segments_and_exact_file_names(self):
+        for zone in ("src/author/", "src/secretary/", "src/tokenizer/", "docs/token.md", "src/keyboard/"):
+            with self.subTest(zone=zone):
+                self.assertEqual(router.assess_ticket(ticket([zone], "x", "обычный"))["risk"], 0)
+        for zone in ("src/auth/", "src/auth_service.py", "payments/", "migrations/", ".env", r"src\auth\x.py",
+                     "skills/autopilot/tools/gate_sign.py", "~/.autopilot/gate.key"):
+            with self.subTest(zone=zone):
+                self.assertEqual(router.assess_ticket(ticket([zone], "x", "обычный"))["risk"], 10)
 
     def test_the_old_word_lists_are_gone_from_the_router(self):
         self.assertFalse(hasattr(router, "RISK_RE"))

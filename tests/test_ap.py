@@ -49,7 +49,7 @@ def read(path):
 
 def ticket(tid, title, reqs, deps, zone, wave, review="нет", model="обычная", risk="обычный"):
     return ("# %s — %s\n\n**Требования:** %s\n**Зависит от:** %s\n**Зона:** %s\n"
-            "**Волна:** %s\n**Ревью:** %s\n**Модель:** %s\n**Класс:** обычный\n**Риск:** %s\n**Причина класса:** типовая задача\n"
+            "**Волна:** %s\n**Ревью:** %s\n**Модель:** %s\n**Класс:** механический\n**Риск:** %s\n**Причина класса:** типовая задача\n"
             "\n## Критерии приёмки\n\n- [ ] что-то\n"
             % (tid, title, reqs, deps, " · ".join("`%s`" % z for z in zone), wave, review, model, risk))
 
@@ -660,9 +660,9 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"]}}, target)
+                       "models": {"haiku": ["low", "high"]}}, target)
         code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
-                            "--model", "haiku", "--effort", "low", "--reason", "simple",
+                            "--model", "haiku", "--effort", "high", "--reason", "simple",
                             "--capabilities", caps)
         self.assertEqual(code, 0, out)
         route = self.state()["tickets"][0]["routing"]
@@ -687,9 +687,9 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": provider, "model_selection": True,
-                       "effort_selection": enforced, "models": {model: ["low"]}}, target)
+                       "effort_selection": enforced, "models": {model: ["low", "high"]}}, target)
         code, out = self.ap("ticket", "01", "route", "--provider", provider,
-                            "--model", model, "--effort", "low", "--reason", "simple",
+                            "--model", model, "--effort", "high" if provider == "anthropic" else "low", "--reason", "simple",
                             "--capabilities", caps)
         self.assertEqual(code, 0, out)
         code, out = self.ap("ticket", "01", "start")
@@ -726,7 +726,7 @@ class Run(unittest.TestCase):
                 "status": "completed"}
 
     @staticmethod
-    def pre(agent, effort="low"):
+    def pre(agent, effort="high"):
         return {"event": "PreToolUse", "agent_type": agent, "agent_id": "a1",
                 "effort": effort, "resolved_model": None, "models_used": None,
                 "status": None}
@@ -764,10 +764,10 @@ class Run(unittest.TestCase):
 
     def test_strict_claude_done_blocked_on_wrong_effort(self):
         agent = self.routed_ticket()
-        self.attest(self.post(agent), self.pre(agent, "high"))
+        self.attest(self.post(agent), self.pre(agent, "low"))
         self.assert_blocked("effort")
-        self.attest(self.post(agent), self.pre(agent), self.pre(agent, "high"))
-        self.assert_blocked("high")
+        self.attest(self.post(agent), self.pre(agent), self.pre(agent, "low"))
+        self.assert_blocked("low")
 
     def test_strict_claude_done_allowed_with_matching_attestation(self):
         agent = self.routed_ticket()
@@ -778,7 +778,7 @@ class Run(unittest.TestCase):
         tk = self.state()["tickets"][0]
         self.assertEqual(tk["status"], "done")
         self.assertEqual(tk["attestation"],
-                         {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
+                         {"model": "claude-haiku-5-5", "effort": "high", "lines": 2})
 
     def test_strict_init_creates_key_and_marks_run_signed(self):
         self.routed_ticket()
@@ -909,7 +909,7 @@ class Run(unittest.TestCase):
         self.assertEqual(self.finish_01()[0], 0)
         caps = os.path.join(self.a, "model-capabilities.json")
         self.assertEqual(self.ap("ticket", "02", "route", "--provider", "anthropic", "--model", "haiku",
-                                 "--effort", "low", "--reason", "simple", "--capabilities", caps)[0], 0)
+                                 "--effort", "high", "--reason", "simple", "--capabilities", caps)[0], 0)
         self.assertEqual(self.ap("ticket", "02", "start")[0], 0)
         self.attest_routes()
         code, out = self.ap("ticket", "02", "done", "--tests", "5/0", "--commit", self.commit("T02"))
@@ -963,7 +963,7 @@ class Run(unittest.TestCase):
         # Any later call that re-publishes tickets from files must keep the evidence.
         self.assertEqual(self.ap("tickets")[0], 0)
         self.assertEqual(self.state()["tickets"][0]["attestation"],
-                         {"model": "claude-haiku-5-5", "effort": "low", "lines": 2})
+                         {"model": "claude-haiku-5-5", "effort": "high", "lines": 2})
 
     def test_strict_claude_full_model_id_requires_exact_match(self):
         self.plan(strict=True)
@@ -972,13 +972,13 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {full: ["low"]}}, target)
+                       "models": {full: ["low", "high"]}}, target)
         policy = os.path.join(self.a, "model-policy.json")
         with open(policy, "w", encoding="utf-8") as target:
             json.dump({"providers": {"anthropic": {
-                "cheap": {"model": full, "effort": "low"}}}}, target)
+                "cheap_code": {"model": full, "effort": "high"}}}}, target)
         code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
-                            "--model", full, "--effort", "low", "--reason", "full id",
+                            "--model", full, "--effort", "high", "--reason", "full id",
                             "--capabilities", caps, "--policy", policy)
         self.assertEqual(code, 0, out)
         self.assertEqual(self.ap("ticket", "01", "start")[0], 0)
@@ -1021,15 +1021,15 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low", "medium"]}}, target)
+                       "models": {"haiku": ["low", "high", "medium"]}}, target)
         policy = os.path.join(self.a, "model-policy.json")
         with open(policy, "w", encoding="utf-8") as target:
             json.dump({"providers": {
-                "anthropic": {"cheap": {"effort": "medium"}}}}, target)
+                "anthropic": {"cheap_code": {"effort": "medium"}}}}, target)
         args = ("ticket", "01", "route", "--provider", "anthropic",
                 "--model", "haiku", "--reason", "approved custom effort",
                 "--capabilities", caps, "--policy", policy)
-        code, output = self.ap(*args, "--effort", "low")
+        code, output = self.ap(*args, "--effort", "high")
         self.assertNotEqual(code, 0)
         self.assertIn("не одобрены", output)
         code, output = self.ap(*args, "--effort", "medium")
@@ -1055,11 +1055,11 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"]}}, target)
+                       "models": {"haiku": ["low", "high"]}}, target)
         path = os.path.join(os.path.dirname(self.root), "external-policy.json")
         code, output = self.ap(
             "ticket", "01", "route", "--provider", "anthropic",
-            "--model", "haiku", "--effort", "low",
+            "--model", "haiku", "--effort", "high",
             "--reason", "route", "--capabilities", caps,
             "--policy", path)
         self.assertNotEqual(code, 0)
@@ -1071,7 +1071,7 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as target:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"fable": ["high"], "haiku": ["low"]}}, target)
+                       "models": {"fable": ["high"], "haiku": ["low", "high"]}}, target)
         code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
                             "--model", "fable", "--effort", "high", "--reason", "default",
                             "--capabilities", caps)
@@ -1302,7 +1302,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as stream:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, stream)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, stream)
         code, output = self.ap("plan-models", "--provider", "anthropic",
                                "--capabilities", cap, "--apply")
         self.assertEqual(code, 0, output)
@@ -1339,7 +1339,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
 
         # Advisory is safe before check-plan, but materializing native profiles
         # must not bypass G3 even with a permissive synthetic capability file.
@@ -1404,7 +1404,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
         code, output = self.ap("plan-models", "--provider", "anthropic",
                                "--capabilities", cap, "--apply")
         self.assertNotEqual(code, 0, output)
@@ -1423,14 +1423,14 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
         code, payload = self.ap("plan-models", "--provider", "anthropic",
                                 "--capabilities", caps, "--apply")
         self.assertEqual(code, 0, payload)
         plan = json.loads(payload)
         self.assertEqual(plan["status"], "applied")
         self.assertEqual([t["model"] for t in plan["tickets"]], ["haiku", "sonnet"])
-        self.assertEqual([t["effort"] for t in plan["tickets"]], ["low", "high"])
+        self.assertEqual([t["effort"] for t in plan["tickets"]], ["high", "high"])
         self.assertEqual([t["profile"] for t in plan["tickets"]], ["cheap", "strong"])
         for tk in self.state()["tickets"]:
             route = tk["routing"]
@@ -1446,7 +1446,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
         return cap
 
     def test_plan_models_strict_claude_apply_registers_role_agents(self):
@@ -1557,7 +1557,7 @@ class Run(unittest.TestCase):
         self.assertTrue(route["verified"])
         # A mismatching model is refused, not silently replaced.
         code, out = self.ap("ticket", "F1", "route", "--provider", "anthropic",
-                            "--model", "haiku", "--effort", "low", "--reason", "x",
+                            "--model", "haiku", "--effort", "high", "--reason", "x",
                             "--capabilities", cap)
         self.assertNotEqual(code, 0, out)
 
@@ -1603,7 +1603,7 @@ class Run(unittest.TestCase):
         self.assertEqual(self.state()["tickets"][0]["plannedRouting"]["status"], "blocked")
         cap = self.write_anthropic_caps()
         code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
-                            "--model", "haiku", "--effort", "low", "--reason", "simple",
+                            "--model", "haiku", "--effort", "high", "--reason", "simple",
                             "--capabilities", cap)
         self.assertEqual(code, 0, out)
         tk = self.state()["tickets"][0]
@@ -1622,7 +1622,7 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
         for attempt in (1, 2):
             with self.subTest(attempt=attempt):
                 code, output = self.ap("plan-models", "--provider", "anthropic",
@@ -1678,7 +1678,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"]}}, out)
+                       "models": {"haiku": ["low", "high"]}}, out)
         code, output = self.ap("plan-models", "--provider", "anthropic",
                                "--capabilities", cap, "--apply")
         self.assertNotEqual(code, 0, output)
@@ -1693,7 +1693,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"]}}, out)
         conflict = os.path.join(self.root, ".claude", "agents",
                                 "autopilot-executor-02-priem.md")
         os.makedirs(os.path.dirname(conflict), exist_ok=True)
@@ -1749,10 +1749,10 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"]}}, out)
+                       "models": {"haiku": ["low", "high"]}}, out)
         for tid in ("01", "02"):
             code, msg = self.ap("ticket", tid, "route", "--provider", "anthropic",
-                                "--model", "haiku", "--effort", "low",
+                                "--model", "haiku", "--effort", "high",
                                 "--reason", "synthetic", "--capabilities", caps)
             self.assertEqual(code, 0, msg)
         self.attest_routes()
@@ -1859,9 +1859,9 @@ class Run(unittest.TestCase):
         caps = os.path.join(self.a, "model-capabilities.json")
         with open(caps, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"]}}, out)
+                       "models": {"haiku": ["low", "high"]}}, out)
         code, out = self.ap("ticket", "01", "route", "--provider", "anthropic",
-                            "--model", "haiku", "--effort", "low",
+                            "--model", "haiku", "--effort", "high",
                             "--reason", "synthetic", "--capabilities", caps)
         self.assertEqual(code, 0, out)
         self.attest_routes()
@@ -3013,7 +3013,7 @@ class Run(unittest.TestCase):
         cap = os.path.join(self.a, "model-capabilities.json")
         with open(cap, "w", encoding="utf-8") as out:
             json.dump({"provider": "anthropic", "model_selection": True,
-                       "models": {"haiku": ["low"], "sonnet": ["medium", "high"], "opus": ["high"]}}, out)
+                       "models": {"haiku": ["low", "high"], "sonnet": ["medium", "high"], "opus": ["high"]}}, out)
         return cap
 
     def apply_models(self, cap):
@@ -3195,7 +3195,7 @@ class Run(unittest.TestCase):
         self.assertEqual(self.ap("opus", "approve", "--tickets", "02", "--by-user", "да, приём на Opus")[0], 0)
         plan = self.apply_models(cap)
         self.assertEqual([(t["ticket"], t["model"], t["effort"]) for t in plan["tickets"]],
-                         [("01", "haiku", "low"), ("02", "opus", "high")])
+                         [("01", "haiku", "high"), ("02", "opus", "high")])
         state = self.state()
         by_id = {t["id"]: t for t in state["tickets"]}
         self.assertIn("premium tier", by_id["02"]["routing"]["reason"])

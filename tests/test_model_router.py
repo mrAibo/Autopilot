@@ -531,10 +531,11 @@ class RiskWordTests(unittest.TestCase):
         "encrypt the backup", "Secret store", "Token refresh")
 
     def test_risky_words_in_the_text_alone_do_not_raise_the_risk(self):
-        # the route comes from the planner's assessment and the zone, not from words (docs/adr/0007)
+        # the route comes from the planner's assessment and the zone, not from words (docs/adr/0007);
+        # an unclassed ticket in a code zone is ordinary: balanced, never cheap
         for title in self.RISKY_TITLES:
             with self.subTest(title=title):
-                self.assertEqual(self.profile(title), (0, "cheap"))
+                self.assertEqual(self.profile(title), (0, "balanced"))
 
     def test_planner_high_risk_is_not_cheap_whatever_the_words(self):
         for title in self.RISKY_TITLES[:3] + ("Fix button colour",):
@@ -544,11 +545,11 @@ class RiskWordTests(unittest.TestCase):
                 self.assertEqual(scores["risk"], 10)
                 self.assertNotEqual(router.assess_scores(scores)[1], "cheap")
 
-    def test_everyday_words_stay_cheap(self):
+    def test_everyday_words_stay_balanced(self):
         for title in ("Продолжить заявку", "Включить кнопку", "Исключение в форме",
                       "Product list", "Продукты в каталоге", "Fix button colour"):
             with self.subTest(title=title):
-                self.assertEqual(self.profile(title), (0, "cheap"))
+                self.assertEqual(self.profile(title), (0, "balanced"))
 
 
 if __name__ == "__main__":

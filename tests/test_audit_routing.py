@@ -68,7 +68,8 @@ class TicketClassTests(unittest.TestCase):
         body = "Переименовать поле."
         plain = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body))
         mech = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body, "механический"))
-        self.assertTrue(all(mech[k] >= plain[k] for k in plain))
+        # `обычный` adds its own floor (algorithm, uncertainty); the zone-derived scores are never lowered
+        self.assertTrue(all(mech[k] >= plain[k] for k in ("coupling", "context", "testing", "risk")))
         self.assertNotEqual(router.assess_scores(mech)[1], "cheap")
 
     def test_ordinary_and_missing_class_score_the_same(self):
@@ -88,12 +89,14 @@ class CheapProfilesTests(unittest.TestCase):
         route = router.choose_route("anthropic", scores, capabilities=caps("haiku", "low", "high"))
         self.assertEqual((route["status"], route["model"], route["effort"]), ("ready", "haiku", "high"))
 
-    def test_scout_and_unclassed_cheap_get_haiku_low(self):
+    def test_scout_and_docs_only_unclassed_get_haiku_low_but_code_does_not(self):
         zero = {name: 0 for name in router.WEIGHTS}
         route = router.choose_route("anthropic", zero, capabilities=caps("haiku", "low", "high"))
         self.assertEqual((route["model"], route["effort"]), ("haiku", "low"))
+        docs = router.assess_ticket(ticket(["docs/a.md"], "Правка."))
+        self.assertEqual(router.choose_route("anthropic", docs)["effort"], "low")
         plain = router.assess_ticket(ticket(["src/app.py"], "Правка."))
-        self.assertEqual(router.choose_route("anthropic", plain)["effort"], "low")
+        self.assertEqual(router.choose_route("anthropic", plain)["model"], "sonnet")
 
     def test_explorer_profile_is_cheap_read_even_for_mechanical_ticket(self):
         with tempfile.TemporaryDirectory() as tmp:
