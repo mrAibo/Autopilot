@@ -917,7 +917,29 @@ class ProtectedPathCommandTests(unittest.TestCase):
                         "cat .autopilot/state.js | grep move", "echo remove .autopilot/x",
                         'git commit -m "a > .autopilot/x"', "cd src && ls .autopilot",
                         'powershell -Command "Get-Content .autopilot/state.js"',
-                        'cmd /c "type .autopilot\\state.js"', "cd .autopilot-old"):
+                        'cmd /c "type .autopilot\\state.js"', "cd .autopilot-old",
+                        'git commit -m "docs: then copy .autopilot/ap.py into harness"',
+                        'git commit -m "feat: do install .autopilot/ap.py on init"',
+                        'git commit -m "bash_gate: while touch .autopilot/x is blocked"',
+                        'git commit -m "docs: bash gate; ln .autopilot/x"',
+                        'git commit -m "fix: don\'t do touch .autopilot/"',
+                        'git commit -m "$(cat <<\'EOF\'\nfeat: gate\n\n- do move .autopilot/x\nEOF\n)"'):
+            with self.subTest(command=command):
+                self.assertFalse(self.denied(command))
+
+    def test_simple_bypasses_of_the_protected_paths_are_denied(self):
+        for command in ("(rm -rf .autopilot)", "(rm -rf ~/.autopilot)", "(cd .autopilot)",
+                        "git rm -f .autopilot/state.js", "git mv a .claude/agents/x",
+                        "git restore .autopilot/x", "git -C . rm .autopilot/x",
+                        "timeout 5 rm .autopilot/x", "timeout -s KILL 5 rm -rf ~/.autopilot",
+                        "stdbuf -o0 rm .autopilot/x", "stdbuf -o L cp a .autopilot/x",
+                        "busybox rm .autopilot/x", "ri .autopilot/x", "mi a .autopilot/x",
+                        "cpi a .claude/agents/x", "ni .autopilot/x", "sc .autopilot/x v", "ac .autopilot/x v",
+                        'powershell -Command "ri .autopilot/x"', "echo a; (rm .autopilot/x)"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+        for command in ("timeout 5 pytest tests", "busybox ls .autopilot", "git rm src/a.py",
+                        "git mv a.py b.py", "stdbuf -oL python x.py"):
             with self.subTest(command=command):
                 self.assertFalse(self.denied(command))
 

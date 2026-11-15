@@ -212,12 +212,20 @@ WRITE_VERBS = frozenset((
     "cp", "mv", "rm", "rmdir", "ln", "tee", "touch", "mkdir", "install", "dd", "truncate", "shred",
     "chmod", "chown", "rsync", "unlink", "patch", "del", "erase", "copy", "move", "ren", "rename",
     "xcopy", "robocopy", "rd", "md", "remove-item", "copy-item", "move-item", "set-content",
-    "add-content", "out-file", "new-item", "rename-item", "set-itemproperty"))
+    "add-content", "out-file", "new-item", "rename-item", "set-itemproperty",
+    # PowerShell aliases of the cmdlets above
+    "ri", "mi", "cpi", "ni", "sc", "ac", "rni", "sp"))
+# git subcommands that write the worktree or index: a protected path among their arguments is a write
+GIT_WRITE_SUBS = frozenset(("rm", "mv", "restore", "checkout", "clean"))
 CD_VERBS = frozenset(("cd", "chdir", "pushd", "set-location", "sl"))
 # Wrappers that run the next command; the value is their options that take a value.
 WRAPPERS = {"sudo": ("-u", "-g", "-h", "-p", "-C", "-r", "-t", "-U", "-D"), "doas": ("-u", "-C"),
             "env": ("-u", "-C", "-S"), "command": (), "nohup": (), "time": (), "exec": (),
-            "nice": ("-n",), "xargs": ("-n", "-I", "-P", "-L", "-s", "-d", "-E", "-a")}
+            "nice": ("-n",), "xargs": ("-n", "-I", "-P", "-L", "-s", "-d", "-E", "-a"),
+            "timeout": ("-s", "-k", "--signal", "--kill-after"), "stdbuf": ("-i", "-o", "-e"),
+            "busybox": ()}
+# Wrappers that take that many plain words (timeout DURATION) before the command
+WRAPPER_POSITIONAL = {"timeout": 1}
 # Words after which a new command starts (shell keywords and block openers); `if`/`while`... also
 # take a command as their condition.
 KEYWORDS = frozenset(("then", "do", "else", "elif", "if", "while", "until", "!", "{", "(", "&", "&&", "||", "|"))
@@ -245,7 +253,8 @@ def _is_protected_word(word):
         if not word.startswith("--") and len(word) > 2:
             candidates.append(word[2:])
     for value in candidates:
-        path = re.sub(r"/{2,}", "/", value.replace(chr(92), "/").strip("\"'").casefold())
+        # a trailing `)` `}` `;` closes a subshell or block: `(rm -rf .autopilot)`
+        path = re.sub(r"/{2,}", "/", value.replace(chr(92), "/").strip("\"'").rstrip(");}").strip("\"'").casefold())
         for spelling in (path, posixpath.normpath(path)):
             parts = [p.rstrip(". ") for p in spelling.split("/")]
             if ".autopilot" in parts or "autopilot_home" in spelling or any(
@@ -288,13 +297,17 @@ def command_positions(words):
     """Indexes of the words that are command names: the first one and every one after a keyword or
     opener (`then do else if ! { (`, `;`-ended word, `find -exec`), skipping VAR=val and the
     wrappers (sudo, env, nohup, xargs ...) with their options and option values."""
-    found, expect, wrapper, i = [], True, None, 0
+    found, expect, wrapper, i, plain = [], True, None, 0, 0
     while i < len(words):
         word = words[i]
         bare = word.lstrip("({") if len(word) > 1 else word
         if wrapper:
             if bare.startswith("-"):
                 i += 2 if bare in WRAPPERS[wrapper] else 1
+                continue
+            if plain and not VAR_ASSIGN.fullmatch(bare):
+                plain -= 1
+                i += 1
                 continue
             if not VAR_ASSIGN.fullmatch(bare):
                 wrapper, expect = None, True
@@ -306,10 +319,57 @@ def command_positions(words):
             expect = False
             name = command_name(bare).removesuffix(".exe")
             wrapper = name if name in WRAPPERS else None
+            plain = WRAPPER_POSITIONAL.get(name, 0)
         elif word in KEYWORDS or word in EXEC_OPTS or word.startswith(("{", "(")) or word.endswith(";"):
             expect = True
         i += 1
     return found
+
+
+def mask_quotes(part):
+    """`part` with the blanks inside quoted strings and heredoc bodies made opaque (NUL).
+
+    The raw word pass splits on whitespace and would read `then copy .autopilot/x` inside a commit
+    message as a command. `$(...)` inside double quotes stays live (it does run). An unclosed quote
+    masks nothing, so the unpaired-quote forms keep being refused.
+    """
+    out, stack, i, n = [], ["u"], 0, len(part)
+    while i < n:
+        c, mode, two = part[i], stack[-1], part[i:i + 2]
+        if c == "\\" and mode != "s" and i + 1 < n:
+            out.append(c + ("\x00" if mode == "d" and part[i + 1].isspace() else part[i + 1]))
+            i += 2
+            continue
+        if mode == "s":
+            if c == "'":
+                stack.pop()
+        elif mode == "d" and c == '"':
+            stack.pop()
+        elif two == "$(" and mode != "s":
+            stack.append("c")
+            out.append(two)
+            i += 2
+            continue
+        elif mode != "d":
+            if c == "'":
+                stack.append("s")
+            elif c == '"':
+                stack.append("d")
+            elif c == ")" and mode == "c":
+                stack.pop()
+            elif two == "<<" and part[i + 2:i + 3] != "<":
+                head = HEREDOC_RE.match(part, i)
+                end = head and re.compile(r"\n[ \t]*%s[ \t]*(?:\n|$)" % re.escape(head.group(2))).search(part, head.end() - 1)
+                if end:
+                    out.append(part[i:head.end()] + re.sub(r"\s", "\x00", part[head.end():end.start()]))
+                    i = end.start()
+                    continue
+        out.append("\x00" if c.isspace() and mode in "sd" else c)
+        i += 1
+    return "".join(out) if stack == ["u"] else part
+
+
+HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1[^\n]*\n")
 
 
 def protected_path_denial(part, words):
@@ -322,13 +382,18 @@ def protected_path_denial(part, words):
     runs before the shell expands anything.
     """
     # shlex eats Windows backslashes (`C:\x\.autopilot` -> `C:x.autopilot`): look at the raw words too
-    for ws in (list(words), part.replace(chr(92), "/").split()):
+    for ws in (list(words), mask_quotes(part).replace(chr(92), "/").split()):
         for i in command_positions(ws):
             name, args = command_name(ws[i].lstrip("({")).removesuffix(".exe"), ws[i + 1:]
             writes = name in WRITE_VERBS or name in CD_VERBS or (
                 name == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args)) or (
                 name == "find" and ("-delete" in args or any(
                     command_name(b) in WRITE_VERBS for a, b in zip(args, args[1:]) if a in EXEC_OPTS)))
+            if name in GIT_NAMES:
+                rest = args
+                while rest and rest[0].startswith("-"):
+                    rest = rest[2:] if rest[0] in GIT_OPTS_WITH_VALUE else rest[1:]
+                writes = bool(rest) and rest[0] in GIT_WRITE_SUBS
             if writes and any(_is_protected_word(a) for a in args):
                 return DENY_WRITE
     if any(_is_protected_word(t) for t in redirect_targets(part)):
@@ -381,6 +446,7 @@ def bash_decision(command):
     (git, git.exe, any path, any case); `bash|sh|zsh|dash -c "<string>"` is checked recursively.
     shortcut: a command hidden in a script, `eval` or `$(...)` is not seen; documented in
     docs/autopilot/claude-code.md.
+    Принятое ограничение (не чиним): `>|`, `case…esac`, `find -exec sh -c`, `perl -pi` и тела heredoc.
     """
     why = _denial(command, 0)
     if why:
