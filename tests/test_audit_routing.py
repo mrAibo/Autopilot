@@ -35,28 +35,16 @@ class RiskByZoneTests(unittest.TestCase):
             with self.subTest(zone=zone):
                 self.assertEqual(router.assess_ticket(ticket([zone], "Переименовать функцию."))["risk"], 10)
 
-    def test_author_is_not_auth_in_code_zone(self):
-        text = ticket(["src/report.py"], "Показать author и sessions-таблицу в отчёте.")
-        # `sessions` — целое слово «session», его риск остаётся; «author» один — нет
-        self.assertEqual(router.assess_ticket(ticket(["src/report.py"], "Показать author в отчёте."))["risk"], 0)
-        self.assertEqual(router.assess_ticket(text)["risk"], 10)
-
-    def test_whole_word_substrings_still_catch_auth_session_migration(self):
-        for word in ("auth", "authentication", "session", "migration", "password"):
+    def test_words_in_the_body_never_raise_the_risk_in_a_code_zone(self):
+        for word in ("auth", "authentication", "session_id", "password", "migration", "author", "token", "подпись", "ключ"):
             with self.subTest(word=word):
-                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Поправить " + word + "."))["risk"], 10)
+                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Поправить " + word + "."))["risk"], 0)
 
-    def test_underscore_is_a_word_boundary_for_risk_words(self):
-        for ident in ("session_id", "password_hash", "auth_token", "run_migration"):
-            with self.subTest(ident=ident):
-                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Переименовать " + ident + "."))["risk"], 10)
-        for ident in ("author", "author_name", "authority"):
-            with self.subTest(ident=ident):
-                self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Переименовать " + ident + "."))["risk"], 0)
-
-    def test_words_in_code_zone_keep_risk(self):
-        self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Читать token из .env."))["risk"], 10)
-        self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Проверить подпись."))["risk"], 10)
+    def test_the_planners_high_risk_gives_risk_10_in_a_code_zone(self):
+        text = ticket(["src/app.py"], "Читать token из .env.").replace("**Зона:**", "**Риск:** высокий\n**Зона:**")
+        self.assertEqual(router.assess_ticket(text)["risk"], 10)
+        normal = ticket(["src/app.py"], "Читать token из .env.").replace("**Зона:**", "**Риск:** обычный\n**Зона:**")
+        self.assertEqual(router.assess_ticket(normal)["risk"], 0)
 
     def test_plain_code_ticket_is_low_risk(self):
         self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Поправить опечатку."))["risk"], 0)
@@ -77,13 +65,13 @@ class TicketClassTests(unittest.TestCase):
         self.assertEqual(router.assess_scores(scores)[1], "strong")
 
     def test_mechanical_class_never_lowers_computed_scores(self):
-        body = "Алгоритм обхода, уточнить детали."
+        body = "Переименовать поле."
         plain = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body))
         mech = router.assess_ticket(ticket(["a.py", "b.py", "c.py", "d.py"], body, "механический"))
         self.assertTrue(all(mech[k] >= plain[k] for k in plain))
         self.assertNotEqual(router.assess_scores(mech)[1], "cheap")
 
-    def test_ordinary_and_missing_class_equal_old_behavior(self):
+    def test_ordinary_and_missing_class_score_the_same(self):
         plain = router.assess_ticket(ticket(["src/app.py"], "Правка."))
         self.assertEqual(router.assess_ticket(ticket(["src/app.py"], "Правка.", "обычный")), plain)
         self.assertEqual(sorted(plain), sorted(router.WEIGHTS))

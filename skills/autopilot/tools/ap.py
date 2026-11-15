@@ -25,6 +25,7 @@
     python3 .autopilot/ap.py opus status                # что пользователь подтвердил, подпись верна?
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
+    python3 .autopilot/ap.py url                        # адрес дашборда с токеном (в чат не вставлять)
     python3 .autopilot/ap.py upgrade-tools              # обновить .autopilot/*.py из навыка (init и stage делают сами)
     python3 .autopilot/ap.py stage build done | fail --note "…"
     python3 .autopilot/ap.py add concerns "src/notify.ts:40 — два формата даты"
@@ -667,6 +668,19 @@ def check_plan(state):
         for b in t["blockedBy"]:
             if b not in ids:
                 problems.append("таск %s зависит от несуществующего %s" % (t["id"], b))
+    try:
+        import model_router as router
+    except ImportError:
+        router = None
+    for t in tickets if router else []:
+        if t["id"].startswith("F"):               # fix-таск ветки идёт сильным по фазе 6, оценки планировщика у него нет
+            continue
+        files = ticket_files(state, "%s-*.md" % t["id"])
+        if len(files) != 1:
+            continue
+        with open(files[0], encoding="utf-8") as stream:
+            for why in router.plan_problems(stream.read()):
+                problems.append("таск %s: %s" % (t["id"], why))
     wave_of = {t["id"]: t["wave"] for t in tickets}
     for t in tickets:
         need = 1 + max([wave_of.get(b) or 0 for b in t["blockedBy"]] or [0])
@@ -924,9 +938,24 @@ def serve_token(directory=None):
     except OSError:
         pass
     token = secrets.token_urlsafe(24)
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(token + "\n")
+    temp = "%s.%d.tmp" % (path, os.getpid())
+    try:
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(token + "\n")
+        try:
+            os.link(temp, path)                       # целиком или никак: пустого файла токена никто не увидит
+        except FileExistsError:                       # старый пустой или короткий файл — заменяем, живой — берём
+            with open(path, encoding="utf-8") as f:
+                other = f.read().strip()
+            if len(other) >= 16:
+                return other
+            os.replace(temp, path)
+        except OSError:
+            os.replace(temp, path)
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(temp)
     return token
 
 
@@ -956,8 +985,38 @@ def make_server(directory, port, token):
             return (posixpath.basename(path) != TOKEN_FILE
                     and hmac.compare_digest(given.encode(), token.encode()))
 
+        def tokenless_page(self):
+            """Страница без верного токена — тело с `window.STATE=null`; None, если отдавать как есть."""
+            url = urllib.parse.urlsplit(self.path)
+            path = urllib.parse.unquote(url.path)
+            if path not in OPEN_PAGES:
+                return None
+            given = (urllib.parse.parse_qs(url.query).get("t") or [""])[0]
+            if hmac.compare_digest(given.encode(), token.encode()):
+                return None
+            try:
+                with open(self.translate_path("/index.html" if path == "/" else path), "rb") as f:
+                    page = f.read().decode("utf-8")
+            except (OSError, UnicodeDecodeError):
+                return None
+            i, j = page.find(BEGIN), page.find(END)
+            if i < 0 or j < i:
+                return None
+            page = page[: i + len(BEGIN)] + "window.STATE=null;" + page[j:]
+            # без токена state.js всё равно 403: тег убираем, чтобы в консоли не было лишней ошибки
+            return page.replace('<script src="state.js"></script>', "").encode("utf-8")
+
         def do_GET(self):
-            super().do_GET() if self.allowed() else self.send_error(403)
+            if not self.allowed():
+                return self.send_error(403)
+            body = self.tokenless_page()
+            if body is None:
+                return super().do_GET()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
         def do_HEAD(self):
             super().do_HEAD() if self.allowed() else self.send_error(403)
@@ -983,11 +1042,13 @@ def run_server(port):
     make_server(A, port, serve_token()).serve_forever()
 
 
-def page_url(port):
-    return "http://localhost:%d/dashboard.html?t=%s" % (port, serve_token())
+def page_url(port, with_token=True):
+    """Адрес дашборда; токен — только когда его просит сам пользователь (`ap.py url`, голый `ap.py`)."""
+    base = "http://localhost:%d/dashboard.html" % port
+    return base + "?t=" + serve_token() if with_token else base
 
 
-def serve(state):
+def serve(state, with_token=False):
     port, pid = recorded()
     if state.get("finishedAt"):
         kill_orphans(keep=pid)
@@ -995,7 +1056,7 @@ def serve(state):
     if os.environ.get("SSH_CONNECTION") or os.environ.get("CI"):
         return "удалённая сессия — без сервера, дашборд: %s" % PAGE
     if port and pid and http_ok(port) and is_guarded_server(cmdline(pid)):
-        return page_url(port)
+        return page_url(port, with_token)
     kill_orphans()
     port = free_port(port)
     if not port:
@@ -1011,7 +1072,7 @@ def serve(state):
         if http_ok(port):
             with open(PIDF, "w", encoding="utf-8") as f:
                 f.write("%d %d\n" % (port, srv.pid))
-            return "сервер поднят: " + page_url(port)
+            return "сервер поднят: " + page_url(port, with_token)
         try:
             srv.wait(timeout=0.5)
             break
@@ -1310,6 +1371,25 @@ def upgrade_note(state):
     except OSError as exc:
         return ["! инструменты не обновлены (%s): запусти `ap.py upgrade-tools`" % type(exc).__name__]
     return ["инструменты обновлены из навыка: " + ", ".join(done)] if done else []
+
+
+def refresh_dashboard(state):
+    """Копия `.autopilot/dashboard.html` отстала от шаблона навыка — обновить через dashboard_upgrade.upgrade.
+    Возвращает одну строку для печати: что обновлено или почему нет; пусто — копия актуальна. Не исключение."""
+    template = os.path.join(state.get("skillDir") or "", "phases", "dashboard-template.html")
+    if not state.get("skillDir") or not os.path.isfile(template):
+        return ""
+    try:
+        snapshot = re.compile(re.escape(BEGIN) + r"window\.STATE=.*?;" + re.escape(END), re.S)
+        bare = lambda text: snapshot.sub("", text)
+        with open(template, encoding="utf-8") as f, open(PAGE, encoding="utf-8") as g:
+            if bare(f.read()) == bare(g.read()):
+                return ""
+        import dashboard_upgrade
+        done = dashboard_upgrade.upgrade(ROOT, template)
+    except (OSError, ImportError, ValueError) as exc:         # UpgradeError — это ValueError
+        return "! дашборд не обновлён из шаблона (%s)" % type(exc).__name__
+    return "дашборд обновлён из шаблона навыка" if done.get("status") == "upgraded" else ""
 
 
 def finish_self_upgrade():
@@ -1764,7 +1844,7 @@ def opus_propose(state):
             except (OSError, UnicodeDecodeError):
                 pass
         if text and router.premium_candidate(router.assess_ticket(text)):
-            why.append("высокий риск по тексту таска (безопасность, ключи, миграции, удаление данных)")
+            why.append("высокий риск: так оценил планировщик (`**Риск:** высокий`) или так велит зона таска")
         if why:
             out += ["  %s · %s" % (tk["id"], tk.get("title") or ""), "    причина: " + "; ".join(why),
                     "    дороже Sonnet-таска, не измерено"]
@@ -1997,7 +2077,8 @@ def cmd_plan_models(state, opt):
                 die("plan-models: tickets изменены; повтори ap.py tickets и check-plan")
             scores = router.assess_ticket(raw.decode("utf-8"))
             premium = tid in (approval.get("tickets") or [])     # пометка `Модель: opus` без подтверждения не считается
-            route = router.choose_route(provider, scores, policy, caps, premium=premium)
+            route = router.choose_route(provider, scores, policy, caps, premium=premium,
+                                        note=router.planner_note(raw.decode("utf-8")))
             proposal = {
                 "ticket": tid, "provider": provider, "model": route["model"],
                 "effort": route["effort"],
@@ -2439,7 +2520,7 @@ def cmd_ticket(state, pos, opt):
                 scores = json.loads(opt["scores"]) if opt.get("scores") else router.assess_ticket(source)
                 route = router.choose_route(
                     provider, scores, policy=router.load_policy(policy_path),
-                    capabilities=router.load_json(cap))
+                    capabilities=router.load_json(cap), note=router.planner_note(source))
             except (ValueError, OSError, TypeError) as err:
                 die("route: %s" % err)
             if (route["status"] != "ready" or route["model"] != model
@@ -3346,6 +3427,15 @@ def main():
                 die(OPUS_USAGE)
             print("\n".join(opus_propose(state) if rest == ["propose"] else opus_status(state)))
             return                                    # только печать: state.js не трогаем
+        if cmd == "url":
+            if rest:
+                die("url: лишние аргументы")
+            port, _ = recorded()
+            if not port:
+                serve(state)
+                port, _ = recorded()
+            print(page_url(port) if port else "сервера нет — дашборд открывается файлом: %s" % PAGE)
+            return                                    # только печать: state.js не трогаем
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
             return                                    # только печать: state.js не трогаем
@@ -3444,12 +3534,16 @@ def main():
     refresh_audit(state)
     save(state)
     snap = write_snapshot(state)
+    if cmd in ("init", "stage", "finish"):
+        note = refresh_dashboard(state)
+        if note:
+            notes.append(note)
     if cmd == "finish" or opt.get("stop"):
         srv = stop_later()
     elif opt.get("no-serve"):
         srv = "сервер не проверялся"
     else:
-        srv = serve(state)
+        srv = serve(state, with_token=(cmd == ""))
     r = state.get("requirements") or {}
     print("%s · %s · требований %s, готово %s" % (snap, srv, r.get("total", 0), r.get("done", 0)))
     for line in notes:

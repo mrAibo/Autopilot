@@ -86,19 +86,43 @@ def _protected(key):
     return key
 
 
+def _create_key_atomically(path, data, replace_empty):
+    """Full key in a temp file, then os.link: the key appears whole or not at all, a loser keeps the winner's."""
+    temp = path.with_name("%s.%d.%s.tmp" % (path.name, os.getpid(), secrets.token_hex(4)))
+    try:
+        fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(data)
+        if replace_empty:  # an old empty file: nothing worth keeping, swap it for the full key
+            state_io.replace_with_retry(temp, path)
+            return
+        try:
+            os.link(str(temp), str(path))
+        except FileExistsError:
+            return
+        except (OSError, NotImplementedError, AttributeError):
+            # shortcut: volumes without hard links get O_EXCL create + write, a reader may see the file empty
+            # for an instant; upgrade when such a volume matters
+            try:
+                fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                return
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(data)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
 def ensure_key():
     """Create the key (0600, DPAPI-wrapped on Windows) if absent. Only `init --strict-routing` calls this."""
     path = key_path()
-    if not path.exists() or path.stat().st_size == 0:  # an empty key would sign nothing
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.unlink(missing_ok=True)
-        data = _protected(secrets.token_bytes(32))
-        try:
-            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            return path
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        size = path.stat().st_size
+    except FileNotFoundError:
+        size = None
+    if size is None or size == 0:  # an empty key would sign nothing
+        _create_key_atomically(path, _protected(secrets.token_bytes(32)), size == 0)
     elif os.name == "nt" and not path.read_bytes().startswith(DPAPI_PREFIX):
         # an old plain key: same bytes, now under DPAPI (this is the only place that rewrites it;
         # tools copies from before this change cannot read the block, so upgrade them together)

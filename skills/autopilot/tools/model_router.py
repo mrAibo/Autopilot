@@ -212,24 +212,17 @@ def assess_scores(scores):
     return score, profile
 
 
-# Whole words only: "продолжить" and "включить" must not look like prod / ключ.
-RISK_RE = re.compile(
-    r"\b(?:tokens?|secrets?|api[ _-]?keys?|credentials?|signatures?|webhooks?|subprocess(?:es)?|"
-    r"shell|deploy\w*|prod|production|encrypt\w*)\b|"
-    r"\b(?:токен\w*|секрет\w*|вебхук\w*|деплой\w*|деплои\w*|шифр\w*|"
-    r"ключ(?:а|и|е|ом|ей|ам|ами|ах|у)?|подпис(?:ь|и|ью|ей)|"
-    r"прод(?:а|е|у|ом|акшен\w*|акшн\w*)?)\b")
-# Former substrings, now on a word boundary: "author" is not "auth". `_` is a boundary
-# (`session_id`, `auth_token`), unlike in `\b`: a neighbour counts only if it is a letter or digit.
-WORD_RISK_RE = re.compile(
-    r"(?<![^\W_])(?:auth|authn|authz|authenticat\w*|authoriz\w*|sessions?|passwords?|credentials?|"
-    r"payments?|migrations?|delete data|парол\w*|сесси\w*|платеж\w*|миграц\w*|"
-    r"удалени\w*|авторизац\w*|ключи доступа)(?![^\W_])")
 # Zones that are sensitive by where they live, whatever the ticket text says.
 SENSITIVE_ZONE_RE = re.compile(
     r"claude_agent_guard|gate_sign|model_router|state_io|auth|payment|migration|secret|\.env|"
     r"gate\.key|credential|авториз|платеж|миграц|ключ|секрет", re.I)
-CLASS_RE = re.compile(r"^\*\*(?:Класс|Class):\*\*\s*(\S+)", re.M)
+CLASS_RE = re.compile(r"^\*\*(?:Класс|Class):\*\*[ \t]*(\S*)", re.M)
+RISK_HEADER_RE = re.compile(r"^\*\*(?:Риск|Risk):\*\*[ \t]*(\S*)", re.M)
+WHY_RE = re.compile(r"^\*\*(?:Причина класса|Class reason):\*\*[ \t]*(.*?)[ \t]*$", re.M)
+CLASS_VALUES = {"механический": "mechanical", "mechanical": "mechanical", "обычный": "normal", "normal": "normal",
+                "сложный": "complex", "complex": "complex"}
+RISK_VALUES = {"обычный": False, "normal": False, "высокий": True, "high": True}
+WHY_MAX = 200
 
 
 def docs_only(zones):
@@ -238,43 +231,72 @@ def docs_only(zones):
                                for z in zones)
 
 
-def assess_ticket(text):
-    """Conservative, deterministic first-pass heuristic; annotations may refine it.
+def _header(rx, text):
+    found = rx.search(text)
+    return found.group(1).casefold().strip(".,;") if found else ""
 
-    Risk comes from the zone and whole words: a docs-only zone is risk 0; a sensitive zone is
-    risk 10; otherwise the risk words must occur as whole words. A planner's
-    `**Класс:** механический|обычный|сложный` sets the other scores to cheap / as computed /
-    strong but never lowers the risk computed from the zone.
+
+def ticket_headers(text):
+    """The planner's three headers: (class, high_risk, why). Unknown or missing class is `normal`,
+    a missing risk is not high; `why` is the one phrase after `**Причина класса:**` ("" if absent)."""
+    found = WHY_RE.search(text)
+    return (CLASS_VALUES.get(_header(CLASS_RE, text), "normal"),
+            RISK_VALUES.get(_header(RISK_HEADER_RE, text), False),
+            found.group(1) if found else "")
+
+
+def plan_problems(text):
+    """What a new plan must still say about one ticket (empty list = fine): a valid class, a reason of 1..200 characters,
+    and, if present, a valid risk. Old runs are not checked by assess_ticket, only `check-plan` asks for this."""
+    problems = []
+    if _header(CLASS_RE, text) not in CLASS_VALUES:
+        problems.append("нет `**Класс:** механический|обычный|сложный`")
+    why = WHY_RE.search(text)
+    if not why or not why.group(1):
+        problems.append("нет `**Причина класса:**` (одна фраза)")
+    elif len(why.group(1)) > WHY_MAX:
+        problems.append("`**Причина класса:**` длиннее %d знаков" % WHY_MAX)
+    if RISK_HEADER_RE.search(text) and _header(RISK_HEADER_RE, text) not in RISK_VALUES:
+        problems.append("`**Риск:**` — обычный или высокий")
+    return problems
+
+
+def assess_ticket(text):
+    """Deterministic score from what the planner wrote, not from words in the ticket.
+
+    Reads the zone, `**Объём:**`, `**Класс:** механический|обычный|сложный` and `**Риск:** обычный|высокий`.
+    Risk 10 comes from `**Риск:** высокий` or from a sensitive zone (a floor the class cannot lower);
+    a docs-only zone without a planner's high risk is risk 0. `сложный` sets algorithm to 20,
+    `механический` keeps the cheap band. No headers: `обычный`, risk by the zone alone.
     """
     zones = re.findall(r"\`([^\`]+)\`", next((s for s in text.splitlines()
                                               if s.startswith("**Зона:**") or
                                               s.startswith("**Zone:**")), ""))
-    lines = int(re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text).group(1)) \
-        if re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text) else 0
-    body = text.lower()
-    important = (not docs_only(zones) and (
-        any(SENSITIVE_ZONE_RE.search(z) for z in zones)
-        or RISK_RE.search(body) is not None or WORD_RISK_RE.search(body) is not None))
-    hard = any(k in body for k in (
-        "algorithm", "race condition", "consistency", "distributed",
-        "encryption", "алгоритм", "гонк", "шифрован", "конкурент"))
-    vague = any(k in body for k in ("tbd", "to decide", "неизвестно", "уточнить"))
+    volume = re.search(r"(?:^|\n)\*\*(?:Объём|Volume):\*\*\s*(\d+)", text)
+    lines = int(volume.group(1)) if volume else 0
+    klass, planner_risk, _why = ticket_headers(text)
+    risky = planner_risk or (not docs_only(zones) and any(SENSITIVE_ZONE_RE.search(z) for z in zones))
     scores = {
-        "algorithm": 20 if hard else 5,
+        "algorithm": 20 if klass == "complex" else 5,
         "coupling": min(20, max(0, (len(zones) - 1) * 5)),
-        "uncertainty": 15 if vague else 0,
+        "uncertainty": 0,
         "context": 15 if lines > 2000 else 10 if lines > 900 else 5 if len(zones) > 2 else 0,
-        "testing": 10 if hard or important else 5,
-        "risk": 10 if important else 0,
+        "testing": 10 if klass == "complex" or risky else 5,
+        "risk": 10 if risky else 0,
     }
-    klass = CLASS_RE.search(text)
-    klass = klass.group(1).casefold().strip(".,;") if klass else ""
-    if klass in ("механический", "mechanical"):
-        # never below what the zone and text already scored
+    if klass == "mechanical":
+        # never below what the zone already scored
         scores.update({k: max(scores[k], v) for k, v in MECHANICAL.items()})
-    elif klass in ("сложный", "complex"):
-        scores["algorithm"] = max(scores["algorithm"], 20)
     return scores
+
+
+def planner_note(text):
+    """`class=…; risk=…; why=…` for routing.reason: what the planner decided, in one line."""
+    klass, planner_risk, why = ticket_headers(text)
+    risk = assess_ticket(text)["risk"] >= 10 or planner_risk
+    note = "class=%s; risk=%s" % ({"mechanical": "механический", "normal": "обычный", "complex": "сложный"}[klass],
+                                  "высокий" if risk else "обычный")
+    return note + ("; why=" + why.replace(";", ",") if why else "")
 
 
 def premium_candidate(route_or_scores):
@@ -292,7 +314,7 @@ def premium_candidate(route_or_scores):
     return type(risk) is int and risk >= 10
 
 
-def choose_route(provider, scores, policy=None, capabilities=None, premium=False):
+def choose_route(provider, scores, policy=None, capabilities=None, premium=False, note=""):
     """Pick model and effort. `premium=True` (anthropic only) uses the opus tier instead of
     the scored one; the caller sets it only for a ticket the user approved. Fable and Astra
     stay closed, and without the flag the result is what it always was."""
@@ -341,6 +363,8 @@ def choose_route(provider, scores, policy=None, capabilities=None, premium=False
               (score, profile, scores["risk"] >= 8))
     if use_premium:
         reason += "; premium tier"
+    if note:  # planner_note(): class, risk and the planner's phrase
+        reason += "; " + str(note)
     route = {"provider": provider, "model": model, "effort": effort,
              "profile": profile, "score": score, "factors": scores,
              "reason": reason, "max_parallel": parallel,

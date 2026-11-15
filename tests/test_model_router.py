@@ -107,7 +107,7 @@ class RouterTests(unittest.TestCase):
         with self.assertRaises(router.PolicyError):
             router.assess_scores(scores)
 
-    def test_heuristic_flags_credentials(self):
+    def test_sensitive_zone_is_risky_without_any_header(self):
         scores = router.assess_ticket("**Зона:** `src/auth/`\nImplement password hashing and sessions")
         self.assertEqual(scores["risk"], 10)
 
@@ -523,17 +523,26 @@ class RiskWordTests(unittest.TestCase):
         scores = router.assess_ticket(self.ticket(title))
         return scores["risk"], router.assess_scores(scores)[1]
 
-    def test_risky_words_in_russian_and_english_are_not_cheap(self):
-        for title in (
-                "Проверка токена webhook-подписи", "Verify the API key", "Rotate credentials",
-                "Check webhook signature", "Run subprocess safely", "Open a shell",
-                "Deploy to production", "Выкатить в прод", "Деплой на сервер", "Шифрование файла",
-                "Хранение секрета", "Новый ключ доступа", "Вебхук от банка", "Проверка подписи",
-                "encrypt the backup", "Secret store", "Token refresh"):
+    RISKY_TITLES = (
+        "Проверка токена webhook-подписи", "Verify the API key", "Rotate credentials",
+        "Check webhook signature", "Run subprocess safely", "Open a shell",
+        "Deploy to production", "Выкатить в прод", "Деплой на сервер", "Шифрование файла",
+        "Хранение секрета", "Новый ключ доступа", "Вебхук от банка", "Проверка подписи",
+        "encrypt the backup", "Secret store", "Token refresh")
+
+    def test_risky_words_in_the_text_alone_do_not_raise_the_risk(self):
+        # the route comes from the planner's assessment and the zone, not from words (docs/adr/0007)
+        for title in self.RISKY_TITLES:
             with self.subTest(title=title):
-                risk, profile = self.profile(title)
-                self.assertEqual(risk, 10)
-                self.assertNotEqual(profile, "cheap")
+                self.assertEqual(self.profile(title), (0, "cheap"))
+
+    def test_planner_high_risk_is_not_cheap_whatever_the_words(self):
+        for title in self.RISKY_TITLES[:3] + ("Fix button colour",):
+            with self.subTest(title=title):
+                text = self.ticket(title).replace("**Зона:**", "**Риск:** высокий\n**Зона:**")
+                scores = router.assess_ticket(text)
+                self.assertEqual(scores["risk"], 10)
+                self.assertNotEqual(router.assess_scores(scores)[1], "cheap")
 
     def test_everyday_words_stay_cheap(self):
         for title in ("Продолжить заявку", "Включить кнопку", "Исключение в форме",

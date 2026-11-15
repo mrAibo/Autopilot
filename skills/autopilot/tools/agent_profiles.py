@@ -133,6 +133,7 @@ def prepare(root, ticket, provider, capabilities, role, policy=None, scores=None
         loaded,
         model_router.load_json(capabilities),
         premium=premium,
+        note=model_router.planner_note(text),
     )
     if result["status"] != "ready":
         raise ProfileError("Route blocked: " + result.get("error", "unavailable"))

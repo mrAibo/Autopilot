@@ -47,10 +47,11 @@ def read(path):
         return f.read()
 
 
-def ticket(tid, title, reqs, deps, zone, wave, review="нет", model="обычная"):
+def ticket(tid, title, reqs, deps, zone, wave, review="нет", model="обычная", risk="обычный"):
     return ("# %s — %s\n\n**Требования:** %s\n**Зависит от:** %s\n**Зона:** %s\n"
-            "**Волна:** %s\n**Ревью:** %s\n**Модель:** %s\n\n## Критерии приёмки\n\n- [ ] что-то\n"
-            % (tid, title, reqs, deps, " · ".join("`%s`" % z for z in zone), wave, review, model))
+            "**Волна:** %s\n**Ревью:** %s\n**Модель:** %s\n**Класс:** обычный\n**Риск:** %s\n**Причина класса:** типовая задача\n"
+            "\n## Критерии приёмки\n\n- [ ] что-то\n"
+            % (tid, title, reqs, deps, " · ".join("`%s`" % z for z in zone), wave, review, model, risk))
 
 
 class Run(unittest.TestCase):
@@ -73,7 +74,7 @@ class Run(unittest.TestCase):
         shutil.copy(SCHEDULER, os.path.join(self.a, "scheduler.py"))
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
-        for name in ("state_io.py", "process_containment.py", "gate_sign.py", "run_log.py"):
+        for name in ("state_io.py", "process_containment.py", "gate_sign.py", "run_log.py", "dashboard_upgrade.py"):
             shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
@@ -1281,7 +1282,7 @@ class Run(unittest.TestCase):
         # A changed ticket must not inherit a cached recommendation.
         self.write("tickets/01-karkas.md", ticket(
             "01", "Changed password reset migration", "R01, R05", "—",
-            ["src/core/"], 1))
+            ["src/core/"], 1, risk="высокий"))
         code, output = self.ap("tickets")
         self.assertEqual(code, 0, output)
         by_id = {t["id"]: t for t in self.state()["tickets"]}
@@ -1416,7 +1417,7 @@ class Run(unittest.TestCase):
         # A security-sensitive task must use strong, not a naive low-cost route.
         self.write("tickets/02-priem.md", ticket(
             "02", "Password reset / authentication migration", "R01.1, R02, A01",
-            "01", ["src/bot/"], 2))
+            "01", ["src/bot/"], 2, risk="высокий"))
         self.ap("tickets")
         self.ap("check-plan")
         caps = os.path.join(self.a, "model-capabilities.json")
@@ -3023,7 +3024,7 @@ class Run(unittest.TestCase):
     def test_opus_propose_lists_marked_and_risky_pending_tickets_and_writes_nothing(self):
         self.plan()
         self.write("tickets/01-karkas.md", ticket(
-            "01", "Password reset migration", "R01, R05", "—", ["src/core/"], 1))
+            "01", "Password reset migration", "R01, R05", "—", ["src/core/"], 1, risk="высокий"))
         self.write("tickets/02-priem.md", ticket(
             "02", "Приём", "R01.1, R02, A01", "01", ["src/bot/"], 2, model="Opus — гонка записи"))
         self.write("tickets/03-teksty.md", ticket("03", "Тексты", "R02", "01", ["docs/"], 2, model="opusplan"))

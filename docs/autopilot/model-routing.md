@@ -69,7 +69,7 @@ Models/prices/availability can change. The host must advertise supported model/e
 
 ## Ticket class and the cheap profiles
 
-The planner may write two header lines in a ticket: `**Класс:** механический|обычный|сложный` and `**Причина класса:** …` (`phases/4-plan.md`). `assess_ticket` takes the class as an assessment: «механический» raises the other scores to the cheap-code band, «сложный» lifts the algorithm score; the **risk always comes from the zone and whole words**, never from the class (a docs-only zone is risk 0, a sensitive zone such as `gate_sign` or `claude_agent_guard` is risk 10). `ticket NN route --scores` still replaces everything.
+The planner writes three header lines in every ticket: `**Класс:** механический|обычный|сложный`, `**Риск:** обычный|высокий` and `**Причина класса:** …` (one phrase, at most 200 characters; `phases/4-plan.md`). `assess_ticket` reads the zone, `**Объём:**` and these headers, **not the words of the ticket body** (`docs/adr/0007`): «механический» raises the other scores to the cheap-code band, «сложный» sets the algorithm score to 20, `**Риск:** высокий` gives risk 10. The zone stays a floor: a sensitive zone such as `gate_sign` or `claude_agent_guard` is risk 10 whatever the class says, a docs-only zone without a planner's high risk is risk 0. A ticket without headers is «обычный» with risk by the zone alone (old runs keep working), but `ap.py check-plan` does not let a new plan through without `**Класс:**` and `**Причина класса:**`. `routing.reason` ends with `class=…; risk=…; why=<the planner's phrase>`, and the dashboard's model routes show it. `ticket NN route --scores` still replaces everything.
 
 The `cheap` tier is split: `cheap_read` (`haiku` / low — the same profile the legacy name `cheap` keeps in step with) for scouts and `cheap_code` (`haiku` / **high**) for the executor of a mechanical ticket whose score is above the reading band. Cheap code on low effort was the reason Haiku was almost never picked; the host capabilities must list `haiku/high`. A Haiku ticket that returns red gets one explicit escalation to Sonnet (`retry-policy.md`). Opus still needs the user's signed approval and Fable is refused whatever the class says.
 
@@ -82,7 +82,7 @@ The `cheap` tier is split: `cheap_read` (`haiku` / low — the same profile the 
 - test complexity: up to 15
 - security/irreversible risk: up to 10
 
-Scores of 0–25 use `cheap`, 26–55 `balanced`, 56–100 `strong`. High risk is an override: risk >=8 lifts a `cheap` result to at least `balanced`; risk 10 or algorithm >=20 forces `strong`; risk 10 **and** algorithm >=20 together select `critical` (Anthropic: `sonnet` at `xhigh`; a host without `xhigh` is blocked, fail-closed). A risk-bearing task may also require independent review. Simple heuristics based on ticket contents are a starting estimate; supply verified factors explicitly if the default estimate is inadequate.
+Scores of 0–25 use `cheap`, 26–55 `balanced`, 56–100 `strong`. High risk is an override: risk >=8 lifts a `cheap` result to at least `balanced`; risk 10 or algorithm >=20 forces `strong`; risk 10 **and** algorithm >=20 together select `critical` (Anthropic: `sonnet` at `xhigh`; a host without `xhigh` is blocked, fail-closed). A risk-bearing task may also require independent review. The estimate is the planner's assessment plus the zone; supply verified factors explicitly with `--scores` if it is inadequate.
 
 ## Custom policy for the normal ticket route
 

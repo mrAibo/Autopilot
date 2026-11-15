@@ -691,6 +691,20 @@
   .fc-k{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
   .fc-v{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
   .fc-s{font-size:13px;color:var(--tx2)}
+  /* «Сейчас»: герой одной строкой — кольцо .sm, заголовок в одну строку, время и тесты рядом */
+  .nowh{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 20px;border-radius:20px}
+  .nowh .ring.sm{--rs:64px}
+  .nowh .ring-in span{display:none}
+  .nowh h2{flex:1 1 220px;min-width:0;margin:0;font-size:clamp(17px,2vw,22px);line-height:1.2;font-weight:800;letter-spacing:-.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nowh-side{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:14px}
+  .nowh-side .kv{gap:6px}
+  .nowh-note{flex:1 1 100%;font-size:14px;line-height:1.45;color:var(--tx2)}
+  .nowh-note ul{margin:4px 0 0;padding-left:20px}
+  .tokhint{margin-top:12px}
+  .tokhint p{margin:0;color:var(--tx2);line-height:1.5}
+  .bd-more{list-style:none}
+  .bd-more .btn-soft{width:100%;justify-content:center}
   .kvs{display:flex;flex-direction:column;gap:6px;font-size:14px;border-top:1px solid var(--line);padding-top:12px}
   .kv{display:flex;justify-content:space-between;gap:12px}
   .kv span{color:var(--tx2)}
@@ -1217,6 +1231,7 @@ const I18N = {
       finish:"Сборка сдана",reopen:"Новый бриф — сборка открыта снова"},
     boot:"Дашборд ещё не прочитал состояние",
     bootWhy:"Состояния нет ни внутри страницы, ни в файле .autopilot/state.js рядом: прогон только начался, либо файл помялся.",
+    needToken:"Данные прогона открываются по адресу с токеном: возьми его командой ap.py url.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
     viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",
@@ -1368,6 +1383,7 @@ const I18N = {
       finish:"Build done",reopen:"New brief — the build is open again"},
     boot:"Dashboard has no state yet",
     bootWhy:"No state either inside the page or in .autopilot/state.js beside it: the run has just started, or the file got mangled.",
+    needToken:"Run data opens at the address with the token: get it with the ap.py url command.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
     viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",
@@ -1442,7 +1458,7 @@ const RB_KEY = 'autopilot-boardmode';
 function storedRb(){
   try { return localStorage.getItem(RB_KEY) === 'tk' ? 'tk' : 'req'; } catch(e) { return 'req'; }  // нет хранилища — по требованиям
 }
-const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), panel: null, focus: null};
+const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), rbOkAll: false, panel: null, focus: null};
 
 // ——— «нужен твой ответ»: значок вкладки и уведомление ———
 // Значок — всегда (data:-картинка, без запросов); уведомление — только с явного разрешения, которое просит кнопка по клику.
@@ -1733,7 +1749,9 @@ function humanRoute(route, L){
   const name = found ? found[0][0].toUpperCase() + found[0].slice(1).toLowerCase() : String(r.model || '').split(/\r?\n/)[0];
   const risky = /^true$/i.test(m[3]);
   const how = /premium/i.test(text) ? [', ', L.hrt.premium] : risky ? [', ', L.hrt.risky] : [': ', L.hrt[m[2].toLowerCase()] || L.hrt.balanced];
-  return name ? name + how[0] + how[1] : how[1];
+  const base = name ? name + how[0] + how[1] : how[1];
+  const why = /(?:^|; )why=([^\r\n]+)/.exec(text);   // фраза планировщика из routing.reason (R07)
+  return why ? base + ' — ' + why[1].trim() : base;
 }
 
 // Статус таска → цвет полосы, значок, подписи. Ремонт — не «ещё немного
@@ -1765,8 +1783,8 @@ const VIEWS = {
     const part = (id, html) => `<div id="${id}" class="vsec" tabindex="-1">${html}</div>`;
     const body = {
       now: c.fin
-        ? `<div id="mission" class="vsec" tabindex="-1" data-mode="done">${c.sumHero}${c.nextCard}${c.needSum}${c.mismatchCard}</div>`
-        : `<div id="mission" class="vsec" tabindex="-1" data-mode="${c.askBar ? 'ask' : 'dev'}">${c.ovHero}${c.route}</div>`
+        ? `<div id="mission" class="vsec" tabindex="-1" data-mode="done">${c.nowHero}${c.nextCard}${c.needSum}${c.mismatchCard}</div>`
+        : `<div id="mission" class="vsec" tabindex="-1" data-mode="${c.askBar ? 'ask' : 'dev'}">${c.nowHero}${c.route}</div>`
           + part('tasks', c.board)
           + part('quality', `${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.feedView}`),
       req: part('mission', c.reqBoard + c.matrixCard + c.wordsView),
@@ -2464,6 +2482,12 @@ function render(lang){
   const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
     <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
     ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
+  // «Сейчас»: герой одной строкой. Фраза-пояснение уходит в title заголовка; список оговорок сданной сборки остаётся под строкой.
+  const plain = html => String(html).replace(/<[^>]*>/g, '');
+  const nowSide = [timeVal && kv(W.kTime, timeVal), testsVal && kv(L.tTests, testsVal)].filter(Boolean).join('');
+  const nowHero = `<section class="card nowh w ${heroCls}" aria-live="polite">${ringHTML(' sm')}
+    <h2 title="${esc(plain(h2) + (!fin && (ovLead ?? lead) ? ' — ' + plain(ovLead ?? lead) : ''))}">${h2}</h2>
+    <div class="nowh-side">${chipState}${nowSide}</div>${fin && S.landedWith ? `<div class="nowh-note">${lead}</div>` : ''}</section>`;
   const ctile = (k, v) => `<div class="ctile"><span>${k}</span><b>${v}</b></div>`;
   const ctiles = [testsVal && ctile(L.tTests, testsVal), timeVal && ctile(W.kTime, timeVal), tokVal && ctile(W.kTokens, tokVal)].filter(Boolean);
   const cHero = `<section class="card cmp-hero w ${heroCls}" aria-live="polite"><div class="cmp-top">${ringHTML(' sm')}
@@ -2711,8 +2735,16 @@ function render(lang){
   const reqCard = x => `<li class="rcard" data-req="${esc(x.r.id)}"><span class="rid">${esc(x.r.id)}</span><p title="${esc(x.r.text)}">${esc(x.r.text)}</p>${
     x.lk.length ? `<small>${esc(W.mTickets(x.lk.map(t => t.id)))}</small>` : ''}</li>`;
   const reqIn = c => reqPlaced.filter(p => p[1] === c).map(p => p[0]);
+  // «Принято» растёт без конца, поэтому видны первые RB_OK_SHOW карточек; остальные — по «Показать все N» (UI.rbOkAll).
+  const RB_OK_SHOW = 6;
+  const reqColHtml = c => {
+    const cards = reqIn(c), cut = c === 'ok' && cards.length > RB_OK_SHOW;
+    const shown = cut && !UI.rbOkAll ? cards.slice(0, RB_OK_SHOW) : cards;
+    return (shown.map(reqCard).join('') || '<li class="bd-none">—</li>')
+      + (cut ? `<li class="bd-more"><button type="button" class="btn-soft" data-rbok>${UI.rbOkAll ? L.collapse + ic('up') : L.showAll(cards.length) + ic('chev')}</button></li>` : '');
+  };
   const reqBoardBody = `<div class="bd-cols r5">${['read', 'plan', 'doing', 'check', 'ok'].map(c => `<section class="bd-col" data-rcol="${c}" aria-label="${esc(BD.rcols[c] + ', ' + reqIn(c).length)}"><h4>${esc(BD.rcols[c])} <span>${reqIn(c).length}</span></h4><ul>${
-      reqIn(c).map(reqCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`).join('')}</div>
+      reqColHtml(c)}</ul></section>`).join('')}</div>
     <div class="bd-strips">${['ph', 'def', 'drop'].map(c => `<section class="bd-strip" data-rstrip="${c}" aria-label="${esc(BD.strip[c] + ', ' + reqIn(c).length)}"><h4>${esc(BD.strip[c])} <span>${reqIn(c).length}</span></h4><ul>${
       reqIn(c).map(reqCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`).join('')}</div>`;
   const rbSwitch = `<div class="rbmode" role="group" aria-label="${esc(BD.rbLabel)}">${['req', 'tk'].map(m =>
@@ -2790,7 +2822,7 @@ function render(lang){
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-notify'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-rbok','data-notify'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -2802,7 +2834,7 @@ function render(lang){
   const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
     isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
-    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
+    ovHero, nowHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
     askBar, nowTabs, tab: UI.tab, gatesPlain, historyCard, spendCard, logBadge, board, reqBoard});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
@@ -2951,6 +2983,8 @@ document.getElementById('app').addEventListener('click', e => {
     UI.panel = b.dataset.card; UI.focus = {}; render(CUR.lang);
   } else if (b.hasAttribute('data-pclose')) {
     closePanel();
+  } else if (b.hasAttribute('data-rbok')) {
+    UI.rbOkAll = !UI.rbOkAll; render(CUR.lang);
   } else if (b.dataset.rbmode) {
     UI.rb = b.dataset.rbmode === 'tk' ? 'tk' : 'req';
     try { localStorage.setItem(RB_KEY, UI.rb); } catch(err) {}
@@ -2986,18 +3020,29 @@ applyTheme(storedTheme());
 
 // Пустой экран не говорит, что сломалось, поэтому страница объясняет — и не
 // сдаётся: опрос продолжается, и когда файл появится, дашборд оживёт сам.
-function bootFail(why){
+function bootShell(inner){
   const app = document.getElementById('app');
   if (!app) return;
+  app.innerHTML = `<header class="top"><div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div></header>${inner}`;
+}
+function bootFail(why){
   const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
-  app.innerHTML = `<header class="top"><div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div></header>
-    <section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
-    <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`;
+  bootShell(`<section class="card"><h3 class="wt">${L.boot}</h3><p class="muted" style="margin-top:10px">${esc(why)}</p>
+    <p class="muted" style="margin-top:10px">${L.bootHelp}</p></section>`);
+}
+
+// Адрес без токена по http: сервер отдал страницу без данных. Одна строка вместо «ещё не прочитал» и пустого опроса.
+function tokenHint(){
+  const L = I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'];
+  bootShell(`<section class="card tokhint"><p>${esc(L.needToken)}</p></section>`);
 }
 
 if (typeof STATE === 'undefined' || !STATE || typeof STATE !== 'object') {
+  if (SERVED && !/[?&]t=[^&#]+/.test(location.search || '')) tokenHint();
+  else {
   bootFail(I18N[(navigator.language || '').startsWith('ru') ? 'ru' : 'en'].bootWhy);
   pollState();
+  }
 } else {
   try {
     render(I18N[savedLang] ? savedLang : 'ru');

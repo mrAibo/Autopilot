@@ -37,6 +37,7 @@ cp "${TPL%/phases/*}/tools/state_io.py" "$A/state_io.py"
 cp "${TPL%/phases/*}/tools/process_containment.py" "$A/process_containment.py"
 cp "${TPL%/phases/*}/tools/gate_sign.py" "$A/gate_sign.py"
 cp "${TPL%/phases/*}/tools/run_log.py" "$A/run_log.py"
+cp "${TPL%/phases/*}/tools/dashboard_upgrade.py" "$A/dashboard_upgrade.py"
 ```
 
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
@@ -108,6 +109,7 @@ Immediately after `init`, before Phase 1 asks anything.
 | the run waits for the user — a briefing round, the manual spec or plan gate, a yes/no before an irreversible action, a stop condition | `ask briefing\|spec\|plan\|action\|stop --note "что ждём, одной строкой"` — chained with nothing: the message goes out after it |
 | the answer came | `answered` — or nothing, when the next call is a `stage` or `ticket`: those close the wait themselves |
 | the run lands | `finish --result "одна строка: что теперь есть"` — a landing with caveats only with the user's words: `finish --result "…" --by-user "<цитата>"` (writes `landedWith`) |
+| the user asks for the dashboard address | `url` — prints the address with the token; never paste it into the chat or a screenshot: no other command prints it (the status line shows the address without `?t=`) |
 | Git accepts writes (Phase 0, before `init`) | `git-check` — a refusal stops the run |
 | the user lifts a repair/retry limit or reopens a failed ticket | `ticket 02 reset --by-user "<цитата>"` — never without their words |
 | Opus (only by the user's yes) | `opus propose` (print only) · `opus approve [--tickets 03,05] [--roles repair,reviewer] --by-user "<цитата>"` · `opus status` (also checks the approval signature) · `agent-for reviewer\|repair [--diff-lines N]` — prints the agent to call, the Opus profile only if the user approved that role (`phases/4-plan.md`) |
