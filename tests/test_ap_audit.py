@@ -320,9 +320,10 @@ class SpendHistory(unittest.TestCase):
                 spent("autopilot-reviewer-x", 10, 20),
                 spent("autopilot-executor-03-other", 1, 1, "haiku", run="2026-01-01-other")]
         out = self.m.compute_spend(rows, RUN)                                # журнал писался с --wip, прогон сдан без
-        self.assertEqual(out["byModel"], {"haiku": {"n": 1, "input": 100, "output": 900, "tokens": 1000},
-                                          "sonnet": {"n": 1, "input": 50, "output": 50, "tokens": 100},
-                                          "не указана": {"n": 1, "input": 10, "output": 20, "tokens": 30}})
+        old_keys = lambda b: {k: {f: v[f] for f in ("n", "input", "output", "tokens")} for k, v in b.items()}   # кэш — в test_spend_accounting
+        self.assertEqual(old_keys(out["byModel"]), {"haiku": {"n": 1, "input": 100, "output": 900, "tokens": 1000},
+                                                    "sonnet": {"n": 1, "input": 50, "output": 50, "tokens": 100},
+                                                    "не указана": {"n": 1, "input": 10, "output": 20, "tokens": 30}})
         self.assertEqual({k: v["tokens"] for k, v in out["byRole"].items()}, {"executor": 1100, "reviewer": 30})
         self.assertEqual({k: v["tokens"] for k, v in out["byTicket"].items()}, {"01": 1000, "02": 100})
 

@@ -138,6 +138,52 @@ def usage_from_transcript(path, max_bytes=5_000_000):
         return None
 
 
+def _moment(value):
+    """ISO-время (с `Z` или без пояса — тогда UTC) → aware datetime; не разобрать → None."""
+    if isinstance(value, dt.datetime):
+        return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
+    try:
+        m = dt.datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    return m if m.tzinfo else m.replace(tzinfo=dt.timezone.utc)
+
+
+def usage_by_model(path, since, until=None):
+    """Токены главной сессии по моделям из JSONL-журнала Claude Code: {модель: {turns, input,
+    output, cache_read, cache_write}}. Читает построчно (журнал бывает десятки МБ); берёт ответы
+    ассистента с `timestamp` в [since, until], без `isSidechain`, повтор `message.id` — последний.
+    Текст сообщений не читается и не сохраняется. Нечитаемый файл → None."""
+    lo, hi = _moment(since), _moment(until)
+    seen = {}                                        # id ответа → (модель, usage)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for n, line in enumerate(f):
+                try:
+                    r = json.loads(line)
+                    msg = r.get("message")
+                    if r.get("isSidechain") is True or not isinstance(msg, dict) or msg.get("role") != "assistant"                             or not isinstance(msg.get("usage"), dict):
+                        continue
+                    at = _moment(r.get("timestamp"))
+                    if at is None or (lo and at < lo) or (hi and at > hi):
+                        continue
+                    seen[msg.get("id") or "#%d" % n] = (msg.get("model") if isinstance(msg.get("model"), str)
+                                                        and msg.get("model") else "unknown", msg["usage"])
+                except (ValueError, AttributeError, RecursionError):
+                    continue
+    except OSError:
+        return None
+    num = lambda u, k: u[k] if isinstance(u.get(k), int) and not isinstance(u.get(k), bool) and u[k] > 0 else 0
+    out = {}
+    for model, u in seen.values():
+        a = out.setdefault(model, dict.fromkeys(("turns", "input", "output", "cache_read", "cache_write"), 0))
+        a["turns"] += 1
+        for key, field in (("input", "input_tokens"), ("output", "output_tokens"),
+                           ("cache_read", "cache_read_input_tokens"), ("cache_write", "cache_creation_input_tokens")):
+            a[key] += num(u, field)
+    return out
+
+
 def _seconds(a, b):
     try:
         return max(0, int((dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)).total_seconds()))
@@ -223,6 +269,23 @@ def _table(head, body):
     return lines + ["| " + " | ".join(_cell(c) for c in row) + " |" for row in body]
 
 
+def _count(v):
+    return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else 0
+
+
+def _cache_table(head, entries, key):
+    """Чтение и запись кэша и доля попаданий (читали / вход + читали + писали) по ключу `key(запись)`."""
+    acc = {}
+    for e in entries:
+        a = acc.setdefault(key(e), [0, 0, 0])
+        a[0] += _count(e.get("input"))
+        a[1] += _count(e.get("cache_read"))
+        a[2] += _count(e.get("cache_write"))
+    return _table([head, "кэш чтение", "кэш запись", "доля попаданий"],
+                  [[k, r, w, ("%d%%" % round(100 * r / (i + r + w))) if i + r + w else None]
+                   for k, (i, r, w) in acc.items()])
+
+
 def render_report(summary, share=False):
     """Сводка → Markdown. `share=True`: только числа и типы ролей — без имени прогона,
     названий тасков и профилей, абсолютных времён, причин."""
@@ -255,4 +318,8 @@ def render_report(summary, share=False):
         role = e.get("role") or role_of(e.get("agent_type"))
         body.append(([role] if share else [e.get("agent_type"), role]) + [e.get(c) or 0 for c in cols])
     lines += _table((["роль"] if share else ["исполнитель", "роль"]) + ["ходы", "вход", "выход", "кэш чтение", "кэш запись"], body)
+    lines += ["", "## Кэш по ролям"] + _cache_table("роль", s["tokens"], lambda e: e.get("role") or role_of(e.get("agent_type")))
+    if not share:
+        lines += ["", "## Кэш по профилям"] + _cache_table("профиль", [e for e in s["tokens"] if e.get("agent_type")],
+                                                           lambda e: e.get("agent_type"))
     return "\n".join(lines) + "\n"

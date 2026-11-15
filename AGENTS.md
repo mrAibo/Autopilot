@@ -36,5 +36,6 @@
 - Отпечаток таска считается по нормализованному тексту (LF, без BOM и хвостовых пробелов): окончания строк не страшны. Правка смысла сданного таска останавливает `ap.py tickets` с командой `ticket NN accept-edit --note "..."`. Версию Claude Code проверяет `ap.py claude-version` до `init`. Исполнители коммитят `git commit --only <файлы зоны>`, без `git stash`.
 - Журнал прогона — `.autopilot/run-log.jsonl` (только метаданные, пишет `run_log.py`, сбой записи глотается); свод — `ap.py report-run [--share]`; харнессы, копирующие `ap.py` или `claude_attest.py`, копируют и `run_log.py`.
 - Единственная эскалация модели — `ticket NN retry --cause tests --escalate`: Haiku-таск после первого дозапроса уходит один раз на Sonnet-исполнителя `repairAgent`, в таск пишется `escalatedFrom`; остальные сбои модель не повышают (`docs/autopilot/retry-policy.md`).
+- Расход: `compute_spend` считает ещё `cache_read`, `cache_write`, `hit`; расход главной сессии пишет `ap.py spend-orchestrator [--transcript PATH]` (и `finish`) строкой `role=orchestrator` — только числа и модель, по умолчанию самый свежий журнал папки проекта в `~/.claude/projects/` (`docs/autopilot/measuring-cost.md`).
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->

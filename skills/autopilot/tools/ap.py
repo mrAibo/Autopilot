@@ -41,6 +41,7 @@
     python3 .autopilot/ap.py reopen                     # второй бриф в сданном прогоне
     python3 .autopilot/ap.py commits                    # коммиты сданных тасков ещё в истории?
     python3 .autopilot/ap.py report-run [--share]       # свод журнала прогона (run-log.jsonl)
+    python3 .autopilot/ap.py spend-orchestrator [--transcript PATH]   # расход главной сессии в run-log.jsonl (finish делает сам)
     python3 .autopilot/ap.py                            # просто синхронизировать
 
 После каждой команды: updatedAt = сейчас (и метка в журнале beats), строка в ленте log,
@@ -3160,6 +3161,7 @@ def cmd_finish(state, opt):
     register_row(state, "сдан с оговорками" if problems else "сдан", state["result"])
     sync_run_record(state)
     log(state, "finish", result=state["result"], problems=len(problems))
+    notes.append(spend_orchestrator(state))
     return notes
 
 
@@ -3307,24 +3309,68 @@ def executor_rows(records, run):
 
 
 def compute_spend(records, run):
-    """{byRole, byModel, byTicket}: на ключ — число запусков и токены (вход + выход).
-    Строка без модели — «не указана»; без таска в имени профиля — только в byRole и byModel."""
+    """{byRole, byModel, byTicket}: на ключ — число запусков, токены (вход + выход), кэш (чтение, запись)
+    и доля попаданий `hit` (целые %, `None` без знаменателя). Строка без модели — «не указана»;
+    без таска в имени профиля — только в byRole и byModel. Оркестратор (`role=orchestrator`) —
+    последняя строка на модель, в byTicket его нет."""
     out = {"byRole": {}, "byModel": {}, "byTicket": {}}
+    rows, last_orch = [], {}
     for r in executor_rows(records, run):
-        tokens = {"n": 1, "input": _tokens(r, "input"), "output": _tokens(r, "output")}
+        if r.get("role") == "orchestrator":
+            last_orch[r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL] = r
+        else:
+            rows.append(r)
+    for r in rows + list(last_orch.values()):
+        tokens = {"n": 1, "input": _tokens(r, "input"), "output": _tokens(r, "output"),
+                  "cache_read": _tokens(r, "cache_read"), "cache_write": _tokens(r, "cache_write")}
         role = r.get("role") if isinstance(r.get("role"), str) and r.get("role") else (
             run_log.role_of(r.get("agent_type")) if run_log else "agent")
         model = r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL
-        for bucket, key in (("byRole", role), ("byModel", model), ("byTicket", executor_ticket(r.get("agent_type")))):
+        for bucket, key in (("byRole", role), ("byModel", model),
+                            ("byTicket", None if role == "orchestrator" else executor_ticket(r.get("agent_type")))):
             if key is None:
                 continue
-            acc = out[bucket].setdefault(key, {"n": 0, "input": 0, "output": 0})
+            acc = out[bucket].setdefault(key, dict.fromkeys(tokens, 0))
             for k, v in tokens.items():
                 acc[k] += v
     for bucket in out.values():
         for acc in bucket.values():
             acc["tokens"] = acc["input"] + acc["output"]
+            den = acc["input"] + acc["cache_read"] + acc["cache_write"]
+            acc["hit"] = round(100 * acc["cache_read"] / den) if den else None
     return out
+
+
+def session_transcript():
+    """Самый свежий журнал сессии проекта: <CLAUDE_CONFIG_DIR|~/.claude>/projects/<путь с «-»>/*.jsonl или None."""
+    root = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    folder = os.path.join(root, "projects", re.sub(r"[^A-Za-z0-9]", "-", os.path.dirname(A)))
+    files = glob.glob(os.path.join(glob.escape(folder), "*.jsonl"))
+    return max(files, key=os.path.getmtime) if files else None
+
+
+def spend_orchestrator(state, transcript=None):
+    """Расход главной сессии за время прогона → строки `executor`/`role=orchestrator` в run-log.jsonl
+    (числа и модель, без текста). Возвращает одну печатную строку; не бросает исключений."""
+    miss = lambda why: "расход оркестратора не найден: " + why
+    try:
+        if run_log is None:
+            return miss("журнал прогона недоступен")
+        path = transcript or session_transcript()
+        if not path:
+            return miss("нет журнала сессии в ~/.claude/projects (путь задаёт --transcript)")
+        by_model = run_log.usage_by_model(path, state.get("startedAt"), dt.datetime.now(dt.timezone.utc))
+        if by_model is None:
+            return miss("журнал сессии не читается")
+        if not by_model:
+            return miss("в журнале сессии нет ответов за время прогона")
+        for model, u in sorted(by_model.items()):
+            run_log.append(A, "executor", run=state.get("dir"), role="orchestrator", model=model, **u)
+        return "расход оркестратора: %s ток. вход+выход, кэш чтение %s, моделей %d" % (
+            sum(u["input"] + u["output"] for u in by_model.values()),
+            sum(u["cache_read"] for u in by_model.values()), len(by_model))
+    except Exception as exc:
+        return "расход оркестратора не найден: " + type(exc).__name__
 
 
 def _minutes(start, end, waits=()):
@@ -3456,6 +3502,9 @@ def main():
                 port, _ = recorded()
             print(page_url(port) if port else "сервера нет — дашборд открывается файлом: %s" % PAGE)
             return                                    # только печать: state.js не трогаем
+        if cmd == "spend-orchestrator":
+            print(spend_orchestrator(state, opt["transcript"] if isinstance(opt.get("transcript"), str) else None))
+            return                                    # только журнал расхода: state.js не трогаем
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
             return                                    # только печать: state.js не трогаем

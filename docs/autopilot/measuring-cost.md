@@ -46,6 +46,20 @@ on your disk. Nothing leaves the machine, but do not publish or commit those fil
 Limits: assumes delta temporality (the Claude Code default); a protobuf/gzip exporter is recorded only as a
 marker line, so keep `http/json`.
 
+## Cache and orchestrator numbers in the run log
+
+`report-run` and the dashboard "Details" tab now show two more numbers next to input and output tokens:
+
+- **Cache read / cache write** per role, model and ticket, and the **hit share**: `cache_read / (input + cache_read + cache_write)`, whole percent, `—` when there is nothing to divide. `report-run` also prints the same by agent profile (not with `--share`), which shows whether the shared cache holds across executors of different tickets.
+- **The `orchestrator` row**: tokens of the main session since the run started. `ap.py spend-orchestrator [--transcript PATH]` writes it (and `finish` calls it), one row per model, numbers and model name only, never message text. Calling it again replaces the earlier numbers, it does not add to them.
+
+Limits, so the numbers are not over-read:
+
+- **Cache is not a cost.** Reads, writes and input are priced differently, and the log keeps no prices. The hit share says how much input came from the cache, not what it cost.
+- **The session log is a guess.** Without `--transcript`, the newest `*.jsonl` of `~/.claude/projects/<project folder>/` is taken (the root follows `CLAUDE_CONFIG_DIR`). With two sessions in one folder that is whichever wrote last; pass `--transcript` to choose.
+- **The orchestrator is one line per run.** Main-session turns cannot honestly be assigned to a ticket, so it appears in role and model tables only, never per ticket. It is written at `finish`, so the dashboard has no orchestrator figure while the run is still going unless you call the command yourself.
+- Sidechain (subagent) messages in the session log are skipped there: the subagents are counted from their own transcripts.
+
 ## Measured: main-session model and ticket routing (2026-10-29)
 
 Same 3-ticket strict run in all three cases (Claude desktop app, subscription OAuth, OTel `cost.usage` estimates in USD, not charges). All runs were VALID: 3/3 tickets done through the attestation gate, G1–G4 ok.

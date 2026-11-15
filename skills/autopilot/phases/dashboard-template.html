@@ -1283,7 +1283,7 @@ const I18N = {
       nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить",
       upd:"обновлено",notCreated:"не создана",
       tDetHistory:"История сборок",tSpend:"Расход токенов",sRole:"По ролям",sModel:"По моделям",sTicket:"Сколько стоил таск",
-      cName:"Что",cRuns:"Запусков",spendWhy:"журнал расхода не вёлся или в нём не записана модель",unkModel:"не указана",
+      cName:"Что",cRuns:"Запусков",cCache:"Кэш, %",spendWhy:"журнал расхода не вёлся или в нём не записана модель",unkModel:"не указана",
       hNone:"прошлых сборок ещё нет",hCmp:"Эта сборка и прошлые",hNow:"Эта сборка",hAvg:"В среднем по прошлым",hBuild:"Сборка",hTime:"Длительность",
       hTickets:"Тасков",hRepairs:"Починок",hResult:"Итог",
       logBadge:n=>`журнал неполный: ${n} строк не записано`}},
@@ -1435,7 +1435,7 @@ const I18N = {
       nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled",
       upd:"updated",notCreated:"not created",
       tDetHistory:"Build history",tSpend:"Token spend",sRole:"By role",sModel:"By model",sTicket:"What a ticket cost",
-      cName:"What",cRuns:"Runs",spendWhy:"the spend log was not kept or has no model recorded",unkModel:"not specified",
+      cName:"What",cRuns:"Runs",cCache:"Cache, %",spendWhy:"the spend log was not kept or has no model recorded",unkModel:"not specified",
       hNone:"no past builds yet",hCmp:"This build and past ones",hNow:"This build",hAvg:"Past average",hBuild:"Build",hTime:"Duration",
       hTickets:"Tickets",hRepairs:"Repairs",hResult:"Result",
       logBadge:n=>`log incomplete: ${n} lines not written`}}
@@ -2424,8 +2424,8 @@ function render(lang){
   const spendLabel = (b, k) => b === 'byModel' && k === 'не указана' ? W.unkModel
     : b === 'byTicket' ? ((byId[k] || byId['T' + k]) ? k + ' · ' + (byId[k] || byId['T' + k]).title : k) : k;
   const spendTable = (head, b) => spendRows(b).length
-    ? `<h4 class="sp-h">${head}</h4><div class="tablewrap"><table class="routes sp"><thead><tr><th>${W.cName}</th><th>${W.cRuns}</th><th>${W.tTokens}</th></tr></thead><tbody>${
-      spendRows(b).map(([k, a]) => `<tr><td>${esc(spendLabel(b, k))}</td><td class="mono">${numberFormat(a.n)}</td><td class="mono">${numberFormat(a.tokens)}</td></tr>`).join('')}</tbody></table></div>` : '';
+    ? `<h4 class="sp-h">${head}</h4><div class="tablewrap"><table class="routes sp"><thead><tr><th>${W.cName}</th><th>${W.cRuns}</th><th>${W.tTokens}</th><th>${W.cCache}</th></tr></thead><tbody>${
+      spendRows(b).map(([k, a]) => `<tr><td>${esc(spendLabel(b, k))}</td><td class="mono">${numberFormat(a.n)}</td><td class="mono">${numberFormat(a.tokens)}</td><td class="mono">${Number.isSafeInteger(a.hit) && a.hit >= 0 ? a.hit + '%' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '';
   const spendCard = spendRuns
     ? `<section class="card w resource-card" data-spend><div class="whead"><h3 class="wt">${W.tSpend}</h3><span>${numberFormat(spendTokens)}</span></div>${
       tokenSummary}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
