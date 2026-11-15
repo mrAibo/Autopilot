@@ -25,3 +25,5 @@ state.lock
 .autopilot/index.html
 .autopilot/run-log*.jsonl
 .autopilot/run-log.fail
+.autopilot/serve.token
+.autopilot/state.lock
