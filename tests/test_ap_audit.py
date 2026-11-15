@@ -88,7 +88,7 @@ class Server(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="ap-serve-")
         self.addCleanup(lambda: __import__("shutil").rmtree(self.dir, ignore_errors=True))
-        for rel, text in (("state.js", "window.STATE={}"), ("dashboard.html", "<html>"),
+        for rel, text in (("state.js", "window.STATE={}"), ("dashboard.html", "<html>/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/"),
                           ("run-log.jsonl", "{}"), ("run/state.js", "x"), ("serve.token", self.TOKEN)):
             os.makedirs(os.path.dirname(os.path.join(self.dir, rel)), exist_ok=True)
             with open(os.path.join(self.dir, rel), "w", encoding="utf-8") as f:
