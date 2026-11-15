@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "dashboard-token-fixes",
-  "dir": "2026-11-15-dashboard-token-fixes--wip",
+  "dir": "2026-11-15-dashboard-token-fixes",
   "title": "Доделки после аудита: токен дашборда, ключ подписи, спека",
   "mode": "semi",
   "depth": "normal",
@@ -15,10 +15,10 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "52f4909",
   "startedAt": "2026-11-15T20:36:48+01:00",
-  "updatedAt": "2026-11-15T20:52:31+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-15T23:03:26+01:00",
+  "finishedAt": "2026-11-15T23:03:26+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -70,32 +70,57 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-15T20:47:02+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-15T20:52:41+01:00"
         }
       ],
-      "startedAt": "2026-11-15T20:47:02+01:00"
+      "startedAt": "2026-11-15T20:47:02+01:00",
+      "finishedAt": "2026-11-15T20:52:41+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-15T20:52:42+01:00",
+          "finishedAt": "2026-11-15T21:35:08+01:00"
+        }
+      ],
+      "startedAt": "2026-11-15T20:52:42+01:00",
+      "finishedAt": "2026-11-15T21:35:08+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-15T21:35:08+01:00",
+          "finishedAt": "2026-11-15T22:00:21+01:00"
+        }
+      ],
+      "startedAt": "2026-11-15T21:35:08+01:00",
+      "finishedAt": "2026-11-15T22:00:21+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-15T22:00:33+01:00",
+          "finishedAt": "2026-11-15T23:03:26+01:00"
+        }
+      ],
+      "startedAt": "2026-11-15T22:00:33+01:00",
+      "finishedAt": "2026-11-15T23:03:26+01:00"
     }
   ],
   "requirements": {
     "total": 7,
-    "done": 0,
-    "inTicket": 6,
+    "done": 6,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 1,
@@ -134,9 +159,17 @@ window.STATE =
       "review": "нет",
       "model": "сильная",
       "fingerprint": "c46ebe81288578aa7bc3d508b6ebc2ee7e209a58c6be51ca379d558f5b944853",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-15T20:52:42+01:00",
+      "finishedAt": "2026-11-15T21:35:06+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 910,
+        "failed": 0
+      },
+      "commit": "b5f3850",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
@@ -161,9 +194,109 @@ window.STATE =
         "error": "No verified host capabilities",
         "applied": false
       }
+    },
+    {
+      "id": "F1",
+      "title": "Правки по код-ревью ветки",
+      "requirements": [
+        "R01",
+        "R02"
+      ],
+      "blockedBy": [],
+      "wave": 2,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "tests/test_followups_token.py",
+        "tests/test_ap_audit.py"
+      ],
+      "review": "да — ремонт ветки",
+      "model": "сильная",
+      "fingerprint": "625815a0bade5d97a9977fdb48d63391a27d84be731403f2a4e20554afbdb46c",
+      "status": "done",
+      "startedAt": "2026-11-15T22:00:19+01:00",
+      "finishedAt": "2026-11-15T22:00:19+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 918,
+        "failed": 0
+      },
+      "commit": "e9fcc9b",
+      "placeholders": []
+    },
+    {
+      "id": "F2",
+      "title": "Правки по слепой приёмке: голый `ap.py` без токена, гонка со старым пустым ключом",
+      "requirements": [
+        "R02",
+        "R03"
+      ],
+      "blockedBy": [],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/gate_sign.py",
+        "skills/autopilot/phases/0-instruments.md",
+        "AGENTS.md",
+        "tests/test_followups_token.py",
+        "tests/test_followups_key.py",
+        "tests/test_ap_audit.py"
+      ],
+      "review": "нет",
+      "model": "сильная",
+      "fingerprint": "738ec364fcf898ef20cdd4620962ac1b5e0fb803ebe67440733dac4290e908ec",
+      "status": "done",
+      "startedAt": "2026-11-15T22:08:28+01:00",
+      "finishedAt": "2026-11-15T22:20:00+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 919,
+        "failed": 0
+      },
+      "commit": "65adce3",
+      "placeholders": []
+    },
+    {
+      "id": "F3",
+      "title": "Калибровка роутера: «обычный» не уходит на Haiku, зона по целым сегментам",
+      "requirements": [
+        "R07"
+      ],
+      "blockedBy": [],
+      "wave": 4,
+      "zone": [
+        "skills/autopilot/tools/model_router.py",
+        "skills/autopilot/phases/4-plan.md",
+        "docs/autopilot/model-routing.md",
+        "docs/adr/0007-planner-assessment-instead-of-regex.md",
+        "tests/test_followups_routing.py",
+        "tests/test_audit_routing.py",
+        "tests/test_model_router.py",
+        "tests/test_ap.py",
+        "tests/test_offline_supervisor.py",
+        "tests/test_host_loop.py"
+      ],
+      "review": "нет",
+      "model": "сильная",
+      "fingerprint": "1bec5f47b6b147c901e5fff530b88608cc95aa3da6b649b1e7f318cd2d2a3c3f",
+      "status": "done",
+      "startedAt": "2026-11-15T23:02:36+01:00",
+      "finishedAt": "2026-11-15T23:02:36+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 922,
+        "failed": 0
+      },
+      "commit": "297ac3a",
+      "placeholders": []
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 922,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -173,17 +306,23 @@ window.STATE =
   },
   "additions": [],
   "coverage": {
-    "found": 6,
+    "found": 4,
     "fixed": 2,
     "deferred": 2,
     "items": [
-      "компактность досок, панели таска и «нужен твой ответ» — вне рамок: выбрано A+B",
+      "компактность досок, панели таска и «нужен твой ответ» — вне рамок: пользователь выбрал A+B",
       "выбор моделей ролей — вне рамок: R07 про маршрут таска"
     ]
   },
   "concerns": [],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 6,
+    "matched": 5,
+    "mismatches": [
+      "R03 — при старом пустом gate.key одновременный запуск из 8 процессов по 4 потока в 6 из 28 прогонов даёт два разных ключа или читателя без ключа (свежий и полный ключ в порядке)"
+    ]
+  },
   "beats": [
     "2026-11-15T20:36:48+01:00",
     "2026-11-15T20:36:59+01:00",
@@ -200,9 +339,47 @@ window.STATE =
     "2026-11-15T20:52:21+01:00",
     "2026-11-15T20:52:22+01:00",
     "2026-11-15T20:52:28+01:00",
-    "2026-11-15T20:52:31+01:00"
+    "2026-11-15T20:52:31+01:00",
+    "2026-11-15T20:52:40+01:00",
+    "2026-11-15T20:52:41+01:00",
+    "2026-11-15T20:52:42+01:00",
+    "2026-11-15T21:35:05+01:00",
+    "2026-11-15T21:35:06+01:00",
+    "2026-11-15T21:35:07+01:00",
+    "2026-11-15T21:35:08+01:00",
+    "2026-11-15T21:35:09+01:00",
+    "2026-11-15T21:35:10+01:00",
+    "2026-11-15T21:35:23+01:00",
+    "2026-11-15T21:49:47+01:00",
+    "2026-11-15T21:59:05+01:00",
+    "2026-11-15T22:00:19+01:00",
+    "2026-11-15T22:00:20+01:00",
+    "2026-11-15T22:00:21+01:00",
+    "2026-11-15T22:00:33+01:00",
+    "2026-11-15T22:08:23+01:00",
+    "2026-11-15T22:08:27+01:00",
+    "2026-11-15T22:08:28+01:00",
+    "2026-11-15T22:20:00+01:00",
+    "2026-11-15T22:20:01+01:00",
+    "2026-11-15T22:27:32+01:00",
+    "2026-11-15T22:27:55+01:00",
+    "2026-11-15T22:27:56+01:00",
+    "2026-11-15T22:34:45+01:00",
+    "2026-11-15T22:53:46+01:00",
+    "2026-11-15T23:02:35+01:00",
+    "2026-11-15T23:02:36+01:00",
+    "2026-11-15T23:02:37+01:00",
+    "2026-11-15T23:02:52+01:00",
+    "2026-11-15T23:02:53+01:00",
+    "2026-11-15T23:02:54+01:00",
+    "2026-11-15T23:02:55+01:00",
+    "2026-11-15T23:02:56+01:00",
+    "2026-11-15T23:02:57+01:00",
+    "2026-11-15T23:02:58+01:00",
+    "2026-11-15T23:03:25+01:00",
+    "2026-11-15T23:03:26+01:00"
   ],
-  "rev": 17,
+  "rev": 58,
   "waiting": null,
   "waits": [
     {
@@ -320,33 +497,323 @@ window.STATE =
       "applied": false,
       "tickets": 1,
       "blocked": 1
+    },
+    {
+      "t": "2026-11-15T20:52:41+01:00",
+      "k": "stage",
+      "id": "plan",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-15T20:52:42+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T20:52:42+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T21:35:05+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-15T21:35:06+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 910,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-15T21:35:07+01:00",
+      "k": "tests",
+      "passed": 910,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-15T21:35:08+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-15T21:35:08+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T21:35:09+01:00",
+      "k": "tickets",
+      "n": 2
+    },
+    {
+      "t": "2026-11-15T21:35:10+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T21:35:23+01:00",
+      "k": "ticket-reset",
+      "id": "F1",
+      "reason": "ticket-edited"
+    },
+    {
+      "t": "2026-11-15T21:35:23+01:00",
+      "k": "tickets",
+      "n": 2
+    },
+    {
+      "t": "2026-11-15T21:49:47+01:00",
+      "k": "tickets",
+      "n": 2
+    },
+    {
+      "t": "2026-11-15T21:59:05+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-15T22:00:19+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 918,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-15T22:00:20+01:00",
+      "k": "tests",
+      "passed": 918,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-15T22:00:21+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "done"
+    },
+    {
+      "t": "2026-11-15T22:00:33+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T22:08:23+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 6,
+      "matched": 4
+    },
+    {
+      "t": "2026-11-15T22:08:27+01:00",
+      "k": "tickets",
+      "n": 3
+    },
+    {
+      "t": "2026-11-15T22:08:28+01:00",
+      "k": "ticket",
+      "ids": [
+        "F2"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T22:20:00+01:00",
+      "k": "ticket",
+      "ids": [
+        "F2"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 919,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-15T22:20:01+01:00",
+      "k": "tests",
+      "passed": 919,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-15T22:27:32+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 6,
+      "matched": 5
+    },
+    {
+      "t": "2026-11-15T22:27:55+01:00",
+      "k": "tickets",
+      "n": 4
+    },
+    {
+      "t": "2026-11-15T22:27:56+01:00",
+      "k": "ticket",
+      "ids": [
+        "F3"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-15T22:34:45+01:00",
+      "k": "ticket-reset",
+      "id": "F3",
+      "reason": "ticket-edited"
+    },
+    {
+      "t": "2026-11-15T22:34:45+01:00",
+      "k": "tickets",
+      "n": 4
+    },
+    {
+      "t": "2026-11-15T22:53:46+01:00",
+      "k": "tickets",
+      "n": 4
+    },
+    {
+      "t": "2026-11-15T23:02:35+01:00",
+      "k": "ticket",
+      "ids": [
+        "F3"
+      ],
+      "act": "review"
+    },
+    {
+      "t": "2026-11-15T23:02:36+01:00",
+      "k": "ticket",
+      "ids": [
+        "F3"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 922,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-15T23:02:37+01:00",
+      "k": "tests",
+      "passed": 922,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-15T23:02:52+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:53+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:54+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:55+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:55+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:56+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:57+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:02:58+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-15T23:03:25+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 4,
+      "fixed": 2,
+      "deferred": 2
+    },
+    {
+      "t": "2026-11-15T23:03:26+01:00",
+      "k": "finish",
+      "result": "Доделки после аудита: страница без токена не несёт данных, адрес с токеном печатает только ap.py url, ключ подписи создаётся атомарно, «Сейчас» и «Требования» компактны, маршрут таска задаёт оценка планировщика вместо регулярных выражений; 922 теста зелёные, слепая приёмка 5 из 6 (гонка со старым пустым ключом осталась)",
+      "problems": 1
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«По второму пункту – да, надо доделать» — dashboard.html отдаётся без токена и несёт снимок состояния",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«По второму пункту – да, надо доделать» — адрес с ?t= печатается при каждой команде ap.py",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
       "text": "«По второму пункту – да, надо доделать» — ключ gate.key создаётся не атомарно",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R04",
       "text": "«По второму пункту – да, надо доделать» — противоречие в спеке: R24 «снимает только пользователь» и finish --by-user снимает открытые строки цитатой",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R05",
       "text": "«Под первым пунктом я бы хотел что-то более компактное, но в принципе так тоже пойдет»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R06",
@@ -357,7 +824,7 @@ window.STATE =
     {
       "id": "R07",
       "text": "«Надо бы выбирать модели более интеллигентно, а не по regular expression, есть там слово какое-то или нет. Это слишком ненадежно и грубо.»",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
@@ -368,9 +835,9 @@ window.STATE =
       "total": 7
     },
     "G2": {
-      "ok": false,
-      "at": "2026-11-15T20:47:00+01:00",
-      "found": 6,
+      "ok": true,
+      "at": "2026-11-15T23:03:25+01:00",
+      "found": 4,
       "fixed": 2,
       "deferred": 2
     },
@@ -378,9 +845,15 @@ window.STATE =
       "ok": true,
       "at": "2026-11-15T20:52:22+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": false,
+      "at": "2026-11-15T22:27:32+01:00",
+      "checked": 6,
+      "matched": 5
     }
   },
-  "result": null,
+  "result": "Доделки после аудита: страница без токена не несёт данных, адрес с токеном печатает только ap.py url, ключ подписи создаётся атомарно, «Сейчас» и «Требования» компактны, маршрут таска задаёт оценка планировщика вместо регулярных выражений; 922 теста зелёные, слепая приёмка 5 из 6 (гонка со старым пустым ключом осталась)",
   "skillVersion": "2.7.0",
   "spend": {
     "byRole": {},
@@ -479,5 +952,22 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "7168ba9393bb8e0b1458e235e3705d99f8a795780b20d113a1d4e4086e754d8b",
-  "planValidationDigest": "01b19cefcb29b7eeeb6401674458ea147c3b214e811dc2be361c1ec08a5e824d"
+  "planValidationDigest": "01b19cefcb29b7eeeb6401674458ea147c3b214e811dc2be361c1ec08a5e824d",
+  "blindRounds": 2,
+  "report": [
+    "gate_sign: при старом пустом gate.key одновременный запуск из 8 процессов по 4 потока в 6 из 28 прогонов даёт два ключа или читателя без ключа; свежий и полный ключ в порядке (R03, слепая приёмка, второй круг)",
+    "refresh_dashboard: exec_module не ловит SyntaxError в чужом dashboard_upgrade.py; копия в tmp называется slug-метка-хеш — два обновления одного текста в одну секунду сталкиваются",
+    "Страница с неверным ?t= показывает общую ошибку и опрашивает state.js с 403 бесконечно, а не подсказку про ap.py url; подсказка только когда t нет вовсе",
+    "Заголовок героя «Сейчас»: сущности вроде &amp; в title экранируются дважды",
+    "Сохранённые маршруты: старый таск без заголовков, посчитанный по словам, теперь считается по зоне; после upgrade-tools на живом полёте повторить plan-models (в retry-policy и model-routing предупреждения нет)",
+    "check-plan не требует класс у F<n>: phases/6-review.md не пишет заголовки; uncertainty в оценке теперь постоянна; приём «temp + link» продублирован в serve_token и _create_key_atomically",
+    "Слово env как сегмент зоны считается чувствительным (.env.example, env.py) — сознательно; файлы вида tests/test_model_router.py чувствительными не считаются",
+    "Режим без строгой маршрутизации: модель закреплена параметром вызова Agent, а не профилем; усилие (effort) не проверяется и не задаётся"
+  ],
+  "landedWith": {
+    "problems": [
+      "слепая приёмка: расхождения остались после 2 кругов (1 из 6)"
+    ],
+    "byUser": null
+  }
 }
