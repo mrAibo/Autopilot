@@ -8,6 +8,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import posixpath
 from pathlib import Path
 import re
 import shlex
@@ -206,36 +207,106 @@ def shell_command(args):
 
 
 # Run files and the key store are off limits to a subagent's shell on any OS: no write, delete,
-# copy or move may name them. Match on path components after backslash -> `/` and casefold.
-PROTECTED_PATH_RE = re.compile(r"(?:^|[/=:~])\.autopilot(?:/|$)|(?:^|/)\.claude/agents(?:/|$)|autopilot_home")
+# copy or move may name them, and `cd` may not enter them.
 WRITE_VERBS = frozenset((
     "cp", "mv", "rm", "rmdir", "ln", "tee", "touch", "mkdir", "install", "dd", "truncate", "shred",
     "chmod", "chown", "rsync", "unlink", "patch", "del", "erase", "copy", "move", "ren", "rename",
     "xcopy", "robocopy", "rd", "md", "remove-item", "copy-item", "move-item", "set-content",
     "add-content", "out-file", "new-item", "rename-item", "set-itemproperty"))
-REDIRECT_RE = re.compile(r">>?\s*[\"']?([^\s\"';&|]+)")
+CD_VERBS = frozenset(("cd", "chdir", "pushd", "set-location", "sl"))
+WRAPPERS = frozenset(("sudo", "doas", "env", "command", "nohup", "time", "exec", "nice"))
+CMD_C_RE = re.compile(r"(?:^|[\s\"'])cmd(?:\.exe)?\s+(?:/\S+\s+)*?/[ck]\s+(.*)$", re.I | re.S)
+PS_C_RE = re.compile(r"(?:^|[\s\"'/])(?:powershell|pwsh)(?:\.exe)?\s+(?:-\S+\s+)*?-c(?:ommand)?\s+(.*)$",
+                     re.I | re.S)
 
 
 def _is_protected_word(word):
-    return PROTECTED_PATH_RE.search(word.replace(chr(92), "/").casefold().strip("\"'")) is not None
+    """True when the word, as a path, is or lies inside .autopilot, or is .claude/agents.
+
+    Normalized first: backslashes, `//`, `./`, `..`, trailing dots, quotes, case. `--opt=PATH` and
+    `-tPATH` are looked at by their value too.
+    """
+    candidates = [word]
+    if "=" in word:
+        candidates.append(word.split("=", 1)[1])
+    if word.startswith("-") and not word.startswith("--") and len(word) > 2:
+        candidates.append(word[2:])
+    for value in candidates:
+        path = posixpath.normpath(re.sub(r"/{2,}", "/", value.replace(chr(92), "/").strip("\"'").casefold()))
+        parts = [p.rstrip(". ") for p in path.split("/")]
+        if ".autopilot" in parts or "autopilot_home" in path or any(
+                a == ".claude" and b == "agents" for a, b in zip(parts, parts[1:])):
+            return True
+    return False
+
+
+def redirect_targets(part):
+    """Words that follow a `>` / `>>` outside quotes (a `>` inside a quoted string is text)."""
+    targets, quote, i = [], None, 0
+    while i < len(part):
+        c = part[i]
+        if quote:
+            quote = None if c == quote else quote
+        elif c in "'\"":
+            quote = c
+        elif c == ">":
+            j = i + 1
+            while j < len(part) and part[j] in "> \t":
+                j += 1
+            end = j
+            while end < len(part) and part[end] not in " \t;&|<>":
+                end += 1
+            targets.append(part[j:end])
+            i = end
+            continue
+        i += 1
+    return targets
+
+
+def command_position(words):
+    """Index of the command name: after VAR=val, sudo/env/nohup... and their options, else None.
+
+    shortcut: the value of a wrapper option (`sudo -u root rm`) is taken for the command name;
+    upgrade to per-wrapper option tables if such a form is ever needed.
+    """
+    for i, word in enumerate(words):
+        if re.fullmatch(r"[A-Za-z_]\w*=.*", word) or word.startswith("-") or (
+                command_name(word).removesuffix(".exe") in WRAPPERS):
+            continue
+        return i
+    return None
 
 
 def protected_path_denial(part, words):
     """Reason to deny when one command part writes to .autopilot/, ~/.autopilot/ or .claude/agents/.
 
-    A write is a verb from WRITE_VERBS (or `sed -i`) with a protected path among its arguments,
-    or a `>` / `>>` redirect to one.
-    shortcut: a relative path reached after `cd` is not seen; the hook runs before the shell does.
+    A write is a WRITE_VERBS command (or `sed -i`) in command position with a protected path among its
+    arguments, a `cd` into one, or a `>` / `>>` redirect to one. Words that merely mention a path
+    (`grep copy .autopilot/ap.py`, a commit message) do not count.
+    shortcut: globs (`~/.auto*`), variables (`$D/x`) and code in `python -c` are not seen; the hook
+    runs before the shell expands anything.
     """
     # shlex eats Windows backslashes (`C:\x\.autopilot` -> `C:x.autopilot`): look at the raw words too
-    words = list(words) + part.replace(chr(92), "/").split()
-    names = [command_name(w).removesuffix(".exe") for w in words]
-    writes = any(n in WRITE_VERBS for n in names) or (
-        "sed" in names and any(w.startswith("-i") or w == "--in-place" for w in words))
-    if (writes and any(_is_protected_word(w) for w in words)) or any(
-            _is_protected_word(m) for m in REDIRECT_RE.findall(part)):
+    for ws in (list(words), part.replace(chr(92), "/").split()):
+        i = command_position(ws)
+        if i is None:
+            continue
+        name, args = command_name(ws[i]).removesuffix(".exe"), ws[i + 1:]
+        in_place = name == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args)
+        if (name in WRITE_VERBS or name in CD_VERBS or in_place) and any(_is_protected_word(a) for a in args):
+            return "writes to or cd into .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
+    if any(_is_protected_word(t) for t in redirect_targets(part)):
         return "writes to .autopilot/, ~/.autopilot/ and .claude/agents/ are forbidden for Autopilot subagents"
     return None
+
+
+def windows_shell_command(part):
+    """The command string of `cmd /c ...` or `powershell|pwsh -Command ...` in one part, else None."""
+    found = CMD_C_RE.search(part) or PS_C_RE.search(part)
+    if not found:
+        return None
+    inner = found.group(1).strip()
+    return inner[1:-1] if len(inner) > 1 and inner[0] in "'\"" and inner[-1] == inner[0] else inner
 
 
 def _denial(command, depth):
@@ -247,6 +318,11 @@ def _denial(command, depth):
         why = protected_path_denial(part, words)
         if why:
             return why
+        inner = windows_shell_command(part) if depth < SHELL_MAX_DEPTH else None
+        if inner:
+            why = _denial(inner, depth + 1)
+            if why:
+                return why
         for i, word in enumerate(words):
             name = command_name(word)
             if name in GIT_NAMES:

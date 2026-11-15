@@ -839,6 +839,41 @@ class ProtectedPathCommandTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertTrue(self.denied(command))
 
+    def test_path_spellings_do_not_bypass(self):
+        for command in ("cp x ./.autopilot/gate.key", "cp x .//autopilot/..//.autopilot/k", "rm .autopilot./k",
+                        "cp x .//.autopilot//gate.key", "rm -rf src/../.autopilot", "rm -rf .autopilot.",
+                        "cp --target-directory=.autopilot x", "cp -t.autopilot x", "cp -t .autopilot x",
+                        "cp x '.autopilot/k'", 'echo x > ".autopilot/state.js"', "echo x >.autopilot/state.js",
+                        "dd if=a of=.autopilot/ap.py", "mv a .claude//agents/b", "rm -rf $HOME/.autopilot",
+                        "FOO=1 rm .autopilot/k", "sudo rm .autopilot/k", "env -i cp x .autopilot/k"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_windows_shell_wrappers_are_unwrapped(self):
+        for command in ('powershell -Command "Remove-Item .autopilot/gate.key"',
+                        "pwsh -c 'Set-Content .claude/agents/x.md hi'",
+                        r'powershell.exe -NoProfile -Command "del D:\keys\.autopilot\gate.key"',
+                        'cmd /c "del .autopilot\\state.js"', "cmd.exe /d /c rm .autopilot/k",
+                        'pwsh -Command "ls; cp a .autopilot/b"', 'bash -c "powershell -c \'rm .autopilot/k\'"'):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_cd_into_a_protected_directory_is_denied(self):
+        for command in ("cd .autopilot && rm state.js", "cd ~/.autopilot", "cd ./.claude/agents; ls",
+                        "pushd .autopilot", r"cd D:\keys\.autopilot"):
+            with self.subTest(command=command):
+                self.assertTrue(self.denied(command))
+
+    def test_mentioning_a_protected_path_is_not_a_write(self):
+        for command in ("grep copy .autopilot/ap.py", "grep -rn install .autopilot/",
+                        'git commit -m "docs: update .autopilot/PROGRESS.md"', "git add .autopilot/PROGRESS.md",
+                        "cat .autopilot/state.js | grep move", "echo remove .autopilot/x",
+                        'git commit -m "a > .autopilot/x"', "cd src && ls .autopilot",
+                        'powershell -Command "Get-Content .autopilot/state.js"',
+                        'cmd /c "type .autopilot\\state.js"', "cd .autopilot-old"):
+            with self.subTest(command=command):
+                self.assertFalse(self.denied(command))
+
     def test_reads_and_other_commands_are_not_touched(self):
         for command in ("cat .autopilot/state.js", "ls ~/.autopilot", "python .autopilot/ap.py ticket 02 x",
                         "cp a.py src/b.py", "rm -rf build", "echo ok > notes.md", "rm -rf .autopilot-old",
