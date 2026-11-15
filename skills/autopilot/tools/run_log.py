@@ -162,7 +162,8 @@ def usage_by_model(path, since, until=None):
                 try:
                     r = json.loads(line)
                     msg = r.get("message")
-                    if r.get("isSidechain") is True or not isinstance(msg, dict) or msg.get("role") != "assistant"                             or not isinstance(msg.get("usage"), dict):
+                    if r.get("isSidechain") is True or not isinstance(msg, dict) or msg.get("role") != "assistant" \
+                            or not isinstance(msg.get("usage"), dict):
                         continue
                     at = _moment(r.get("timestamp"))
                     if at is None or (lo and at < lo) or (hi and at > hi):
@@ -216,6 +217,11 @@ def summarize(records, run=None, skipped=0):
     for p in phases.values():
         p["seconds"] = _seconds(p["start"], p["end"]) if p["end"] else None
     out["phases"], out["tickets"] = list(phases.values()), list(tickets.values())
+    last = {}                                        # оркестратор: последняя строка на модель, как в compute_spend
+    for e in out["tokens"]:
+        if e["role"] == "orchestrator":
+            last[e.get("model")] = e
+    out["tokens"] = [e for e in out["tokens"] if e["role"] != "orchestrator"] + list(last.values())
     return out
 
 

@@ -122,6 +122,15 @@ class UsageByModel(unittest.TestCase):
         self.assertEqual(got["opus"]["input"], 1)
         self.assertIsNone(run_log.usage_by_model(os.path.join(self.d, "нет.jsonl"), SINCE))
 
+    def test_since_with_offset_without_offset_and_none(self):
+        # 11:30Z = 14:30+03:00; 10:30Z раньше 11:00Z
+        self.write(self.msg("a", "opus", "2026-06-01T10:30:00Z", input_tokens=1),
+                   self.msg("b", "opus", "2026-06-01T11:30:00Z", input_tokens=2))
+        at = lambda since: run_log.usage_by_model(self.path, since)["opus"]["input"]
+        self.assertEqual(at("2026-06-01T14:00:00+03:00"), 2)      # 11:00Z
+        self.assertEqual(at("2026-06-01T11:00:00"), 2)            # без пояса = UTC
+        self.assertEqual(at(None), 3)
+
     def test_reads_tens_of_thousands_of_lines(self):
         line = lambda i: self.msg("m%d" % i, "opus", "2026-06-01T11:00:00Z", input_tokens=1, output_tokens=1)
         self.write(*[line(i) for i in range(30000)])
@@ -180,6 +189,28 @@ class SpendOrchestratorCommand(unittest.TestCase):
         s = load_ap().compute_spend(hx.journal(), hx.h.state()["dir"])
         self.assertEqual(s["byRole"]["orchestrator"]["input"], 11)      # ...но сумма одна
         self.assertEqual(s["byRole"]["orchestrator"]["cache_read"], 330)
+
+    def test_report_run_collapses_repeated_orchestrator_rows_like_compute_spend(self):
+        hx = Harness(self)
+        tp = hx.transcript()
+        hx.h.ap("spend-orchestrator", "--transcript", tp)
+        code, once = hx.h.ap("report-run")
+        self.assertEqual(code, 0, once)
+        hx.h.ap("spend-orchestrator", "--transcript", tp)
+        self.assertEqual(len(self.h_orch(hx)), 2)
+        code, twice = hx.h.ap("report-run")
+        self.assertEqual(code, 0, twice)
+        self.assertEqual(once, twice)
+        self.assertIn("| orchestrator | 330 | 44 |", twice)
+
+    def test_failed_journal_write_prints_not_written_line_only(self):
+        hx = Harness(self)
+        ap = load_ap()
+        state = {"startedAt": SINCE, "dir": RUN + "--wip"}
+        with mock.patch.object(ap.run_log, "append", return_value=False):
+            out = ap.spend_orchestrator(state, hx.transcript())
+        self.assertTrue(out.startswith("расход оркестратора не записан: "), out)
+        self.assertNotIn("расход оркестратора:", out)
 
     @staticmethod
     def h_orch(hx):
@@ -259,7 +290,10 @@ class DashboardCacheColumn(unittest.TestCase):
         spend["byRole"]["executor"].update(cache_read=800, cache_write=200, hit=67)
         spend["byRole"]["reviewer"]["hit"] = None
         spend["byModel"]["sonnet"]["hit"] = 0
-        fixtures = {"cache": dict(states["spend"], spend=spend)}
+        orch = copy.deepcopy(spend)
+        orch["byRole"]["orchestrator"] = {"n": 1, "input": 70000, "output": 30000, "tokens": 100000,
+                                          "cache_read": 5, "cache_write": 5, "hit": 7}
+        fixtures = {"cache": dict(states["spend"], spend=spend), "orch": dict(states["spend"], spend=orch)}
         with tempfile.TemporaryDirectory() as tmp:
             harness = pathlib.Path(tmp) / "harness.js"
             harness.write_text(SCRIPT, encoding="utf-8")
@@ -284,6 +318,24 @@ class DashboardCacheColumn(unittest.TestCase):
         self.assertEqual(by_name["reviewer"][3], "—")         # hit: null
         self.assertEqual(by_name["sonnet"][3], "0%")           # 0 — это 0, не «—»
         self.assertEqual(by_name["F1"][3], "—")                # поля hit нет совсем
+
+
+    def test_orchestrator_stays_in_tables_but_out_of_header_and_tile(self):
+        html = self.out["orch/det/en"]
+        spend = html[html.index("data-spend"):]
+        head = re.sub(r"<[^>]*>", "", re.search(r'<div class="whead">(.*?)</div>', spend, re.S).group(1))
+        self.assertIn("4,900", head)
+        self.assertNotIn("104,900", head)
+        rows = {r[0]: r for r in self.cells_of(spend)}
+        self.assertEqual(rows["orchestrator"][2], "100,000")      # строка таблицы осталась
+        self.assertEqual(rows["orchestrator"][3], "7%")
+        for page in ("now", "res"):                               # плитка «токены»
+            self.assertNotIn("104,900", re.sub(r"<[^>]*>", " ", self.out["orch/%s/en" % page]), page)
+
+    @staticmethod
+    def cells_of(spend):
+        return [[re.sub(r"<[^>]*>", "", c) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", r)]
+                for r in re.findall(r"<tr>(.*?)</tr>", spend, re.S)]
 
 
 class ExecutorPromptAndDocs(unittest.TestCase):

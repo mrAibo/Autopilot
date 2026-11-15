@@ -3364,8 +3364,10 @@ def spend_orchestrator(state, transcript=None):
             return miss("журнал сессии не читается")
         if not by_model:
             return miss("в журнале сессии нет ответов за время прогона")
-        for model, u in sorted(by_model.items()):
-            run_log.append(A, "executor", run=state.get("dir"), role="orchestrator", model=model, **u)
+        saved = [run_log.append(A, "executor", run=state.get("dir"), role="orchestrator", model=model, **u)
+                 for model, u in sorted(by_model.items())]
+        if not all(saved):
+            return "расход оркестратора не записан: журнал прогона недоступен для записи"
         return "расход оркестратора: %s ток. вход+выход, кэш чтение %s, моделей %d" % (
             sum(u["input"] + u["output"] for u in by_model.values()),
             sum(u["cache_read"] for u in by_model.values()), len(by_model))

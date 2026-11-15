@@ -2252,7 +2252,8 @@ function render(lang){
   const spendRows = b => Object.entries(spendRaw[b] && typeof spendRaw[b] === 'object' ? spendRaw[b] : {})
     .filter(([, a]) => a && Number.isSafeInteger(a.n) && Number.isSafeInteger(a.tokens) && a.n >= 0 && a.tokens >= 0)
     .sort((x, y) => y[1].tokens - x[1].tokens || String(x[0]).localeCompare(String(y[0])));
-  const spendRole = spendRows('byRole');
+  // Оркестратор — расход главной сессии, а не запуски субагентов: в таблицах он есть, в шапке и плитке нет.
+  const spendRole = spendRows('byRole').filter(([k]) => k !== 'orchestrator');
   const spendSum = f => spendRole.reduce((n, [, a]) => n + (Number.isSafeInteger(a[f]) ? a[f] : 0), 0);
   const spendRuns = spendSum('n'), spendTokens = spendSum('tokens');
   const tokenSummary = usageEvents.length
