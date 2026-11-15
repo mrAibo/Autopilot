@@ -901,6 +901,26 @@
     .vd-row>.vd-w{grid-area:2/2}.vd-row>.vd-t{grid-area:2/3}.vd-row>.vd-r{grid-area:3/2}.vd-row>.vd-b{grid-area:3/3}
     .vd-row>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;color:var(--mut);font-weight:400;letter-spacing:.04em;margin-bottom:2px}
   }
+  /* Страница «Сейчас»: вкладки, закреплённая полоса вопроса, «Ещё» с прежними темами, узкая раскладка по matchMedia */
+  .vlist{display:contents}.vlist[hidden]{display:none}
+  .vmore{color:var(--mut)}
+  .ntabs{display:flex;flex-wrap:wrap;gap:8px}
+  .ntabs button{appearance:none;font:inherit;cursor:pointer;min-height:44px;padding:0 18px;border-radius:12px;
+    border:1px solid var(--line);background:var(--card);color:var(--tx2);font-weight:650}
+  .ntabs button[aria-selected="true"]{background:var(--tx);color:var(--card);border-color:var(--tx)}
+  .ntabs button[aria-selected="true"]::before{content:"✓";margin-right:6px}
+  .askbar{position:sticky;top:0;z-index:15;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:14px 18px;
+    border-radius:16px;background:var(--warn-bg);border:2px solid var(--warn-bd);color:var(--warn-tx)}
+  .askbar .ak{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+  .askbar p{flex:1 1 320px;margin:0;font-size:16px;font-weight:650;overflow-wrap:anywhere}
+  .askbar .aw{font-variant-numeric:tabular-nums;font-weight:800}
+  .det-slot{scroll-margin-top:18px}
+  html[data-narrow] .cockpit-rail{display:none}
+  html[data-narrow] .wrap{padding:0 12px 25px}
+  html[data-narrow] :is(.cols,.ov3,.tl2){grid-template-columns:minmax(0,1fr)}
+  html[data-narrow] .ovh{flex-direction:column;align-items:stretch;padding:20px}
+  html[data-narrow] .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html[data-narrow] .ntabs button{flex:1 1 40%}
   /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
   .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
   .top .upd+.tools{margin-left:auto}
@@ -1020,9 +1040,9 @@ function applyTheme(t){
 
 // Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
 const VIEW_KEY = 'autopilot-view';
-const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','compact','quality'];
+const VIEW_IDS = ['now','overview','timeline','requirements','resources','summary','classic','compact','quality'];
 // Какой пункт рейки подсвечен в теме: якорь её главного блока (в рейке он подписан названием темы).
-const VIEW_HOME = {overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
+const VIEW_HOME = {now:'mission', overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
   summary:'quality', classic:'mission', compact:'mission', quality:'quality'};
 function storedView(){
   try {
@@ -1030,10 +1050,13 @@ function storedView(){
     if (v === 'focus') v = 'compact';  // до переименования «Фокус» хранился как focus
     if (VIEW_IDS.includes(v)) return v;
   } catch(e) {}
-  // Выбора нет: в узкой панели рядом с чатом — компактный вид, иначе первый (обзор).
+  // Выбора нет: в узкой панели рядом с чатом — компактный вид, иначе первый («Сейчас»).
   return window.innerWidth > 0 && window.innerWidth <= 520 ? 'compact' : VIEW_IDS[0];
 }
 let VIEW = storedView();
+// Узкое окно (меньше 700 px): раскладка сама складывается в одну колонку — render() ставит data-narrow на корень.
+let NARROW_MQ = null;
+try { NARROW_MQ = matchMedia('(max-width: 699px)'); } catch(e) {}
 
 const plural = (n, one, few, many) => {
   const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
@@ -1134,6 +1157,7 @@ const I18N = {
         done:(ids,t)=>`Таск ${ids.join(', ')} сдан${t ? ` · ${t.passed} ${plural(t.passed,'тест','теста','тестов')}${t.failed ? `, ${t.failed} упало` : ''}` : ''}`,
         fail:(ids,x)=>`Таск ${ids.join(', ')} не собрался${x ? ': ' + x : ''}`,
         retry:ids=>`Таск ${ids.join(', ')} перезапущен`,reset:ids=>`Таск ${ids.join(', ')} сброшен`},
+      gateReset:"Проверка сброшена: план изменился",
       gate:{G1:(ok,e)=>ok ? "Бриф разобран до конца" : `Бриф: открытых вопросов — ${e.open}`,
         G2:(ok,e)=>`Спецификация сверена с брифом${e.found ? `: ${e.found} ${plural(e.found,'пропуск','пропуска','пропусков')}` : ' — пропусков нет'}`,
         G3:(ok,e)=>ok ? "План покрывает все требования" : `План не сходится: ${e.problems} ${plural(e.problems,'проблема','проблемы','проблем')}`,
@@ -1148,8 +1172,12 @@ const I18N = {
     bootWhy:"Состояния нет ни внутри страницы, ни в файле .autopilot/state.js рядом: прогон только начался, либо файл помялся.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
-    viewLabel:"Вид",
-    views:{overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
+    viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",
+    ntabs:{now:"Сейчас",req:"Требования",sum:"Итог",det:"Подробности"},
+    askBar:"Нужен твой ответ",gReset:"сброшена: план изменился",doneAt:t=>`сдано ${t}`,
+    hr:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
+      risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению"},
+    views:{now:"Сейчас",overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
       tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",
@@ -1177,7 +1205,8 @@ const I18N = {
       nPh:n=>`Замени ${n} ${plural(n,'заглушку','заглушки','заглушек')}`,nPhD:"видимые заглушки: агент не стал придумывать за тебя",
       nMis:id=>`Реши по ${id}`,nMisD:"починить сейчас или принять как есть",
       nAsm:n=>`Просмотри решения, принятые за тебя: ${n}`,nAsmD:"любое из них можно отменить",
-      upd:"обновлено",notCreated:"не создана"}},
+      upd:"обновлено",notCreated:"не создана",
+      tDetHistory:"История сборок"}},
   en:{lang:"en",of:"of",
     stages:{preflight:"Preflight",manifest:"Requirements",briefing:"Briefing",spec:"Spec",
       plan:"Plan",build:"Development",review:"Code review",final:"Acceptance"},
@@ -1262,6 +1291,7 @@ const I18N = {
         done:(ids,t)=>`Ticket ${ids.join(', ')} done${t ? ` · ${t.passed} tests${t.failed ? `, ${t.failed} failed` : ''}` : ''}`,
         fail:(ids,x)=>`Ticket ${ids.join(', ')} failed${x ? ': ' + x : ''}`,
         retry:ids=>`Ticket ${ids.join(', ')} restarted`,reset:ids=>`Ticket ${ids.join(', ')} reset`},
+      gateReset:"Check reset: the plan changed",
       gate:{G1:(ok,e)=>ok ? "The brief is fully read" : `Brief: ${e.open} open questions`,
         G2:(ok,e)=>`Spec checked against the brief${e.found ? `: ${e.found} gaps` : ' — no gaps'}`,
         G3:(ok,e)=>ok ? "The plan covers every requirement" : `The plan does not add up: ${e.problems} problems`,
@@ -1275,8 +1305,12 @@ const I18N = {
     bootWhy:"No state either inside the page or in .autopilot/state.js beside it: the run has just started, or the file got mangled.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
-    viewLabel:"View",
-    views:{overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
+    viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",
+    ntabs:{now:"Now",req:"Requirements",sum:"Summary",det:"Details"},
+    askBar:"Your answer is needed",gReset:"reset: the plan changed",doneAt:t=>`done ${t}`,
+    hr:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
+      risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation"},
+    views:{now:"Now",overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
       tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",
@@ -1304,7 +1338,8 @@ const I18N = {
       nPh:n=>`Replace ${n} ${en(n,'placeholder','placeholders')}`,nPhD:"visible stubs the agent did not invent for you",
       nMis:id=>`Decide on ${id}`,nMisD:"fix it now or accept it as it is",
       nAsm:n=>`Look through the decisions made for you: ${n}`,nAsmD:"any of them can be overruled",
-      upd:"updated",notCreated:"not created"}}
+      upd:"updated",notCreated:"not created",
+      tDetHistory:"Build history"}}
 };
 
 let CUR = I18N.ru;                 // язык, на котором сейчас отрисовано — нужен тикающим таймерам
@@ -1317,7 +1352,8 @@ let misses = 0;                    // неудачных подгрузок stat
 let lastStamp = null;              // метка отрисованного состояния — против лишних перерисовок
 let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
-const UI = {filter: 'all', open: {}};
+// tab — вкладка страницы «Сейчас»; more — раскрыт ли список прежних тем под «Ещё».
+const UI = {filter: 'all', open: {}, tab: 'now', more: false};
 
 // ——— живые таймеры ———————————————————————————————————————————————
 // Всё время считается из меток state.js. Незакрытый интервал тикает от текущего момента.
@@ -1356,7 +1392,8 @@ function collectMarks(S){
   push(S.startedAt); push(S.updatedAt); push(S.finishedAt);
   (S.beats || []).forEach(push);
   rememberBeats(S).forEach(push);
-  (S.stages || []).forEach(x => { push(x.startedAt); push(x.finishedAt); });
+  (S.stages || []).forEach(x => { push(x.startedAt); push(x.finishedAt);
+    (Array.isArray(x.segments) ? x.segments : []).forEach(g => { push(g && g.startedAt); push(g && g.finishedAt); }); });
   (S.tickets || []).forEach(x => { push(x.startedAt); push(x.finishedAt); });
   (S.waits || []).forEach(x => { push(x.from); push(x.to); });
   return Array.from(new Set(out)).sort((a, b) => a - b);
@@ -1394,6 +1431,23 @@ function activeMs(from, to){
     s += Math.min(Math.max(0, gap), IDLE_CAP_MS);
   }
   return s;
+}
+// Отрезки этапа [от, до]: вернули этап на доработку — работа шла несколькими кусками, а промежуток между ними
+// в минуты этапа не входит. Нет segments (старый state.js) — один отрезок startedAt…finishedAt, как раньше.
+const segsOf = s => Array.isArray(s.segments) && s.segments.length
+  ? s.segments.filter(g => g && toMs(g.startedAt) != null).map(g => [g.startedAt, g.finishedAt || (s.status === 'active' ? null : s.finishedAt)])
+  : (s.startedAt ? [[s.startedAt, s.finishedAt]] : []);
+const stageMs = s => segsOf(s).reduce((n, [a, b]) => n + (activeMs(a, b) || 0), 0);
+const stageWaitMs = s => segsOf(s).reduce((n, [a, b]) => {
+  const x = toMs(a), y = toMs(b);
+  return x != null && y != null ? n + waitedIn(x, y) : n;
+}, 0);
+// Часы идущего этапа: закрытые отрезки считаются сразу (data-base), открытый тикает от своего начала.
+function stageTimer(s){
+  const segs = segsOf(s), open = segs.find(g => !g[1]);
+  if (!open) return fmtClock(stageMs(s));
+  const base = segs.filter(g => g[1]).reduce((n, [a, b]) => n + (activeMs(a, b) || 0), 0);
+  return `<span data-live data-from="${esc(open[0])}" data-base="${base}">${fmtClock(base + (activeMs(open[0], null) || 0))}</span>`;
 }
 // Стоят ли часы прямо сейчас — то есть тянется ли простой дольше порога.
 // Ожидание ответа — не простой: у него своя подпись.
@@ -1436,7 +1490,7 @@ function agoShort(iso){
 function tick(){
   const stopped = idleNow();
   document.querySelectorAll('[data-live][data-from]').forEach(el => {
-    el.textContent = fmtClock(activeMs(el.dataset.from, null));
+    el.textContent = fmtClock(activeMs(el.dataset.from, null) + (+el.dataset.base || 0));
   });
   document.querySelectorAll('[data-since]').forEach(el => {
     el.textContent = fmtClock(spanMs(el.dataset.since, null));
@@ -1501,13 +1555,19 @@ function showLink(){
   if (lost) el.textContent = CUR.lost;
 }
 
+// Адрес state.js. Сервер ap.py отдаёт данные только с токеном: он приходит в адресе страницы (?t=…) и уходит
+// дальше в запрос. Без токена (file://) адрес прежний. Метка времени (_) — иначе file:// отдаст скрипт из кеша.
+function stateUrl(){
+  const m = /[?&]t=([^&#]*)/.exec(location.search || '');
+  return 'state.js?' + (m && m[1] ? 't=' + m[1] + '&' : '') + '_=' + Date.now();
+}
+
 // Одна подгрузка state.js; done(ok) — когда она закончилась.
 function pullState(done){
   if (pulling) return;
   pulling = true;
   const s = document.createElement('script');
-  // Метка времени в запросе — иначе file:// отдаст скрипт из кеша.
-  s.src = 'state.js?t=' + Date.now();
+  s.src = stateUrl();
   // Ошибка — обычное дело: файл могли поймать в момент записи. Две подряд —
   // уже не запись, а мёртвый сервер: тогда страница говорит об этом.
   const end = ok => {
@@ -1547,6 +1607,22 @@ function refreshNow(btn){
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+// Служебная строка маршрута «score=62; profile=strong; high-risk=True» → фраза в одну строку:
+// «Sonnet, усиленный режим: таск трогает подписи и ключи». route — объект маршрута (model, reason) или сама строка;
+// чужая строка (не служебная) возвращается как есть, но тоже одной строкой.
+function humanRoute(route, L){
+  L = L || CUR;
+  const r = route && typeof route === 'object' ? route : {reason: route};
+  const text = String(r.reason == null ? '' : r.reason).trim();
+  const m = /score=(\d+); profile=(\w+); high-risk=(\w+)/i.exec(text);
+  if (!m) return text.split(/\r?\n/)[0];
+  const found = /haiku|sonnet|opus/i.exec(String(r.model || ''));
+  const name = found ? found[0][0].toUpperCase() + found[0].slice(1).toLowerCase() : String(r.model || '').split(/\r?\n/)[0];
+  const risky = /^true$/i.test(m[3]);
+  const how = /premium/i.test(text) ? [', ', L.hr.premium] : risky ? [', ', L.hr.risky] : [': ', L.hr[m[2].toLowerCase()] || L.hr.balanced];
+  return name ? name + how[0] + how[1] : how[1];
+}
+
 // Статус таска → цвет полосы, значок, подписи. Ремонт — не «ещё немного
 // разработки»: таск уже написан и вернулся с ревью, поэтому у него свой цвет.
 const KIND = {
@@ -1567,6 +1643,26 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Функция только склеивает строки: STATE не читает и в DOM не пишет.
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
+  // Страница по умолчанию: вкладки «Сейчас · Требования · Итог · Подробности». «Сейчас» подбирает содержимое по
+  // состоянию сборки: ждёт ответа — сверху закреплённая полоса вопроса (c.askBar); идёт разработка — прогресс тасков
+  // (простой список; доску рисует отдельный блок); сдано — итог. «Подробности» — места под модели, расход, проверки
+  // и историю сборок. Коды проверок в основном тексте не показываются (c.gatesPlain).
+  now: c => {
+    const part = (id, html) => `<div id="${id}" class="vsec" tabindex="-1">${html}</div>`;
+    const body = {
+      now: c.fin
+        ? `<div id="mission" class="vsec" tabindex="-1" data-mode="done">${c.sumHero}${c.nextCard}${c.needSum}${c.mismatchCard}</div>`
+        : `<div id="mission" class="vsec" tabindex="-1" data-mode="${c.askBar ? 'ask' : 'dev'}">${c.ovHero}${c.route}</div>`
+          + part('tasks', c.buildCard || c.tasksEmpty)
+          + part('quality', `${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.feedView}`),
+      req: part('mission', c.matrixCard + c.wordsView),
+      sum: part('mission', c.sumHero + (c.ganttFull || c.emptyGantt) + c.verdictCard + (c.mismatchCard || c.blindCard)
+        + c.reportCard + c.concernsCard + (c.fin ? '' : c.summaryCard)),
+      det: part('mission', `<div class="det-slot" data-slot="models">${c.routesCard}</div><div class="det-slot" data-slot="spend">${c.tokensCard}</div>`
+        + `<div class="det-slot" data-slot="checks">${c.gatesPlain}</div><div class="det-slot" data-slot="history">${c.historySlot}</div>`)
+    };
+    return `${c.askBar}${c.nowTabs}${body[c.tab] || body.now}`;
+  },
   // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки); больше ничего.
   // Ход сборки по волнам — это сам Гант (волна подписана в каждой строке), второго списка тасков нет.
   // «Модели и ресурсы» и «Изоляция» — в «Ресурсах» и «Классике»; якоря #models здесь нет, рейка его не рисует.
@@ -1680,7 +1776,7 @@ function render(lang){
     return memo[id] = d;
   }
   const cpMin = Math.max(0, ...T.map(t => chainMin(t.id, new Set())));
-  const stageMin = id => { const s = stage(id); return s.startedAt ? (activeMs(s.startedAt, s.finishedAt) || 0) / 60000 : 0; };
+  const stageMin = id => stageMs(stage(id)) / 60000;
   let left = null, lateEta = false;
   if (!fin && !waiting && !failedStage) {
     const buildSoFar = stageMin('build');
@@ -1743,15 +1839,15 @@ function render(lang){
   const segs = stages.map(s => {
     const st = s.status;
     let cls = 's-pend', fill = '0%', inner = '', time = L.ahead;
-    if (st === 'done') { cls = 's-done'; fill = '100%'; time = s.startedAt ? timerHTML(s.startedAt, s.finishedAt) : '—'; }
+    if (st === 'done') { cls = 's-done'; fill = '100%'; time = s.startedAt ? fmtClock(stageMs(s)) : '—'; }
     else if (st === 'skipped') { cls = 's-skip'; time = L.skipped; }
     else if (st === 'failed') { cls = 's-fail'; fill = '100%'; time = L.failedSt; }
     else if (st === 'active') {
       cls = 's-now'; inner = 'stripes';
       fill = s.id === 'build' && T.length ? Math.max(8, Math.round(done.length / T.length * 100)) + '%' : '50%';
-      time = waiting ? L.waitingSt : (s.startedAt ? timerHTML(s.startedAt, null) : '—');
+      time = waiting ? L.waitingSt : (s.startedAt ? stageTimer(s) : '—');
     }
-    return `<div class="${cls}"><div class="seg"><i class="${inner}" style="width:${fill}"></i></div>
+    return `<div class="${cls}" role="listitem"><div class="seg"><i class="${inner}" style="width:${fill}"></i></div>
       <span class="s-name">${esc(stName(s))}</span><span class="s-time">${time}</span></div>`;
   }).join('');
   const hero = `<section class="hero ${heroCls} w" aria-live="polite">
@@ -1817,7 +1913,7 @@ function render(lang){
     const k = kindOf(t);
     const time = taskTime(t);
     const note = noteOf(t);
-    const extra = t.status === 'done' && redoOf(t) ? ' · ' + redoOf(t) : '';
+    const extra = redoOf(t) ? ' · ' + redoOf(t) : '';  // повторы и починки видны у таска в любом состоянии
     return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
       <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
         <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
@@ -1903,21 +1999,26 @@ function render(lang){
   if (!G.G4 && B) G.G4 = {ok: !(B.mismatches || []).length, matched: B.matched, checked: B.checked};
   const gate = (id, cls, icon, sub) => `<div class="gate"><span class="gi ${cls}">${ic(icon,'xs')}</span><div><div class="gt">${L.gT[id]}</div><div class="gs">${sub}</div></div><span class="gk">${id}</span></div>`;
   const later = (id, sub) => gate(id, 'wait', 'clock', fin ? L.gNone : sub);
-  const g1 = G.G1 ? (G.G1.ok ? gate('G1','ok','check',esc(L.g1ok(G.G1.total || R.total || 0))) : gate('G1','warn','alert',esc(L.g1bad(G.G1.open || 0))))
+  // Гейт, сброшенный сменой плана (ap.py пишет reason: plan-changed без чисел), — «сброшена», а не пройден и не «0 из 0».
+  const wasReset = g => !!(G[g] && G[g].reason === 'plan-changed');
+  const g1 = wasReset('G1') ? gate('G1','warn','alert',L.gReset) : G.G1 ? (G.G1.ok ? gate('G1','ok','check',esc(L.g1ok(G.G1.total || R.total || 0))) : gate('G1','warn','alert',esc(L.g1bad(G.G1.open || 0))))
     : waiting && waiting.kind === 'briefing' ? gate('G1','warn','msg',L.g1ask) : later('G1', L.g1later);
-  const g2 = G.G2 ? gate('G2', G.G2.ok ? 'ok' : 'warn', G.G2.ok ? 'check' : 'alert', L.g2(+G.G2.found||0, +G.G2.fixed||0, +G.G2.deferred||0)) : later('G2', L.g2later);
+  const g2 = wasReset('G2') ? gate('G2','warn','alert',L.gReset) : G.G2 ? gate('G2', G.G2.ok ? 'ok' : 'warn', G.G2.ok ? 'check' : 'alert', L.g2(+G.G2.found||0, +G.G2.fixed||0, +G.G2.deferred||0)) : later('G2', L.g2later);
   const g3 = G.G3 ? (G.G3.ok ? gate('G3','ok','check',L.g3ok(live, T.length)) : gate('G3','bad','x',esc(L.g3bad(G.G3.problems || 0)))) : later('G3', L.g3later);
-  const g4 = G.G4 ? gate('G4', G.G4.ok ? 'ok' : 'warn', G.G4.ok ? 'check' : 'alert',
+  const g4 = wasReset('G4') ? gate('G4','warn','alert',L.gReset) : G.G4 ? gate('G4', G.G4.ok ? 'ok' : 'warn', G.G4.ok ? 'check' : 'alert',
       L.g4(esc(G.G4.matched), esc(G.G4.checked), Math.max(0, (+G.G4.checked||0) - (+G.G4.matched||0)))) : later('G4', L.g4later);
   const okGates = ['G1','G2','G3','G4'].filter(g => G[g] && G[g].ok).length;
   const gatesCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div>${g1}${g2}${g3}${g4}</section>`;
+  const gatesPlain = gatesCard.replace(/<span class="gk">G\d<\/span>/g, '');  // страница «Сейчас»: кодов G1–G4 в тексте нет
 
   // ——— лента ———
   const evText = e => {
     const V = L.ev;
     if (e.k === 'stage') return (V.stage[e.act] || V.stage.start)(L.stages[e.id] || e.id, e.note);
     if (e.k === 'ticket') return (V.ticket[e.act] || V.ticket.start)(e.ids || [], e.act === 'done' ? e.tests : e.note);
-    if (e.k === 'gate') return (V.gate[e.g] || (() => e.g))(e.ok, e);
+    // Сброс гейта сменой плана приходит без чисел (open, found, matched…) — своя строка; у остальных чисел нет — нули, не «undefined».
+    if (e.k === 'gate' && e.reason === 'plan-changed') return V.gateReset;
+    if (e.k === 'gate') return (V.gate[e.g] || (() => e.g))(e.ok, Object.assign({open: 0, found: 0, problems: 0, matched: 0, checked: 0}, e));
     if (e.k === 'add') return (V.add[e.key] || (n => `${e.key}: +${n}`))(e.n || 1);
     if (e.k === 'tickets') return V.tickets(e.n || 0);
     if (e.k === 'tests') return V.tests(e);
@@ -1983,7 +2084,7 @@ function render(lang){
       + '<span class="resource-chip">' + esc(info.model) + '</span>'
       + '<span class="resource-chip">Effort: ' + esc(info.effort || '—') + '</span>'
       + '<span class="resource-chip">' + (langRu ? 'Сложность ' : 'Score ') + esc(info.score ?? '—') + '/100</span>'
-      + '</div><div class="resource-reason">' + esc(info.reason || '—') + '</div></div>';
+      + '</div><div class="resource-reason">' + esc(info.reason ? humanRoute(info) : '—') + '</div></div>';
   }).join('');
   const proposals = T.filter(t => t.plannedRouting && !t.routing);
   const blockedProposals = proposals.filter(t => t.plannedRouting.status === 'blocked');
@@ -2000,7 +2101,7 @@ function render(lang){
       '<span class="resource-chip">' + esc(p.score ?? '—') + '/100</span>' +
       '</div><div class="resource-reason">' +
       (langRu ? 'Предложение, не запуск: ' : 'Plan only, not executed: ') +
-      esc(p.error || p.reason || '—') + '</div></div>';
+      esc(p.error || (p.reason ? humanRoute(p) : '—')) + '</div></div>';
   }).join('');
   const usageEvents = Array.isArray(S.usageEvents) ? S.usageEvents.filter(e =>
     e && Number.isSafeInteger(e.input) && Number.isSafeInteger(e.output) &&
@@ -2162,7 +2263,7 @@ function render(lang){
     const k = kindOf(t).k, n = tokBy.get(String(t.id));
     return `<tr><td>${esc(t.id + ' · ' + t.title)}<br><span class="pill ${PILLK[k]}">${L.chip[k]}</span></td><td>${esc(p.provider || '—')}</td>`
       + `<td><span class="mchip">${esc(p.model || '—')}${p.effort ? ' · ' + esc(p.effort) : ''}</span>${tag ? ` <span class="pill p-mut">${tag}</span>` : ''}</td>`
-      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason || p.error || '')}</td>`
+      + `<td>${esc(p.score ?? '—')}</td><td>${esc(p.reason ? humanRoute(p) : (p.error || ''))}</td>`
       + (hasTok ? `<td>${n ? `<span class="tokbar" aria-hidden="true"><i style="width:${Math.max(3, Math.round(n / maxTok * 100))}%"></i></span><span class="mono">${numberFormat(n)}</span>` : tokBy.has(String(t.id)) || (t.status === 'pending' && !t.routing && !t.plannedRouting) ? '0' : '—'}</td>` : '')
       + (hasTree ? `<td>${t.worktree && t.worktree.status ? `<span class="pill p-mut">${esc(t.worktree.status)}</span>`
         : t.status === 'pending' ? `<span class="pill p-mut">${W.notCreated}</span>` : '—'}</td>` : '') + '</tr>';
@@ -2211,12 +2312,12 @@ function render(lang){
   // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
   const rsInfo = s => {
     if (s.status === 'done') {
-      const a = toMs(s.startedAt), b = toMs(s.finishedAt), w = a != null && b != null ? Math.round(waitedIn(a, b) / 60000) : 0;
+      const a = toMs(s.startedAt), b = toMs(s.finishedAt), w = Math.round(stageWaitMs(s) / 60000);
       return {cls: 'done', mark: ic('check', 'xs'), sub: a != null && b != null
-        ? `${Math.max(1, Math.round((activeMs(s.startedAt, s.finishedAt) || 0) / 60000))} ${L.min}${w >= 1 ? ' ' + W.waited(w) : ''}` : '—'};
+        ? `${Math.max(1, Math.round(stageMs(s) / 60000))} ${L.min}${w >= 1 ? ' ' + W.waited(w) : ''}` : '—'};
     }
     if (s.status === 'active') return {cls: 'now', mark: '<i></i>',
-      sub: (waiting ? L.waitingSt : s.startedAt ? timerHTML(s.startedAt, null) : '—') + ' · ' + W.going};
+      sub: (waiting ? L.waitingSt : s.startedAt ? stageTimer(s) : '—') + ' · ' + W.going};
     if (s.status === 'failed') return {cls: 'bad', mark: ic('x', 'xs'), sub: L.failedSt};
     if (s.status === 'skipped') return {cls: 'skip', mark: ic('chev', 'xs'), sub: L.skipped};
     return {cls: 'pend', mark: '', sub: L.ahead};
@@ -2328,7 +2429,7 @@ function render(lang){
   }
   const gOk = g => G[g] && G[g].ok;
   const gchips = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div><div class="gchips">${
-    ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}</span>`).join('')}</div></section>`;
+    ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}${wasReset(g) ? ' — ' + L.gReset : ''}</span>`).join('')}</div></section>`;
   const feedShort = feedEvents.slice(-5).reverse().map(feedRow).join('');
   const feedCompact = feedShort ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3></div>${feedShort}</section>` : emptyCard(L.feed, W.empty);
 
@@ -2392,6 +2493,16 @@ function render(lang){
   const needSum = env.length || ph.length
     ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${W.sNeed}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
 
+  // ——— страница «Сейчас» ———
+  // Ждёт ответа — вопрос закреплён сверху на любой вкладке: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно.
+  const askBar = waiting ? `<section class="askbar" role="status"><span class="ak">${L.askBar}</span>
+    <p>${esc(waiting.note || L.waitH2[waiting.kind] || L.waitState)}</p>
+    <span class="aw" data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span></section>` : '';
+  if (!['now','req','sum','det'].includes(UI.tab)) UI.tab = 'now';
+  const nowTabs = `<div class="ntabs" role="tablist" aria-label="${esc(L.ntabsLabel)}">${['now','req','sum','det'].map(id =>
+    `<button type="button" role="tab" data-ntab="${id}" aria-selected="${UI.tab === id}">${esc(L.ntabs[id])}</button>`).join('')}</div>`;
+  const historySlot = emptyCard(W.tDetHistory, W.empty);  // историю сборок рисует следующий блок
+
   // ——— раскладка ———
   // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
   // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
@@ -2407,13 +2518,22 @@ function render(lang){
         ? `${L.today} ${hhmm(S.startedAt)}`
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
+  // Первая тема — страница «Сейчас»; остальные под «Ещё» (раскрыты, пока выбрана одна из них).
+  const viewBtn = id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`;
+  const moreOpen = UI.more || VIEW !== VIEW_IDS[0];
+  // «Сдано <время>» вместо «обновлено N назад»: у сданной сборки обновлений больше нет. Другой день — с датой.
+  const doneAtMs = toMs(S.finishedAt) ?? toMs(S.updatedAt);
+  const doneStamp = doneAtMs == null ? '' : new Date(doneAtMs).toDateString() === new Date().toDateString() ? hhmm(new Date(doneAtMs))
+    : new Date(doneAtMs).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   document.documentElement.lang = L.lang;
+  if (NARROW_MQ && NARROW_MQ.matches) document.documentElement.setAttribute('data-narrow', '1');
+  else document.documentElement.removeAttribute('data-narrow');
   document.documentElement.setAttribute('data-view', VIEW);  // палитра макетов включается всем видам, кроме «Классики»
   const app = document.getElementById('app');
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -2425,7 +2545,8 @@ function render(lang){
   const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
     isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
-    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero});
+    ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
+    askBar, nowTabs, tab: UI.tab, gatesPlain, historySlot});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
@@ -2457,11 +2578,13 @@ function render(lang){
   <main class="cockpit-content" id="content" tabindex="-1">
   <header class="top">
     <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
-    ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span></span>` : ''}
+    ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${fin ? esc(L.doneAt(doneStamp)) : `${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span>`}</span>` : ''}
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
       <div class="tabs views" role="group" aria-label="${L.viewLabel}">
-        ${VIEW_IDS.map(id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`).join('')}
+        ${viewBtn(VIEW_IDS[0])}
+        <button type="button" class="vmore" data-views-more aria-expanded="${moreOpen}">${esc(L.moreViews)}</button>
+        <span class="vlist"${moreOpen ? '' : ' hidden'}>${VIEW_IDS.slice(1).map(viewBtn).join('')}</span>
       </div>
       <div class="tabs" role="group" aria-label="${L.themeLabel}">
         <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${effectiveTheme()==='light'}">${ic('sun')}</button>
@@ -2537,6 +2660,7 @@ function gxFit(root) {
   });
 }
 window.addEventListener('resize', () => gxFit(document.getElementById('app')));
+try { NARROW_MQ.addEventListener('change', () => { if (window.STATE) render(CUR.lang); }); } catch(e) {}
 
 // Один обработчик на всё: #app переписывается целиком на каждом событии сборки.
 document.getElementById('app').addEventListener('click', e => {
@@ -2552,8 +2676,13 @@ document.getElementById('app').addEventListener('click', e => {
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
   } else if (VIEW_IDS.includes(b.dataset.view)) {
     VIEW = b.dataset.view;
+    UI.more = false;
     try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
     render(CUR.lang);
+  } else if (b.dataset.ntab) {
+    UI.tab = b.dataset.ntab; render(CUR.lang);
+  } else if (b.hasAttribute('data-views-more')) {
+    UI.more = !UI.more; render(CUR.lang);
   } else if (b.hasAttribute('data-refresh')) {
     refreshNow(b);
   } else if (b.dataset.filter) {

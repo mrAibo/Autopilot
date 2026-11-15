@@ -11,11 +11,11 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "skills/autopilot/phases/dashboard-template.html"
 LOGO = ROOT / "assets/autopilot-logo-light.svg"
-VIEW_IDS = ["overview", "timeline", "requirements", "resources", "summary", "classic", "compact", "quality"]
-NAMES = {"overview": "Overview", "timeline": "Timeline", "requirements": "Requirements", "resources": "Resources",
+VIEW_IDS = ["now", "overview", "timeline", "requirements", "resources", "summary", "classic", "compact", "quality"]
+NAMES = {"now": "Now", "overview": "Overview", "timeline": "Timeline", "requirements": "Requirements", "resources": "Resources",
          "summary": "Summary", "classic": "Classic", "compact": "Compact", "quality": "Quality"}
 # The rail link that stands for each theme (the anchor its main block carries).
-HOME = {"overview": "mission", "timeline": "tasks", "requirements": "quality", "resources": "models",
+HOME = {"now": "mission", "overview": "mission", "timeline": "tasks", "requirements": "quality", "resources": "models",
         "summary": "quality", "classic": "mission", "compact": "mission", "quality": "quality"}
 NODE = shutil.which("node")
 # Gantt label variants, longest first: full, short, number, icon (px the text needs, padding included); a bar this wide (px).
@@ -35,7 +35,8 @@ class FixedDate extends Date {
   constructor(...a) { if (a.length) super(...a); else super(NOW); }
   static now() { return NOW; }
 }
-function env(state, store, denied, width) {
+function env(state, store, denied, width, opts) {
+  opts = opts || {};
   const app = {innerHTML: '', listeners: {}, classList: {add() {}, remove() {}},
     addEventListener(n, f) { this.listeners[n] = f; }, contains() { return false; },
     querySelectorAll() { return []; }};
@@ -46,8 +47,8 @@ function env(state, store, denied, width) {
     getItem: k => { if (denied) throw new Error('denied'); return k in store ? store[k] : null; },
     setItem: (k, v) => { if (denied) throw new Error('denied'); store[k] = String(v); },
     removeItem: k => { delete store[k]; }};
-  const ctx = {document: doc, localStorage: ls, navigator: {language: 'en'}, location: {protocol: 'file:'},
-    matchMedia: () => ({matches: false, addEventListener() {}}), setTimeout() { return 0; },
+  const ctx = {document: doc, localStorage: ls, navigator: {language: 'en'}, location: {protocol: 'file:', search: opts.search},
+    matchMedia: q => ({matches: String(q).includes('699') ? !!opts.narrow : false, addEventListener() {}}), setTimeout() { return 0; },
     clearTimeout() {}, setInterval() { return 0; }, addEventListener() {}, scrollTo() {}, scrollY: 0,
     STATE: state, Intl, Date: FixedDate, Math, JSON, console};
   if (width) ctx.innerWidth = width;
@@ -115,6 +116,28 @@ try {
   out.gx.fit = Object.fromEntries(Object.entries(cases).map(([k, b]) => [k,
     {on: b.children.findIndex(x => x.cl.has('on')), out: b.cl.has('out'), side: b.dataset.side || null, fit: b.cl.has('fit')}]));
 } catch (err) { out.gx.error = String(err && err.stack || err); }
+// Page "Now": tabs by click, token in the state.js address, narrow window, humanRoute.
+const tb = env(input.fixtures.running, {}, false);
+out.now = {tabs: {}, view: run(tb, 'VIEW')};
+for (const tab of ['now', 'req', 'sum', 'det']) {
+  tb.app.listeners.click({target: {closest: () => ({dataset: {ntab: tab}, hasAttribute: () => false})}});
+  out.now.tabs[tab] = tb.app.innerHTML;
+}
+tb.app.listeners.click({target: {closest: () => ({dataset: {}, hasAttribute: n => n === 'data-views-more'})}});
+out.now.more = tb.app.innerHTML;
+out.now.url = [run(env(input.fixtures.running, {}, false, 0, {search: '?t=abc123'}), 'stateUrl()'),
+  run(env(input.fixtures.running, {}, false), 'stateUrl()')];
+out.now.narrow = [true, false].map(narrow => { const n = env(input.fixtures.running, {}, false, 0, {narrow});
+  run(n, "render('en')"); return n.ctx.document.documentElement.attrs['data-narrow'] || null; });
+const hr = (route, lang) => run(c, `humanRoute(${JSON.stringify(route)}, I18N.${lang})`);
+out.hr = {
+  risky: hr({model: 'sonnet', reason: 'score=62; profile=strong; high-risk=True'}, 'ru'),
+  riskyEn: hr({model: 'sonnet', reason: 'score=62; profile=strong; high-risk=True'}, 'en'),
+  plain: hr({model: 'claude-haiku-4-5', reason: 'score=12; profile=cheap; high-risk=False'}, 'ru'),
+  premium: hr({model: 'opus', reason: 'score=70; profile=strong; high-risk=True; premium tier'}, 'ru'),
+  string: hr('score=30; profile=balanced; high-risk=False', 'en'),
+  foreign: hr({model: 'sonnet', reason: 'chosen by hand' + String.fromCharCode(10) + 'second line'}, 'ru'),
+  none: hr({}, 'ru')};
 const L = run(c, 'I18N'), keys = o => Object.keys(o).sort();
 out.i18n = {top: [keys(L.ru), keys(L.en)], vw: [keys(L.ru.vw), keys(L.en.vw)],
   views: [keys(L.ru.views), keys(L.en.views)], label: [L.ru.viewLabel, L.en.viewLabel]};
@@ -176,7 +199,22 @@ def _fixtures():
     landed = dict(json.loads(json.dumps(done)), landedWith={"problems": ["G4: <b>hole</b> in R02"], "byUser": "ship it"})
     opus = dict(json.loads(json.dumps(running)), opusApproval={
         "tickets": ["03"], "roles": ["repair"], "quotes": [{"at": "2026-11-03T08:00:00Z", "quote": "ok, opus for 03"}], "sig": None})
-    return {"notes": notes, "empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin,
+    # the page "Now": waiting for an answer; a stage sent back (two segments each); six plan-changed resets in the feed
+    ask = dict(json.loads(json.dumps(running)), waiting={"kind": "spec", "since": t(15), "note": "Approve the spec? <b>x</b>"})
+    returned = json.loads(json.dumps(running))
+    returned.update(title="Returned stage", finishedAt=t(20), startedAt=t(0), updatedAt=t(20), result="ok")
+    returned["stages"] = [
+        {"id": "spec", "status": "done", "startedAt": t(0), "finishedAt": t(15),
+         "segments": [{"startedAt": t(0), "finishedAt": t(5)}, {"startedAt": t(10), "finishedAt": t(15)}]},
+        {"id": "plan", "status": "done", "startedAt": t(5), "finishedAt": t(20),
+         "segments": [{"startedAt": t(5), "finishedAt": t(10)}, {"startedAt": t(15), "finishedAt": t(20)}]}]
+    gated = json.loads(json.dumps(running))
+    gated["title"] = "Gated build"
+    gated["gates"] = {"G1": {"ok": False, "reason": "plan-changed"}, "G2": {"ok": False, "reason": "plan-changed"},
+                      "G3": {"ok": True, "total": 10}, "G4": {"ok": False, "reason": "plan-changed"}}
+    gated["log"] = [{"k": "gate", "g": g, "ok": False, "reason": "plan-changed", "t": t(10 + i)}
+                    for i, g in enumerate(("G1", "G2", "G4", "G1", "G2", "G4"))]
+    return {"ask": ask, "returned": returned, "gated": gated, "notes": notes, "empty": empty, "running": running, "finished": done, "nodone": nodone, "old": old, "oldfin": oldfin,
             "landed": landed, "opus": opus}
 
 
@@ -195,7 +233,7 @@ class TemplateRuns(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def test_every_view_renders_every_fixture_without_exceptions(self):
-        self.assertEqual(len(self.out["renders"]), 9 * len(VIEW_IDS) * 2)
+        self.assertEqual(len(self.out["renders"]), 12 * len(VIEW_IDS) * 2)
         for key, res in self.out["renders"].items():
             with self.subTest(key=key):
                 self.assertNotIn("error", res)
@@ -358,11 +396,11 @@ class TemplateRuns(unittest.TestCase):
     def test_selected_view_is_stored_unknown_and_denied_storage_give_overview(self):
         stored = self.out["stored"]
         self.assertEqual((stored["none"], stored["saved"], stored["bogus"], stored["denied"]),
-                         ("overview", "timeline", "overview", "overview"))
+                         ("now", "timeline", "now", "now"))
 
     def test_click_on_view_button_stores_and_rerenders(self):
         click = self.out["click"]
-        self.assertEqual((click["first"], click["after"], click["saved"]), ("overview", "summary", "summary"))
+        self.assertEqual((click["first"], click["after"], click["saved"]), ("now", "summary", "summary"))
         self.assertIn('data-view="summary" aria-pressed="true"', click["html"])
         self.assertEqual(click["unknown"], "summary")
         self.assertEqual(click["reload"], "summary")
@@ -435,7 +473,7 @@ class TemplateRuns(unittest.TestCase):
 
     def test_narrow_window_defaults_to_compact_and_saved_choice_wins(self):
         stored = self.out["stored"]
-        self.assertEqual((stored["narrow"], stored["narrowEdge"], stored["justWider"]), ("compact", "compact", "overview"))
+        self.assertEqual((stored["narrow"], stored["narrowEdge"], stored["justWider"]), ("compact", "compact", "now"))
         self.assertEqual((stored["narrowSaved"], stored["narrowDenied"]), ("timeline", "compact"))
         self.assertEqual((stored["legacyFocus"], stored["legacyFocusNarrow"]), ("compact", "compact"))
 
@@ -757,7 +795,7 @@ class TemplateStrings(unittest.TestCase):
 
     def test_registry_and_storage_names(self):
         for text in ("const VIEW_KEY = 'autopilot-view'",
-                     "const VIEW_IDS = ['overview','timeline','requirements','resources','summary','classic','compact','quality']",
+                     "const VIEW_IDS = ['now','overview','timeline','requirements','resources','summary','classic','compact','quality']",
                      "function storedView()", "let VIEW = storedView()", "const VIEWS = {"):
             self.assertIn(text, self.html)
         for view in VIEW_IDS:
@@ -774,7 +812,7 @@ class TemplateStrings(unittest.TestCase):
     def test_locale_blocks_have_view_names_and_group_label(self):
         ru, en = self.html.split("\n  en:{lang:")
         for part in (ru, en):
-            self.assertRegex(part, r"views:\{overview:")
+            self.assertRegex(part, r"views:\{now:")
             self.assertIn("viewLabel:", part)
         self.assertIn("Обзор", ru)
         self.assertIn("Classic", en)

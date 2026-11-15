@@ -1,10 +1,11 @@
 # Dashboard views (themes)
 
-One dashboard page, eight views of the same `window.STATE`. The switcher sits in the header; the choice is stored in the browser, not in the project.
+One dashboard page that picks what to show by itself (`now`), plus eight older views of the same `window.STATE` under "More" in the header. The page opens on `now`; a view chosen under "More" is stored in the browser, not in the project, and wins on the next open.
 
 | id | What it shows |
 |----|---------------|
-| `overview` | Default: progress ring ("N of M requirements closed") and a forecast, the stage route with minutes, a Gantt chart (up to eight tickets; the wave is named in each row, so there is no second wave list of the same tickets), your words, gates, "needed from you" and the live feed, as in the mockup; no models and isolation blocks (they are in Resources and Classic) and no second list of tickets, so a ticket title shows once, in the Gantt (the hero lead names running tickets by id); there is no `models` anchor, so the rail has no "Models" link here; the other cards of Classic stay, once |
+| `now` | Default. Four tabs: "Now", "Requirements", "Summary", "Details" (`c.nowTabs`, state in `UI.tab`). "Now" picks its content by the state of the build: waiting for an answer — a pinned bar with the question text and how long it has waited sits on top of every tab (`c.askBar`), then the hero and the stage route; development — the hero, the stage route and the list of tickets (a plain list; the ticket board is a separate block); done — the summary hero with "what to do next". "Requirements" — the requirements matrix and the word list. "Summary" — the full Gantt and the summary cards. "Details" — slots for models, spend, checks and build history. Gate codes (G1–G4) are not in the text of this page; service strings such as `score=…; profile=…` are turned into a plain phrase by `humanRoute(route)` ("Sonnet, reinforced mode: the ticket touches signatures and keys") |
+| `overview` | Progress ring ("N of M requirements closed") and a forecast, the stage route with minutes, a Gantt chart (up to eight tickets; the wave is named in each row, so there is no second wave list of the same tickets), your words, gates, "needed from you" and the live feed, as in the mockup; no models and isolation blocks (they are in Resources and Classic) and no second list of tickets, so a ticket title shows once, in the Gantt (the hero lead names running tickets by id); there is no `models` anchor, so the rail has no "Models" link here; the other cards of Classic stay, once |
 | `timeline` | Hero with the phrase, the forecast and the stage route (`c.tlHero`); up to five cards for requirements, tickets, tests, tokens and work time (`c.tlTiles`, only those with data); the detailed Gantt on the left (every ticket, waves named, model chips); on the right "needed from you", gates and the event feed; your words at the bottom |
 | `requirements` | "The path of your requirements": a matrix of each phrase by seven stages (written, spec, ticket, code, tests, review, blind acceptance) with a "how many reached the stage" row; below it the word list with its filters, gates, summary and leftovers |
 | `resources` | Key figures, the routes table (ticket state, model chip, tokens per ticket, worktree; a waiting ticket with no route gets a row with 0 tokens and "not created", and no "why" without data), tokens, isolation |
@@ -13,9 +14,21 @@ One dashboard page, eight views of the same `window.STATE`. The switcher sits in
 | `compact` | One column for a narrow panel beside the chat: ring and forecast, tiles, stage strip, mini Gantt, "needed from you" (keys and stubs only), gates, feed; no models, isolation or decided-for-you list, and at 520 px or less a shorter header and title. Chosen by default when the window is 520 px wide or less and nothing is saved; a saved choice wins; the old saved value `focus` is read as `compact` |
 | `quality` | Can it be accepted: gates, blind acceptance, review and report notes, requirements with statuses, leftovers |
 
+## More
+
+The eight older views stay in the switcher, folded under the "More" button (`data-views-more`); the list opens by itself while one of them is chosen. Below 700 px (`matchMedia`) `render()` sets `data-narrow` on the root and the layout folds into one column; at 520 px or less with nothing saved the page still opens on `compact`.
+
 ## Header
 
-Every view except `classic` shows "updated N s ago" in the header, counted live from `updatedAt` by the same timer as the footer; without `updatedAt` it is not drawn.
+Every view except `classic` shows "updated N s ago" in the header, counted live from `updatedAt` by the same timer as the footer; without `updatedAt` it is not drawn. A finished build shows "done <time>" (the date too, if it was another day) instead.
+
+## Stage minutes and the feed
+
+A stage that was sent back keeps `segments: [{startedAt, finishedAt|null}]`; its minutes are the sum of the segments, not first start to last end; without `segments` it is as before. A gate reset by a changed plan (`reason: plan-changed`, no numbers) is one line in the feed, "Check reset: the plan changed", and "reset" in the gates card.
+
+## Server token
+
+The server of `ap.py` serves data only with `?t=<token>` in the address. The page takes the token from `location.search` and sends it with every `state.js` request (`stateUrl()`); opened from `file://` there is no token and the snapshot inside the page is used as before.
 
 ## Ticket notes in the Gantt rows
 
@@ -27,13 +40,13 @@ Every view except `classic` uses the palette of the design handoff (`:root[data-
 
 ## What a block needs
 
-A block is drawn only when `state.js` has its data; there are no error boxes for a missing field. The requirements matrix reads `reqList[].status`, `tickets[].requirements` (`R03.1` counts as `R03`), ticket statuses and `blind.mismatches`; the forecast needs finished tickets with `startedAt` and `finishedAt`; per-ticket tokens need `usageEvents[].ticket`. The summary has no before/after findings and no "decided for you" block because `state.js` has no such fields. An old project without `blind`, `debt`, `usageEvents` or `startedAt` still draws all eight views.
+A block is drawn only when `state.js` has its data; there are no error boxes for a missing field. The requirements matrix reads `reqList[].status`, `tickets[].requirements` (`R03.1` counts as `R03`), ticket statuses and `blind.mismatches`; the forecast needs finished tickets with `startedAt` and `finishedAt`; per-ticket tokens need `usageEvents[].ticket`. The summary has no before/after findings and no "decided for you" block because `state.js` has no such fields. An old project without `blind`, `debt`, `usageEvents` or `startedAt` still draws every view.
 
 ## Where it lives
 
 Everything is in `skills/autopilot/phases/dashboard-template.html`:
 
-- `VIEW_IDS` — ordered list of ids (first is the default);
+- `VIEW_IDS` — ordered list of ids (first, `now`, is the default; the rest sit under "More");
 - `VIEWS` — registry `id → function` that only joins the blocks `render()` already built (it does not read `STATE` or touch the DOM);
 - `I18N.ru.views` and `I18N.en.views` — the button labels;
 - `VIEW_KEY = 'autopilot-view'` — the `localStorage` key. An unknown or missing value falls back to the first id.
@@ -65,6 +78,7 @@ It checks the slug, embeds the current `state.js` snapshot (a BOM or a missing `
 
 ```bash
 python -m unittest discover -s tests -p test_dashboard_views.py
+python -m unittest discover -s tests -p test_dashboard_now.py
 python -m unittest discover -s tests -p test_dashboard_upgrade.py
 python -m unittest discover -s tests -p test_brand_assets.py
 ```
