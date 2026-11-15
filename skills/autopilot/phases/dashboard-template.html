@@ -959,6 +959,50 @@
     .gchip{padding:7px 10px}
     .gchips{gap:6px}
   }
+  /* Доски страницы «Сейчас»: тасков и требований, боковая панель таска. Цвета — только из палитры (светлая и тёмная темы). */
+  .bd-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+  .bd-cols.r5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .bd-col,.bd-strip{background:var(--inset);border-radius:16px;padding:10px;min-width:0}
+  .bd-col h4,.bd-strip h4{margin:0 0 8px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:8px;color:var(--tx)}
+  .bd-col h4 span,.bd-strip h4 span{color:var(--mut);font-weight:700}
+  .bd-col ul,.bd-strip ul,.bd-fail ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .bd-none{color:var(--mut);text-align:center;padding:6px}
+  .bd-fail{margin-bottom:12px}
+  .bd-fail h4{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--bad-tx)}
+  .bd-strips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px;align-items:start}
+  .rbmode{display:flex;flex-wrap:wrap;gap:8px}
+  .rbmode button,.tp-close,.askbar [data-notify]{appearance:none;font:inherit;cursor:pointer;min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;
+    border:1px solid var(--line2);background:var(--card);color:var(--tx);font-weight:650}
+  .rbmode button[aria-pressed="true"]{background:var(--tx);color:var(--card);border-color:var(--tx)}
+  .rbmode button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
+  .tcard{appearance:none;font:inherit;text-align:left;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:6px;padding:10px 12px;
+    border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--tx);min-width:0}
+  .tcard:hover{border-color:var(--tx2)}
+  .tcard.write{box-shadow:inset 4px 0 0 var(--now)}
+  .tcard.check{box-shadow:inset 4px 0 0 var(--rev)}
+  .tcard.done{box-shadow:inset 4px 0 0 var(--done)}
+  .tcard.fail{background:var(--bad-soft);border:2px solid var(--bad)}
+  .tc-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .tc-time{font-variant-numeric:tabular-nums;color:var(--mut);font-size:12.5px}
+  .tc-title{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+  .tc-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .tc-chip{font:11.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;border:1px solid var(--line2);border-radius:6px;padding:0 6px;color:var(--tx2)}
+  .tc-why{font-size:12.5px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .tcard.fail .tc-why{color:var(--bad-tx);-webkit-line-clamp:5}
+  .rcard{background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:10px 12px;min-width:0}
+  .rcard p{margin:4px 0 0;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .rcard small{display:block;margin-top:4px;color:var(--mut)}
+  .tpanel{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:30;overflow:auto;background:var(--card);color:var(--tx);
+    border-left:1px solid var(--line2);padding:20px 22px;display:flex;flex-direction:column;gap:16px}
+  .tp-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+  .tp-head h3{margin:0;font-size:18px;line-height:1.3;overflow-wrap:anywhere}
+  .tp-sec h4{margin:0 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+  .tp-sec p,.tp-sec ul{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+  .tp-sec ul{padding-left:18px}
+  .tp-sec code{font:12.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;background:var(--inset);border-radius:6px;padding:1px 6px;margin-right:4px;display:inline-block}
+  .tp-sec em{font-style:normal;color:var(--mut);margin-right:6px;font-variant-numeric:tabular-nums}
+  @media(max-width:1100px){.bd-cols,.bd-cols.r5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  html[data-narrow] :is(.bd-cols,.bd-cols.r5,.bd-strips){grid-template-columns:minmax(0,1fr)}
 </style>
 </head>
 <body>
@@ -1175,7 +1219,20 @@ const I18N = {
     viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",
     ntabs:{now:"Сейчас",req:"Требования",sum:"Итог",det:"Подробности"},
     askBar:"Нужен твой ответ",gReset:"сброшена: план изменился",doneAt:t=>`сдано ${t}`,
-    hr:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
+    notify:"Включить уведомления",notifyBody:"Сборка стоит и ждёт тебя",
+    bd:{boardTitle:"Доска тасков",none:"тасков ещё нет",
+      cols:{wait:"Ждёт",write:"Пишется",check:"Проверяется",done:"Сдан"},
+      failed:"Не собрались",returned:n=>`возвращён ×${n}`,attempt:n=>`попытка ${n}`,
+      waitsFor:l=>`ждёт ${l.length > 1 ? 'таски' : 'таск'} ${l.join(', ')}`,ready:"готов, ждёт своей очереди",
+      writing:"пишется сейчас",inReview:"на проверке",noReason:"причина не записана",
+      testsLine:t=>`${t.passed} ${plural(t.passed,'тест','теста','тестов')}${t.failed ? `, ${t.failed} упало` : ', все зелёные'}`,
+      openCard:"открыть историю",reqTitle:"Доска требований",rbLabel:"Что показывать на доске",rbModes:{req:"По требованиям",tk:"По таскам"},
+      rcols:{read:"Разбирается",plan:"В плане",doing:"Делается",check:"Проверяется",ok:"Принято"},
+      strip:{ph:"Нужны твои данные",def:"Отложено",drop:"Снято"},
+      panelLabel:"История таска",close:"Закрыть",
+      todo:"Что делать",reqs:"Требования",zone:"Зона",model:"Модель и почему",events:"Лента событий",tests:"Тесты",commit:"Коммит",review:"Замечания ревью",
+      noModel:"модель ещё не назначена",planned:"в плане: ",noEvents:"событий ещё нет",noTests:"ещё нет",noCommit:"ещё нет",noReview:"замечаний нет",noZone:"не указана"},
+    hrt:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
       risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению"},
     views:{now:"Сейчас",overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
@@ -1308,7 +1365,20 @@ const I18N = {
     viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",
     ntabs:{now:"Now",req:"Requirements",sum:"Summary",det:"Details"},
     askBar:"Your answer is needed",gReset:"reset: the plan changed",doneAt:t=>`done ${t}`,
-    hr:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
+    notify:"Turn on notifications",notifyBody:"The build is stopped and waits for you",
+    bd:{boardTitle:"Ticket board",none:"no tickets yet",
+      cols:{wait:"Waiting",write:"Writing",check:"In review",done:"Done"},
+      failed:"Failed",returned:n=>`returned ×${n}`,attempt:n=>`attempt ${n}`,
+      waitsFor:l=>`waits for ticket ${l.join(', ')}`,ready:"ready, waits for its turn",
+      writing:"being written now",inReview:"in review",noReason:"no reason recorded",
+      testsLine:t=>`${t.passed} ${en(t.passed,'test','tests')}${t.failed ? `, ${t.failed} failed` : ', all green'}`,
+      openCard:"open its history",reqTitle:"Requirement board",rbLabel:"What the board shows",rbModes:{req:"By requirements",tk:"By tickets"},
+      rcols:{read:"Being read",plan:"In the plan",doing:"Being built",check:"In review",ok:"Accepted"},
+      strip:{ph:"Your data needed",def:"Deferred",drop:"Dropped"},
+      panelLabel:"Ticket history",close:"Close",
+      todo:"What to do",reqs:"Requirements",zone:"Zone",model:"Model and why",events:"Events",tests:"Tests",commit:"Commit",review:"Review notes",
+      noModel:"no model assigned yet",planned:"planned: ",noEvents:"no events yet",noTests:"none yet",noCommit:"none yet",noReview:"no notes",noZone:"not given"},
+    hrt:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
       risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation"},
     views:{now:"Now",overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
@@ -1353,7 +1423,37 @@ let lastStamp = null;              // метка отрисованного со
 let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
 // tab — вкладка страницы «Сейчас»; more — раскрыт ли список прежних тем под «Ещё».
-const UI = {filter: 'all', open: {}, tab: 'now', more: false};
+// rb — что показывает доска на вкладке «Требования» (req | tk), запоминается; panel — id таска в боковой панели;
+// focus — куда вернуть фокус после перерисовки (кнопка закрытия панели или карточка таска).
+const RB_KEY = 'autopilot-boardmode';
+function storedRb(){
+  try { return localStorage.getItem(RB_KEY) === 'tk' ? 'tk' : 'req'; } catch(e) { return 'req'; }  // нет хранилища — по требованиям
+}
+const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), panel: null, focus: null};
+
+// ——— «нужен твой ответ»: значок вкладки и уведомление ———
+// Значок — всегда (data:-картинка, без запросов); уведомление — только с явного разрешения, которое просит кнопка по клику.
+// Пространство имён SVG — идентификатор, не запрос; склеено, чтобы в странице не было ни одного веб-адреса.
+const faviconOf = wait => 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="' + 'http:' + '//www.w3.org/2000/svg" viewBox="0 0 32 32">'
+  + '<rect width="32" height="32" rx="8" fill="#4F46E5"/><circle cx="11" cy="22" r="3" fill="#fff"/><circle cx="21" cy="11" r="6" fill="#fff"/>'
+  + (wait ? '<circle id="wait" cx="25" cy="7" r="7" fill="#E8742A" stroke="#fff" stroke-width="2"/>' : '') + '</svg>');
+function setFavicon(wait){
+  try {
+    let l = document.querySelector('link[rel="icon"]');
+    if (!l) { l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); }
+    l.type = 'image/svg+xml'; l.href = faviconOf(wait);
+  } catch(e) {}  // значок — украшение: без него страница работает
+}
+let NOTIFIED = '';
+function notifyAsk(S, waiting, L){
+  if (!waiting || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const key = (S.slug || '') + '|' + waiting.since;
+  let seen = NOTIFIED === key;
+  try { seen = seen || localStorage.getItem('autopilot-notified') === key; localStorage.setItem('autopilot-notified', key); } catch(e) {}  // нет хранилища — хватит флага страницы
+  if (seen) return;
+  NOTIFIED = key;
+  try { new Notification(L.askBar, {body: String(waiting.note || L.notifyBody)}); } catch(e) {}  // часть браузеров не даёт создать его вне service worker
+}
 
 // ——— живые таймеры ———————————————————————————————————————————————
 // Всё время считается из меток state.js. Незакрытый интервал тикает от текущего момента.
@@ -1619,7 +1719,7 @@ function humanRoute(route, L){
   const found = /haiku|sonnet|opus/i.exec(String(r.model || ''));
   const name = found ? found[0][0].toUpperCase() + found[0].slice(1).toLowerCase() : String(r.model || '').split(/\r?\n/)[0];
   const risky = /^true$/i.test(m[3]);
-  const how = /premium/i.test(text) ? [', ', L.hr.premium] : risky ? [', ', L.hr.risky] : [': ', L.hr[m[2].toLowerCase()] || L.hr.balanced];
+  const how = /premium/i.test(text) ? [', ', L.hrt.premium] : risky ? [', ', L.hrt.risky] : [': ', L.hrt[m[2].toLowerCase()] || L.hrt.balanced];
   return name ? name + how[0] + how[1] : how[1];
 }
 
@@ -1644,19 +1744,20 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 // Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
 const VIEWS = {
   // Страница по умолчанию: вкладки «Сейчас · Требования · Итог · Подробности». «Сейчас» подбирает содержимое по
-  // состоянию сборки: ждёт ответа — сверху закреплённая полоса вопроса (c.askBar); идёт разработка — прогресс тасков
-  // (простой список; доску рисует отдельный блок); сдано — итог. «Подробности» — места под модели, расход, проверки
-  // и историю сборок. Коды проверок в основном тексте не показываются (c.gatesPlain).
+  // состоянию сборки: ждёт ответа — сверху закреплённая полоса вопроса (c.askBar); идёт разработка — доска тасков
+  // (c.board); сдано — итог. «Требования» — доска требований (c.reqBoard) над матрицей; «Итог» у сданной сборки — Гант
+  // и доска, где все карточки в «Сдан». «Подробности» — места под модели, расход, проверки и историю сборок.
+  // Коды проверок в основном тексте не показываются (c.gatesPlain). Боковую панель таска render() кладёт в конец <main>.
   now: c => {
     const part = (id, html) => `<div id="${id}" class="vsec" tabindex="-1">${html}</div>`;
     const body = {
       now: c.fin
         ? `<div id="mission" class="vsec" tabindex="-1" data-mode="done">${c.sumHero}${c.nextCard}${c.needSum}${c.mismatchCard}</div>`
         : `<div id="mission" class="vsec" tabindex="-1" data-mode="${c.askBar ? 'ask' : 'dev'}">${c.ovHero}${c.route}</div>`
-          + part('tasks', c.buildCard || c.tasksEmpty)
+          + part('tasks', c.board)
           + part('quality', `${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.feedView}`),
-      req: part('mission', c.matrixCard + c.wordsView),
-      sum: part('mission', c.sumHero + (c.ganttFull || c.emptyGantt) + c.verdictCard + (c.mismatchCard || c.blindCard)
+      req: part('mission', c.reqBoard + c.matrixCard + c.wordsView),
+      sum: part('mission', c.sumHero + (c.ganttFull || c.emptyGantt) + (c.fin ? c.board : '') + c.verdictCard + (c.mismatchCard || c.blindCard)
         + c.reportCard + c.concernsCard + (c.fin ? '' : c.summaryCard)),
       det: part('mission', `<div class="det-slot" data-slot="models">${c.routesCard}</div><div class="det-slot" data-slot="spend">${c.tokensCard}</div>`
         + `<div class="det-slot" data-slot="checks">${c.gatesPlain}</div><div class="det-slot" data-slot="history">${c.historySlot}</div>`)
@@ -2493,11 +2594,102 @@ function render(lang){
   const needSum = env.length || ph.length
     ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${W.sNeed}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
 
+  // ——— доски тасков и требований, боковая панель таска ———
+  const BD = L.bd;
+  // Колонка таска: ревью и ремонт — «Проверяется»; упавший в колонки не входит — он красной карточкой над ними.
+  const colOf = t => t.status === 'done' ? 'done' : t.status === 'in-progress' ? 'write' : ['review', 'repair'].includes(t.status) ? 'check' : 'wait';
+  const routeOf = t => t.routing && t.routing.model ? t.routing : t.plannedRouting && t.plannedRouting.model ? t.plannedRouting : null;
+  const modelOf = t => { const r = routeOf(t); return r ? String(r.model) + (r.effort ? ' · ' + r.effort : '') : String(t.model || ''); };
+  // Строка «почему ждёт / что сказало ревью»: заметка таска (ревью, ремонт, причина падения) или состояние словами.
+  const whyOf = t => {
+    const n = noteOf(t);
+    if (n) return n[1];
+    if (t.status === 'pending') {
+      const open = (t.blockedBy || []).filter(id => byId[id] && byId[id].status !== 'done');
+      return open.length ? BD.waitsFor(open) : BD.ready;
+    }
+    if (t.status === 'failed') return BD.noReason;
+    if (t.status === 'done') return t.tests ? BD.testsLine({passed: +t.tests.passed || 0, failed: +t.tests.failed || 0}) : '';
+    return t.status === 'in-progress' ? BD.writing : BD.inReview;
+  };
+  const taskCard = t => {
+    const col = t.status === 'failed' ? 'fail' : colOf(t), reqs = (t.requirements || []).map(String), model = modelOf(t), why = whyOf(t);
+    const tries = t.status === 'pending' ? 0 : 1 + (+t.retries || 0) + (+t.repairs || 0);
+    const back = col === 'check' && t.repairs > 0 ? BD.returned(t.repairs) : '';
+    const label = [`${t.id}. ${t.title}`, t.status === 'failed' ? L.chip.bad : L.chip[kindOf(t).k], back, why, BD.openCard].filter(Boolean).join('. ');
+    return `<li><button type="button" class="tcard ${col}" data-card="${esc(t.id)}" aria-haspopup="dialog" aria-label="${esc(label)}">
+      <span class="tc-top"><span class="gx-id">${esc(t.id)}</span><span class="tc-time">${t.status === 'pending' ? '' : taskTime(t)}</span></span>
+      <b class="tc-title">${esc(t.title)}</b>
+      <span class="tc-meta">${reqs.slice(0, 4).map(r => `<span class="tc-chip">${esc(r)}</span>`).join('')}${reqs.length > 4 ? `<span class="tc-chip">+${reqs.length - 4}</span>` : ''}${
+        model ? `<span class="tc-chip">${esc(model)}</span>` : ''}${tries ? `<span class="tc-chip">${esc(BD.attempt(tries))}</span>` : ''}${
+        back ? `<span class="pill p-rev">${esc(back)}</span>` : ''}</span>
+      ${why ? `<span class="tc-why">${esc(why)}</span>` : ''}</button></li>`;
+  };
+  const sortedT = T.slice().sort(byTicketId);
+  const failTop = sortedT.filter(t => t.status === 'failed');
+  const boardBody = (failTop.length ? `<div class="bd-fail" role="group" aria-label="${esc(BD.failed)}"><h4>${esc(BD.failed)}</h4><ul>${failTop.map(taskCard).join('')}</ul></div>` : '')
+    + `<div class="bd-cols">${['wait', 'write', 'check', 'done'].map(c => { const list = sortedT.filter(t => t.status !== 'failed' && colOf(t) === c);
+      return `<section class="bd-col" data-col="${c}" aria-label="${esc(BD.cols[c] + ', ' + list.length)}"><h4>${esc(BD.cols[c])} <span>${list.length}</span></h4><ul>${
+        list.map(taskCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`; }).join('')}</div>`;
+  const board = T.length ? `<section class="card w bd"><div class="whead"><h3 class="wt">${BD.boardTitle}</h3></div>${boardBody}</section>`
+    : emptyCard(BD.boardTitle, t0 ? L.t0 : BD.none);
+  // Доска требований: колонка — из тех же семи этапов, что рисует матрица (stagesOf); «нужны данные · отложено · снято» — полосой.
+  const reqCol = x => {
+    if (['placeholder', 'deferred', 'dropped'].includes(x.k)) return {placeholder: 'ph', deferred: 'def', dropped: 'drop'}[x.k];
+    const g = stagesOf(x);
+    if (x.k === 'done' || (g[4] === 'done' && g[5] === 'done' && g[6] === 'done')) return 'ok';
+    if (g[3] === 'bad' || x.lk.some(t => t.status === 'in-progress')) return 'doing';
+    if (g[4] === 'done' || g[5] === 'now') return 'check';
+    return g[1] === 'done' ? 'plan' : 'read';
+  };
+  const reqPlaced = reqRows.map(x => [x, reqCol(x)]);
+  const reqCard = x => `<li class="rcard" data-req="${esc(x.r.id)}"><span class="rid">${esc(x.r.id)}</span><p title="${esc(x.r.text)}">${esc(x.r.text)}</p>${
+    x.lk.length ? `<small>${esc(W.mTickets(x.lk.map(t => t.id)))}</small>` : ''}</li>`;
+  const reqIn = c => reqPlaced.filter(p => p[1] === c).map(p => p[0]);
+  const reqBoardBody = `<div class="bd-cols r5">${['read', 'plan', 'doing', 'check', 'ok'].map(c => `<section class="bd-col" data-rcol="${c}" aria-label="${esc(BD.rcols[c] + ', ' + reqIn(c).length)}"><h4>${esc(BD.rcols[c])} <span>${reqIn(c).length}</span></h4><ul>${
+      reqIn(c).map(reqCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`).join('')}</div>
+    <div class="bd-strips">${['ph', 'def', 'drop'].map(c => `<section class="bd-strip" data-rstrip="${c}" aria-label="${esc(BD.strip[c] + ', ' + reqIn(c).length)}"><h4>${esc(BD.strip[c])} <span>${reqIn(c).length}</span></h4><ul>${
+      reqIn(c).map(reqCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`).join('')}</div>`;
+  const rbSwitch = `<div class="rbmode" role="group" aria-label="${esc(BD.rbLabel)}">${['req', 'tk'].map(m =>
+    `<button type="button" data-rbmode="${m}" aria-pressed="${UI.rb === m}">${esc(BD.rbModes[m])}</button>`).join('')}</div>`;
+  const reqBoard = `<section class="card w bd"><div class="whead"><h3 class="wt">${UI.rb === 'tk' ? BD.boardTitle : BD.reqTitle}</h3>${rbSwitch}</div>${
+    UI.rb === 'tk' ? (T.length ? boardBody : emptyBox(t0 ? L.t0 : BD.none)) : reqRows.length ? reqBoardBody : emptyBox(L.reqLater)}</section>`;
+
+  // Боковая панель таска: что делать, требования, зона, модель и причина, лента событий, тесты, коммит, замечания ревью.
+  // Открыта — пока в UI.panel лежит id; состояние читает заново на каждой перерисовке, поэтому живёт вместе со сборкой.
+  const openT = UI.panel != null ? byId[UI.panel] : null;
+  if (UI.panel != null && !openT) UI.panel = null;
+  let panel = '';
+  if (openT && VIEW === VIEW_IDS[0]) {
+    const t = openT, r = routeOf(t);
+    const sec = (head, html) => `<section class="tp-sec"><h4>${esc(head)}</h4>${html}</section>`;
+    const reqText = id => ((reqList.find(x => x.id === id) || reqList.find(x => x.id === reqBase(id))) || {}).text;
+    const mine = feedEvents.filter(e => e.k === 'ticket' && (e.ids || []).map(String).includes(String(t.id))).map(e => [e, evText(e)]).filter(x => x[1]);
+    const remark = String(t.review || '').replace(/^(да|yes)\s*[—–-]\s*/i, '');
+    const notes = [].concat(/^(да|yes)/i.test(t.review || '') && remark ? [remark] : [], t.repairFindings || [], t.concerns || []);
+    const attempts = t.status === 'pending' ? 0 : 1 + (+t.retries || 0) + (+t.repairs || 0);
+    const li = arr => `<ul>${arr.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    panel = `<aside class="tpanel" role="dialog" aria-modal="false" aria-label="${esc(t.id + '. ' + BD.panelLabel)}" tabindex="-1">
+      <div class="tp-head"><h3>${esc(t.id)} · ${esc(t.title)}</h3><button type="button" class="tp-close" data-pclose aria-label="${esc(BD.close)}">${esc(BD.close)}</button></div>
+      ${sec(BD.todo, `<p>${esc(t.title)}</p><p>${esc([t.status === 'failed' ? L.chip.bad : L.chip[kindOf(t).k], attempts ? BD.attempt(attempts) : '', t.repairs ? BD.returned(t.repairs) : ''].filter(Boolean).join(' · '))}</p>`)}
+      ${sec(BD.reqs, (t.requirements || []).length ? li(t.requirements.map(id => `<b>${esc(id)}</b>${reqText(String(id)) ? ' — ' + esc(reqText(String(id))) : ''}`)) : '<p>—</p>')}
+      ${sec(BD.zone, (t.zone || []).length ? `<p>${t.zone.map(z => `<code>${esc(z)}</code>`).join(' ')}</p>` : `<p>${BD.noZone}</p>`)}
+      ${sec(BD.model, r ? `<p><span class="tc-chip">${esc(modelOf(t))}</span> ${esc((t.routing && t.routing.model ? '' : BD.planned) + (r.reason ? humanRoute(r, L) : ''))}</p>` : `<p>${esc(modelOf(t) || BD.noModel)}</p>`)}
+      ${sec(BD.events, mine.length ? li(mine.map(([e, text]) => `<em>${hhmm(e.t)}</em>${esc(text)}`)) : `<p>${BD.noEvents}</p>`)}
+      ${sec(BD.tests, `<p>${t.tests ? esc(BD.testsLine({passed: +t.tests.passed || 0, failed: +t.tests.failed || 0})) : BD.noTests}</p>`)}
+      ${sec(BD.commit, `<p>${t.commit ? `<code>${esc(t.commit)}</code>` : BD.noCommit}</p>`)}
+      ${sec(BD.review, notes.length ? li(notes.map(esc)) : `<p>${BD.noReview}</p>`)}
+    </aside>`;
+  }
+
   // ——— страница «Сейчас» ———
-  // Ждёт ответа — вопрос закреплён сверху на любой вкладке: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно.
+  // Ждёт ответа — вопрос закреплён сверху на любой вкладке: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно:
+  // кнопка есть, пока браузер умеет уведомления и разрешения ещё нет; без неё полоса и значок остаются.
+  const canAsk = typeof Notification !== 'undefined' && Notification.permission === 'default';
   const askBar = waiting ? `<section class="askbar" role="status"><span class="ak">${L.askBar}</span>
     <p>${esc(waiting.note || L.waitH2[waiting.kind] || L.waitState)}</p>
-    <span class="aw" data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span></section>` : '';
+    <span class="aw" data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span>${
+      canAsk ? `<button type="button" data-notify>${esc(L.notify)}</button>` : ''}</section>` : '';
   if (!['now','req','sum','det'].includes(UI.tab)) UI.tab = 'now';
   const nowTabs = `<div class="ntabs" role="tablist" aria-label="${esc(L.ntabsLabel)}">${['now','req','sum','det'].map(id =>
     `<button type="button" role="tab" data-ntab="${id}" aria-selected="${UI.tab === id}">${esc(L.ntabs[id])}</button>`).join('')}</div>`;
@@ -2533,7 +2725,7 @@ function render(lang){
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-notify'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -2546,7 +2738,7 @@ function render(lang){
     buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
     isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
     ovHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
-    askBar, nowTabs, tab: UI.tab, gatesPlain, historySlot});
+    askBar, nowTabs, tab: UI.tab, gatesPlain, historySlot, board, reqBoard});
   // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
   const has = id => page.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
@@ -2607,7 +2799,7 @@ function render(lang){
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
       title="${S.updatedAt ? esc(new Date(S.updatedAt).toLocaleString(L.lang==='en'?'en-GB':'ru-RU')) : ''}">${S.updatedAt ? agoText(S.updatedAt) : '—'}</span>`}</span>
   </footer>
-  </main>`;
+  ${panel}</main>`;
   gxFit(app);
   const bv = document.getElementById('brand-version'); // textContent only: state is untrusted
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
@@ -2618,11 +2810,20 @@ function render(lang){
       : document.getElementById(focusId);
     if (replacement) replacement.focus({preventScroll:true});
   }
+  // Панель открыли — фокус на «Закрыть»; закрыли — обратно на карточку, с которой открывали.
+  if (UI.focus) {
+    const want = UI.focus;
+    UI.focus = null;
+    const node = [...app.querySelectorAll('button')].find(n => want.id == null ? n.hasAttribute('data-pclose') : n.getAttribute('data-card') === want.id);
+    if (node) node.focus({preventScroll: true});
+  }
 
   // Вкладка подписана проектом: когда репозиторий дорабатывают второй раз, это
   // единственное место, где видно, что на экране прошлый прогон. Пока сборка ждёт
   // человека, вкладка говорит об этом — её видно, даже когда дашборд в фоне.
   document.title = (waiting ? L.tabWait + ' — ' : '') + (S.title ? `${S.title} — autopilot` : 'autopilot');
+  setFavicon(!!waiting);
+  notifyAsk(S, waiting, L);
 
   if (!booted) {
     booted = true;
@@ -2681,6 +2882,17 @@ document.getElementById('app').addEventListener('click', e => {
     render(CUR.lang);
   } else if (b.dataset.ntab) {
     UI.tab = b.dataset.ntab; render(CUR.lang);
+  } else if (b.dataset.card) {
+    UI.panel = b.dataset.card; UI.focus = {}; render(CUR.lang);
+  } else if (b.hasAttribute('data-pclose')) {
+    closePanel();
+  } else if (b.dataset.rbmode) {
+    UI.rb = b.dataset.rbmode === 'tk' ? 'tk' : 'req';
+    try { localStorage.setItem(RB_KEY, UI.rb); } catch(err) {}
+    render(CUR.lang);
+  } else if (b.hasAttribute('data-notify')) {
+    // Разрешение просим только здесь — по клику пользователя; когда ответит, перерисовка пошлёт уведомление.
+    if (typeof Notification !== 'undefined') Promise.resolve(Notification.requestPermission()).then(() => render(CUR.lang));
   } else if (b.hasAttribute('data-views-more')) {
     UI.more = !UI.more; render(CUR.lang);
   } else if (b.hasAttribute('data-refresh')) {
@@ -2691,6 +2903,15 @@ document.getElementById('app').addEventListener('click', e => {
     UI.open[b.dataset.more] = !UI.open[b.dataset.more]; render(CUR.lang);
   }
 });
+
+// Esc закрывает панель таска; фокус возвращается на карточку.
+function closePanel(){
+  if (UI.panel == null) return;
+  UI.focus = {id: String(UI.panel)};
+  UI.panel = null;
+  render(CUR.lang);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && window.STATE) closePanel(); });
 
 let savedLang = 'ru';
 try { savedLang = localStorage.getItem('autopilot-lang')
