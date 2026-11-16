@@ -54,4 +54,6 @@ Once, before Phase 1, together with the dashboard and the memory file. **A hint,
 • «строго по брифу» / «проработай глубоко» — меньше или больше проработки сверх сказанного
 ```
 
+There can be two `↑` lines: a newer Autopilot, and a long chat (`/autopilot` in a new chat continues from the same place) — each goes in as `ap.py` printed it, a hint and never a question.
+
 No server → the dashboard line names the file: «Дашборд открыл — `.autopilot/dashboard.html`, обновляется сам.» Never repeated later; a mid-run switch gets one line: «Понял, дальше ручной режим».

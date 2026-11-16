@@ -61,7 +61,7 @@ L=$(git log -1 --format=%h --grep='^Autopilot: сборка сдана')
 git log --oneline --no-merges "$L"..HEAD -- . ':(exclude).autopilot'
 ```
 
-Never the whole log — the run needs only what changed after it was last sure of the code. A commit named in «Правки без автопилота» is accounted for; one that is not has a message and `git show --stat <sha>`, nothing more. **Past about thirty commits**, one subagent on the cheaper model reads them and returns ten lines — what changed, where, and anything that reads like a decision — and that list is what you keep.
+Never the whole log — the run needs only what changed after it was last sure of the code. A commit named in «Правки без автопилота» is accounted for; one that is not has a message and `git show --stat <sha>`, nothing more. **Past about thirty commits**, one subagent on the cheaper model (ordinary Claude Code run: `autopilot-explorer`) reads them and returns ten lines — what changed, where, and anything that reads like a decision — and that list is what you keep.
 
 **Write `.autopilot/<dir>/carried.md`** — the progress file's four sections as they stand, plus «Изменено после сборки»: one line per change from the log. It is this run's copy of what came before: the progress file is rewritten at landing, and your context will not survive the run.
 
@@ -77,4 +77,4 @@ A part with nothing in it is not mentioned.
 
 ## 6. Announce and go
 
-The opening block from `phases/0-modes.md` — mode, depth, dashboard address, memory file, and the `↑` line if `init` printed one. After a landed run, one more line from `carried.md`: «С прошлой сборки: 2 пункта не доделано, 1 баг, 3 правки без автопилота — спрошу на брифинге»; in full, «… — в эту сборку не беру, остаются в списке». It is a hint, not a question: say it, then `python3 .autopilot/ap.py stage manifest` and go straight into Phase 1.
+The opening block from `phases/0-modes.md` — mode, depth, dashboard address, memory file, and the `↑` lines if `init` printed any (there can be two: a newer Autopilot, and a chat that has grown past the context threshold). A new build in a chat where another one already ran **starts with the context line**: «`/autopilot` в новом чате продолжит с этого места». After a landed run, one more line from `carried.md`: «С прошлой сборки: 2 пункта не доделано, 1 баг, 3 правки без автопилота — спрошу на брифинге»; in full, «… — в эту сборку не беру, остаются в списке». It is a hint, not a question: say it, then `python3 .autopilot/ap.py stage manifest` and go straight into Phase 1.

@@ -32,7 +32,7 @@ One line appended: between the markers (Autopilot's file) or to `memory-proposal
 
 ## Moment 3 — the description (Phase 8)
 
-**A subagent on a verified cheaper permitted model (route before dispatch), launched with the blind acceptance**, neither seeing the other. It receives the repository, the current memory file, `interfaces.md`, the tier, and the commands already verified: your full-suite run and the blind checker's commands. **Not `spec.md`, not the tickets** — memory from the plan documents intentions, and the next session trusts it.
+**A subagent on a verified cheaper permitted model (route before dispatch; ordinary Claude Code run: `autopilot-executor`, `model` and `effort` in the call), launched with the blind acceptance**, neither seeing the other. It receives the repository, the current memory file, `interfaces.md`, the tier, and the commands already verified: your full-suite run and the blind checker's commands. **Not `spec.md`, not the tickets** — memory from the plan documents intentions, and the next session trusts it.
 
 **Pointers and traps, not a retelling** — no directory tree, no paraphrase of `package.json`, no «what a module does»: every future session reads every line, and those go stale first.
 
@@ -85,7 +85,7 @@ ADRs answer «почему так» — what was chosen, what was rejected and w
 
 Sources, only: **every `D##` row** (the plan proved wrong — most valuable); **load-bearing implementation decisions** (data model, module boundaries, an external service — anything whose reversal means rebuilding). Vocabulary goes to the glossary. Not: a decision with no alternative, what a linter or framework decided, the obvious default. 3–6 files on T2, 5–12 on T3.
 
-**A subagent, in parallel with the other two, routed to a verified cheaper permitted model.** It receives `spec.md`, `manifest.md`, `interfaces.md` and `notes.md` when it exists — **not the repository**: it documents decisions and words, not code.
+**A subagent, in parallel with the other two, routed to a verified cheaper permitted model** (ordinary Claude Code run: `autopilot-executor`, `model` and `effort` in the call). It receives `spec.md`, `manifest.md`, `interfaces.md` and `notes.md` when it exists — **not the repository**: it documents decisions and words, not code.
 
 > По приложенным спецификации, манифесту, `interfaces.md` и `notes.md` напиши по одному ADR на каждое решение,
 > которое дорого отменять, и на каждую строку `D##`. Не вызывай скиллы

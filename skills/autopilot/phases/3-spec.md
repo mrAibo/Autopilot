@@ -2,7 +2,7 @@
 
 `ap.py stage spec`. Turn the manifest and the answers into `.autopilot/<dir>/spec.md` — the contract for executors and reviewers. The user sees two lines; the file is the spec.
 
-**An existing codebase is explored first.** When Phase 0 found code, one subagent on a verified cheaper permitted model reads the repository once and writes `.autopilot/<dir>/notes.md`: where things live, conventions, the commands that run it, and **the exact names of the entities, fields and functions the work will touch** — so boundaries match the existing code and two parallel tickets do not call one field `blockedSince` and `blockedOn`. Every executor reads it instead of exploring.
+**An existing codebase is explored first.** When Phase 0 found code, one subagent on a verified cheaper permitted model (ordinary Claude Code run: `autopilot-explorer`, `5-host-claude.md`) reads the repository once and writes `.autopilot/<dir>/notes.md`: where things live, conventions, the commands that run it, and **the exact names of the entities, fields and functions the work will touch** — so boundaries match the existing code and two parallel tickets do not call one field `blockedSince` and `blockedOn`. Every executor reads it instead of exploring.
 
 **The scout also writes a context pack.** When a ticket is cut for a Haiku or other cheap executor (`phases/4-plan.md`), the exploring subagent — on the `cheap_read` profile, Haiku at low effort — leaves `.autopilot/<dir>/context-pack.md` for the executors: the excerpts of the files they will touch (path and line range, the lines themselves) and the signatures of the interfaces they call, in one file, so the executor does not spend its first steps exploring. The pack is read-only material: no instructions, no secrets, no machine paths. `ap.py report-run` shows the tokens the readers spent, so the saving can be compared. An executor reads the pack first and **reads the source itself for anything the pack skips** (`prompts/executor.md`).
 
@@ -108,7 +108,7 @@ Which section covers which requirement lives in the manifest's «Где» column
 
 **1. Your own pass.** Every manifest row: `open` → `in-spec` with its section in «Где», or → `deferred` with its «Вне рамок» line. **Zero `open`**, or the spec is incomplete — write the missing section.
 
-**2. The independent coverage check** — you cannot see what you did not write. After an approved routing decision (verified provider capabilities; restricted models forbidden), spawn a subagent with **exactly the named files** — every `*-brief.md` in `dir`, oldest first, and `spec.md` — never the manifest, the conversation or a summary; and forbid looking further — the files sit in `.autopilot/` beside the manifest:
+**2. The independent coverage check** — you cannot see what you did not write. After an approved routing decision (verified provider capabilities; restricted models forbidden), spawn a subagent (ordinary Claude Code run: `autopilot-reviewer`, with `model` and `effort` in the call; `5-host-claude.md`) with **exactly the named files** — every `*-brief.md` in `dir`, oldest first, and `spec.md` — never the manifest, the conversation or a summary; and forbid looking further — the files sit in `.autopilot/` beside the manifest:
 
 > Открой только названные файлы и больше ничего — ни `manifest.md`,
 > ни остальное содержимое `.autopilot/`. Твоя ценность в том, что ты

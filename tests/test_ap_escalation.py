@@ -40,7 +40,7 @@ class Escalation(unittest.TestCase):
             f.write(TICKET)
         self.ap("tickets")
         agent = os.path.join(self.root, *AGENT_FILE.split("/"))
-        os.makedirs(os.path.dirname(agent))
+        os.makedirs(os.path.dirname(agent), exist_ok=True)      # `init` обычного прогона уже написал лёгкие профили
         with open(agent, "wb") as f:
             f.write(b"---\nname: autopilot-executor-repair\nmodel: sonnet\n---\n")
         with open(agent, "rb") as f:

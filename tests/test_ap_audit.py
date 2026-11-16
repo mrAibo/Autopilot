@@ -386,7 +386,7 @@ class ReportRun(unittest.TestCase):
         rows = [x for x in block.splitlines() if x.startswith("| ") and "модель" not in x]
         self.assertEqual(rows, ["| haiku | 2 | 50% | 0 | 700 |",
                                 "| sonnet | 1 | 0% | 1 | 500 |",
-                                "| не указана | 1 | 100% | 0 | 60 |"])
+                                "| не указана | 2 | 100% | 0 | 30 |"])      # таск 03 и fix-таск F1 (строки расхода нет)
 
 
 class Gitignore(unittest.TestCase):

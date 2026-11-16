@@ -25,6 +25,7 @@
     python3 .autopilot/ap.py opus status                # что пользователь подтвердил, подпись верна?
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
+    python3 .autopilot/ap.py agents install-user --by-user "<цитата>" | --decline   # лёгкие профили в папку настроек Claude Code (один раз)
     python3 .autopilot/ap.py url                        # адрес дашборда с токеном — только эта команда (в чат не вставлять)
     python3 .autopilot/ap.py upgrade-tools              # обновить .autopilot/*.py из навыка (init и stage делают сами)
     python3 .autopilot/ap.py stage build done | fail --note "…"
@@ -1423,6 +1424,75 @@ def finish_self_upgrade():
         os.replace(tmp, os.path.join(A, "ap.py"))
 
 
+def light_profiles_notes():
+    """Обычный прогон: четыре постоянных лёгких профиля в `.claude/agents/` и один вопрос про профили
+    на уровне пользователя, пока нет ответа. Сбой записи — строка `!`, не падение `init`."""
+    notes = []
+    try:
+        import agent_profiles
+        written = agent_profiles.install_permanent(ROOT)
+        if written:
+            notes.append("лёгкие профили записаны в .claude/agents: " + ", ".join(written)
+                         + " — Claude Code увидит их со следующего чата")
+    except (OSError, ImportError, ValueError) as exc:
+        notes.append("! лёгкие профили не записаны (%s): сборка пойдёт на general-purpose" % type(exc).__name__)
+    if user_profiles_answer() is None:
+        notes.append("? профили лёгких агентов можно поставить и на уровне пользователя (%s): сборка в любой "
+                     "папке станет дешевле уже с первого чата. Спроси пользователя один раз: согласие — "
+                     "`ap.py agents install-user --by-user \"<его слова>\"`, отказ — `ap.py agents install-user --decline`"
+                     % os.path.join(claude_config_dir(), "agents"))
+    return notes
+
+
+def claude_config_dir():
+    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+
+
+def user_profiles_file():
+    home = os.environ.get("AUTOPILOT_HOME", "").strip()
+    return os.path.join(home or os.path.join(os.path.expanduser("~"), ".autopilot"), "user-profiles")
+
+
+def user_profiles_answer():
+    """`install` | `decline` — ответ пользователя про профили в папке настроек; None — не спрашивали."""
+    try:
+        with open(user_profiles_file(), encoding="utf-8") as f:
+            word = f.read().strip()
+    except OSError:
+        return None
+    return word if word in ("install", "decline") else None
+
+
+def cmd_agents(pos, opt):
+    """`agents install-user --by-user "<цитата>" | --decline`: запись вне проекта — только со словами пользователя."""
+    usage = 'agents install-user --by-user "<слова пользователя>" | --decline'
+    if pos != ["install-user"]:
+        die(usage)
+    quote = opt.get("by-user")
+    decline = opt.get("decline") is True
+    if decline == (quote is not None):
+        die(usage + ": нужно ровно одно из двух; без слов пользователя ничего не пишу вне проекта")
+    if not decline and not (isinstance(quote, str) and clean_quote(quote)):
+        die(usage + ": слова пользователя пусты")
+    answer = "decline" if decline else "install"
+    names = []
+    if not decline:
+        try:
+            import agent_profiles
+            names = agent_profiles.install_permanent(claude_config_dir(), "agents")
+        except (OSError, ImportError) as exc:
+            die("agents install-user: профили не записаны (%s)" % type(exc).__name__)
+    try:
+        os.makedirs(os.path.dirname(user_profiles_file()), exist_ok=True)
+        with open(user_profiles_file(), "w", encoding="utf-8") as f:
+            f.write(answer + "\n")
+    except OSError as exc:
+        print("! ответ не сохранён (%s): `init` спросит снова" % type(exc).__name__)
+    print("профили в %s: %s" % (os.path.join(claude_config_dir(), "agents"), ", ".join(names) or
+                               ("не записаны: отказ запомнен" if decline else "уже на месте")))
+    return 0
+
+
 def cmd_init(opt):
     if opt.get("sequential-host") and opt.get("strict-routing"):
         die("init: --sequential-host и --strict-routing несовместимы; "
@@ -1461,6 +1531,8 @@ def cmd_init(opt):
     ensure_gitignore()
     register_row(state, "в работе", None)
     notes.append("папка прогона: .autopilot/%s" % state["dir"])
+    if not opt.get("strict-routing"):
+        notes += light_profiles_notes()
     return state, notes + upgrade_note(state)
 
 
@@ -2525,6 +2597,20 @@ def cmd_ticket(state, pos, opt):
                     die("route: профиль агента ремонта отсутствует или изменён")
                 tk.pop("plannedRouting", None)
                 continue
+            if not state.get("strictRouting") and re.fullmatch(r"F\d+", i) and provider in (None, "anthropic"):
+                # Fix-таск обычного прогона: профиль, созданный сейчас, этой сессии не виден, поэтому маршрут
+                # только записывается (модель берётся параметром вызова), без файла профиля и подписи.
+                import model_router
+                if not all(isinstance(x, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,99}", x.strip())
+                           for x in (model, effort)) or not (isinstance(reason, str) and reason.strip()):
+                    die("route: fix-таск %s требует --model --effort --reason" % i)
+                if not model_router.is_allowed_subagent_model(
+                        model, premium_ok=i in (opus_approval(state).get("tickets") or [])):
+                    die("route: модель %s не допускается: Haiku и Sonnet без условий, Opus только по подтверждению "
+                        "пользователя, Fable никогда" % model)
+                tk["routing"] = {"provider": "anthropic", "model": model.strip(), "effort": effort.strip(),
+                                 "reason": reason.strip()}
+                continue
             if provider not in ("openai", "anthropic") or not all(
                     isinstance(x, str) and x.strip() for x in (model, effort, reason)):
                 die("route требует --provider --model --effort --reason")
@@ -3372,6 +3458,53 @@ def session_transcript():
     return max(files, key=os.path.getmtime) if files else None
 
 
+CONTEXT_HINT = 150_000
+CONTEXT_TAIL = 1_000_000          # байт с конца журнала: он бывает в десятки МБ, а нужен последний ответ
+
+
+def last_context_tokens(transcript=None):
+    """Размер контекста последнего ответа главной сессии: вход + чтение кэша + запись кэша.
+    Читается только хвост журнала; оборванная строка и ответы субагентов (`isSidechain`) пропускаются,
+    текст сообщений не читается. Журнала нет, он не читается или в хвосте нет ответа — None."""
+    try:
+        path = transcript or session_transcript()
+        if not path:
+            return None
+        with open(path, "rb") as f:
+            size = f.seek(0, os.SEEK_END)
+            f.seek(max(0, size - CONTEXT_TAIL))
+            lines = f.read().decode("utf-8", errors="replace").splitlines()
+        if size > CONTEXT_TAIL:
+            lines = lines[1:]                        # первая строка хвоста могла начаться посередине
+        for line in reversed(lines):
+            try:
+                r = json.loads(line)
+                msg = r.get("message")
+                if r.get("isSidechain") is True or not isinstance(msg, dict) or msg.get("role") != "assistant" \
+                        or not isinstance(msg.get("usage"), dict):
+                    continue
+            except (ValueError, AttributeError, RecursionError):
+                continue                             # оборванная последняя строка
+            u = msg["usage"]
+            return sum(u[k] for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+                       if isinstance(u.get(k), int) and not isinstance(u.get(k), bool) and u[k] > 0)
+    except Exception:
+        pass
+    return None
+
+
+def context_hint():
+    """Одна строка `↑`, если контекст главной сессии выше порога (`AUTOPILOT_CONTEXT_HINT`, по умолчанию
+    150000, 0 выключает); иначе пустая строка. Подсказка, не вопрос: журнала нет — строки нет."""
+    raw = os.environ.get("AUTOPILOT_CONTEXT_HINT", "").strip()
+    limit = int(raw) if raw.isdigit() else CONTEXT_HINT
+    n = last_context_tokens() if limit > 0 else None
+    if n is None or n <= limit:
+        return ""
+    return ("↑ контекст этого чата %d тыс. токенов: каждый шаг его перечитывает. `/autopilot` в новом чате "
+            "продолжит сборку с этого места, это дешевле" % round(n / 1000))
+
+
 def spend_orchestrator(state, transcript=None):
     """Расход главной сессии за время прогона → строки `executor`/`role=orchestrator` в run-log.jsonl
     (числа и модель, без текста). Возвращает одну печатную строку; не бросает исключений."""
@@ -3508,6 +3641,8 @@ def main():
         sys.exit(cmd_claude_version(opt))
     if cmd == "git-check":
         sys.exit(cmd_git_check())
+    if cmd == "agents":
+        sys.exit(cmd_agents(pos[1:], opt))
     notes = []
     if cmd == "init":
         state, notes = cmd_init(opt)
@@ -3677,10 +3812,14 @@ def main():
         srv = "сервер не проверялся"
     else:
         srv = serve(state)
+    if cmd == "init" or (cmd == "stage" and pos[1:2] in (["build"], ["review"], ["final"]) and pos[2:3] in ([], ["start"])):
+        hint = context_hint()
+        if hint:
+            notes.append(hint)
     r = state.get("requirements") or {}
     print("%s · %s · требований %s, готово %s" % (snap, srv, r.get("total", 0), r.get("done", 0)))
     for line in notes:
-        print("  " + (line if line.startswith("!") else "· " + line))
+        print("  " + (line if line[:1] in ("!", "?", "↑") else "· " + line))
     for line in audit(state)[:5]:
         print("  ! " + line)
     try:
@@ -3704,7 +3843,7 @@ def compute_model_report(records, run):
         if not (isinstance(r, dict) and r.get("k") == "ticket" and run_key(r.get("run")) == run_key(run)):
             continue
         tid = r.get("id")
-        if not isinstance(tid, str) or tid.startswith("F"):        # F<n> — починка, не таск плана
+        if not isinstance(tid, str):
             continue
         t = tickets.setdefault(tid, {"done": False, "again": False, "repairs": 0})
         if r.get("act") == "done":

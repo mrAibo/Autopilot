@@ -65,8 +65,8 @@ Limits, so the numbers are not over-read:
 Without `--strict-routing` there are no hooks, but Claude Code keeps a log per subagent: `<session log without .jsonl>/subagents/agent-<id>.jsonl` plus `agent-<id>.meta.json`. `ap.py spend-subagents [--transcript PATH]` (and `finish`) writes one `executor` row per agent: token sums, model, `agent_type`, agent id, role and ticket. Message text, prompts and `description` are never read or saved.
 
 - Only messages since the run's `startedAt` count; a repeated `message.id` counts once (the last). An agent still running is counted by what is written so far.
-- Calling it again does not double the numbers: readers keep the last row per agent. In a strict run, hook rows win and the log rows of `autopilot-…` agents are dropped.
-- The ticket is the single ticket whose `startedAt…finishedAt` window holds the agent's first message; in a parallel wave (several fit) or with none, the row has no ticket. A broken or missing `.meta.json` gives role `agent`.
+- Calling it again does not double the numbers: readers keep the last row per agent. In a strict run, hook rows win: the log rows of an `autopilot-…` agent are dropped only when the hooks also wrote a row for that same `agent_type`, so an agent the hooks missed keeps its spend.
+- The ticket is the single ticket whose `startedAt…finishedAt` window holds the agent's first message; in a parallel wave (several fit) or with none, the row has no ticket. A broken or missing `.meta.json` gives role `agent`; a BOM at its start is fine (`utf-8-sig`). The permanent profiles `autopilot-executor`, `autopilot-reviewer`, `autopilot-acceptance` and `autopilot-explorer` give their roles too.
 - No `subagents/` folder prints "субагентов нет" and `finish` goes on.
 
 ## Measured: main-session model and ticket routing (2026-10-29)
@@ -103,3 +103,47 @@ What this shows, and what it does not:
 - **Quality was not lost on the top items.** The two most severe findings (a module imported but missing from the repo; a Windows process-liveness probe that always returns False) were confirmed in all runs and re-checked against the code. The graph run did not find anything the baseline missed.
 
 Decision: **not integrated.** The possible gain (a fraction of the Haiku explorer bill) is small, unproven, and depends on agents obeying an instruction they ignore by default; the cost is an external dependency, a stale-graph risk and docs in three languages. Revisit if an audit on a much larger project (200k+ lines) shows the explorer share dominating the bill.
+
+## Measured: start context by agent type and orchestrator turns per landing (2026-11-16, before the light profiles)
+
+Source: `python tools/measure-run.py <project> all` on the real Claude Code logs of this project: 14 of 21 sessions that have subagents, 212 contexts (the session that was running at the time is among them). The tool reads numbers, timestamps, ids, tool names, `subagent_type` and `agentType` only; message text and prompts are not read or saved (the context label is the `description` from `meta.json`, as before). One project on one machine: a direction, not a precision.
+
+**Start context** is the first step of a context: input + cache read + cache write. By `agentType` of the subagent (`autopilot-<role>-*` is the strict run's profile per ticket or per run):
+
+| Agent type | Contexts | Min | Median | Max |
+|---|---:|---:|---:|---:|
+| `general-purpose` (ordinary run) | 58 | 71K | 72K | 85K |
+| no `agentType` in `meta.json` (older sessions) | 9 | 71K | 71K | 71K |
+| `Explore` | 8 | 58K | 59K | 64K |
+| `autopilot-executor-*` (strict) | 42 | 11K | 12K | 13K |
+| `autopilot-reviewer-*` (strict) | 42 | 10K | 11K | 12K |
+| `autopilot-explorer-*` (strict) | 20 | 9K | 10K | 10K |
+| `autopilot-acceptance-*` (strict) | 19 | 7K | 8K | 9K |
+
+An ordinary run starts every subagent at about 72K; a profile with a short tool list starts at 7–13K. The permanent light profiles of `ap.py init` have the same short tool lists, so the expected gap is the same, but **this build cannot measure it**: Claude Code sees a profile written during a chat only from the next chat. The "after" row is for the first build run in a new chat (`PROGRESS.md`).
+
+**Orchestrator turns between subagents.** A window opens when a subagent returns (a background agent: the last line written in its own log; otherwise its tool result) and closes at the next subagent launch (that step is in) or the next return. Steps are distinct main-session replies in the window; "norm. units" are output ×5 + cache write ×1.25 + cache read ×0.1 over those steps. Windows are grouped by the role of the agent that returned (its label, the existing role rules).
+
+| After | Windows | Steps | Steps per window | Norm. units per window |
+|---|---:|---:|---:|---:|
+| executor | 49 | 401 | 8.2 | 0.255M |
+| point and branch review | 42 | 143 | 3.4 | 0.112M |
+| blind acceptance | 35 | 383 | 10.9 | 0.358M |
+| repair | 23 | 100 | 4.3 | 0.215M |
+| exploring | 6 | 28 | 4.7 | 0.203M |
+| memory | 4 | 52 | 13.0 | 0.369M |
+| role not recognised | 28 | 229 | 8.2 | 0.511M |
+
+After an executor the main session spends on average **8.2 steps, median 3** (49 windows, 14 sessions); most of the steps are `Bash` (245 of 401: `git status`, the full check, the commit, `ap.py`), the rest reading the contract, planning, and launching the next agent.
+
+Решение по R05: <впишет оркестратор> — среднее 8.2 шага на посадку таска, медиана 3 (49 окон после возврата исполнителя, 14 сессий); порог брифа — три шага.
+
+Caveats, so the numbers are not over-read:
+
+- **A window is not a clean landing.** It holds everything the orchestrator did between the two events: reading the contract, the memory notes, plan updates, a chat with the user. That inflates the mean (8.2) over the median (3); the real cost of landing is nearer the median, and nothing here separates the two.
+- **49 windows are returns, not tickets.** A retry or a repair gives one more window, a parallel wave shares its windows, and ticket numbers are not read. The tail of a session (the final report) has no closing event and is not counted.
+- **The role of a returned agent comes from its `description`.** Windows after an agent whose label no rule recognises sit in "role not recognised" (28) and are not in the executor row; the executor row may be low.
+- **A background agent returns when its log ends.** The orchestrator notices later, so the window can start before its first step.
+- **Start context is one number per context**, taken from the first reply in its log; the cache state of that first call is not separated.
+
+`measure-run.py <project>` (one session, the one with the most subagents, or `<project> <session id>`) prints the same two tables for that session next to the per-context table, which now has the columns "старт" (start context) and "тип агента".

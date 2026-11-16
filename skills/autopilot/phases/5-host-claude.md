@@ -13,3 +13,21 @@ Rules for the orchestrator (see `docs/autopilot/claude-code.md`, `docs/autopilot
 - In the desktop app Agent calls run asynchronously; this does not block the gate.
 - Never start or suggest `/subtask` or `/fork` during strict tickets: they bypass the guard and write no attestation.
 - Never pass `isolation` to Agent calls: ticket worktrees belong to Autopilot (`ap.py` / `worktrees.py`); the guard denies Claude's own worktree isolation.
+
+## Ordinary run (no `--strict-routing`) — four light profiles
+
+`ap.py init` writes four **permanent** profiles to `.claude/agents/` if they are missing or their text differs: no run name, no ticket number, no task path inside, and **no `model` or `effort`** — the call sets those. They start at about a tenth of the context of `general-purpose` (their tool list is short). The profiles of earlier runs and any other file there are left alone.
+
+| Role | Agent type | Tools |
+|---|---|---|
+| executor — a ticket, a fix ticket `F<n>`, the memory agent and the ADR agent (they write files) | `autopilot-executor` | Read, Grep, Glob, Bash, Edit, Write |
+| point review, whole-branch review, the G2 coverage check | `autopilot-reviewer` | Read, Grep, Glob, Bash |
+| blind acceptance (G4) | `autopilot-acceptance` | Read, Grep, Glob, Bash |
+| the exploring subagent (notes, context pack, commit log) | `autopilot-explorer` | Read, Grep, Glob |
+
+- **Always pass `model` and `effort` in the call.** The profile has none, so without them the subagent inherits the main session's model. They come from `plan-models` or the router, as before. For a fix ticket `ap.py ticket F1 route --model <name> --effort <level> --reason "…"` records that choice in `state.js` (no profile is created; Haiku and Sonnet only, Opus only after the user's approval, never Fable).
+- **The task names the request.** The launch prompt carries the ticket file path and the limits; the profile text does not.
+- **«Agent type not found»** — Claude Code sees profiles written during this session only from the next chat. It is never a stop and never a question: call `general-purpose` for that role instead, tell the user in one line («лёгкие профили видны со следующего чата — дальше будет дешевле»), and go on.
+- **A `?` line from `init`** is one question, asked once: may the same four profiles also live in the Claude Code settings folder, so they are there on the first build in any project? A yes → `ap.py agents install-user --by-user "<его слова>"`; a no → `ap.py agents install-user --decline`. Either answer is kept and `init` stops asking. Without the user's words nothing is written outside the project.
+
+The strict rules above are unchanged; a strict run keeps its own profiles per ticket and writes no permanent ones.

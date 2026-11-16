@@ -1497,8 +1497,11 @@ class Run(unittest.TestCase):
                                 "--capabilities", cap, "--apply")
         self.assertEqual(code, 0, payload)
         self.assertNotIn("roleAgents", self.state())
+        # два профиля таска + четыре постоянных лёгких, которые пишет `init` обычного прогона; ролей прогона нет
         self.assertEqual(sorted(os.listdir(os.path.join(self.root, ".claude", "agents"))),
-                         ["autopilot-executor-01-karkas.md", "autopilot-executor-02-priem.md"])
+                         ["autopilot-acceptance.md", "autopilot-executor-01-karkas.md",
+                          "autopilot-executor-02-priem.md", "autopilot-executor.md",
+                          "autopilot-explorer.md", "autopilot-reviewer.md"])
 
     # ── strict Claude runs: one pre-registered repair executor for fix tickets (T17) ──
     def applied_strict_claude_plan(self):

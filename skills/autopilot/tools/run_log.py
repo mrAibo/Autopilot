@@ -24,12 +24,12 @@ KINDS = {
     "executor": ("agent", "ticket", "agent_type", "role", "model", "effort", "turns", "input", "output", "cache_read", "cache_write"),
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
-ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-")
+ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)(?:-|$)")
 TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source", "agent", "ticket")
 
 
 def role_of(agent_type):
-    """Роль субагента по имени профиля `autopilot-<роль>-…` (ремонтный исполнитель — executor)."""
+    """Роль субагента по имени профиля `autopilot-<роль>` или `autopilot-<роль>-…` (ремонтный исполнитель — executor)."""
     m = ROLE.match(agent_type) if isinstance(agent_type, str) else None
     return m.group(1) if m else "agent"
 
@@ -223,7 +223,7 @@ def usage_by_agent(folder, since, until=None):
             continue
         agent_type = "agent"
         try:
-            with open(os.path.join(folder, name[:-len(".jsonl")] + ".meta.json"), encoding="utf-8") as f:
+            with open(os.path.join(folder, name[:-len(".jsonl")] + ".meta.json"), encoding="utf-8-sig") as f:
                 t = json.load(f).get("agentType")
             if isinstance(t, str) and t:
                 agent_type = t
@@ -241,14 +241,15 @@ def usage_by_agent(folder, since, until=None):
 
 def collapse_agents(rows):
     """Строки расхода (`executor`) без повторов: последняя строка на `agent`; строки журнала Claude Code
-    (с `agent`) профилей `autopilot-…` отбрасываются, если у прогона есть строки хуков (без `agent`)."""
-    hooks = any(not r.get("agent") and r.get("role") != "orchestrator" for r in rows)
+    (с `agent`) профилей `autopilot-…` отбрасываются, только если хук записал строку с тем же `agent_type`:
+    хук записал не всех агентов — расход остальных не теряется."""
+    hooked = {r.get("agent_type") for r in rows if not r.get("agent") and r.get("role") != "orchestrator"}
     last, rest = {}, []
     for r in rows:
         a = r.get("agent")
         if not a:
             rest.append(r)
-        elif not (hooks and str(r.get("agent_type") or "").startswith("autopilot-")):
+        elif not (str(r.get("agent_type") or "").startswith("autopilot-") and r.get("agent_type") in hooked):
             last[a] = r
     return rest + list(last.values())
 

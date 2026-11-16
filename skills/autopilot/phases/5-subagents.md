@@ -27,6 +27,8 @@ Never two tickets in one context — accumulated context is what breaks long ses
 | its zone, and what it must not touch | zones of tickets flying beside it included |
 | credentials | variable **names**, never a value |
 
+**Ordinary Claude Code run: the executor is `autopilot-executor`**, with the ticket's `model` and `effort` passed in the call every time — the profile carries neither, and without them it takes the main session's model. «Agent type not found» → `general-purpose`, one line to the user, never a stop (`5-host-claude.md`).
+
 Never paste what it can read: that pays twice and stays in your context. Every rule the executor must follow travels in its prompt or in `prompts/executor.md` — a rule only in a phase file does not exist for the one writing the code.
 
 **Strict isolated test evidence (mandatory):** after the sandboxed worker finishes editing, the **trusted host** runs `ap.py worktree NN verify --suite test_suite.py` against a baseline-tracked, unchanged Python unittest module in the prepared worktree. No arbitrary shell string is run. A verified test count and source fingerprint are recorded; strict `finalize`, `land` and `ticket done` reject invented `--tests` values or source changed after testing. Use `worktree NN finalize` (host-owned Git commit), then `worktree NN land` and `ticket NN done --commit SHA`. Where tests cannot be executed safely, **block acceptance** — never fall back to manually claimed N/0. See `docs/autopilot/worktrees.md`.
