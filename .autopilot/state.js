@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "spend-optimization",
-  "dir": "2026-11-16-spend-optimization--wip",
+  "dir": "2026-11-16-spend-optimization",
   "title": "Оптимизация расхода: учёт и короткий вывод проверок",
   "mode": "semi",
   "depth": "normal",
@@ -17,8 +17,8 @@ window.STATE =
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
   "baseCommit": "c9cfa13",
   "startedAt": "2026-11-16T00:32:00+01:00",
-  "updatedAt": "2026-11-16T00:51:58+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-16T01:16:41+01:00",
+  "finishedAt": "2026-11-16T01:16:41+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -82,22 +82,39 @@ window.STATE =
     },
     {
       "id": "build",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-16T00:36:36+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-16T00:52:04+01:00"
         }
       ],
-      "startedAt": "2026-11-16T00:36:36+01:00"
+      "startedAt": "2026-11-16T00:36:36+01:00",
+      "finishedAt": "2026-11-16T00:52:04+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T00:52:04+01:00",
+          "finishedAt": "2026-11-16T00:57:17+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T00:52:04+01:00",
+      "finishedAt": "2026-11-16T00:57:17+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T00:57:17+01:00",
+          "finishedAt": "2026-11-16T01:16:41+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T00:57:17+01:00",
+      "finishedAt": "2026-11-16T01:16:41+01:00"
     }
   ],
   "requirements": {
@@ -138,8 +155,16 @@ window.STATE =
       "model": "обычная",
       "fingerprint": "9824b6a5e929a5892c66bb595392b22158e3a21a6bd4a0ab8b4578ea0d3429c7",
       "status": "done",
+      "startedAt": "2026-11-16T00:36:37+01:00",
+      "finishedAt": "2026-11-16T00:51:58+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 937,
+        "failed": 0
+      },
+      "commit": "a0214b0",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
@@ -163,19 +188,74 @@ window.STATE =
         "hostExecutionVerified": false,
         "error": "No verified host capabilities",
         "applied": false
-      },
-      "startedAt": "2026-11-16T00:36:37+01:00",
-      "finishedAt": "2026-11-16T00:51:58+01:00",
-      "placeholders": [],
+      }
+    },
+    {
+      "id": "F1",
+      "title": "Правки по ревью ветки: повтор оркестратора в report-run, шапка расхода, честное сообщение",
+      "requirements": [
+        "R01",
+        "R02",
+        "R06i"
+      ],
+      "blockedBy": [
+        "01"
+      ],
+      "wave": 2,
+      "zone": [
+        "skills/autopilot/tools/run_log.py",
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_spend_accounting.py"
+      ],
+      "review": "да — ремонт ветки",
+      "model": "сильная",
+      "fingerprint": "585070a745659d16629d6fcc958dbc0697947b4a02e1ebf08016cb3301864c3c",
+      "status": "done",
+      "startedAt": "2026-11-16T00:53:45+01:00",
+      "finishedAt": "2026-11-16T01:06:07+01:00",
+      "retries": 0,
+      "repairs": 0,
       "tests": {
-        "passed": 937,
+        "passed": 941,
         "failed": 0
       },
-      "commit": "a0214b0"
+      "commit": "d2a8f85",
+      "placeholders": []
+    },
+    {
+      "id": "F2",
+      "title": "Слепая приёмка: расход оркестратора виден, даже когда строк субагентов нет",
+      "requirements": [
+        "R02",
+        "R06i"
+      ],
+      "blockedBy": [
+        "F1"
+      ],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_spend_accounting.py"
+      ],
+      "review": "нет",
+      "model": "сильная",
+      "fingerprint": "1c06329a777c5f5293f7a2c0d638ee33f323dbd24efa092310b31867fed639de",
+      "status": "done",
+      "startedAt": "2026-11-16T01:06:08+01:00",
+      "finishedAt": "2026-11-16T01:16:24+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 942,
+        "failed": 0
+      },
+      "commit": "32c634f",
+      "placeholders": []
     }
   ],
   "tests": {
-    "passed": 937,
+    "passed": 942,
     "failed": 0
   },
   "usageEvents": [],
@@ -196,7 +276,14 @@ window.STATE =
   },
   "concerns": [],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 7,
+    "matched": 5,
+    "mismatches": [
+      "R01 (замер префикса исполнителей) — таблица «Кэш по профилям» есть, но замера нет: в нестрогом прогоне хуки не стоят, строк субагентов нет; ответ на вопрос про общий кэш получить нечем",
+      "R02 — повторный spend-orchestrator дописывает строки в run-log.jsonl (4 вместо 2); суммы не удваиваются, потому что report-run и compute_spend берут последнюю на модель — так задумано"
+    ]
+  },
   "beats": [
     "2026-11-16T00:32:00+01:00",
     "2026-11-16T00:32:23+01:00",
@@ -213,9 +300,23 @@ window.STATE =
     "2026-11-16T00:36:30+01:00",
     "2026-11-16T00:36:36+01:00",
     "2026-11-16T00:36:37+01:00",
-    "2026-11-16T00:51:58+01:00"
+    "2026-11-16T00:51:58+01:00",
+    "2026-11-16T00:52:04+01:00",
+    "2026-11-16T00:53:40+01:00",
+    "2026-11-16T00:53:41+01:00",
+    "2026-11-16T00:53:45+01:00",
+    "2026-11-16T00:57:17+01:00",
+    "2026-11-16T00:59:26+01:00",
+    "2026-11-16T00:59:52+01:00",
+    "2026-11-16T01:06:07+01:00",
+    "2026-11-16T01:06:08+01:00",
+    "2026-11-16T01:10:42+01:00",
+    "2026-11-16T01:16:23+01:00",
+    "2026-11-16T01:16:24+01:00",
+    "2026-11-16T01:16:25+01:00",
+    "2026-11-16T01:16:41+01:00"
   ],
-  "rev": 19,
+  "rev": 34,
   "waiting": null,
   "waits": [
     {
@@ -345,6 +446,114 @@ window.STATE =
         "passed": 937,
         "failed": 0
       }
+    },
+    {
+      "t": "2026-11-16T00:52:04+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T00:53:40+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-16T00:53:41+01:00",
+      "k": "tickets",
+      "n": 2
+    },
+    {
+      "t": "2026-11-16T00:53:45+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T00:57:17+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T00:59:26+01:00",
+      "k": "tests",
+      "passed": 937,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-16T00:59:52+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 6,
+      "matched": 5
+    },
+    {
+      "t": "2026-11-16T01:06:07+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 941,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T01:06:08+01:00",
+      "k": "tickets",
+      "n": 3
+    },
+    {
+      "t": "2026-11-16T01:06:08+01:00",
+      "k": "ticket",
+      "ids": [
+        "F2"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T01:10:42+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 7,
+      "matched": 5
+    },
+    {
+      "t": "2026-11-16T01:16:23+01:00",
+      "k": "tests",
+      "passed": 942,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-16T01:16:24+01:00",
+      "k": "ticket",
+      "ids": [
+        "F2"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 942,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T01:16:25+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 3
+    },
+    {
+      "t": "2026-11-16T01:16:41+01:00",
+      "k": "finish",
+      "result": "Оптимизация расхода: spend видит кэш и главную сессию (оркестратора), report-run и дашборд показывают их, исполнитель запускает проверки с коротким выводом; 942 теста зелёные, слепая приёмка 5 из 7 (замер общего кэша исполнителей не получен)",
+      "problems": 1
     }
   ],
   "reqList": [
@@ -405,13 +614,39 @@ window.STATE =
       "ok": true,
       "at": "2026-11-16T00:36:25+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": false,
+      "at": "2026-11-16T01:10:42+01:00",
+      "checked": 7,
+      "matched": 5
     }
   },
-  "result": null,
+  "result": "Оптимизация расхода: spend видит кэш и главную сессию (оркестратора), report-run и дашборд показывают их, исполнитель запускает проверки с коротким выводом; 942 теста зелёные, слепая приёмка 5 из 7 (замер общего кэша исполнителей не получен)",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
+    "byRole": {
+      "orchestrator": {
+        "n": 1,
+        "input": 164,
+        "output": 45498,
+        "cache_read": 16775213,
+        "cache_write": 127344,
+        "tokens": 45662,
+        "hit": 99
+      }
+    },
+    "byModel": {
+      "claude-sonnet-5-5": {
+        "n": 1,
+        "input": 164,
+        "output": 45498,
+        "cache_read": 16775213,
+        "cache_write": 127344,
+        "tokens": 45662,
+        "hit": 99
+      }
+    },
     "byTicket": {}
   },
   "history": [
@@ -517,5 +752,18 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "f8f833436612df4f0117688f3b5ffb6b0cc0b47aa546caadfedcfaf77024fff9",
-  "planValidationDigest": "5a13b64ef3cf1a208e51b7ec5122109aeacfab77ff4cbbfedd6b2591ad0c95ce"
+  "planValidationDigest": "5a13b64ef3cf1a208e51b7ec5122109aeacfab77ff4cbbfedd6b2591ad0c95ce",
+  "report": [
+    "Ревью ветки (в отчёт): «последняя на модель» оставляет старые модели при смешивании сессий в ручном режиме; session_transcript не учитывает усечение длинных путей в имени папки Claude Code (тогда --transcript); тест executor.md ищет фразы; round() округляет 12.5 к чётному",
+    "Нестрогий прогон не пишет расход субагентов: хуки claude_attest ставятся только в строгом режиме, поэтому в spend виден один оркестратор",
+    "Слепая приёмка круг 2: замер общего кэша исполнителей не получен (нет строк субагентов); строки оркестратора в run-log.jsonl дописываются при повторе, сводят их до последней на модель только читатели",
+    "spend-orchestrator не обновляет state.spend сразу: цифры на дашборде появляются со следующей командой ap.py"
+  ],
+  "blindRounds": 2,
+  "landedWith": {
+    "problems": [
+      "слепая приёмка: расхождения остались после 2 кругов (2 из 7)"
+    ],
+    "byUser": null
+  }
 }
