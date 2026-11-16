@@ -121,7 +121,7 @@ class AddressPrinting(unittest.TestCase):
         with mock.patch.object(self.m, "recorded", return_value=(8123, 1)), \
                 mock.patch.object(self.m, "http_ok", return_value=True), \
                 mock.patch.object(self.m, "is_guarded_server", return_value=True), \
-                mock.patch.object(self.m, "cmdline", return_value=""):
+                mock.patch.object(self.m, "cmdline", return_value=""),                 mock.patch.dict(os.environ, {"CI": "", "SSH_CONNECTION": ""}):  # в CI serve отвечает «без сервера»
             state = self.h.state()
             self.assertNotIn("?t=", self.m.serve(state))
             self.assertIn("?t=", self.m.serve(state, with_token=True))
