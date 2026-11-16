@@ -1,0 +1,5 @@
+# Phase 5 — Build: `--sequential-host`
+
+Read from `5-subagents.md`, only in a run started with `--sequential-host` (the host has no native named agents).
+
+**Explicit R03 exception when native named agents are unsupported:** a new run with `--sequential-host` uses *one current host session and one Git-isolated task at a time*, without claiming a named subagent, fresh child context, pinned worker model or provider billing control. **The ordinary "you dispatch; you do not build" rule assumes a verified native subagent and does not apply as written to this declared fallback.** The host may edit the **approved worktree only**, after model and subscription conditions are independently confirmed and the operator authorized that work. The host must run `worktree verify` on an unchanged baseline-tracked Python unittest module before finalization, and never mark a task done from a stated test count. No parallel waves, no invented child ID, no real CLI `--execute`: see [sequential-host.md](../../docs/autopilot/sequential-host.md).

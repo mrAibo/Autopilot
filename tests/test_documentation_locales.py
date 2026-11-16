@@ -212,7 +212,7 @@ class DocumentationLocalesTests(unittest.TestCase):
     def test_strict_claude_registers_agents_then_requires_new_chat(self):
         # T16: agents created mid-session are "Agent type not found" in Claude Code.
         phases = ROOT / "skills/autopilot/phases"
-        plan = (phases / "4-plan.md").read_text(encoding="utf-8")
+        plan = (phases / "4-plan-strict.md").read_text(encoding="utf-8")
         section = plan.split("## Strict Claude Code run", 1)[1].split("\n## ", 1)[0]
         for needle in ("plan-models --provider anthropic", "--apply",
                        "claude_agent_guard.py --install-hook", "claude_attest.py --install-hook",

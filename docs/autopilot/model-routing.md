@@ -25,6 +25,8 @@ Existing active routes must not be silently downgraded to model-only. Only a new
 
 ## Automatic per-ticket selection at the planning stage (Phase 4)
 
+The strict-run, `--apply` and Opus parts of Phase 4 live in `phases/4-plan-strict.md` and `phases/4-plan-opus.md`; the Phase 5 route checks in `phases/5-strict.md`.
+
 **Yes: every ticket has its own independently calculated model and reasoning Effort before development begins.** The full process is:
 
 1. Phase 4 creates `tickets/01-*.md`, `02-*.md`, etc. and validates their requirements/zones/dependencies with `ap.py tickets` and `ap.py check-plan`.

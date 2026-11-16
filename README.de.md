@@ -587,7 +587,11 @@ skills/autopilot/
 │   ├── 2-adversarial.md        wo die Idee scheitern könnte — im Interview-Modus und bei maximaler Tiefe
 │   ├── 3-spec.md               die Spezifikation und wie tief sie ausgearbeitet wird
 │   ├── 4-plan.md               Aufteilung in Aufgaben nach Umfang, Wellen, wer Review bekommt und welches Modell
+│   ├── 4-plan-strict.md        strikter Claude-Code-Lauf: Agenten registrieren, neuer Chat — nur in diesem Modus
+│   ├── 4-plan-opus.md          Opus-Angebot — nur wenn `opus propose` Kandidaten nennt
 │   ├── 5-subagents.md          Ausführungs-Agenten und die Verträge zwischen ihnen
+│   ├── 5-strict.md            strikte Routenwahl, isolierte Aufgaben, Controller — nur in diesen Modi
+│   ├── 5-sequential-host.md    Rückfall `--sequential-host` — nur dort
 │   ├── 5-repair.md             Nachbesserung und Fehlschlag — nur, wenn eine Aufgabe nicht sauber zurückkam
 │   ├── 6-review.md             gezieltes Review und das Review des gesamten Baus
 │   ├── 8-final.md              Blindabnahme und der Bericht

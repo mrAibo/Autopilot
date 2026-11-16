@@ -588,7 +588,11 @@ skills/autopilot/
 │   ├── 2-adversarial.md        where the idea might fail — in interview mode and at maximum depth
 │   ├── 3-spec.md               the spec and how deep to work it out
 │   ├── 4-plan.md               splitting into tasks by volume, waves, who gets review and which model
+│   ├── 4-plan-strict.md        strict Claude Code run: registering agents, a new chat — only in that mode
+│   ├── 4-plan-opus.md          Opus offer — only when `opus propose` lists candidates
 │   ├── 5-subagents.md          executor agents and the contracts between them
+│   ├── 5-strict.md            strict routing, isolated tasks, host controller — only in those modes
+│   ├── 5-sequential-host.md    the `--sequential-host` fallback — only in that mode
 │   ├── 5-repair.md             repair and failure — only when a task came back not clean
 │   ├── 6-review.md             targeted review and the review of the whole build
 │   ├── 8-final.md              blind acceptance and the report

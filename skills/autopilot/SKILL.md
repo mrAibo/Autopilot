@@ -48,6 +48,10 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 | 8 Final | `phases/8-final.md`, and `phases/9-memory.md` before spawning | blind acceptance, memory, progress file, report |
 | — | `phases/0-resume.md` — instead of preflight, when resuming | |
 | — | `phases/audit.md` — instead of all phases, on `/autopilot audit` | `.autopilot/audits/<YYYY-MM-DD>-audit.md`, nothing else |
+| — | `phases/4-plan-strict.md` — in a strict Claude Code run (agents registered, new chat), or on a host that cannot `--apply` |  |
+| — | `phases/4-plan-opus.md` — only when `ap.py opus propose` lists candidates |  |
+| — | `phases/5-strict.md` — strict routing, `--isolated-tickets`, the host controller |  |
+| — | `phases/5-sequential-host.md` — a run with `--sequential-host` |  |
 | — | `phases/5-repair.md` — when a ticket comes back anything but a clean `DONE` | |
 | — | `phases/9-memory.md` — also in Phase 5, when a ticket discovered something worth keeping | |
 | — | `phases/rationalizations.md` — on a failed gate, on catching yourself excusing something, once before the report | |
