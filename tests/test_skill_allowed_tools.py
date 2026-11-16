@@ -38,11 +38,19 @@ class SkillAllowedToolsTests(unittest.TestCase):
     def test_allowed_tools_has_at_least_one_rule(self):
         self.assertGreaterEqual(len(self.rules()), 1)
 
-    def test_every_rule_is_bash_ap_py_only(self):          # bootstrap и doctor идут из папки навыка, до init
+    def test_every_rule_is_bash_ap_py_only(self):          # bootstrap и doctor из папки навыка — по запросу, без маски
         for rule in self.rules():
             with self.subTest(rule=rule):
-                self.assertTrue(rule.startswith("Bash("), rule)
-                self.assertRegex(rule, r"\.autopilot/(ap|controller)\.py|tools/ap\.py\* (bootstrap|doctor)")
+                self.assertRegex(rule, r"^Bash\((python3?|py -3) \.autopilot/(ap|controller)\.py \*\)$")
+
+    def test_no_mask_lets_a_foreign_script_or_inline_code_through(self):
+        import fnmatch
+        evil = ('python -c "import os" x/tools/ap.py doctor', "python x/evil/tools/ap.py bootstrap --project .")
+        for rule in self.rules():
+            pattern = rule[len("Bash("):-1]
+            for cmd in evil:
+                with self.subTest(rule=rule, cmd=cmd):
+                    self.assertFalse(fnmatch.fnmatchcase(cmd, pattern))
 
     def test_no_wildcard_bash_rule(self):
         self.assertNotIn("Bash(*)", self.rules())

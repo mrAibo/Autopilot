@@ -2644,6 +2644,23 @@ class Run(unittest.TestCase):
         self.assertEqual(after["blind"], before["blind"])
         self.assertEqual(after["gates"]["G4"], before["gates"]["G4"])
 
+    def round_two_refused(self, *r2):
+        self.init()
+        self.ap("blind", "checked=8", "matched=5", "--mismatch", "R01 — а", "--mismatch", "R02 — б",
+                "--mismatch", "R03 — в")
+        before = self.state()
+        code, out = self.ap("blind", *r2)
+        self.assertNotEqual(code, 0, out)
+        self.assertEqual(self.state()["blindRounds"], 1)
+        self.assertEqual(self.state()["blind"], before["blind"])
+        self.assertFalse(self.state()["gates"]["G4"]["ok"])
+
+    def test_round_two_with_zero_checked_cannot_go_green_over_open_mismatches(self):
+        self.round_two_refused("checked=0", "matched=0")
+
+    def test_round_two_checking_fewer_than_the_open_mismatches_is_refused(self):
+        self.round_two_refused("checked=1", "matched=1")
+
     def test_blind_round_is_not_counted_when_the_call_fails(self):
         self.init()
         self.assertNotEqual(self.ap("blind", "checked=3", "matched=4")[0], 0)

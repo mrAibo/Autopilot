@@ -530,7 +530,7 @@ class Texts(unittest.TestCase):
         self.assertIn("not writing code", rule)
         head = next(x for x in text.splitlines() if x.startswith("allowed-tools:"))
         for word in ("bootstrap", "doctor"):
-            self.assertIn("tools/ap.py* " + word, head)
+            self.assertNotIn("tools/ap.py* " + word, head)   # путь навыка не закрепить без свободной «*»
 
     def test_after_each_ticket_is_rewritten_around_land_and_is_shorter(self):
         text = self.phase("5-subagents.md")

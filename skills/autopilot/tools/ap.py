@@ -3355,7 +3355,11 @@ def cmd_numbers(state, name, pos, multi):
             # Круг 2 проверяет расхождения круга 1 и основной сценарий; итог — как в круге 1, расхождения — оставшиеся.
             r1 = {"checked": first["checked"], "matched": first.get("matched"),
                   "mismatches": list(first.get("mismatches") or [])}
-            cap = len(r1["mismatches"]) + 1
+            floor = len(r1["mismatches"])
+            if d["checked"] < floor:
+                die("blind: круг 2 должен проверить каждое из %d расхождений круга 1 — checked не меньше %d; "
+                    "закрытое — в matched, оставшееся — в --mismatch" % (floor, floor))
+            cap = floor + 1
             if d["checked"] > cap:
                 die("blind: круг 2 проверяет только расхождения круга 1 и основной сценарий — checked не больше %d" % cap)
             round_ok = d["checked"] - d["matched"] == len(d["mismatches"])

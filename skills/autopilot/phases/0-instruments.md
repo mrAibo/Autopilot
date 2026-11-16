@@ -21,6 +21,7 @@ It copies the dashboard template and every `.py` of the skill's `tools/` into `.
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
 - `find -L` and no `*` in it: skills are installed through symlinks, which a plain `find` does not follow, and an unmatched glob aborts the whole line in zsh. Empty output → widen the search once by hand and carry on.
 - **`python3` not a working interpreter** — on Windows it can be the Microsoft Store stub → use `python` or `py -3` wherever this skill says `python3`.
+- `bootstrap` and `doctor` run from the skill folder, whose path no `allowed-tools` mask can pin without a free `*`, so Claude Code asks permission for them once.
 - **`bootstrap` is needed before the first `init`** (there is no `.autopilot/ap.py` yet). After that `ap.py init` and `ap.py stage <id>` refresh the `.py` tools in `.autopilot/` from `skillDir/tools/` by themselves — new files of the skill included, only when no ticket is `in-progress`/`review`/`repair`; `ap.py` replaces its own copy at the end of the command — and `ap.py upgrade-tools` does it by hand.
 - Never regenerate the template, never read it into context, never edit it.
 
