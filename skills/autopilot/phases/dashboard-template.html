@@ -2427,9 +2427,10 @@ function render(lang){
   const spendTable = (head, b) => spendRows(b).length
     ? `<h4 class="sp-h">${head}</h4><div class="tablewrap"><table class="routes sp"><thead><tr><th>${W.cName}</th><th>${W.cRuns}</th><th>${W.tTokens}</th><th>${W.cCache}</th></tr></thead><tbody>${
       spendRows(b).map(([k, a]) => `<tr><td>${esc(spendLabel(b, k))}</td><td class="mono">${numberFormat(a.n)}</td><td class="mono">${numberFormat(a.tokens)}</td><td class="mono">${Number.isSafeInteger(a.hit) && a.hit >= 0 ? a.hit + '%' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '';
-  const spendCard = spendRuns
-    ? `<section class="card w resource-card" data-spend><div class="whead"><h3 class="wt">${W.tSpend}</h3><span>${numberFormat(spendTokens)}</span></div>${
-      tokenSummary}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
+  // Карточка есть при любой роли в byRole (и при одном оркестраторе); число в шапке — только субагенты, без них «—», не ложный ноль.
+  const spendCard = spendRows('byRole').length
+    ? `<section class="card w resource-card" data-spend><div class="whead"><h3 class="wt">${W.tSpend}</h3><span>${spendRuns ? numberFormat(spendTokens) : '—'}</span></div>${
+      spendRuns ? tokenSummary : ''}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
     : usageEvents.length ? tokensCard : emptyCard(W.tSpend, `${W.empty} — ${W.spendWhy}`);
   // Лента прошлых сборок (до 20, как отдал ap.py) и сравнение этой сборки со средним по ним; нет прошлых — нет и сравнения.
   const hist = (Array.isArray(S.history) ? S.history : []).filter(h => h && typeof h === 'object').slice(0, 20);

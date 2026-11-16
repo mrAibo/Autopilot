@@ -293,7 +293,11 @@ class DashboardCacheColumn(unittest.TestCase):
         orch = copy.deepcopy(spend)
         orch["byRole"]["orchestrator"] = {"n": 1, "input": 70000, "output": 30000, "tokens": 100000,
                                           "cache_read": 5, "cache_write": 5, "hit": 7}
-        fixtures = {"cache": dict(states["spend"], spend=spend), "orch": dict(states["spend"], spend=orch)}
+        o = {"n": 1, "input": 110, "output": 33437, "cache_read": 10083120, "cache_write": 103393,
+             "tokens": 33547, "hit": 99}
+        only = dict(states["spend"], spend={"byRole": {"orchestrator": o}, "byModel": {"opus": dict(o)}, "byTicket": {}})
+        fixtures = {"cache": dict(states["spend"], spend=spend), "orch": dict(states["spend"], spend=orch),
+                    "only": only}
         with tempfile.TemporaryDirectory() as tmp:
             harness = pathlib.Path(tmp) / "harness.js"
             harness.write_text(SCRIPT, encoding="utf-8")
@@ -331,6 +335,21 @@ class DashboardCacheColumn(unittest.TestCase):
         self.assertEqual(rows["orchestrator"][3], "7%")
         for page in ("now", "res"):                               # плитка «токены»
             self.assertNotIn("104,900", re.sub(r"<[^>]*>", " ", self.out["orch/%s/en" % page]), page)
+
+    def test_orchestrator_only_spend_still_shows_the_card_without_a_false_zero(self):
+        for lang, empty in (("en", "none yet"), ("ru", "ещё нет")):
+            html = self.out["only/det/" + lang]
+            self.assertIn("data-spend", html, lang)
+            spend = html[html.index("data-spend"):]
+            self.assertNotIn(empty, spend[:spend.index("</section>")], lang)
+            rows = {r[0]: r for r in self.cells_of(spend)}
+            self.assertEqual([re.sub(r"[^\d%]", "", c) for c in rows["orchestrator"][2:]], ["33547", "99%"], lang)
+            self.assertEqual(rows["opus"][3], "99%", lang)
+            head = re.sub(r"<[^>]*>", "", re.search(r'<div class="whead">(.*?)</div>', spend, re.S).group(1))
+            self.assertIn("—", head, lang)                       # не ложный «0» расхода сборки
+            self.assertNotIn("33", head, lang)
+        for page in ("now", "res"):
+            self.assertNotIn("33,547", re.sub(r"<[^>]*>", " ", self.out["only/%s/en" % page]), page)
 
     @staticmethod
     def cells_of(spend):
