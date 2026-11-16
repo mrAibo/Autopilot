@@ -21,11 +21,11 @@ KINDS = {
     "tests": ("passed", "failed", "seconds", "source"),
     "reset": ("what", "id", "reason"),
     "wait": ("kind", "act"),
-    "executor": ("agent_type", "role", "model", "effort", "turns", "input", "output", "cache_read", "cache_write"),
+    "executor": ("agent", "ticket", "agent_type", "role", "model", "effort", "turns", "input", "output", "cache_read", "cache_write"),
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
 ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)-")
-TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source")
+TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source", "agent", "ticket")
 
 
 def role_of(agent_type):
@@ -185,6 +185,74 @@ def usage_by_model(path, since, until=None):
     return out
 
 
+def usage_by_agent(folder, since, until=None):
+    """Токены субагентов из `folder/agent-*.jsonl` (+ `.meta.json`): список по агентам
+    {agent, agent_type, model, first_at, turns, input, output, cache_read, cache_write}.
+    Берёт ответы ассистента с `timestamp` в [since, until]; повтор `message.id` — последний.
+    Читаются только числа, модель, id, время и `agentType`; текст не читается и не сохраняется.
+    Нет папки или она не читается → None; агентов нет → []."""
+    lo, hi = _moment(since), _moment(until)
+    try:
+        names = sorted(n for n in os.listdir(folder) if re.fullmatch(r"agent-.+\.jsonl", n))
+    except OSError:
+        return None
+    num = lambda u, k: u[k] if isinstance(u.get(k), int) and not isinstance(u.get(k), bool) and u[k] > 0 else 0
+    out = []
+    for name in names:
+        seen, first = {}, None                       # id ответа → (модель, usage); самое раннее время
+        try:
+            with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as f:
+                for n, line in enumerate(f):
+                    try:
+                        r = json.loads(line)
+                        m = r.get("message")
+                        if not isinstance(m, dict) or m.get("role") != "assistant" or not isinstance(m.get("usage"), dict):
+                            continue
+                        at = _moment(r.get("timestamp"))
+                        if at is None or (lo and at < lo) or (hi and at > hi):
+                            continue
+                        seen[m.get("id") or "#%d" % n] = (m["model"] if isinstance(m.get("model"), str) and m["model"]
+                                                           else "unknown", m["usage"])
+                        if first is None or at < first[0]:
+                            first = (at, r["timestamp"])
+                    except (ValueError, AttributeError, RecursionError):
+                        continue
+        except OSError:
+            continue
+        if not seen:
+            continue
+        agent_type = "agent"
+        try:
+            with open(os.path.join(folder, name[:-len(".jsonl")] + ".meta.json"), encoding="utf-8") as f:
+                t = json.load(f).get("agentType")
+            if isinstance(t, str) and t:
+                agent_type = t
+        except (OSError, ValueError, AttributeError, RecursionError):
+            pass
+        usages = [u for _, u in seen.values()]
+        out.append({"agent": name[len("agent-"):-len(".jsonl")], "agent_type": agent_type,
+                    "model": list(seen.values())[-1][0], "first_at": first[1], "turns": len(seen),
+                    "input": sum(num(u, "input_tokens") for u in usages),
+                    "output": sum(num(u, "output_tokens") for u in usages),
+                    "cache_read": sum(num(u, "cache_read_input_tokens") for u in usages),
+                    "cache_write": sum(num(u, "cache_creation_input_tokens") for u in usages)})
+    return out
+
+
+def collapse_agents(rows):
+    """Строки расхода (`executor`) без повторов: последняя строка на `agent`; строки журнала Claude Code
+    (с `agent`) профилей `autopilot-…` отбрасываются, если у прогона есть строки хуков (без `agent`)."""
+    hooks = any(not r.get("agent") and r.get("role") != "orchestrator" for r in rows)
+    last, rest = {}, []
+    for r in rows:
+        a = r.get("agent")
+        if not a:
+            rest.append(r)
+        elif not (hooks and str(r.get("agent_type") or "").startswith("autopilot-")):
+            last[a] = r
+    return rest + list(last.values())
+
+
 def _seconds(a, b):
     try:
         return max(0, int((dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)).total_seconds()))
@@ -217,6 +285,7 @@ def summarize(records, run=None, skipped=0):
     for p in phases.values():
         p["seconds"] = _seconds(p["start"], p["end"]) if p["end"] else None
     out["phases"], out["tickets"] = list(phases.values()), list(tickets.values())
+    out["tokens"] = collapse_agents(out["tokens"])
     last = {}                                        # оркестратор: последняя строка на модель, как в compute_spend
     for e in out["tokens"]:
         if e["role"] == "orchestrator":

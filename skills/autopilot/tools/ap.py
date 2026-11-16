@@ -42,6 +42,7 @@
     python3 .autopilot/ap.py commits                    # коммиты сданных тасков ещё в истории?
     python3 .autopilot/ap.py report-run [--share]       # свод журнала прогона (run-log.jsonl)
     python3 .autopilot/ap.py spend-orchestrator [--transcript PATH]   # расход главной сессии в run-log.jsonl (finish делает сам)
+    python3 .autopilot/ap.py spend-subagents [--transcript PATH]      # расход субагентов из журналов Claude Code (finish делает сам)
     python3 .autopilot/ap.py                            # просто синхронизировать
 
 После каждой команды: updatedAt = сейчас (и метка в журнале beats), строка в ленте log,
@@ -3162,6 +3163,7 @@ def cmd_finish(state, opt):
     sync_run_record(state)
     log(state, "finish", result=state["result"], problems=len(problems))
     notes.append(spend_orchestrator(state))
+    notes.append(spend_subagents(state))
     return notes
 
 
@@ -3302,10 +3304,17 @@ def _tokens(row, key):
     return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else 0
 
 
+def row_ticket(r):
+    """Таск строки расхода: поле `ticket` (из журнала Claude Code), иначе из имени профиля."""
+    t = r.get("ticket")
+    return t if isinstance(t, str) and t else executor_ticket(r.get("agent_type"))
+
+
 def executor_rows(records, run):
-    """Строки расхода одного прогона."""
-    return [r for r in records if isinstance(r, dict) and r.get("k") == "executor"
+    """Строки расхода одного прогона; без повторов по `agent` (см. run_log.collapse_agents)."""
+    rows = [r for r in records if isinstance(r, dict) and r.get("k") == "executor"
             and run_key(r.get("run")) == run_key(run)]
+    return run_log.collapse_agents(rows) if run_log else rows
 
 
 def compute_spend(records, run):
@@ -3327,7 +3336,7 @@ def compute_spend(records, run):
             run_log.role_of(r.get("agent_type")) if run_log else "agent")
         model = r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL
         for bucket, key in (("byRole", role), ("byModel", model),
-                            ("byTicket", None if role == "orchestrator" else executor_ticket(r.get("agent_type")))):
+                            ("byTicket", None if role == "orchestrator" else row_ticket(r))):
             if key is None:
                 continue
             acc = out[bucket].setdefault(key, dict.fromkeys(tokens, 0))
@@ -3342,10 +3351,24 @@ def compute_spend(records, run):
 
 
 def session_transcript():
-    """Самый свежий журнал сессии проекта: <CLAUDE_CONFIG_DIR|~/.claude>/projects/<путь с «-»>/*.jsonl или None."""
+    """Самый свежий журнал сессии проекта: <CLAUDE_CONFIG_DIR|~/.claude>/projects/<путь с «-»>/*.jsonl или None.
+    Нет точной папки (Claude Code усекает длинные имена) — папка с самым длинным общим префиксом ≥100 знаков."""
     root = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
-    folder = os.path.join(root, "projects", re.sub(r"[^A-Za-z0-9]", "-", os.path.dirname(A)))
-    files = glob.glob(os.path.join(glob.escape(folder), "*.jsonl"))
+    projects = os.path.join(root, "projects")
+    want = re.sub(r"[^A-Za-z0-9]", "-", os.path.dirname(A))
+    newest = lambda d: glob.glob(os.path.join(glob.escape(os.path.join(projects, d)), "*.jsonl"))
+    files = newest(want)
+    if not files:
+        # shortcut: правило усечения Claude Code не документировано и не проверено — берём общий префикс,
+        # апгрейд — когда правило станет известно
+        try:
+            names = os.listdir(projects)
+        except OSError:
+            names = []
+        scored = [(len(os.path.commonprefix([want, n])), max(os.path.getmtime(f) for f in fs), fs)
+                  for n in names for fs in [newest(n)] if fs]
+        scored = [x for x in scored if x[0] >= 100]
+        files = max(scored, key=lambda x: x[:2])[2] if scored else []
     return max(files, key=os.path.getmtime) if files else None
 
 
@@ -3373,6 +3396,42 @@ def spend_orchestrator(state, transcript=None):
             sum(u["cache_read"] for u in by_model.values()), len(by_model))
     except Exception as exc:
         return "расход оркестратора не найден: " + type(exc).__name__
+
+
+def _ticket_at(state, first_at):
+    """Единственный таск, в окне startedAt…finishedAt (или до «сейчас») которого лежит `first_at`; иначе None."""
+    at, now, hit = run_log._moment(first_at), dt.datetime.now(dt.timezone.utc), []
+    for t in state.get("tickets") or []:
+        lo, hi = run_log._moment(t.get("startedAt")), run_log._moment(t.get("finishedAt")) or now
+        if at and lo and lo <= at <= hi and isinstance(t.get("id"), str):
+            hit.append(t["id"])
+    return hit[0] if len(hit) == 1 else None
+
+
+def spend_subagents(state, transcript=None):
+    """Расход субагентов за время прогона из `<журнал сессии без .jsonl>/subagents/` → строки `executor`
+    по агентам (числа, модель, agent_type, id агента, таск; без текста). Повторный вызов не удваивает
+    расход: читатели берут последнюю строку на `agent`. Одна печатная строка; не бросает исключений."""
+    miss = lambda why: "расход субагентов не найден: " + why
+    try:
+        if run_log is None:
+            return miss("журнал прогона недоступен")
+        path = transcript or session_transcript()
+        if not path:
+            return miss("нет журнала сессии в ~/.claude/projects (путь задаёт --transcript)")
+        agents = run_log.usage_by_agent(os.path.splitext(path)[0] + os.sep + "subagents",
+                                        state.get("startedAt"), dt.datetime.now(dt.timezone.utc))
+        if not agents:
+            return "расход субагентов: субагентов нет"
+        saved = [run_log.append(A, "executor", run=state.get("dir"), role=run_log.role_of(a["agent_type"]),
+                                ticket=_ticket_at(state, a["first_at"]),
+                                **{k: v for k, v in a.items() if k != "first_at"}) for a in agents]
+        if not all(saved):
+            return "расход субагентов не записан: журнал прогона недоступен для записи"
+        return "расход субагентов: %s ток. вход+выход, кэш чтение %s, агентов %d" % (
+            sum(a["input"] + a["output"] for a in agents), sum(a["cache_read"] for a in agents), len(agents))
+    except Exception as exc:
+        return miss(type(exc).__name__)
 
 
 def _minutes(start, end, waits=()):
@@ -3506,6 +3565,9 @@ def main():
             return                                    # только печать: state.js не трогаем
         if cmd == "spend-orchestrator":
             print(spend_orchestrator(state, opt["transcript"] if isinstance(opt.get("transcript"), str) else None))
+            return                                    # только журнал расхода: state.js не трогаем
+        if cmd == "spend-subagents":
+            print(spend_subagents(state, opt["transcript"] if isinstance(opt.get("transcript"), str) else None))
             return                                    # только журнал расхода: state.js не трогаем
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
@@ -3654,7 +3716,7 @@ def compute_model_report(records, run):
             t["again"] = True
     model = {}
     for r in executor_rows(records, run):
-        tid = executor_ticket(r.get("agent_type"))
+        tid = row_ticket(r)
         if tid in tickets:
             model[tid] = r.get("model") if isinstance(r.get("model"), str) and r.get("model") else UNKNOWN_MODEL
             usage[tid] = usage.get(tid, 0) + _tokens(r, "input") + _tokens(r, "output")

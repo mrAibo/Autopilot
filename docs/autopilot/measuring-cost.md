@@ -60,6 +60,15 @@ Limits, so the numbers are not over-read:
 - **The orchestrator is one line per run.** Main-session turns cannot honestly be assigned to a ticket, so it appears in role and model tables only, never per ticket. It is written at `finish`, so the dashboard has no orchestrator figure while the run is still going unless you call the command yourself.
 - Sidechain (subagent) messages in the session log are skipped there: the subagents are counted from their own transcripts.
 
+## Subagent spend in a normal run
+
+Without `--strict-routing` there are no hooks, but Claude Code keeps a log per subagent: `<session log without .jsonl>/subagents/agent-<id>.jsonl` plus `agent-<id>.meta.json`. `ap.py spend-subagents [--transcript PATH]` (and `finish`) writes one `executor` row per agent: token sums, model, `agent_type`, agent id, role and ticket. Message text, prompts and `description` are never read or saved.
+
+- Only messages since the run's `startedAt` count; a repeated `message.id` counts once (the last). An agent still running is counted by what is written so far.
+- Calling it again does not double the numbers: readers keep the last row per agent. In a strict run, hook rows win and the log rows of `autopilot-…` agents are dropped.
+- The ticket is the single ticket whose `startedAt…finishedAt` window holds the agent's first message; in a parallel wave (several fit) or with none, the row has no ticket. A broken or missing `.meta.json` gives role `agent`.
+- No `subagents/` folder prints "субагентов нет" and `finish` goes on.
+
 ## Measured: main-session model and ticket routing (2026-10-29)
 
 Same 3-ticket strict run in all three cases (Claude desktop app, subscription OAuth, OTel `cost.usage` estimates in USD, not charges). All runs were VALID: 3/3 tickets done through the attestation gate, G1–G4 ok.
