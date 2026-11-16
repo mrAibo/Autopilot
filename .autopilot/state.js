@@ -15,9 +15,9 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "194cb9d",
   "startedAt": "2026-11-16T02:27:36+01:00",
-  "updatedAt": "2026-11-16T02:31:14+01:00",
+  "updatedAt": "2026-11-16T02:45:54+01:00",
   "finishedAt": null,
   "stages": [
     {
@@ -71,18 +71,26 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-16T02:31:08+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-16T02:31:27+01:00"
         }
       ],
-      "startedAt": "2026-11-16T02:31:08+01:00"
+      "startedAt": "2026-11-16T02:31:08+01:00",
+      "finishedAt": "2026-11-16T02:31:27+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "active",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T02:31:27+01:00",
+          "finishedAt": null
+        }
+      ],
+      "startedAt": "2026-11-16T02:31:27+01:00"
     },
     {
       "id": "review",
@@ -95,8 +103,8 @@ window.STATE =
   ],
   "requirements": {
     "total": 6,
-    "done": 0,
-    "inTicket": 5,
+    "done": 5,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 1,
@@ -127,12 +135,23 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "44f827ce669a2efa1bb2cda2e8de9a031f4daae562af8d6321c4654feb00c22f",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-16T02:31:28+01:00",
       "retries": 0,
-      "repairs": 0
+      "repairs": 0,
+      "finishedAt": "2026-11-16T02:45:54+01:00",
+      "placeholders": [],
+      "tests": {
+        "passed": 959,
+        "failed": 0
+      },
+      "commit": "7b3e1a8"
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 959,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -162,9 +181,14 @@ window.STATE =
     "2026-11-16T02:31:08+01:00",
     "2026-11-16T02:31:12+01:00",
     "2026-11-16T02:31:13+01:00",
-    "2026-11-16T02:31:14+01:00"
+    "2026-11-16T02:31:14+01:00",
+    "2026-11-16T02:31:26+01:00",
+    "2026-11-16T02:31:27+01:00",
+    "2026-11-16T02:31:28+01:00",
+    "2026-11-16T02:32:07+01:00",
+    "2026-11-16T02:45:54+01:00"
   ],
-  "rev": 14,
+  "rev": 19,
   "waiting": null,
   "waits": [
     {
@@ -261,18 +285,49 @@ window.STATE =
       "g": "G3",
       "ok": true,
       "problems": 0
+    },
+    {
+      "t": "2026-11-16T02:31:27+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T02:31:28+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T02:32:07+01:00",
+      "k": "tickets",
+      "n": 1
+    },
+    {
+      "t": "2026-11-16T02:45:54+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 959,
+        "failed": 0
+      }
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«Сделай сборку по записи расхода субагентов»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«в обычном режиме»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
@@ -283,17 +338,17 @@ window.STATE =
     {
       "id": "R04i",
       "text": "(подразумевается) записанный расход субагентов виден там, где уже виден расход оркестратора (report-run, дашборд)",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R05i",
       "text": "(подразумевается) из журналов читаются только суммы токенов, имя модели и agentType; текст и description не читаются и не сохраняются (договорённость «ок, все три» прошлой сборки, подтверждено «ок» 2026-11-16)",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "G01",
       "text": "«ок» — на предложение взять из остатка прошлой сборки усечение длинных путей в имени папки Claude Code для session_transcript",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {

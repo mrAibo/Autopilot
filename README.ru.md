@@ -612,7 +612,7 @@ CHANGELOG.md                     ← что нового по версиям
 
 Всё это обычный markdown. Можно открыть и прочитать: [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md).
 
-В наборе <!-- tests:count -->942<!-- /tests:count --> тестов `unittest` (`python3 -m unittest discover -s tests`); число подставляет `skills/autopilot/tools/test_count.py --write`.
+В наборе <!-- tests:count -->959<!-- /tests:count --> тестов `unittest` (`python3 -m unittest discover -s tests`); число подставляет `skills/autopilot/tools/test_count.py --write`.
 
 ---
 
