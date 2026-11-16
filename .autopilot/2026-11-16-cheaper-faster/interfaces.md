@@ -59,4 +59,6 @@
 
 ## Что завершённые таски построили
 
-—
+- Таск 01: `agent_profiles.permanent_profiles() -> [(Path, str)]`; `agent_profiles.install_permanent(root, agents_dir=".claude/agents") -> [имена]`; `ap.last_context_tokens(transcript=None) -> int | None`; `ap.context_hint() -> str`; `ap.cmd_agents` (`agents install-user --by-user|--decline`); `tools/measure-run.py <проект> [id|all]` — колонки «стартовый контекст», тип агента, таблица ходов оркестратора. Тесты — `tests/test_light_profiles.py`.
+- Таск 02 (`ap.py`): `full_check_command(state) -> str | None`; `generators(state) -> {имя: (команда, [файлы])}`; `commit_paths(paths, message, trailers) -> sha | None`; `count_tests(text) -> (прошло, упало) | None`; команды `chore <имя>`; `ticket NN land --message … [--zone a/,b/] [--requirements R01,R02] [--allow пути] [--placeholder R05]`; `bootstrap --project <путь>`; `doctor [--text <версия>]`; `state.blind` после круга 2 — `{checked, matched, mismatches, rounds: [{…}, {…}]}`. `upgrade-tools` и `init` доносят все новые `.py` навыка. Тесты — `tests/test_one_command.py`.
+- Решение по R05 (замер таска 01: в среднем 8,2 шага оркестратора на посадку, медиана 3, 49 окон из 14 сессий): три и больше — R05 делается.

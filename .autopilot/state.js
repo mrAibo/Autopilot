@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "cheaper-faster",
-  "dir": "2026-11-16-cheaper-faster--wip",
+  "dir": "2026-11-16-cheaper-faster",
   "title": "Autopilot: дешевле, быстрее, удобнее",
   "mode": "semi",
   "depth": "normal",
@@ -15,10 +15,10 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "aa97dc7",
   "startedAt": "2026-11-16T17:13:04+01:00",
-  "updatedAt": "2026-11-16T17:26:19+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-16T19:33:40+01:00",
+  "finishedAt": "2026-11-16T19:33:40+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -70,32 +70,57 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-16T17:25:13+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-16T17:26:28+01:00"
         }
       ],
-      "startedAt": "2026-11-16T17:25:13+01:00"
+      "startedAt": "2026-11-16T17:25:13+01:00",
+      "finishedAt": "2026-11-16T17:26:28+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T17:26:28+01:00",
+          "finishedAt": "2026-11-16T18:52:51+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T17:26:28+01:00",
+      "finishedAt": "2026-11-16T18:52:51+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T18:52:51+01:00",
+          "finishedAt": "2026-11-16T19:18:59+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T18:52:51+01:00",
+      "finishedAt": "2026-11-16T19:18:59+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T19:18:59+01:00",
+          "finishedAt": "2026-11-16T19:33:40+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T19:18:59+01:00",
+      "finishedAt": "2026-11-16T19:33:40+01:00"
     }
   ],
   "requirements": {
     "total": 88,
-    "done": 0,
-    "inTicket": 56,
+    "done": 56,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 32,
@@ -144,9 +169,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "9cb8f421d8a345475119c55bda3c3d645a5a919f280f26b4d4e59af0050a9038",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-16T17:26:46+01:00",
+      "finishedAt": "2026-11-16T17:58:28+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 987,
+        "failed": 0
+      },
+      "commit": "e07012b",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
@@ -214,9 +247,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "44c464709c7a71db9b9c97b5af6874a92f344788ea583724bcb4ee0a785f0539",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-16T17:58:30+01:00",
+      "finishedAt": "2026-11-16T18:31:19+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1020,
+        "failed": 0
+      },
+      "commit": "cbd1e69",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "02",
         "provider": "anthropic",
@@ -273,9 +314,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "01410406ed849287e58fb7a43e12a229e6161bc286b59370abe1d311cea5ea8c",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-16T18:31:20+01:00",
+      "finishedAt": "2026-11-16T18:52:50+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1024,
+        "failed": 0
+      },
+      "commit": "11a0d60",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "03",
         "provider": "anthropic",
@@ -300,9 +349,50 @@ window.STATE =
         "error": "No verified host capabilities",
         "applied": false
       }
+    },
+    {
+      "id": "F1",
+      "title": "Правки по код-ревью ветки",
+      "requirements": [
+        "R0001",
+        "R0003",
+        "R0703",
+        "R1002"
+      ],
+      "blockedBy": [],
+      "wave": 4,
+      "zone": [
+        "skills/autopilot/SKILL.md",
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/phases/5-subagents.md",
+        "tests/"
+      ],
+      "review": "да — ремонт ветки",
+      "model": "сильная",
+      "fingerprint": "2dfc559893bf67950501de2dbc04519c30967cc3bf563e94cb95de1caa098117",
+      "status": "done",
+      "startedAt": "2026-11-16T18:55:23+01:00",
+      "finishedAt": "2026-11-16T19:16:46+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 1022,
+        "failed": 0
+      },
+      "commit": "cebfd38",
+      "placeholders": [],
+      "routing": {
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "reason": "ремонт ветки: маска разрешений и шлюз G4"
+      }
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 1022,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -318,8 +408,43 @@ window.STATE =
     "items": []
   },
   "concerns": [],
-  "blockingFindings": [],
-  "blind": null,
+  "blockingFindings": [
+    {
+      "id": "B01",
+      "text": "allowed-tools: маска python *tools/ap.py* пускает python -c и чужой ap.py",
+      "ticket": null,
+      "openedAt": "2026-11-16T18:55:18+01:00",
+      "status": "resolved",
+      "openedCommit": "8784dec",
+      "resolvedAt": "2026-11-16T19:18:57+01:00",
+      "resolutionCommit": "cebfd38",
+      "resolutionTests": {
+        "passed": 1022,
+        "failed": 0
+      },
+      "review": "повторное ревью: маски bootstrap/doctor убраны, обхода через -c нет — закрыто"
+    },
+    {
+      "id": "B02",
+      "text": "blind круг 2: нет нижней границы checked — зелёный G4 при оставшихся расхождениях",
+      "ticket": null,
+      "openedAt": "2026-11-16T18:55:19+01:00",
+      "status": "resolved",
+      "openedCommit": "8784dec",
+      "resolvedAt": "2026-11-16T19:18:58+01:00",
+      "resolutionCommit": "cebfd38",
+      "resolutionTests": {
+        "passed": 1022,
+        "failed": 0
+      },
+      "review": "повторное ревью: круг 2 с checked меньше числа расхождений отказывает без записи — закрыто"
+    }
+  ],
+  "blind": {
+    "checked": 14,
+    "matched": 14,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-16T17:13:04+01:00",
     "2026-11-16T17:13:12+01:00",
@@ -331,9 +456,32 @@ window.STATE =
     "2026-11-16T17:25:14+01:00",
     "2026-11-16T17:26:17+01:00",
     "2026-11-16T17:26:18+01:00",
-    "2026-11-16T17:26:19+01:00"
+    "2026-11-16T17:26:19+01:00",
+    "2026-11-16T17:26:27+01:00",
+    "2026-11-16T17:26:28+01:00",
+    "2026-11-16T17:26:46+01:00",
+    "2026-11-16T17:58:28+01:00",
+    "2026-11-16T17:58:30+01:00",
+    "2026-11-16T18:31:19+01:00",
+    "2026-11-16T18:31:20+01:00",
+    "2026-11-16T18:52:50+01:00",
+    "2026-11-16T18:52:51+01:00",
+    "2026-11-16T18:55:18+01:00",
+    "2026-11-16T18:55:19+01:00",
+    "2026-11-16T18:55:20+01:00",
+    "2026-11-16T18:55:21+01:00",
+    "2026-11-16T18:55:22+01:00",
+    "2026-11-16T18:55:23+01:00",
+    "2026-11-16T19:07:09+01:00",
+    "2026-11-16T19:18:57+01:00",
+    "2026-11-16T19:18:58+01:00",
+    "2026-11-16T19:18:59+01:00",
+    "2026-11-16T19:33:10+01:00",
+    "2026-11-16T19:33:11+01:00",
+    "2026-11-16T19:33:12+01:00",
+    "2026-11-16T19:33:40+01:00"
   ],
-  "rev": 14,
+  "rev": 38,
   "waiting": null,
   "waits": [
     {
@@ -431,278 +579,451 @@ window.STATE =
       "applied": false,
       "tickets": 3,
       "blocked": 3
+    },
+    {
+      "t": "2026-11-16T17:26:28+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T17:26:46+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T17:58:28+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 987,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T17:58:30+01:00",
+      "k": "ticket",
+      "ids": [
+        "02"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T18:31:19+01:00",
+      "k": "ticket",
+      "ids": [
+        "02"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1020,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T18:31:20+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T18:52:50+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1024,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T18:52:51+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T18:55:18+01:00",
+      "k": "blocker",
+      "id": "B01",
+      "act": "open"
+    },
+    {
+      "t": "2026-11-16T18:55:19+01:00",
+      "k": "blocker",
+      "id": "B02",
+      "act": "open"
+    },
+    {
+      "t": "2026-11-16T18:55:20+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 7
+    },
+    {
+      "t": "2026-11-16T18:55:21+01:00",
+      "k": "tickets",
+      "n": 4
+    },
+    {
+      "t": "2026-11-16T18:55:22+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "route"
+    },
+    {
+      "t": "2026-11-16T18:55:23+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T19:07:09+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1022,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-16T19:18:57+01:00",
+      "k": "blocker",
+      "id": "B01",
+      "act": "resolve"
+    },
+    {
+      "t": "2026-11-16T19:18:58+01:00",
+      "k": "blocker",
+      "id": "B02",
+      "act": "resolve"
+    },
+    {
+      "t": "2026-11-16T19:18:59+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 1
+    },
+    {
+      "t": "2026-11-16T19:18:59+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T19:33:10+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 14,
+      "matched": 14
+    },
+    {
+      "t": "2026-11-16T19:33:11+01:00",
+      "k": "tests",
+      "passed": 1022,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-16T19:33:12+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 3
+    },
+    {
+      "t": "2026-11-16T19:33:40+01:00",
+      "k": "finish",
+      "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные",
+      "problems": 0
     }
   ],
   "reqList": [
     {
       "id": "R0001",
       "text": "«Поведение шлюзов G1–G4, слепой приёмки, подписей, guard и запрет Fable не ослабляются.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0002",
       "text": "«Правила Opus не меняются.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0003",
       "text": "«Ни одно правило навыка не теряется при переносе текста.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0004",
       "text": "«Если сборка выходит за ~36 тыс. строк, делить на две: волны 1–3, затем 4–6.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0005",
       "text": "«R04 раньше R05; R09 раньше R11; R11 раньше строки прогноза в R19.» · «R06 и R05 оба меняют phases/5-subagents.md: сначала R05, потом перенос.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0006",
       "text": "«Чего в этой сборке нет» — постоянные профили в строгом прогоне, усилие low, три исполнителя, ADR-агент на ревью, плагин, мод-панель, нативная изоляция, изменения правил Opus/Fable/шлюзов/слепоты",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0101",
       "text": "«Появляются четыре постоянных профиля с фиксированными именами, без имени прогона и номера таска: autopilot-executor (Read, Grep, Glob, Bash, Edit, Write), autopilot-reviewer, autopilot-acceptance (Read, Grep, Glob, Bash), autopilot-explor…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0102",
       "text": "«Модель и усилие в обычном прогоне задаются параметрами вызова, как сейчас; профиль их не закрепляет.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0103",
       "text": "«Профили пишутся в .claude/agents/ при init, если их нет или текст отличается. Профили прошлых прогонов и чужие файлы не трогаются.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0104",
       "text": "«Профиля нет в этой сессии (первая сборка в папке, ответ «Agent type not found») — сборка идёт как сейчас, на general-purpose, одной строкой в чате сказано, что со следующего чата будет дешевле. Никогда не останов.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0105",
       "text": "«Строгий прогон не меняется: свои профили на таск, guard, подписи, аттестация.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0106",
       "text": "«Фазы и 5-host-claude.md называют лёгкий профиль для каждой роли: исполнитель, точечное ревью, ревью ветки, проверка покрытия G2, слепая приёмка, разведка, память, ADR.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0107",
       "text": "«tools/measure-run.py печатает колонку «стартовый контекст» и тип агента по каждому контексту (из первых чисел расхода и meta.json рядом с журналом субагента; текст сообщений не читается).»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0108",
       "text": "«Готово, когда: тесты на создание, неизменность при повторном init, отсутствие пути таска в тексте профиля; в docs/autopilot/measuring-cost.md записан замер одной настоящей сборки до и после с оговорками. Если замер после невозможен в этой…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0109",
       "text": "«Открытый вопрос брифинга: ставить ли эти же четыре профиля ещё и на уровне пользователя (~/.claude/agents/), чтобы они были видны уже в первой сборке любой папки. Запись вне проекта — только с согласия пользователя. Моя рекомендация: спро…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0201",
       "text": "«ap.py читает из журнала главной сессии размер последнего контекста (вход, чтение и запись кэша последнего шага): та же логика поиска журнала, что в session_transcript и spend_orchestrator; только числа.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0202",
       "text": "«На stage build, stage review, stage final и на init при контексте выше порога команда печатает одну строку ↑: сколько сейчас и что /autopilot в новом чате продолжит с этого места. Порог по умолчанию 150 тыс., настраивается.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0203",
       "text": "«Это подсказка, не вопрос и не останов; в строгом прогоне на Claude Code обязательный новый чат после плана остаётся как есть. Журнал не найден — строки нет.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0204",
       "text": "«phases/0-preflight.md: новая сборка в чате, где уже прошла другая, начинается с этой строки.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0205",
       "text": "«Тесты: порог, отсутствие журнала, усечённое имя папки журнала.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0301",
       "text": "«В interfaces.md появляется раздел «Команды-генераторы»: имя, команда, файлы, которые она переписывает. Заполняет планировщик из того, что есть в проекте (счётчики, форматтер, генерация кода).»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0302",
       "text": "«ap.py chore <имя> запускает объявленную команду, проверяет, что изменились только объявленные файлы, и коммитит их с трейлером прогона. Изменилось что-то ещё — отказ, ничего не закоммичено.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0303",
       "text": "«Правило 5 в SKILL.md получает одно уточнение: запуск объявленной команды-генератора через ap.py chore — не написание кода. Руками оркестратор по-прежнему ничего в проекте не правит.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0304",
       "text": "«Тесты: объявленная команда; лишний изменённый файл; необъявленное имя; команда с ненулевым кодом выхода.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0401",
       "text": "«Договорённость прошлой сборки: составная команда «тесты, коммит, ticket done» отложена «до замера». Этот пункт и есть замер.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0402",
       "text": "«tools/measure-run.py считает шаги главной сессии между возвратом субагента и следующим запуском субагента и токены на эти шаги. Читаются числа, имена инструментов и тип агента; текст не читается и не сохраняется.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0403",
       "text": "«Таблица с оговорками — в docs/autopilot/measuring-cost.md. Решение по R05 записано рядом одной строкой. В среднем меньше трёх шагов на таск — R05 не делается и уходит в PROGRESS.md с причиной.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0501",
       "text": "«ap.py ticket NN land --zone <пути> --message \"<текст>\" --requirements R01,R02 по порядку: файлы вне зоны (git status --porcelain), полная проверка из interfaces.md с коротким выводом, коммит только зоны с трейлерами, ticket NN done --test…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0502",
       "text": "«Красный шаг — останов без коммита, одна-три строки: какой шаг и почему. Ноль тестов считается красным.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0503",
       "text": "«Вывод при успехе не длиннее пяти строк.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0504",
       "text": "«За оркестратором остаются: чтение контракта исполнителя, запись INTERFACES в interfaces.md, учёт заглушек и переменных, строка пользователю.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0505",
       "text": "«Строгий изолированный прогон идёт прежним путём (worktree NN verify, finalize, land); новая команда там отказывает с подсказкой. Отдельные команды работают как раньше.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0506",
       "text": "«phases/5-subagents.md, раздел «After each ticket», переписан под команду и стал короче.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0507",
       "text": "«Тесты: зелёный путь; файл вне зоны; красная проверка; ноль тестов; отказ в строгом изолированном прогоне.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0601",
       "text": "«Из phases/4-plan.md и phases/5-subagents.md в отдельные файлы выносится то, что обычному прогону на Claude Code не нужно: строгий режим и регистрация агентов, Opus, Codex, --sequential-host, контроллер, изолированные таски. Каждый такой ф…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0602",
       "text": "«Это перенос, не редактура. Таблица «Reading this skill» в SKILL.md обновлена.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0603",
       "text": "«Тест-ограничитель: сумма байт файлов обычного пути (перечень в тесте) не больше порога. Порог — фактический размер после переноса плюс 5 %; цель — не больше 110 КБ. Цель не достигнута переносом — в отчёте фактическое число, текст ради циф…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0604",
       "text": "«Тест: каждый вынесенный файл упомянут в основном файле своей фазы.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0605",
       "text": "«Три README и docs/autopilot/ поправлены там, где ссылаются на перенесённое.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0701",
       "text": "«python3 \"<skillDir>/tools/ap.py\" bootstrap --project . копирует шаблон дашборда и все .py из tools/ навыка, создаёт index.html, печатает skillDir. Идемпотентна.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0702",
       "text": "«upgrade-tools копирует и новые файлы. Правила доверия к skillDir в подписанном прогоне и запрет при таске в работе сохраняются.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0703",
       "text": "«§1 в 0-instruments.md сокращён до поиска навыка и одной команды.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0704",
       "text": "«Тесты: чистая папка; повторный запуск; новый файл в навыке доходит через upgrade-tools; недоверенный skillDir отказывает.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0801",
       "text": "«ap.py doctor (работает из папки навыка, до init) объединяет git-check, claude-version, проверку advisorModel и сводку repo_doctor.py: одна строка для человека на каждую проверку, код выхода 2 только на отказах, которые и сейчас останавлив…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0802",
       "text": "«Отдельные команды остаются. phases/0-preflight.md называет doctor вместо отдельных вызовов.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0803",
       "text": "«Тесты: всё зелёное; отказ Git; старая версия Claude Code; нечитаемая версия не отказ.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0901",
       "text": "«Модель и тип агента берутся из журнала субагента и meta.json рядом с ним; только имя модели, тип агента и числа.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0902",
       "text": "«ticket F<n> route в обычном прогоне записывает маршрут так же, как для таска плана.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0903",
       "text": "«Сначала проверить, что из этого уже сделала сборка 2026-11-16-subagent-spend-nonstrict; сделанное не повторять, а назвать в отчёте.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R0904",
       "text": "«Готово, когда: в report-run на журнале с записями субагентов нет строки «не указана» там, где модель есть в журнале субагента; тест на это.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R1001",
       "text": "«Второй круг получает бриф целиком и список требований, по которым первый круг сказал «частично» или «нет», в словах брифа. Он заново клонирует, поднимает проект, проходит основной сценарий один раз и проверяет названные требования. Осталь…",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R1002",
       "text": "«Проверяющий по-прежнему свежий и по-прежнему не видит спецификацию, манифест и таски. Вердикт первого круга по остальным требованиям сохраняется; ap.py blind второго круга сводит оба.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R1003",
       "text": "«Основной сценарий во втором круге не поднялся — это расхождение, даже если его не было в списке.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R1004",
       "text": "«Тесты на сведение двух кругов в ap.py; текст запроса второго круга — в 8-final.md.»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R1101",
@@ -899,12 +1220,12 @@ window.STATE =
     {
       "id": "G01",
       "text": "«.meta.json и collapse_agents» — .meta.json читается с utf-8-sig",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "G02",
       "text": "«.meta.json и collapse_agents» — collapse_agents не отбрасывает журнальные строки autopilot-… при хуковой строке без agent (занижение в строгом прогоне)",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
@@ -925,14 +1246,104 @@ window.STATE =
       "ok": true,
       "at": "2026-11-16T17:26:18+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-16T19:33:10+01:00",
+      "checked": 14,
+      "matched": 14
     }
   },
-  "result": null,
+  "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
-    "byTicket": {}
+    "byRole": {
+      "agent": {
+        "n": 11,
+        "input": 724,
+        "output": 326612,
+        "cache_read": 73749368,
+        "cache_write": 1815729,
+        "tokens": 327336,
+        "hit": 98
+      },
+      "orchestrator": {
+        "n": 1,
+        "input": 146,
+        "output": 68794,
+        "cache_read": 13812598,
+        "cache_write": 175173,
+        "tokens": 68940,
+        "hit": 99
+      }
+    },
+    "byModel": {
+      "claude-sonnet-5-5": {
+        "n": 10,
+        "input": 718,
+        "output": 302845,
+        "cache_read": 73519789,
+        "cache_write": 1647080,
+        "tokens": 303563,
+        "hit": 98
+      },
+      "claude-haiku-5-5": {
+        "n": 1,
+        "input": 6,
+        "output": 23767,
+        "cache_read": 229579,
+        "cache_write": 168649,
+        "tokens": 23773,
+        "hit": 58
+      },
+      "claude-fable-5-2": {
+        "n": 1,
+        "input": 146,
+        "output": 68794,
+        "cache_read": 13812598,
+        "cache_write": 175173,
+        "tokens": 68940,
+        "hit": 99
+      }
+    },
+    "byTicket": {
+      "01": {
+        "n": 1,
+        "input": 184,
+        "output": 95142,
+        "cache_read": 25116931,
+        "cache_write": 308361,
+        "tokens": 95326,
+        "hit": 99
+      },
+      "03": {
+        "n": 1,
+        "input": 70,
+        "output": 18634,
+        "cache_read": 4757578,
+        "cache_write": 161784,
+        "tokens": 18704,
+        "hit": 97
+      },
+      "02": {
+        "n": 1,
+        "input": 196,
+        "output": 101160,
+        "cache_read": 24540100,
+        "cache_write": 340747,
+        "tokens": 101356,
+        "hit": 99
+      },
+      "F1": {
+        "n": 1,
+        "input": 40,
+        "output": 8643,
+        "cache_read": 2163501,
+        "cache_write": 79005,
+        "tokens": 8683,
+        "hit": 96
+      }
+    }
   },
   "history": [
     {
@@ -1059,5 +1470,19 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "af788ad8243ef3f4ccc9afd89f8472c2d9bd72f2766bfd975be3830128751633",
-  "planValidationDigest": "1360eb8133a45fd0a0ad93ff10aa29d0c02991f6ae3459fe36545e5df67a61b8"
+  "planValidationDigest": "1360eb8133a45fd0a0ad93ff10aa29d0c02991f6ae3459fe36545e5df67a61b8",
+  "report": [
+    "ticket NN land: --zone заменяет зону таска без проверки; коммитит и ручные правки пользователя внутри зоны",
+    "commit_paths: пути без --literal-pathspecs (имена с [ и * читаются как шаблон); переименование оставляет старый путь в индексе; проект в подпапке репозитория не поддержан",
+    "ticket NN land: коммит делается до ticket done — при отказе done остаётся коммит без записи, печатается команда восстановления",
+    "land при параллельных тасках встаёт на красном от чужой незаконченной работы; обход — отдельные команды, в тексте фазы не назван",
+    "upgrade-tools и bootstrap копируют все .py навыка, включая служебные (test_count.py, пилоты) — так сказано в брифе; белого списка нет",
+    "AUTOPILOT_CONTEXT_HINT с не-ASCII цифрой роняет init и stage",
+    "chore и land запускают команду из interfaces.md через оболочку без белого списка — файл пишет оркестратор",
+    "ticket NN land считает «вне зоны» и файлы, грязные до таска: их приходится называть через --allow",
+    "R06: обычный путь навыка 191,5 → 184,0 КБ; цель брифа «не больше 110 КБ» переносом не достигнута, текст ради цифры не резали (как велит бриф); слепой проверяющий отметил пункт как «частично»",
+    "в папке без первого коммита init пишет .gitignore, и первый ticket NN land останавливается на нём как на файле вне зоны",
+    "замер «после» для лёгких профилей не сделан: профили видны Claude Code только со следующего чата"
+  ],
+  "blindRounds": 1
 }

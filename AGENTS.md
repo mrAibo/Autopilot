@@ -9,6 +9,8 @@
 |---------|------------|
 | `—` | Установка не нужна: только стандартная библиотека Python |
 | `python3 skills/autopilot/tools/ap.py` | Поднять дашборд, адрес без токена (в проектах — `.autopilot/ap.py`); адрес с токеном — `ap.py url` |
+| `python3 skills/autopilot/tools/ap.py bootstrap --project .` | Из папки навыка поставить инструменты в `.autopilot/` проекта (до `init`, без `state.lock`) |
+| `python3 .autopilot/ap.py doctor` | Предполётная проверка проекта: строка на проверку, код 2 — отказ `git-check` или версия ниже минимума |
 | `python3 -m unittest discover -s tests` | Все тесты (CI запускает то же на Python 3.11 и 3.13, Ubuntu и Windows) |
 | `python3 -m compileall -q skills/autopilot/tools tests` | Проверка синтаксиса |
 
@@ -20,7 +22,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 8 минут (<!-- tests:count -->1027<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1027<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (голый `ap.py` и остальные команды печатают адрес без `?t=`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
 - Файлы тасков искать только через `ticket_files(state, pattern)` в `ap.py` (там `glob.escape`): прямой glob по пути проекта ломается на `[`.
@@ -38,5 +40,12 @@
 - Единственная эскалация модели — `ticket NN retry --cause tests --escalate`: Haiku-таск после первого дозапроса уходит один раз на Sonnet-исполнителя `repairAgent`, в таск пишется `escalatedFrom`; остальные сбои модель не повышают (`docs/autopilot/retry-policy.md`).
 - Расход: `compute_spend` считает ещё `cache_read`, `cache_write`, `hit`; расход главной сессии пишет `ap.py spend-orchestrator [--transcript PATH]` (и `finish`) строкой `role=orchestrator` — только числа и модель, по умолчанию самый свежий журнал папки проекта в `~/.claude/projects/` (`docs/autopilot/measuring-cost.md`).
 - Расход субагентов пишут хуки `claude_attest` (строгий прогон) и `ap.py spend-subagents [--transcript PATH]` (и `finish`) из `<журнал сессии>/subagents/agent-*.jsonl` — в обычном прогоне тоже; читатели берут последнюю строку на `agent`, при строках хуков журнальные `autopilot-…` отбрасываются (`docs/autopilot/measuring-cost.md`).
+- Постоянные профили `autopilot-executor|reviewer|acceptance|explorer` без `model`/`effort` (модель и усилие — параметром вызова): `init` обычного прогона пишет их в `.claude/agents/` через `agent_profiles.install_permanent` (файлы под `.gitignore`); `ap.py agents install-user --by-user "<цитата>" | --decline` — в профили пользователя; `run_log.role_of` берёт роль из имени, в том числе из `autopilot-executor-03-…` (`docs/adr/0008`, `tests/test_light_profiles.py`).
+- Подсказка `↑` о размере контекста главной сессии — на `init` и `stage build|review|final` (`ap.context_hint`, `last_context_tokens`); порог `AUTOPILOT_CONTEXT_HINT`, по умолчанию 150000, `0` выключает (`docs/adr/0009`); замеры по журналам — `tools/measure-run.py`.
+- `ap.py` коммитит только через `commit_paths` (`git commit --only -- <пути>`) (`docs/adr/0010`): `ap.py chore <имя>` гоняет генератор из таблицы «Команды-генераторы» в `interfaces.md` прогона; `ap.py ticket NN land --message … --requirements R..` (`--zone a/,b/` через запятую, `--allow` — файлы, грязные до таска) берёт проверку из строки `Полная проверка: \`…\`` там же; в `isolateTickets` и при `tk["worktree"]` отказывает.
+- `bootstrap` и `doctor` работают до `init` и без `state.lock` (`docs/adr/0011`); масок `allowed-tools` для них нет — будет запрос разрешения; `upgrade-tools` и `init` копируют и новые `.py` навыка.
+- `ticket F<n> route --model --effort --reason` в обычном прогоне пишет `tk["routing"]` без профиля; строгая ветка прежняя.
+- `blind` второго круга сводит круги в `state.blind.rounds`, верхние поля — итог; `checked` круга 2 — от числа расхождений круга 1 до него же плюс один (`docs/adr/0012`).
+- Тексты чужих режимов лежат в `phases/4-plan-strict.md`, `4-plan-opus.md`, `5-strict.md`, `5-sequential-host.md`; `tests/test_text_split.py` держит размер обычного пути и дословность переноса.
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->
