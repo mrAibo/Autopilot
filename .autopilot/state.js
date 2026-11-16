@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "subagent-spend-nonstrict",
-  "dir": "2026-11-16-subagent-spend-nonstrict--wip",
+  "dir": "2026-11-16-subagent-spend-nonstrict",
   "title": "Расход субагентов виден в обычном режиме",
   "mode": "semi",
   "depth": "normal",
@@ -17,8 +17,8 @@ window.STATE =
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
   "baseCommit": "194cb9d",
   "startedAt": "2026-11-16T02:27:36+01:00",
-  "updatedAt": "2026-11-16T02:45:54+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-16T03:05:46+01:00",
+  "finishedAt": "2026-11-16T03:05:46+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -83,22 +83,39 @@ window.STATE =
     },
     {
       "id": "build",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-16T02:31:27+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-16T02:45:55+01:00"
         }
       ],
-      "startedAt": "2026-11-16T02:31:27+01:00"
+      "startedAt": "2026-11-16T02:31:27+01:00",
+      "finishedAt": "2026-11-16T02:45:55+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T02:45:55+01:00",
+          "finishedAt": "2026-11-16T03:02:17+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T02:45:55+01:00",
+      "finishedAt": "2026-11-16T03:02:17+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-16T03:02:17+01:00",
+          "finishedAt": "2026-11-16T03:05:46+01:00"
+        }
+      ],
+      "startedAt": "2026-11-16T03:02:17+01:00",
+      "finishedAt": "2026-11-16T03:05:46+01:00"
     }
   ],
   "requirements": {
@@ -137,15 +154,15 @@ window.STATE =
       "fingerprint": "44f827ce669a2efa1bb2cda2e8de9a031f4daae562af8d6321c4654feb00c22f",
       "status": "done",
       "startedAt": "2026-11-16T02:31:28+01:00",
+      "finishedAt": "2026-11-16T02:45:54+01:00",
       "retries": 0,
       "repairs": 0,
-      "finishedAt": "2026-11-16T02:45:54+01:00",
-      "placeholders": [],
       "tests": {
         "passed": 959,
         "failed": 0
       },
-      "commit": "7b3e1a8"
+      "commit": "7b3e1a8",
+      "placeholders": []
     }
   ],
   "tests": {
@@ -166,9 +183,19 @@ window.STATE =
     "deferred": 0,
     "items": []
   },
-  "concerns": [],
+  "concerns": [
+    "run_log.py collapse_agents — флаг hooks от любой хуковой строки без agent: при одном записанном хуком агенте журнальные строки остальных autopilot-… отбрасываются (строгий прогон, расход занижен)",
+    "ap.py _ticket_at — таск ставится всем ролям, ревьюер/explorer в окне чужого таска попадает в byTicket",
+    "run_log.py usage_by_agent — .meta.json читается как utf-8, не utf-8-sig: с BOM роль теряется",
+    "ap.py session_transcript — ветка общего префикса может выбрать соседний проект, чьё имя начинается с имени нашего (только пути ≥100 знаков)",
+    "run_log.py usage_by_agent — first_at берётся внутри окна since…until: агент, начатый до startedAt, может уйти на неверный таск"
+  ],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 1,
+    "matched": 1,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-16T02:27:36+01:00",
     "2026-11-16T02:27:57+01:00",
@@ -186,9 +213,17 @@ window.STATE =
     "2026-11-16T02:31:27+01:00",
     "2026-11-16T02:31:28+01:00",
     "2026-11-16T02:32:07+01:00",
-    "2026-11-16T02:45:54+01:00"
+    "2026-11-16T02:45:54+01:00",
+    "2026-11-16T02:45:55+01:00",
+    "2026-11-16T03:02:09+01:00",
+    "2026-11-16T03:02:17+01:00",
+    "2026-11-16T03:04:19+01:00",
+    "2026-11-16T03:04:20+01:00",
+    "2026-11-16T03:04:21+01:00",
+    "2026-11-16T03:05:45+01:00",
+    "2026-11-16T03:05:46+01:00"
   ],
-  "rev": 19,
+  "rev": 27,
   "waiting": null,
   "waits": [
     {
@@ -316,6 +351,58 @@ window.STATE =
         "passed": 959,
         "failed": 0
       }
+    },
+    {
+      "t": "2026-11-16T02:45:55+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T03:02:09+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 5
+    },
+    {
+      "t": "2026-11-16T03:02:17+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-16T03:04:19+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": false,
+      "checked": 11,
+      "matched": 10
+    },
+    {
+      "t": "2026-11-16T03:04:20+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 2
+    },
+    {
+      "t": "2026-11-16T03:04:21+01:00",
+      "k": "tests",
+      "passed": 959,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-16T03:05:45+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 1,
+      "matched": 1
+    },
+    {
+      "t": "2026-11-16T03:05:46+01:00",
+      "k": "finish",
+      "result": "Расход субагентов виден в обычном режиме: ap.py spend-subagents и finish пишут его из журналов Claude Code, report-run и дашборд показывают; 959 тестов зелёные, слепая приёмка 10 из 11, круг 2 закрыл последний пункт",
+      "problems": 0
     }
   ],
   "reqList": [
@@ -369,14 +456,68 @@ window.STATE =
       "ok": true,
       "at": "2026-11-16T02:31:14+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-16T03:05:45+01:00",
+      "checked": 1,
+      "matched": 1
     }
   },
-  "result": null,
+  "result": "Расход субагентов виден в обычном режиме: ap.py spend-subagents и finish пишут его из журналов Claude Code, report-run и дашборд показывают; 959 тестов зелёные, слепая приёмка 10 из 11, круг 2 закрыл последний пункт",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
-    "byTicket": {}
+    "byRole": {
+      "agent": {
+        "n": 5,
+        "input": 116,
+        "output": 41433,
+        "cache_read": 5837833,
+        "cache_write": 571158,
+        "tokens": 41549,
+        "hit": 91
+      },
+      "orchestrator": {
+        "n": 2,
+        "input": 110,
+        "output": 31856,
+        "cache_read": 9254057,
+        "cache_write": 85763,
+        "tokens": 31966,
+        "hit": 99
+      }
+    },
+    "byModel": {
+      "claude-sonnet-5-5": {
+        "n": 6,
+        "input": 226,
+        "output": 73289,
+        "cache_read": 15091890,
+        "cache_write": 656921,
+        "tokens": 73515,
+        "hit": 96
+      },
+      "<synthetic>": {
+        "n": 1,
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "tokens": 0,
+        "hit": null
+      }
+    },
+    "byTicket": {
+      "01": {
+        "n": 1,
+        "input": 36,
+        "output": 21168,
+        "cache_read": 2191254,
+        "cache_write": 105645,
+        "tokens": 21204,
+        "hit": 95
+      }
+    }
   },
   "history": [
     {
@@ -492,5 +633,10 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "4455ed70661808f5f5cca403b53eea8a55bf4917727a994ee6c79998aaa406e4",
-  "planValidationDigest": "53688ca877e695d25306d32c90db83cb4cf2710f2397449c683c1d39fc26d921"
+  "planValidationDigest": "53688ca877e695d25306d32c90db83cb4cf2710f2397449c683c1d39fc26d921",
+  "blindRounds": 2,
+  "report": [
+    "слепая приёмка: state.spend обновляется только со следующей командой ap.py, после одного spend-subagents дашборд ещё пуст; привязка к таску (byTicket) слепой стороной не проверялась — её закрывают тесты",
+    "memory-агент и ADR не запускались (T0, один таск): AGENTS.md дополнен исполнителем, проверено вручную"
+  ]
 }
