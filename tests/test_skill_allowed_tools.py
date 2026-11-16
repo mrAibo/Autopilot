@@ -38,11 +38,11 @@ class SkillAllowedToolsTests(unittest.TestCase):
     def test_allowed_tools_has_at_least_one_rule(self):
         self.assertGreaterEqual(len(self.rules()), 1)
 
-    def test_every_rule_is_bash_ap_py_only(self):
+    def test_every_rule_is_bash_ap_py_only(self):          # bootstrap и doctor идут из папки навыка, до init
         for rule in self.rules():
             with self.subTest(rule=rule):
                 self.assertTrue(rule.startswith("Bash("), rule)
-                self.assertRegex(rule, r"\.autopilot/(ap|controller)\.py")
+                self.assertRegex(rule, r"\.autopilot/(ap|controller)\.py|tools/ap\.py\* (bootstrap|doctor)")
 
     def test_no_wildcard_bash_rule(self):
         self.assertNotIn("Bash(*)", self.rules())

@@ -181,9 +181,9 @@ class DocumentationLocalesTests(unittest.TestCase):
         for name in ("5-host-claude.md", "5-host-codex.md"):
             self.assertTrue((ROOT / "skills/autopilot/phases" / name).is_file(), name)
 
-    def test_run_log_is_copied_documented_and_listed_in_the_event_table(self):
+    def test_run_log_is_installed_documented_and_listed_in_the_event_table(self):
         instruments = (ROOT / "skills/autopilot/phases/0-instruments.md").read_text(encoding="utf-8")
-        self.assertIn('tools/run_log.py" "$A/run_log.py"', instruments)
+        self.assertIn('tools/ap.py" bootstrap', instruments)         # run_log.py и остальные .py копирует bootstrap
         self.assertIn("report-run", instruments)
         doc = (ROOT / "docs/autopilot/run-log.md").read_text(encoding="utf-8")
         for needle in ("run-log.jsonl", "run-log.1.jsonl", "--share", "report-run", "1 MB",

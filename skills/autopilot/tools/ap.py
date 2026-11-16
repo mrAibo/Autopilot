@@ -26,6 +26,10 @@
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
     python3 .autopilot/ap.py agents install-user --by-user "<цитата>" | --decline   # лёгкие профили в папку настроек Claude Code (один раз)
+    python3 .autopilot/ap.py chore test-count           # генератор из interfaces.md («Команды-генераторы»): запуск и коммит только его файлов
+    python3 .autopilot/ap.py ticket 03 land --message "T03: приём заявки" --requirements R01,R02 [--zone a/,b/]   # вне зоны, полная проверка, коммит зоны, done
+    python3 "<skillDir>/tools/ap.py" bootstrap --project .   # поставить инструменты и дашборд в .autopilot/ (из папки навыка); печатает skillDir
+    python3 "<skillDir>/tools/ap.py" doctor             # git-check, версия Claude Code, advisorModel, repo_doctor — строка на проверку
     python3 .autopilot/ap.py url                        # адрес дашборда с токеном — только эта команда (в чат не вставлять)
     python3 .autopilot/ap.py upgrade-tools              # обновить .autopilot/*.py из навыка (init и stage делают сами)
     python3 .autopilot/ap.py stage build done | fail --note "…"
@@ -58,6 +62,7 @@
 import datetime as dt
 import hashlib
 import importlib.util
+import io
 import contextlib
 import glob
 import hmac
@@ -1325,7 +1330,7 @@ NOT_PINNED = ("skillDir не совпадает с зафиксированны�
 
 
 def upgrade_tools(state, auto=False):
-    """Копирует из `skillDir/tools/` в `.autopilot/` отличающиеся `.py`, что там уже есть; ap.py — в конце команды.
+    """Копирует из `skillDir/tools/` в `.autopilot/` отличающиеся и новые `.py`; ap.py — в конце команды.
     Возвращает имена. Ручной вызов отказывает, пока таск в работе; auto (init, stage) молча пропускает.
     Подписанный прогон берёт только skillDir, зафиксированный при init; сбой записи не оставляет половину обновления."""
     src = os.path.join(state.get("skillDir") or "", "tools")
@@ -1345,12 +1350,14 @@ def upgrade_tools(state, auto=False):
     try:
         for name in sorted(os.listdir(src)):
             old, new = os.path.join(A, name), os.path.join(src, name)
-            if not name.endswith(".py") or not os.path.isfile(old) or not os.path.isfile(new):
+            if not name.endswith(".py") or not os.path.isfile(new):
                 continue
-            with open(old, "rb") as f1, open(new, "rb") as f2:
+            with open(new, "rb") as f2:
                 data = f2.read()
-                if f1.read() == data:
-                    continue
+            if os.path.isfile(old):                   # нового файла навыка в .autopilot/ ещё нет — он тоже доезжает
+                with open(old, "rb") as f1:
+                    if f1.read() == data:
+                        continue
             if name != "ap.py":
                 tmp = old + ".new"
                 tmps.append(tmp)
@@ -1402,7 +1409,7 @@ def refresh_dashboard(state):
                 return ""
         try:
             import dashboard_upgrade
-        except ImportError:                       # upgrade_tools копирует только уже существующие файлы
+        except ImportError:                       # в .autopilot/ нет dashboard_upgrade.py (харнесс, старая установка)
             if not skill_dir_trusted(state):
                 return "! дашборд не обновлён из шаблона: " + NOT_PINNED
             spec = importlib.util.spec_from_file_location(
@@ -2399,6 +2406,8 @@ def escalate_ticket(state, tk, i, cause, attempts, t):
 def cmd_ticket(state, pos, opt):
     if "accept-edit" in pos:
         return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
+    if "land" in pos:
+        return cmd_land(state, [p for p in pos if p != "land"], opt)
     acts =[p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
     if len(acts) != 1 or not ids:
@@ -2698,6 +2707,246 @@ def cmd_ticket(state, pos, opt):
         r"[a-z0-9][a-z0-9-]{0,39}", opt["cause"]) else ("tests-failed" if pair and pair["failed"] else None)
     log(state, "ticket", ids=ids, act=act, tests=pair, journal={"cause": cause},
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
+
+
+# ── chore и ticket land: команды из interfaces.md, коммит только названных путей ──
+
+def interfaces_text(state):
+    try:
+        with open(os.path.join(A, state.get("dir") or "", "interfaces.md"), encoding="utf-8-sig") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def full_check_command(state):
+    """Команда из строки «Полная проверка: `…`» в interfaces.md прогона; нет строки — None."""
+    m = re.search(r"(?m)^[ \t>*-]*Полная проверка:[ \t]*`([^`\n]+)`", interfaces_text(state))
+    return m.group(1).strip() if m else None
+
+
+def generators(state):
+    """Таблица «Имя | Команда | Файлы» раздела «Команды-генераторы» → {имя: (команда, [файлы])}."""
+    found, inside = {}, False
+    for line in interfaces_text(state).splitlines():
+        if line.startswith("#"):
+            inside = line.lstrip("# ").strip().lower().startswith("команды-генераторы")
+            continue
+        if not inside or not line.lstrip().startswith("|"):
+            continue
+        cells = [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+        if len(cells) < 3 or cells[0].lower() == "имя" or set(cells[0]) <= set("-: "):
+            continue
+        files = [f.strip().strip("`").strip().replace("\\", "/") for f in cells[2].split(",")]
+        found[cells[0].strip("`").strip()] = (cells[1].strip("`").strip(), [f for f in files if f])
+    return found
+
+
+def covers(paths, path):
+    return any(path == p.rstrip("/") or path.startswith(p.rstrip("/") + "/") for p in paths)
+
+
+def porcelain():
+    """{путь: (XY, sha256 содержимого)} по `git status --porcelain`; None — git не ответил."""
+    try:
+        r = subprocess.run(["git", "-C", ROOT, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                           capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode:
+        return None
+    found, parts, n = {}, r.stdout.decode("utf-8", "replace").split("\0"), 0
+    while n < len(parts):
+        entry = parts[n]
+        n += 1
+        if len(entry) < 4:
+            continue
+        if entry[0] in "RC":
+            n += 1                                    # следом идёт прежний путь
+        try:
+            with open(os.path.join(ROOT, entry[3:]), "rb") as f:
+                digest = hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            digest = None
+        found[entry[3:]] = (entry[:2], digest)
+    return found
+
+
+def run_shell(command, timeout):
+    """→ (код, вывод); код None — таймаут (потомки убиты). Оболочка системы."""
+    import process_containment
+    try:
+        r = process_containment.run_contained("cmd /c " + command if WIN else ["sh", "-c", command],
+                                              timeout=timeout, cwd=ROOT)
+    except subprocess.TimeoutExpired:
+        return None, ""
+    except OSError as exc:
+        return 127, str(exc)
+    return r.returncode, (r.stdout or "") + "\n" + (r.stderr or "")
+
+
+def count_tests(text):
+    """Вывод проверки (unittest, cargo, pytest) → (прошло, упало); формат не узнан — None."""
+    ran = re.findall(r"^Ran (\d+) tests? in", text, re.M)
+    if ran:
+        tail = text[text.rfind("Ran " + ran[-1]):]
+        n = lambda key: sum(int(x) for x in re.findall(key + r"=(\d+)", tail))
+        failed = n("failures") + n("errors")
+        return int(ran[-1]) - failed - n("skipped"), failed
+    cargo = re.findall(r"^test result: \w+\. (\d+) passed; (\d+) failed", text, re.M)
+    if cargo:
+        return sum(int(p) for p, _ in cargo), sum(int(f) for _, f in cargo)
+    for line in reversed(text.splitlines()):
+        if re.search(r"\b(?:passed|failed|errors?)\b", line) and re.search(r"\bin [\d.]+s", line):
+            n = lambda word: sum(int(x) for x in re.findall(r"(\d+) " + word, line))
+            return n("passed"), n("failed") + n("errors?")
+    return None
+
+
+def last_line(text):
+    return next((x.strip()[:200] for x in reversed(text.splitlines()) if x.strip()), "")
+
+
+def commit_paths(paths, message, trailers):
+    """Единственное место, где ap.py коммитит: `git commit --only -- <пути>` с трейлерами → короткий SHA.
+    Без `git add -A` и `git stash`; сбой git — OSError с его последней строкой; нечего коммитить — None."""
+    def git(*args):
+        r = subprocess.run(["git", "-C", ROOT] + list(args), capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=120)
+        if r.returncode:
+            raise OSError(last_line(r.stderr or r.stdout) or "git вернул код %d" % r.returncode)
+        return r.stdout.strip()
+    git("add", "--", *paths)
+    if subprocess.run(["git", "-C", ROOT, "diff", "--cached", "--quiet", "--"] + list(paths)).returncode == 0:
+        return None                                   # после нормализации концов строк менять нечего
+    git("commit", "-q", "--only", "-m", message, *["--trailer=" + t for t in trailers], "--", *paths)
+    return git("rev-parse", "--short", "HEAD")
+
+
+def cmd_chore(state, pos):
+    """`chore <имя>`: объявленный генератор → коммит только его файлов. Код 0 — закоммичено или нечего;
+    2 — отказ, коммита нет."""
+    def refuse(*lines):
+        print("\n".join("chore: " + x for x in lines))
+        return 2
+    known = generators(state)
+    if len(pos) != 1 or pos[0] not in known:
+        return refuse("нет генератора %s в разделе «Команды-генераторы» interfaces.md (есть: %s)"
+                      % (" ".join(pos) or "—", ", ".join(known) or "ни одного"))
+    name = pos[0]
+    command, declared = known[name]
+    before = porcelain()
+    if before is None:
+        return refuse("git не отвечает — коммита нет")
+    dirty = [p for p in before if covers(declared, p)]
+    if dirty:
+        return refuse("%s: файлы генератора грязные до запуска (%s) — закоммить или убери, коммита нет"
+                      % (name, ", ".join(dirty[:3])))
+    code, out = run_shell(command, 600)
+    if code is None:
+        return refuse("%s: таймаут 600 с, коммита нет" % name)
+    if code:
+        return refuse("%s: команда вернула код %d, коммита нет" % (name, code), last_line(out))
+    after = porcelain()
+    if after is None:
+        return refuse("git не отвечает — коммита нет")
+    changed = sorted(p for p in set(before) | set(after) if before.get(p) != after.get(p))
+    extra = [p for p in changed if not covers(declared, p)]
+    if extra:
+        return refuse("%s: изменено лишнее — %s%s, коммита нет" % (
+            name, ", ".join(extra[:3]), " и ещё %d" % (len(extra) - 3) if len(extra) > 3 else ""),
+            "верни эти файлы и поправь «Файлы» генератора в interfaces.md")
+    if not changed:
+        print("chore %s: нечего коммитить — объявленные файлы не изменились" % name)
+        return 0
+    try:
+        sha = commit_paths(changed, "chore: " + name, ["Autopilot-Run: " + run_key(state.get("dir"))])
+    except OSError as exc:
+        return refuse("%s: коммит не удался (%s)" % (name, exc))
+    if sha is None:
+        print("chore %s: нечего коммитить — объявленные файлы не изменились" % name)
+        return 0
+    print("chore %s: закоммичено %s, файлов %d" % (name, sha, len(changed)))
+    return 0
+
+
+def split_paths(value):
+    return [x.strip().replace("\\", "/") for x in re.split(r"[,;]", value) if x.strip()] if isinstance(value, str) else []
+
+
+def cmd_land(state, pos, opt):
+    """`ticket NN land --message "…" [--zone a,b] [--requirements R01,R02] [--allow пути]`: вне зоны → полная
+    проверка → коммит зоны с трейлерами → `ticket NN done`. Красный шаг — 1–3 строки, код 2, коммита нет."""
+    if len(pos) != 1:
+        die('ticket NN land --message "…" [--zone a,b] [--requirements R01,R02]')
+    i = pos[0]
+    tk = next((x for x in state.get("tickets") or [] if x["id"] == i), None)
+    if tk is None:
+        die("таска %s нет — сначала `ap.py tickets`" % i)
+    message = opt.get("message")
+    if not isinstance(message, str) or not message.strip():
+        die('land: нужен --message "T%s: что сделано"' % i)
+
+    def red(step, why, hint=None):
+        print("land %s: стоп на шаге «%s» — %s" % (i, step, why))
+        if hint:
+            print("  " + hint)
+        sys.exit(2)
+    if state.get("isolateTickets") or tk.get("worktree"):
+        red("режим", "изолированный прогон", "прежним путём: worktree %s verify → finalize → land, затем ticket %s done" % (i, i))
+    if tk.get("status") == "done":
+        red("таск", "уже сдан")
+    by_id = {x["id"]: x for x in state.get("tickets") or []}
+    waiting = [d for d in tk.get("blockedBy", []) if by_id.get(d, {}).get("status") != "done"]
+    if waiting or any(b["status"] == "open" and b.get("ticket") == i for b in blocker_ledger(state)):
+        red("таск", "не готовы зависимости или есть открытые блокеры", "заверши их: " + ", ".join(waiting or [i]))
+    zone = split_paths(opt.get("zone")) or [z.replace("\\", "/") for z in tk.get("zone") or []]
+    if not zone:
+        red("зона", "у таска нет зоны", "дай --zone путь1,путь2")
+    reqs = ", ".join(re.findall(r"[RGD]\d+[a-z]?(?:\.\d+)?", str(opt.get("requirements") or "")) or tk.get("requirements") or [])
+    check = full_check_command(state)
+    if not check:
+        red("проверка", "в interfaces.md нет строки «Полная проверка: `команда`»", "впиши её и повтори")
+    flying = [z for x in state.get("tickets") or [] if x["id"] != i and x.get("status") in ACTIVE_EXECUTOR
+              for z in x.get("zone") or []]
+    allowed = [".autopilot", ".env.example"] + flying + split_paths(opt.get("allow"))
+    status = porcelain()
+    if status is None:
+        red("вне зоны", "git не отвечает")
+    outside = [p for p in status if not covers(zone, p) and not covers(allowed, p)]
+    if outside:
+        red("вне зоны", "изменено %s%s" % (", ".join(outside[:3]), " и ещё %d" % (len(outside) - 3) if len(outside) > 3 else ""),
+            "верни файл или назови причину (--allow путь — если он не от таска)")
+    code, out = run_shell(check, 1800)
+    if code is None:
+        red("проверка", "таймаут 1800 с")
+    counts = count_tests(out)
+    if code:
+        red("проверка", "красная: код %d%s" % (code, ", упало %d" % counts[1] if counts else ""), last_line(out))
+    if counts is None:
+        red("проверка", "не смог посчитать тесты: вывод не unittest, pytest или cargo", "отдельно: ticket %s done --tests N/0 --commit SHA" % i)
+    passed, failed = counts
+    if passed < 1 or failed:
+        red("проверка", "ноль тестов" if passed < 1 else "упало %d" % failed)
+    files = sorted(p for p in status if covers(zone, p) or p == ".env.example")
+    if not files:
+        red("коммит", "в зоне нечего коммитить")
+    try:
+        sha = commit_paths(files, message.strip(), ["Autopilot-Run: " + run_key(state.get("dir")), "Requirements: " + reqs])
+    except OSError as exc:
+        red("коммит", "git отказал (%s)" % exc, "сбой машины, не кода: ticket %s fail --note \"git отказал\" и вопрос пользователю" % i)
+    if sha is None:
+        red("коммит", "в зоне нечего коммитить")
+    done = {"tests": "%d/%d" % (passed, failed), "commit": sha}
+    if isinstance(opt.get("placeholder"), str):
+        done["placeholder"] = opt["placeholder"]
+    try:
+        cmd_ticket(state, [i, "done"], done)
+    except SystemExit:
+        print("land %s: коммит %s сделан, но `ticket done` отказал — после исправления: ticket %s done --tests %s --commit %s"
+              % (i, sha, i, done["tests"], sha))
+        raise
+    return "таск %s посажен: коммит %s, тестов %d/0, файлов %d" % (i, sha, passed, len(files))
 
 
 def cmd_worktree(state, pos, opt):
@@ -3100,9 +3349,21 @@ def cmd_numbers(state, name, pos, multi):
             die("blind: уже %d круга слепой приёмки за прогон. Остаток расхождений — в отчёт: "
                 "`add report \"что осталось\"`" % BLIND_ROUNDS)
         d["mismatches"] = multi.get("mismatch", [])
+        first = state.get("blind") if state.get("blindRounds") == 1 else None
+        round_ok = True
+        if isinstance(first, dict) and isinstance(first.get("checked"), int):
+            # Круг 2 проверяет расхождения круга 1 и основной сценарий; итог — как в круге 1, расхождения — оставшиеся.
+            r1 = {"checked": first["checked"], "matched": first.get("matched"),
+                  "mismatches": list(first.get("mismatches") or [])}
+            cap = len(r1["mismatches"]) + 1
+            if d["checked"] > cap:
+                die("blind: круг 2 проверяет только расхождения круга 1 и основной сценарий — checked не больше %d" % cap)
+            round_ok = d["checked"] - d["matched"] == len(d["mismatches"])
+            d = {"checked": r1["checked"], "matched": max(0, r1["checked"] - len(d["mismatches"])),
+                 "mismatches": d["mismatches"], "rounds": [r1, dict(d)]}
         state[name] = d
         state["blindRounds"] = (state.get("blindRounds") or 0) + 1
-        valid = (isinstance(d.get("checked"), int) and d["checked"] > 0
+        valid = (round_ok and isinstance(d.get("checked"), int) and d["checked"] > 0
                  and isinstance(d.get("matched"), int)
                  and 0 <= d["matched"] <= d["checked"]
                  and d["checked"] - d["matched"] == len(d["mismatches"]))
@@ -3351,7 +3612,7 @@ def cmd_git_check():
     return 2
 
 
-def cmd_claude_version(opt):
+def claude_version_text(opt):
     text = opt.get("text")
     if text is None:
         try:
@@ -3359,11 +3620,135 @@ def cmd_claude_version(opt):
                                   timeout=20).stdout
         except (OSError, subprocess.SubprocessError):
             text = ""
+    return text
+
+
+def cmd_claude_version(opt):
+    text = claude_version_text(opt)
     level, lines = claude_version_report(parse_claude_version(text if isinstance(text, str) else ""))
     if level == "ok":
         return 0
     print("\n".join(lines))
     return 2 if level == "refuse" else 0
+
+
+def cmd_doctor(opt):
+    """`doctor`: git-check, версия Claude Code, advisorModel, сводка repo_doctor — по строке на проверку,
+    проект — текущая папка. Код 2 только там, где сборку останавливали и раньше: Git не пишет, версия ниже минимума."""
+    def git():
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = cmd_git_check()
+        return out.getvalue().strip(), code
+
+    def version():
+        level, lines = claude_version_report(parse_claude_version(str(claude_version_text(opt))))
+        return "claude: " + lines[0].rstrip(":"), 2 if level == "refuse" else 0
+
+    def advisor():
+        spots = [os.path.join(claude_config_dir(), "settings.json"),
+                 os.path.join(os.getcwd(), ".claude", "settings.json"),
+                 os.path.join(os.getcwd(), ".claude", "settings.local.json")]
+        found = []
+        for path in spots:
+            try:
+                with open(path, encoding="utf-8-sig") as f:
+                    if "advisorModel" in json.load(f):
+                        found.append(path)
+            except (OSError, ValueError, TypeError):
+                pass
+        if not found:
+            return "advisorModel: не задан", 0
+        return ("advisorModel: задан в %s — для строгого прогона поставь CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1"
+                % ", ".join(found)), 0
+
+    def repo():
+        import repo_doctor
+        try:
+            report = repo_doctor.inspect(os.getcwd())
+        except repo_doctor.DoctorError as exc:
+            return "repo_doctor: %s" % exc, 0
+        return ("repo_doctor: готов" if report["status"] == "ready"
+                else "repo_doctor: блокеры — " + ", ".join(report["blockers"])), 0
+    worst = 0
+    for check in (git, version, advisor, repo):
+        try:
+            line, code = check()
+        except Exception as exc:                      # сбой одной проверки не мешает остальным
+            line, code = "%s: проверка не выполнилась (%s)" % (check.__name__, type(exc).__name__), 0
+        print(line)
+        worst = max(worst, code)
+    return worst
+
+
+def cmd_bootstrap(opt):
+    """`bootstrap [--project .]` из папки навыка: все `.py` из tools/ и дашборд -> `<проект>/.autopilot/`, `index.html`;
+    печатает skillDir. Идемпотентна, `state.lock` не берёт. Подписанный прогон с другим skillDir и таск в работе — отказ."""
+    global A, ROOT, PAGE
+    tools = os.path.dirname(os.path.abspath(__file__))
+    skill = os.path.dirname(tools)
+    template = os.path.join(skill, "phases", "dashboard-template.html")
+    if not (os.path.isfile(os.path.join(skill, "SKILL.md")) and os.path.isfile(template)):
+        die('bootstrap запускается из папки навыка: python3 "<skillDir>/tools/ap.py" bootstrap --project .')
+    project = os.path.abspath(opt["project"] if isinstance(opt.get("project"), str) else ".")
+    if not os.path.isdir(project):
+        die("bootstrap: нет папки проекта " + project)
+    dest = os.path.join(project, ".autopilot")
+    A, ROOT, PAGE = dest, project, os.path.join(dest, "dashboard.html")
+    state = None
+    if os.path.isfile(os.path.join(dest, "state.js")):
+        try:
+            state = state_io.read_state_file(os.path.join(dest, "state.js"))
+        except state_io.StateError as exc:
+            die("bootstrap: %s" % exc)
+    ours = dict(state or {}, skillDir=skill)
+    if state and not state.get("finishedAt"):
+        busy = [t["id"] for t in state.get("tickets") or [] if t.get("status") in ACTIVE_EXECUTOR]
+        if busy:
+            die("bootstrap: таск в работе (%s) — ставь инструменты между тасками" % ", ".join(busy))
+        if not skill_dir_trusted(ours):
+            die("bootstrap: " + NOT_PINNED)
+    copied, note = [], ""
+    try:
+        os.makedirs(dest, exist_ok=True)
+        for name in sorted(os.listdir(tools)):
+            src, target = os.path.join(tools, name), os.path.join(dest, name)
+            if not name.endswith(".py") or not os.path.isfile(src):
+                continue
+            with open(src, "rb") as f:
+                data = f.read()
+            if os.path.isfile(target):
+                with open(target, "rb") as f:
+                    if f.read() == data:
+                        continue
+            with open(target + ".new", "wb") as f:
+                f.write(data)
+            os.replace(target + ".new", target)
+            copied.append(name)
+        with open(template, "rb") as f:
+            page = f.read()
+        if state is not None and os.path.isfile(PAGE):
+            note = refresh_dashboard(ours)                # через dashboard_upgrade.py, снимок не затирается
+        elif not os.path.isfile(PAGE) or open(PAGE, "rb").read() != page:
+            with open(PAGE, "wb") as f:
+                f.write(page)
+            note = "дашборд скопирован"
+        index = os.path.join(dest, "index.html")
+        if not os.path.lexists(index):
+            try:
+                os.symlink("dashboard.html", index)
+            except (OSError, NotImplementedError):        # ссылки недоступны — копия-перенаправление
+                with open(index, "w", encoding="utf-8") as f:
+                    f.write('<!doctype html><meta charset="utf-8">'
+                            '<meta http-equiv="refresh" content="0; url=dashboard.html">'
+                            '<a href="dashboard.html">dashboard</a>\n')
+    except OSError as exc:
+        die("bootstrap: не записано (%s)" % exc)
+    print("инструменты: %s" % (("скопировано %d" % len(copied)) if copied else "уже на месте"))
+    if note:
+        print(note)
+    print("skillDir = " + skill)
+    return 0
 
 
 # ── данные для дашборда: расход, прошлые сборки, сбои журнала ────────────────
@@ -3643,7 +4028,7 @@ def main():
         sys.exit(cmd_git_check())
     if cmd == "agents":
         sys.exit(cmd_agents(pos[1:], opt))
-    notes = []
+    notes, landed = [], None
     if cmd == "init":
         state, notes = cmd_init(opt)
     else:
@@ -3707,6 +4092,8 @@ def main():
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
             return                                    # только печать: state.js не трогаем
+        if cmd == "chore":
+            sys.exit(cmd_chore(state, rest))              # коммитит сам; state.js не трогаем
         if cmd == "upgrade-tools":
             if rest:
                 die("upgrade-tools: лишние аргументы")
@@ -3731,7 +4118,7 @@ def main():
             notes += upgrade_note(state)
             cmd_stage(state, rest, opt)
         elif cmd == "ticket":
-            cmd_ticket(state, rest, opt)
+            landed = cmd_ticket(state, rest, opt)
         elif cmd == "tickets":
             notes.append(publish_tickets(state))
             log(state, "tickets", n=len(state.get("tickets") or []))
@@ -3817,11 +4204,12 @@ def main():
         if hint:
             notes.append(hint)
     r = state.get("requirements") or {}
-    print("%s · %s · требований %s, готово %s" % (snap, srv, r.get("total", 0), r.get("done", 0)))
-    for line in notes:
-        print("  " + (line if line[:1] in ("!", "?", "↑") else "· " + line))
-    for line in audit(state)[:5]:
-        print("  ! " + line)
+    lines = ["%s · %s · требований %s, готово %s" % (snap, srv, r.get("total", 0), r.get("done", 0))]
+    lines += ["  " + (line if line[:1] in ("!", "?", "↑") else "· " + line) for line in notes]
+    lines += ["  ! " + line for line in audit(state)[:5]]
+    if "land" in pos[1:] and isinstance(landed, str):
+        lines.insert(1, "  · " + landed)
+    print("\n".join(lines[:5] if cmd == "ticket" and "land" in pos[1:] else lines))     # посадка таска — не длиннее пяти строк
     try:
         finish_self_upgrade()
     except OSError as exc:
@@ -3904,6 +4292,10 @@ if __name__ == "__main__":
         main()
     elif sys.argv[1:2] == ["report-run"]:
         sys.exit(cmd_report_run(sys.argv[2:]))
+    elif sys.argv[1:2] in (["bootstrap"], ["doctor"]) and "--help" not in sys.argv:
+        # из папки навыка: без state.lock (иначе он появится в tools/ навыка) и без state.js проекта
+        _opt = parse_args(sys.argv[2:])[1]
+        sys.exit(cmd_bootstrap(_opt) if sys.argv[1] == "bootstrap" else cmd_doctor(_opt))
     else:
         with locked_state():
             main()

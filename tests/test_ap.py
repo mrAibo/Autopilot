@@ -2633,7 +2633,7 @@ class Run(unittest.TestCase):
 
     def test_third_blind_round_is_refused_and_changes_nothing(self):
         self.ready_to_finish()                                  # круг 1: 4 из 4
-        self.assertEqual(self.ap("blind", "checked=4", "matched=3", "--mismatch", "R02 — не видно")[0], 0)
+        self.assertEqual(self.ap("blind", "checked=1", "matched=0", "--mismatch", "R02 — не видно")[0], 0)
         before = self.state()
         self.assertEqual((before["blindRounds"], before["gates"]["G4"]["ok"]), (2, False))
         code, out = self.ap("blind", "checked=4", "matched=4")
@@ -2756,7 +2756,7 @@ class Run(unittest.TestCase):
 
     def test_blind_mismatches_after_two_rounds_are_a_caveat_not_a_block(self):
         self.ready_to_finish()
-        self.ap("blind", "checked=4", "matched=3", "--mismatch", "R02 — не видно")
+        self.ap("blind", "checked=1", "matched=0", "--mismatch", "R02 — не видно")       # круг 2 сводится с кругом 1: 3 из 4
         self.assertFalse(self.state()["gates"]["G4"]["ok"])
         code, out = self.ap("finish", "--result", "итог")          # без --by-user
         self.assertEqual(code, 0, out)
@@ -3357,7 +3357,7 @@ class Run(unittest.TestCase):
             with open(os.path.join(skill, "tools", name), "a", encoding="utf-8", newline="\n") as f:
                 f.write("\n# новая версия\n")
 
-    def test_upgrade_tools_copies_only_differing_files_that_exist_in_the_run_folder(self):
+    def test_upgrade_tools_copies_differing_and_new_files(self):
         skill = self.fake_skill()
         self.init()
         self.edit_state(skillDir=skill)
@@ -3366,10 +3366,9 @@ class Run(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("retry_policy.py", out)
         self.assertIn("ap.py", out)
-        self.assertNotIn("claude_attest", out)
-        for name in ("ap.py", "retry_policy.py"):
+        self.assertIn("claude_attest.py", out)
+        for name in ("ap.py", "retry_policy.py", "claude_attest.py"):
             self.assertTrue(read(os.path.join(self.a, name)).endswith("# новая версия\n"), name)
-        self.assertFalse(os.path.exists(os.path.join(self.a, "claude_attest.py")))
         self.assertIn("уже совпадают", self.ap("upgrade-tools")[1])
 
     def test_upgrade_tools_does_nothing_while_a_ticket_is_in_work(self):
@@ -3432,7 +3431,7 @@ class Run(unittest.TestCase):
         self.bump(skill, "ap.py", "model_router.py")
         code, out = self.ap("init", "--slug", "repair-bot", "--title", "Бот", "--skill-dir", skill)
         self.assertEqual(code, 0, out)
-        self.assertIn("инструменты обновлены из навыка: ap.py, model_router.py", out)
+        self.assertRegex(out, r"инструменты обновлены из навыка: ap\.py,.* model_router\.py")      # и новые файлы навыка
         for name in ("ap.py", "model_router.py"):
             self.assertTrue(read(os.path.join(self.a, name)).endswith("# новая версия\n"), name)
         self.assertEqual(self.ap("opus", "status")[1].strip(), "Opus не включён")      # новая копия работает

@@ -56,6 +56,20 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 
 **At most two rounds, and no third look.** Round 1 is this acceptance. A 🔴 goes to one round of fixes (the G2-style fix tickets, `F2`), then **one** re-check by a fresh blind checker, then the report. `ap.py` counts the rounds (`blindRounds`, cap `BLIND_ROUNDS = 2`) and refuses a third `blind`. In the brief's words: «один круг исправлений, потом отчёт, третьего взгляда нет». What is still 🔴 after round 2 goes to the report as it is, in «Открытые вопросы». Judge by the brief, not by the spec.
 
+**Round 2 asks only about the mismatches.** A fresh checker again — never the one of round 1 — that still does not see `spec.md`, `manifest.md` or the tickets. It gets the brief files **whole** and the repository as in round 1, plus **the list of the requirements round 1 answered «частично» or «нет», in the brief's own words** (not manifest ids). Its prompt is the round-1 prompt up to the cloning paragraph, and in place of the per-requirement paragraphs it says:
+
+> Это повторная проверка. Склонируй репозиторий заново во временную папку — новый
+> клон, не тот, что был в прошлый раз, — поставь зависимости с нуля и **пройди
+> основной сценарий один раз**. Не поднимается — это расхождение, даже если его
+> нет в списке ниже: назови его первым пунктом.
+>
+> Затем проверь **только** эти требования из брифа, в его словах: <список>.
+> По каждому — реализовано / частично / нет и одна строка, где это видно.
+> Остальное не перепроверяй и не оценивай. Не открывай `.autopilot/`, не вызывай
+> скиллы, ничего не отправляй наружу — как и раньше.
+
+Round 1's verdict on every other requirement stands. Record round 2 the same way — `ap.py blind checked=K matched=J --mismatch "…"` with `K` = the listed requirements + 1 for the main scenario, one `--mismatch` per one still 🔴 (or the scenario that did not come up) — and `ap.py` merges the two rounds: `checked` stays as in round 1, the mismatches are the ones left after round 2, `rounds` keeps both. It refuses `K` above round 1's mismatches plus one, without writing; `reopen` clears both rounds.
+
 Record it in one call — `ap.py blind checked=N matched=M --mismatch "…" --mismatch "…"`, one `--mismatch` per 🔴. Hiding a drift is the failure. **A build nobody has launched is a build nobody has seen work** — if it cannot run here at all, that goes to «Что нужно от тебя», not into the accepted column.
 
 ## 2. Memory and ADRs

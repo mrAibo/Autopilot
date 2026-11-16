@@ -30,7 +30,7 @@ For an existing repository, use the **independent read-only** `repo_doctor.py --
 
 No repo → `git init` now. Write `.gitignore` before anything else is created, with at least `.env`, `.env.*`, `!.env.example`, `node_modules/`, `__pycache__/`, `.DS_Store`. `.autopilot/` is **committed**, not ignored — it is the user's record of what was promised and delivered; only its `serve.*` files are ignored, and `init` adds that line. The first commit happens at the end of Phase 4 (`phases/4-plan.md`).
 
-**Before the briefing and before `init`**, check that Git accepts writes: run the copy from the skill's `tools/` (the instruments are not copied yet), from the project root: `python3 "<skill-dir>/tools/ap.py" git-check` (it checks the Git of the current directory, takes `.git/index.lock` itself and releases it; no side effects on the tree). A refusal (locked index, read-only `.git`, no rights) stops the run at once with its reason in one plain sentence to the user; do not go on to the briefing and do not wait for the first ticket to fail. No repository yet → `git init` first, then the check.
+**Before the briefing and before `init`**, one call from the project root, the copy in the skill's `tools/` (the instruments are not copied yet): `python3 "<skill-dir>/tools/ap.py" doctor`. One line each for `git-check` (can Git write here — it takes `.git/index.lock` itself and releases it, no side effects on the tree), `claude-version` (§3a), `advisorModel` (§3a) and the `repo_doctor.py` summary; it creates no `state.lock` in the skill folder. Exit 2 comes only from a Git refusal (locked index, read-only `.git`, no rights) or a Claude Code below the minimum: stop the run at once with the reason in one plain sentence to the user; do not go on to the briefing and do not wait for the first ticket to fail. The other lines — an unreadable version, `advisorModel` found, `repo_doctor` blockers — are for you to weigh, not a stop. `ap.py git-check` and `ap.py claude-version` still work on their own. No repository yet → `git init` first, then the check.
 
 A dirty working tree → say so in one line and continue; never stash, reset or clean the user's work, and never commit it: every commit this skill makes names its paths.
 
@@ -40,13 +40,13 @@ A dirty working tree → say so in one line and continue; never stash, reset or 
 
 ## 3a. Claude Code version and advisor
 
-In Claude Code, before `init`: `python3 .autopilot/ap.py claude-version` (before the instruments exist, run the copy from the skill's `tools/`). Below 2.1.295 it refuses (exit 2); below 2.1.311 it warns with known problems (exit 0); an unreadable version is one line, not a refusal.
+In Claude Code, before `init`, `doctor` (§2) has already looked: its version line is `python3 .autopilot/ap.py claude-version` (before the instruments exist, the copy from the skill's `tools/`). Below 2.1.295 it refuses (exit 2); below 2.1.311 it warns with known problems (exit 0); an unreadable version is one line, not a refusal.
 
-**Strict run:** if `advisorModel` is set in the user, project or local Claude settings, warn the user and offer `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for the duration of the build: the advisor is a server-side tool that subagents inherit, and the model guard does not see it (`docs/autopilot/claude-code.md`).
+**Strict run:** if `advisorModel` is set in the user, project or local Claude settings (`doctor` prints it), warn the user and offer `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for the duration of the build: the advisor is a server-side tool that subagents inherit, and the model guard does not see it (`docs/autopilot/claude-code.md`).
 
 ## 4. Instruments
 
-**Read `phases/0-instruments.md`**: copy the template and `ap.py`, run `init` with the memory choice from §3, open the dashboard. The command table there is the whole of the instruments for the rest of the run.
+**Read `phases/0-instruments.md`**: install the tools with `bootstrap`, run `init` with the memory choice from §3, open the dashboard. The command table there is the whole of the instruments for the rest of the run.
 
 The **slug** is short, kebab-case, latin (`telegram-repair-bot`) and never changes mid-flight. `init` names the run directory `<YYYY-MM-DD>-<slug>--wip` — the date the flight started, the suffix until it lands — and records it as `dir` in `state.js`. **Every path is built from `dir`**, never rebuilt from the slug.
 

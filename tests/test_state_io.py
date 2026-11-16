@@ -120,57 +120,15 @@ class WriteTests(unittest.TestCase):
 
 
 class InstrumentsCopyListTests(unittest.TestCase):
-    """Phase 0 copies tools into the project; an import of a module that is not copied crashes there."""
+    """Phase 0 installs the tools with `ap.py bootstrap`, which copies every `.py` of `tools/`:
+    a sibling import of a copied tool can no longer be left out of a hand-kept `cp` list."""
 
-    TOOLS = Path(__file__).resolve().parent.parent / "skills" / "autopilot" / "tools"
     PHASE = Path(__file__).resolve().parent.parent / "skills" / "autopilot" / "phases" / "0-instruments.md"
 
-    def copied(self):
-        import re
-        return set(re.findall(r'^cp "\$\{TPL%/phases/\*\}/tools/(\w+)\.py"', self.PHASE.read_text(encoding="utf-8"),
-                              re.M))
-
-    def sibling_imports(self, module):
-        import ast
-        siblings = {p.stem for p in self.TOOLS.glob("*.py")}
-        tree = ast.parse((self.TOOLS / (module + ".py")).read_text(encoding="utf-8"))
-        found = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                found |= {a.name.split(".")[0] for a in node.names}
-            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-                found.add(node.module.split(".")[0])
-        return (found & siblings) - {module}
-
-    def test_state_io_is_copied(self):
-        self.assertIn("state_io", self.copied())
-
-    def test_every_sibling_a_copied_tool_imports_is_copied_too(self):
-        copied = self.copied()
-        self.assertIn("ap", copied)
-        for module in sorted(copied):
-            with self.subTest(module=module):
-                self.assertTrue((self.TOOLS / (module + ".py")).is_file(), "listed but missing")
-                self.assertLessEqual(self.sibling_imports(module), copied)
-
-    # Модули, что запускаются только из навыка (в проект не копируются). Новый модуль tools/
-    # надо внести либо в 0-instruments.md, либо сюда. Динамические импорты (importlib,
-    # __import__) AST-разбор не видит — предел проверки.
-    RUN_FROM_SKILL = {"bounded_api_pilot", "dashboard_upgrade",
-                      "offline_fixture_worker", "offline_supervisor", "process_gate", "repo_doctor", "test_count"}
-
-    def unlisted(self, copied, run_from_skill):
-        return {p.stem for p in self.TOOLS.glob("*.py")} - copied - run_from_skill
-
-    def test_every_tool_is_copied_or_named_as_run_from_skill(self):
-        self.assertEqual(self.unlisted(self.copied(), self.RUN_FROM_SKILL), set())
-
-    def test_a_module_in_neither_list_fails_the_check(self):
-        self.assertEqual(self.unlisted(self.copied() - {"run_log"}, self.RUN_FROM_SKILL), {"run_log"})
-        self.assertEqual(self.unlisted(self.copied(), self.RUN_FROM_SKILL - {"repo_doctor"}), {"repo_doctor"})
-
-    def test_ap_imports_are_copied(self):
-        self.assertLessEqual(self.sibling_imports("ap"), self.copied())
+    def test_phase_installs_through_bootstrap_not_a_hand_kept_cp_list(self):
+        text = self.PHASE.read_text(encoding="utf-8")
+        self.assertIn('tools/ap.py" bootstrap --project', text)
+        self.assertNotIn('cp "${TPL%/phases/*}/tools/', text)
 
 
 if __name__ == "__main__":

@@ -4,47 +4,24 @@
 
 The user's live view of the run: `.autopilot/dashboard.html`, a copy of the template, showing `.autopilot/state.js`. **You never edit either by hand.** Every event of the run is one call to `.autopilot/ap.py`, which stamps the time, recounts the requirements from `manifest.md`, closes the stages the run has passed, writes a snapshot of the state into the page and keeps a static server alive for it. This file is read once, in Phase 0; the command table in §4 is what you use for the rest of the run.
 
-## 1. Copy the template and the tool
+## 1. Find the skill, install the tools
 
-Runs on every flight — new repo, new feature, resume alike. Every line is idempotent and the copy picks up whatever the installed skill has learned since.
+Runs on every flight — new repo, new feature, resume alike. Find the skill folder, then one command; it is idempotent and picks up whatever the installed skill has learned since.
 
 ```bash
-A=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)/.autopilot
 TPL=$(find -L ~/.claude/skills ~/.agents/skills ~/.claude/plugins .claude/skills .agents/skills \
         -maxdepth 6 -name dashboard-template.html 2>/dev/null | head -1)
 [ -n "$TPL" ] && TPL=$(cd "$(dirname "$TPL")" && pwd -P)/dashboard-template.html
 command -v cygpath >/dev/null && TPL=$(cygpath -m "$TPL")   # Windows: C:/…, а не /c/…
-echo "skillDir = ${TPL%/phases/*}"
-mkdir -p "$A" && cp "$TPL" "$A/dashboard.html" && ln -sfn dashboard.html "$A/index.html"
-cp "${TPL%/phases/*}/tools/ap.py" "$A/ap.py"
-cp "${TPL%/phases/*}/tools/model_router.py" "$A/model_router.py"
-cp "${TPL%/phases/*}/tools/agent_profiles.py" "$A/agent_profiles.py"
-cp "${TPL%/phases/*}/tools/claude_agent_guard.py" "$A/claude_agent_guard.py"
-cp "${TPL%/phases/*}/tools/claude_attest.py" "$A/claude_attest.py"
-cp "${TPL%/phases/*}/tools/worktrees.py" "$A/worktrees.py"
-cp "${TPL%/phases/*}/tools/retry_policy.py" "$A/retry_policy.py"
-cp "${TPL%/phases/*}/tools/scheduler.py" "$A/scheduler.py"
-cp "${TPL%/phases/*}/tools/controller.py" "$A/controller.py"
-cp "${TPL%/phases/*}/tools/host_loop.py" "$A/host_loop.py"
-cp "${TPL%/phases/*}/tools/codex_dispatch.py" "$A/codex_dispatch.py"
-cp "${TPL%/phases/*}/tools/gui_bridge.py" "$A/gui_bridge.py"
-cp "${TPL%/phases/*}/tools/spend_guard.py" "$A/spend_guard.py"
-cp "${TPL%/phases/*}/tools/worker_outcome.py" "$A/worker_outcome.py"
-cp "${TPL%/phases/*}/tools/codex_capabilities.py" "$A/codex_capabilities.py"
-cp "${TPL%/phases/*}/tools/codex_native_agents.py" "$A/codex_native_agents.py"
-cp "${TPL%/phases/*}/tools/test_evidence.py" "$A/test_evidence.py"
-cp "${TPL%/phases/*}/tools/state_io.py" "$A/state_io.py"
-cp "${TPL%/phases/*}/tools/process_containment.py" "$A/process_containment.py"
-cp "${TPL%/phases/*}/tools/gate_sign.py" "$A/gate_sign.py"
-cp "${TPL%/phases/*}/tools/run_log.py" "$A/run_log.py"
-cp "${TPL%/phases/*}/tools/dashboard_upgrade.py" "$A/dashboard_upgrade.py"
+python3 "${TPL%/phases/*}/tools/ap.py" bootstrap --project "$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)"
 ```
+
+It copies the dashboard template and every `.py` of the skill's `tools/` into `.autopilot/`, makes `index.html` (a symlink; where links are unavailable, a redirecting copy) and prints **`skillDir = …`**. In a project that already has `state.js` the dashboard goes through `dashboard_upgrade.py` (the snapshot is kept), not through a blind copy. It refuses while a ticket is `in-progress`/`review`/`repair`, and in a signed run when this is not the skill folder pinned at `init`; it never creates `state.lock` in the skill folder.
 
 - **`skillDir` is what every subagent contract hangs on** — `prompts/executor.md` and `prompts/review.md` go down as paths built from it. It goes into `init` below and lives in `state.js`, never only in your context.
 - `find -L` and no `*` in it: skills are installed through symlinks, which a plain `find` does not follow, and an unmatched glob aborts the whole line in zsh. Empty output → widen the search once by hand and carry on.
 - **`python3` not a working interpreter** — on Windows it can be the Microsoft Store stub → use `python` or `py -3` wherever this skill says `python3`.
-- **The `cp` list above is needed before the first `init`** (there is no `.autopilot/ap.py` yet). After that `ap.py init` and `ap.py stage <id>` refresh the `.py` tools in `.autopilot/` from `skillDir/tools/` by themselves — only when no ticket is `in-progress`/`review`/`repair`, `ap.py` replaces its own copy at the end of the command — and `ap.py upgrade-tools` does it by hand. It copies only files that already exist in `.autopilot/`, so a tool the skill added since needs the `cp` line once.
-- `index.html` is a symlink so the server answers `/` with the dashboard instead of a directory listing.
+- **`bootstrap` is needed before the first `init`** (there is no `.autopilot/ap.py` yet). After that `ap.py init` and `ap.py stage <id>` refresh the `.py` tools in `.autopilot/` from `skillDir/tools/` by themselves — new files of the skill included, only when no ticket is `in-progress`/`review`/`repair`; `ap.py` replaces its own copy at the end of the command — and `ap.py upgrade-tools` does it by hand.
 - Never regenerate the template, never read it into context, never edit it.
 
 ## 2. Start the run
@@ -110,15 +87,19 @@ Immediately after `init`, before Phase 1 asks anything.
 | the answer came | `answered` — or nothing, when the next call is a `stage` or `ticket`: those close the wait themselves |
 | the run lands | `finish --result "одна строка: что теперь есть"` — a landing with caveats only with the user's words: `finish --result "…" --by-user "<цитата>"` (writes `landedWith`) |
 | the user asks for the dashboard address | `url` — prints the address with the token; never paste it into the chat or a screenshot: no other command prints it (the status line shows the address without `?t=`) |
+| the whole pre-flight at once (Phase 0, from the skill folder, before `init`) | `python3 "<skillDir>/tools/ap.py" doctor` — one line each for `git-check`, the Claude Code version, `advisorModel`, `repo_doctor`; code 2 only when Git cannot write or Claude Code is below the minimum |
 | Git accepts writes (Phase 0, before `init`) | `git-check` — a refusal stops the run |
+| the tools into a project (Phase 0, from the skill folder) | `python3 "<skillDir>/tools/ap.py" bootstrap --project .` — §1 |
+| a generator the plan declared in `interfaces.md` («Команды-генераторы») | `chore <name>` — runs it, refuses if anything but its declared files changed, commits only those with `Autopilot-Run`; `0` also for «нечего коммитить» |
+| a ticket returns green and is to be landed | `ticket 02 land --message "T02: …" --requirements R01,R02 [--zone a/,b/]` — `phases/5-subagents.md`; refuses in an isolated run |
 | the user lifts a repair/retry limit or reopens a failed ticket | `ticket 02 reset --by-user "<цитата>"` — never without their words |
 | Opus (only by the user's yes) | `opus propose` (print only) · `opus approve [--tickets 03,05] [--roles repair,reviewer] --by-user "<цитата>"` · `opus status` (also checks the approval signature) · `agent-for reviewer\|repair [--diff-lines N]` — prints the agent to call, the Opus profile only if the user approved that role (`phases/4-plan.md`) |
 | the user answers the `?` line from `init` (light profiles in the Claude Code settings folder) | `agents install-user --by-user "<цитата>"` writes the four profiles to `agents/` there · `agents install-user --decline` remembers a no; neither writes anything outside the project without the user's words |
-| the installed skill got newer tools (no ticket in `in-progress`/`review`/`repair`) | `upgrade-tools` — copies the `.py` that differ from `skillDir/tools/` and prints their names; `init` and every `stage <id>` do it by themselves |
+| the installed skill got newer tools (no ticket in `in-progress`/`review`/`repair`) | `upgrade-tools` — copies the `.py` that differ from `skillDir/tools/`, and the skill's new ones, and prints their names; `init` and every `stage <id>` do it by themselves |
 | where the time and tokens went (reads `.autopilot/run-log.jsonl`, never blocks) | `report-run` — `report-run --share` for an issue attachment, no project data (`docs/autopilot/run-log.md`) |
 | a resume, before anything relaunches | `commits` — every `done` ticket's commit still in `HEAD`; a `!` line is a ticket to reset (`phases/0-resume.md`) |
 
-All are `python3 .autopilot/ap.py …`, and `add` takes several values in one call. **Chain a call with the command it belongs to**, so one event is one turn — the commit of a ticket and its `done` go together (`phases/5-subagents.md`, step 7). Never chain a commit after a check whose result you have not read: `| tail` always exits 0.
+All are `python3 .autopilot/ap.py …`, and `add` takes several values in one call. **Chain a call with the command it belongs to**, so one event is one turn — the commit of a ticket and its `done` go together (`ticket NN land`, `phases/5-subagents.md`). Never chain a commit after a check whose result you have not read: `| tail` always exits 0.
 
 - **Two kinds of `!` lines.** From ordinary calls — a stage skipped in the books, a ticket without a start — they are bookkeeping: fixed in the same turn, one call, not investigated. From `check-plan` they are defects of the plan, and gate G3 does not pass until they are gone.
 - Manifest rows the tool cannot know — `in-spec`, `deferred`, `dropped`, a new `G##` or `D##` — you edit in `manifest.md` yourself; `in-ticket`, `done` and `placeholder` are the tool's. The counts on the dashboard follow on the next call.

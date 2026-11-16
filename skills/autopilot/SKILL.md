@@ -3,7 +3,7 @@ name: autopilot
 description: Builds an app, site, bot, or feature end-to-end from a dictated idea — requirements, briefing, spec, tickets, subagents, review, acceptance — with a live dashboard, for users who expect a finished result without reviewing specs or code. Starts only on /autopilot; a bare /autopilot resumes an interrupted run; /autopilot audit writes a read-only findings report for an existing project.
 disable-model-invocation: true
 argument-hint: "[full|semi|interview|manual] [strict|deep] что нужно построить или путь к brief.md | audit[: фокус]"
-allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *) Bash(python .autopilot/controller.py *) Bash(python3 .autopilot/controller.py *) Bash(py -3 .autopilot/controller.py *)
+allowed-tools: Bash(python .autopilot/ap.py *) Bash(python3 .autopilot/ap.py *) Bash(py -3 .autopilot/ap.py *) Bash(python .autopilot/controller.py *) Bash(python3 .autopilot/controller.py *) Bash(py -3 .autopilot/controller.py *) Bash(python *tools/ap.py* bootstrap *) Bash(python3 *tools/ap.py* bootstrap *) Bash(py -3 *tools/ap.py* bootstrap *) Bash(python *tools/ap.py* doctor*) Bash(python3 *tools/ap.py* doctor*) Bash(py -3 *tools/ap.py* doctor*)
 metadata:
   version: "2.7.0"
 ---
@@ -147,7 +147,7 @@ Numbers in this skill — tiers, question counts, wave widths — are **calibrat
 2. **A secret is never requested, echoed or written** — not into a file, a prompt, a commit or a report.
 3. **A fact about the user is never invented.** Prices, texts, addresses, accounts stay visible placeholders.
 4. **An irreversible or outward-facing action is a question** — deploy, publish, pay, message a third party, delete data, rewrite history.
-5. **The orchestrator does not write the project's code.** Its keyboard reaches `.autopilot/`, the memory files, `.gitignore`, `.env.example` and git; everything else goes to a subagent (`phases/5-subagents.md`).
+5. **The orchestrator does not write the project's code.** Its keyboard reaches `.autopilot/`, the memory files, `.gitignore`, `.env.example` and git; everything else goes to a subagent (`phases/5-subagents.md`). Running a generator command the plan declared in `interfaces.md` through `ap.py chore` is not writing code.
 
 ## When to use it
 

@@ -136,7 +136,7 @@ An ordinary run starts every subagent at about 72K; a profile with a short tool 
 
 After an executor the main session spends on average **8.2 steps, median 3** (49 windows, 14 sessions); most of the steps are `Bash` (245 of 401: `git status`, the full check, the commit, `ap.py`), the rest reading the contract, planning, and launching the next agent.
 
-Решение по R05: <впишет оркестратор> — среднее 8.2 шага на посадку таска, медиана 3 (49 окон после возврата исполнителя, 14 сессий); порог брифа — три шага.
+Решение по R05: три шага и больше (в среднем 8,2 на посадку таска, медиана 3; 49 окон после возврата исполнителя, 14 сессий), поэтому команда `ticket NN land` сделана.
 
 Caveats, so the numbers are not over-read:
 

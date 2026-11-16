@@ -119,7 +119,7 @@ python3 .autopilot/ap.py plan-models --provider openai \
 
 ## Before the first ticket flies
 
-**`interfaces.md` carries more than Phase 3's boundaries.** Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched. **Ticket 01 installs every dependency «Решения по реализации» names**; any other comes back as `BLOCKED` (`phases/5-repair.md`).
+**`interfaces.md` carries more than Phase 3's boundaries.** Add the project rules an executor cannot derive: stack and versions; how to install, run, and **one check command** — tests, types and lint together — plus how to run a single test file (ticket 01 creates the check command if the project has none); what must not be touched. Two things `ap.py` reads, so keep their shape: a line **`Полная проверка: `<command>``** (the same check, one line — `ap.py ticket NN land` runs it and counts the tests in its output: unittest, pytest or cargo), and, when the project has files a command rewrites (a test counter, a formatter, code generation), a section **«Команды-генераторы»** — a table `Имя | Команда | Файлы`, one row per command, the files it rewrites; `ap.py chore <name>` runs it and commits only those files (a row you add is a row nobody has to put into a ticket). **Ticket 01 installs every dependency «Решения по реализации» names**; any other comes back as `BLOCKED` (`phases/5-repair.md`).
 
 ## Gate G3, publishing, and the plan commit
 

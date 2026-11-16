@@ -70,22 +70,17 @@ Required in the prompt, not suggested — without it you cannot update anything.
 In this order:
 
 1. **Read the contract and its status.** No block → the ticket is not finished; ask for it. `BLOCKED` or `NEEDS_CONTEXT` → `phases/5-repair.md` now. A `CONCERNS` line saying the plan does not hold — a data model, an interface, two requirements colliding — goes to `phases/5-repair.md` too. Two `NEEDS_CONTEXT` in one run mean the tickets are too thin across the board.
-2. **Nothing outside the zone.** `git status --porcelain`: a changed file outside this ticket's zone, `.env.example` and the zones still in flight is a дозапрос — put it back or say why it had to change.
-3. **Append its `INTERFACES` to `interfaces.md`** — you, never the executors. Two returns claiming one interface is a plan defect: keep the one that fits, re-cut the other.
-4. **Run the check**, full, truncated: `<check> > /tmp/autopilot-check.log 2>&1; rc=$?; tail -30 /tmp/autopilot-check.log; test "$rc" -eq 0`, **and read it before anything else** — green or red, what failed, the count. Compare with the contract: a `DONE` that added criteria and no tests is a дозапрос; a suite reporting zero tests is red however it exits.
-5. **Red → `phases/5-repair.md`.** Nothing is committed on red, and nothing is repaired by you.
-6. **Commit and record — one call, only its zone:**
+2. **Append its `INTERFACES` to `interfaces.md`** — you, never the executors. Two returns claiming one interface is a plan defect: keep the one that fits, re-cut the other.
+3. **Land it — one call:**
 
    ```bash
-   git add -A -- src/bot/ tests/bot/ .env.example && git commit -qm "T03: приём заявки" \
-     --trailer "Autopilot-Run: 2026-10-10-repair-bot" --trailer "Requirements: R01, R02" -- src/bot/ tests/bot/ .env.example \
-     && python3 .autopilot/ap.py ticket 03 done --tests 34/0 --commit "$(git rev-parse --short HEAD)"
+   python3 .autopilot/ap.py ticket 03 land --message "T03: приём заявки" --requirements R01,R02
    ```
 
-   Paths: every existing path of its zone, plus `.env.example` if changed (git refuses a path matching nothing). `--tests` is what step 4 printed; `--placeholder R05` for each row reported as a stub. One commit per ticket — the user's rollback points. Trailers keep history searchable: `Autopilot-Run` is `dir` without `--wip` (ticket numbers restart every run), `Requirements` the ticket's rows, so `git log --grep="R02"` finds every change a requirement caused.
-7. **Point review, if the ticket says `Ревью: да`**, or the contract reports one of its requirements as not done: `ap.py ticket NN review`, the reviewer in the background, and straight on to the next step and wave (`phases/6-review.md`). Its `BLOCKING` lines go to `phases/5-repair.md`.
-8. **The ledger.** Each stub → `ap.py add debt.placeholders`; each new variable → `add debt.emptyEnv NAME`; each `A##` that reached the code → `add additions`; each craft `CONCERNS` line → `add concerns`. Project memory only if something was discovered (`phases/9-memory.md`, Moment 2) — most tickets add nothing.
-9. **One plain line to the user**: «Бот принимает заявки — 3 из 8 готово».
+   In order: nothing changed outside the ticket's zone (`.autopilot/`, `.env.example` and zones still in flight excepted; `--allow path` for a file that is not the ticket's), the full check from `interfaces.md` («Полная проверка») with its tests counted, one commit of only the zone with the `Autopilot-Run` and `Requirements` trailers, then `ticket 03 done --tests N/F --commit SHA`. `--zone a/,b/` replaces the zone of the ticket file; `--placeholder R05` for each row reported as a stub. Success is up to five lines; compare its count with the contract — a `DONE` that added criteria and no tests is a дозапрос. A red step — a file outside the zone, a red check, zero tests, an output it cannot count, nothing to commit — is one to three lines, exit code 2 and no commit: a stray file is a дозапрос (put it back or say why), red goes to `phases/5-repair.md` and nothing is repaired by you. An isolated run refuses: it keeps `worktree NN verify`, `finalize`, `land`, then `ticket NN done`.
+4. **Point review, if the ticket says `Ревью: да`**, or the contract reports one of its requirements as not done: `ap.py ticket NN review`, the reviewer in the background, and straight on to the next step and wave (`phases/6-review.md`). Its `BLOCKING` lines go to `phases/5-repair.md`.
+5. **The ledger.** Each stub → `ap.py add debt.placeholders`; each new variable → `add debt.emptyEnv NAME`; each `A##` that reached the code → `add additions`; each craft `CONCERNS` line → `add concerns`. Project memory only if something was discovered (`phases/9-memory.md`, Moment 2) — most tickets add nothing.
+6. **One plain line to the user**: «Бот принимает заявки — 3 из 8 готово».
 
 **Two tickets returning together are processed one at a time**, each through the whole list — one commit and one check each, or a red has two possible authors.
 
