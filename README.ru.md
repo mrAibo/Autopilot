@@ -479,6 +479,26 @@ Autopilot первым делом разбирает ваш текст на **п
 - **Таски покрупнее.** Не просите ревью после каждого таска и не гоняйте параллельные запуски в одном общем дереве: они стоят больше, чем экономят.
 - Маршрутизация моделей действует только на субагентов, не на модель, выбранную для главной сессии.
 
+Откуда берётся маршрут — для Anthropic, зоны из одного файла и таска без `**Объём:**` (объём до 900; `docs` — зона только из документов, `sensitive` — например `src/auth/`). Решают класс и риск от планировщика; шесть весов — только ручная оценка для `route --scores`.
+
+| зона | класс | риск | профиль | модель | усилие |
+|---|---|---|---|---|---|
+| code | механический | обычный | cheap_code | haiku | high |
+| code | механический | высокий | strong | sonnet | high |
+| code | обычный | обычный | balanced | sonnet | medium |
+| code | обычный | высокий | strong | sonnet | high |
+| code | сложный | обычный | strong | sonnet | high |
+| code | сложный | высокий | critical | sonnet | xhigh |
+| sensitive | механический | любой | strong | sonnet | high |
+| sensitive | обычный | любой | strong | sonnet | high |
+| sensitive | сложный | любой | critical | sonnet | xhigh |
+| docs | механический | обычный | cheap_code | haiku | high |
+| docs | механический | высокий | strong | sonnet | high |
+| docs | обычный | обычный | cheap_read | haiku | low |
+| docs | обычный | высокий | strong | sonnet | high |
+| docs | сложный | обычный | strong | sonnet | high |
+| docs | сложный | высокий | critical | sonnet | xhigh |
+
 ---
 
 ---

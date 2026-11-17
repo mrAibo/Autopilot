@@ -477,6 +477,26 @@ The other end has a limit too. Every step of an agent re-reads its whole context
 - **Keep tasks big.** Don't ask for a review after every task, and avoid parallel runs in one shared tree: they cost more than they save.
 - Model routing applies to subagents only, not to the model you chose for the main session.
 
+Where the route comes from, for Anthropic, a one-file zone and a ticket without `**Объём:**` (size up to 900; `docs` = docs-only zone, `sensitive` = for example `src/auth/`). The planner's class and risk decide; the six weights are only a manual estimate for `route --scores`.
+
+| zone | class | risk | profile | model | effort |
+|---|---|---|---|---|---|
+| code | механический | обычный | cheap_code | haiku | high |
+| code | механический | высокий | strong | sonnet | high |
+| code | обычный | обычный | balanced | sonnet | medium |
+| code | обычный | высокий | strong | sonnet | high |
+| code | сложный | обычный | strong | sonnet | high |
+| code | сложный | высокий | critical | sonnet | xhigh |
+| sensitive | механический | любой | strong | sonnet | high |
+| sensitive | обычный | любой | strong | sonnet | high |
+| sensitive | сложный | любой | critical | sonnet | xhigh |
+| docs | механический | обычный | cheap_code | haiku | high |
+| docs | механический | высокий | strong | sonnet | high |
+| docs | обычный | обычный | cheap_read | haiku | low |
+| docs | обычный | высокий | strong | sonnet | high |
+| docs | сложный | обычный | strong | sonnet | high |
+| docs | сложный | высокий | critical | sonnet | xhigh |
+
 ---
 
 ---

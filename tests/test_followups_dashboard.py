@@ -134,9 +134,9 @@ class CompactDashboard(unittest.TestCase):
 
     def test_model_routes_show_the_planners_phrase(self):
         r = self.out["route"]
-        self.assertEqual(r["withWhy"], "Sonnet, reinforced mode: the ticket touches signatures and keys — запись в общий кэш")
+        self.assertEqual(r["withWhy"], "Sonnet, reinforced mode: the ticket touches signatures and keys (class: сложный, risk: высокий) — запись в общий кэш")
         self.assertEqual(r["without"], "Sonnet: an ordinary ticket")
-        self.assertEqual(r["classOnly"], "Sonnet: обычный таск")
+        self.assertEqual(r["classOnly"], "Sonnet: обычный таск (класс: обычный, риск: обычный)")
 
     def test_other_views_keep_their_heroes(self):
         self.assertNotIn("nowh", self.out["pages"]["classic"])

@@ -77,7 +77,29 @@ The planner writes three header lines in every ticket: `**Класс:** меха
 
 The `cheap` tier is split: `cheap_read` (`haiku` / low — the same profile the legacy name `cheap` keeps in step with) for scouts and `cheap_code` (`haiku` / **high**) for the executor of a mechanical ticket whose score is above the reading band. Cheap code on low effort was the reason Haiku was almost never picked; the host capabilities must list `haiku/high`. A Haiku ticket that returns red gets one explicit escalation to Sonnet (`retry-policy.md`). Opus still needs the user's signed approval and Fable is refused whatever the class says.
 
+Where the route comes from, for Anthropic, a one-file zone and a ticket without `**Объём:**` (size up to 900; `docs` = docs-only zone, `sensitive` = for example `src/auth/`). The planner's class and risk decide; the six weights are only a manual estimate for `route --scores`.
+
+| zone | class | risk | profile | model | effort |
+|---|---|---|---|---|---|
+| code | механический | обычный | cheap_code | haiku | high |
+| code | механический | высокий | strong | sonnet | high |
+| code | обычный | обычный | balanced | sonnet | medium |
+| code | обычный | высокий | strong | sonnet | high |
+| code | сложный | обычный | strong | sonnet | high |
+| code | сложный | высокий | critical | sonnet | xhigh |
+| sensitive | механический | любой | strong | sonnet | high |
+| sensitive | обычный | любой | strong | sonnet | high |
+| sensitive | сложный | любой | critical | sonnet | xhigh |
+| docs | механический | обычный | cheap_code | haiku | high |
+| docs | механический | высокий | strong | sonnet | high |
+| docs | обычный | обычный | cheap_read | haiku | low |
+| docs | обычный | высокий | strong | sonnet | high |
+| docs | сложный | обычный | strong | sonnet | high |
+| docs | сложный | высокий | critical | sonnet | xhigh |
+
 ## Scoring (0–100)
+
+The six weights below are the manual estimate behind `route --scores`; for a planned ticket the table above is what the router returns.
 
 - algorithm: up to 25
 - coupling across modules: up to 20

@@ -476,6 +476,26 @@ Auch am anderen Ende gibt es eine Grenze. Bei jedem Schritt liest ein Agent sein
 - **Aufgaben groß lassen.** Verlange kein Review nach jeder Aufgabe und vermeide parallele Läufe in einem gemeinsamen Baum: Sie kosten mehr, als sie sparen.
 - Das Modell-Routing gilt nur für Subagenten, nicht für das Modell, das du für die Hauptsitzung gewählt hast.
 
+Woher die Route kommt — für Anthropic, eine Zone aus einer Datei und ein Ticket ohne `**Объём:**` (Umfang bis 900; `docs` = reine Dokumentzone, `sensitive` = z. B. `src/auth/`). Klasse und Risiko des Planers entscheiden; die sechs Gewichte sind nur eine manuelle Schätzung für `route --scores`.
+
+| Zone | Klasse | Risiko | Profil | Modell | Aufwand |
+|---|---|---|---|---|---|
+| code | механический | обычный | cheap_code | haiku | high |
+| code | механический | высокий | strong | sonnet | high |
+| code | обычный | обычный | balanced | sonnet | medium |
+| code | обычный | высокий | strong | sonnet | high |
+| code | сложный | обычный | strong | sonnet | high |
+| code | сложный | высокий | critical | sonnet | xhigh |
+| sensitive | механический | любой | strong | sonnet | high |
+| sensitive | обычный | любой | strong | sonnet | high |
+| sensitive | сложный | любой | critical | sonnet | xhigh |
+| docs | механический | обычный | cheap_code | haiku | high |
+| docs | механический | высокий | strong | sonnet | high |
+| docs | обычный | обычный | cheap_read | haiku | low |
+| docs | обычный | высокий | strong | sonnet | high |
+| docs | сложный | обычный | strong | sonnet | high |
+| docs | сложный | высокий | critical | sonnet | xhigh |
+
 ---
 
 ---

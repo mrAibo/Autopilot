@@ -1252,7 +1252,7 @@ const I18N = {
       escalated:(a,b)=>`начат на ${a}, доделан на ${b}`,
       noModel:"модель ещё не назначена",planned:"в плане: ",noEvents:"событий ещё нет",noTests:"ещё нет",noCommit:"ещё нет",noReview:"замечаний нет",noZone:"не указана"},
     hrt:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
-      risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению"},
+      risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению",cls:"класс",risk:"риск",score:"оценка"},
     views:{now:"Сейчас",overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
@@ -1404,7 +1404,7 @@ const I18N = {
       escalated:(a,b)=>`started on ${a}, finished on ${b}`,
       noModel:"no model assigned yet",planned:"planned: ",noEvents:"no events yet",noTests:"none yet",noCommit:"none yet",noReview:"no notes",noZone:"not given"},
     hrt:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
-      risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation"},
+      risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation",cls:"class",risk:"risk",score:"score"},
     views:{now:"Now",overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
@@ -1753,7 +1753,10 @@ function humanRoute(route, L){
   const name = found ? found[0][0].toUpperCase() + found[0].slice(1).toLowerCase() : String(r.model || '').split(/\r?\n/)[0];
   const risky = /^true$/i.test(m[3]);
   const how = /premium/i.test(text) ? [', ', L.hrt.premium] : risky ? [', ', L.hrt.risky] : [': ', L.hrt[m[2].toLowerCase()] || L.hrt.balanced];
-  const base = name ? name + how[0] + how[1] : how[1];
+  const word = k => { const w = new RegExp('(?:^|; )' + k + '=([^;\r\n]+)').exec(text); return w ? w[1].trim() : ''; };
+  const cls = word('class'), rsk = word('risk');   // класс и риск от планировщика; число score — только в подробностях
+  const tags = (cls ? L.hrt.cls + ': ' + cls : '') + (cls && rsk ? ', ' : '') + (rsk ? L.hrt.risk + ': ' + rsk : '');
+  const base = (name ? name + how[0] + how[1] : how[1]) + (tags ? ' (' + tags + ')' : '');
   const why = /(?:^|; )why=([^\r\n]+)/.exec(text);   // фраза планировщика из routing.reason (R07)
   return why ? base + ' — ' + why[1].trim() : base;
 }
@@ -2778,6 +2781,7 @@ function render(lang){
       ${sec(BD.reqs, (t.requirements || []).length ? li(t.requirements.map(id => `<b>${esc(id)}</b>${reqText(String(id)) ? ' — ' + esc(reqText(String(id))) : ''}`)) : '<p>—</p>')}
       ${sec(BD.zone, (t.zone || []).length ? `<p>${t.zone.map(z => `<code>${esc(z)}</code>`).join(' ')}</p>` : `<p>${BD.noZone}</p>`)}
       ${sec(BD.model, (r ? `<p><span class="tc-chip">${esc(modelOf(t))}</span> ${esc((t.routing && t.routing.model ? '' : BD.planned) + (r.reason ? humanRoute(r, L) : ''))}</p>` : `<p>${esc(modelOf(t) || BD.noModel)}</p>`)
+        + (r && r.score != null ? `<p class="tp-score">${esc(L.hrt.score + ': ' + r.score)}</p>` : '')
         + (escOf(t) ? `<p class="tp-esc">${esc(escOf(t))}</p>` : ''))}
       ${sec(BD.events, mine.length ? li(mine.map(([e, text]) => `<em>${hhmm(e.t)}</em>${esc(text)}`)) : `<p>${BD.noEvents}</p>`)}
       ${sec(BD.tests, `<p>${t.tests ? esc(BD.testsLine({passed: +t.tests.passed || 0, failed: +t.tests.failed || 0})) : BD.noTests}</p>`)}

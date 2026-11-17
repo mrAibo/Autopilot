@@ -576,5 +576,36 @@ class RiskWordTests(unittest.TestCase):
                 self.assertEqual(self.profile(title), (0, "balanced"))
 
 
+class ScaleTableMatchesRouter(unittest.TestCase):
+    """The class x risk x zone table in the docs equals what the router returns on the same inputs."""
+    ROOT = SRC.parents[3]
+    DOCS = ("docs/autopilot/model-routing.md", "README.md", "README.ru.md", "README.de.md")
+    ZONES = {"code": "src/app.py", "sensitive": "src/auth/login.py", "docs": "docs/guide.md"}
+
+    def rows(self, doc):
+        text = (self.ROOT / doc).read_text(encoding="utf-8")
+        cells = [[c.strip() for c in line.strip().strip("|").split("|")] for line in text.splitlines() if line.startswith("|")]
+        return [c for c in cells if len(c) == 6 and c[0] in self.ZONES]
+
+    def test_every_table_row_is_what_choose_route_returns(self):
+        for doc in self.DOCS:
+            rows = self.rows(doc)
+            self.assertEqual(len(rows), 15, doc)
+            for zone, klass, risk, profile, model, effort in rows:
+                for real_risk in (("обычный", "высокий") if risk == "любой" else (risk,)):
+                    with self.subTest(doc=doc, zone=zone, klass=klass, risk=real_risk):
+                        text = chr(10).join(["# 01 — T", "", "**Зона:** `%s`" % self.ZONES[zone], "**Класс:** " + klass,
+                                             "**Риск:** " + real_risk, "**Причина класса:** п", "", "x", ""])
+                        got = router.choose_route("anthropic", router.assess_ticket(text))
+                        self.assertEqual((got["model"], got["effort"]), (model, effort))
+                        cheap = got["profile"] == "cheap"
+                        self.assertEqual(profile, ("cheap_code" if effort == "high" else "cheap_read") if cheap else got["profile"])
+
+    def test_the_four_tables_are_identical(self):
+        first = self.rows(self.DOCS[0])
+        for doc in self.DOCS[1:]:
+            self.assertEqual(self.rows(doc), first, doc)
+
+
 if __name__ == "__main__":
     unittest.main()
