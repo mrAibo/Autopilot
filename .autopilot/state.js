@@ -1,9 +1,9 @@
 window.STATE =
 {
   "version": 2,
-  "slug": "cheaper-faster",
-  "dir": "2026-11-16-cheaper-faster",
-  "title": "Autopilot: дешевле, быстрее, удобнее",
+  "slug": "orchestrator-spend-waves-4-6",
+  "dir": "2026-11-17-orchestrator-spend-waves-4-6--wip",
+  "title": "Autopilot: волны 4–6 (R11–R21)",
   "mode": "semi",
   "depth": "normal",
   "tier": "T2",
@@ -11,195 +11,138 @@ window.STATE =
   "gateSigned": false,
   "sequentialHost": false,
   "isolateTickets": false,
-  "briefFile": "2026-11-16-brief.md",
+  "briefFile": "2026-11-17-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": "aa97dc7",
-  "startedAt": "2026-11-16T17:13:04+01:00",
-  "updatedAt": "2026-11-16T19:33:40+01:00",
-  "finishedAt": "2026-11-16T19:33:40+01:00",
+  "baseCommit": null,
+  "startedAt": "2026-11-17T03:03:11+01:00",
+  "updatedAt": "2026-11-17T03:15:12+01:00",
+  "finishedAt": null,
   "stages": [
     {
       "id": "preflight",
       "status": "done",
-      "startedAt": "2026-11-16T17:13:04+01:00",
+      "startedAt": "2026-11-17T03:03:11+01:00",
       "segments": [
         {
-          "startedAt": "2026-11-16T17:13:04+01:00",
-          "finishedAt": "2026-11-16T17:13:12+01:00"
+          "startedAt": "2026-11-17T03:03:11+01:00",
+          "finishedAt": "2026-11-17T03:03:16+01:00"
         }
       ],
-      "finishedAt": "2026-11-16T17:13:12+01:00"
+      "finishedAt": "2026-11-17T03:03:16+01:00"
     },
     {
       "id": "manifest",
       "status": "done",
       "segments": [
         {
-          "startedAt": "2026-11-16T17:13:12+01:00",
-          "finishedAt": "2026-11-16T17:13:55+01:00"
+          "startedAt": "2026-11-17T03:03:16+01:00",
+          "finishedAt": "2026-11-17T03:03:34+01:00"
         }
       ],
-      "startedAt": "2026-11-16T17:13:12+01:00",
-      "finishedAt": "2026-11-16T17:13:55+01:00"
+      "startedAt": "2026-11-17T03:03:16+01:00",
+      "finishedAt": "2026-11-17T03:03:34+01:00"
     },
     {
       "id": "briefing",
-      "status": "done",
+      "status": "skipped",
       "segments": [
         {
-          "startedAt": "2026-11-16T17:13:55+01:00",
-          "finishedAt": "2026-11-16T17:15:55+01:00"
+          "startedAt": "2026-11-17T03:03:34+01:00",
+          "finishedAt": "2026-11-17T03:03:40+01:00"
         }
       ],
-      "startedAt": "2026-11-16T17:13:55+01:00",
-      "finishedAt": "2026-11-16T17:15:55+01:00"
+      "startedAt": "2026-11-17T03:03:34+01:00",
+      "finishedAt": "2026-11-17T03:03:40+01:00",
+      "note": "бриф однозначен: решения «-latest разрешить», порядок и объём заданы в задаче; остальное — решения планировщика"
     },
     {
       "id": "spec",
       "status": "done",
       "segments": [
         {
-          "startedAt": "2026-11-16T17:15:55+01:00",
-          "finishedAt": "2026-11-16T17:25:13+01:00"
+          "startedAt": "2026-11-17T03:03:41+01:00",
+          "finishedAt": "2026-11-17T03:15:04+01:00"
         }
       ],
-      "startedAt": "2026-11-16T17:15:55+01:00",
-      "finishedAt": "2026-11-16T17:25:13+01:00"
+      "startedAt": "2026-11-17T03:03:41+01:00",
+      "finishedAt": "2026-11-17T03:15:04+01:00"
     },
     {
       "id": "plan",
-      "status": "done",
+      "status": "active",
       "segments": [
         {
-          "startedAt": "2026-11-16T17:25:13+01:00",
-          "finishedAt": "2026-11-16T17:26:28+01:00"
+          "startedAt": "2026-11-17T03:15:04+01:00",
+          "finishedAt": null
         }
       ],
-      "startedAt": "2026-11-16T17:25:13+01:00",
-      "finishedAt": "2026-11-16T17:26:28+01:00"
+      "startedAt": "2026-11-17T03:15:04+01:00"
     },
     {
       "id": "build",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-16T17:26:28+01:00",
-          "finishedAt": "2026-11-16T18:52:51+01:00"
-        }
-      ],
-      "startedAt": "2026-11-16T17:26:28+01:00",
-      "finishedAt": "2026-11-16T18:52:51+01:00"
+      "status": "pending"
     },
     {
       "id": "review",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-16T18:52:51+01:00",
-          "finishedAt": "2026-11-16T19:18:59+01:00"
-        }
-      ],
-      "startedAt": "2026-11-16T18:52:51+01:00",
-      "finishedAt": "2026-11-16T19:18:59+01:00"
+      "status": "pending"
     },
     {
       "id": "final",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-16T19:18:59+01:00",
-          "finishedAt": "2026-11-16T19:33:40+01:00"
-        }
-      ],
-      "startedAt": "2026-11-16T19:18:59+01:00",
-      "finishedAt": "2026-11-16T19:33:40+01:00"
+      "status": "pending"
     }
   ],
   "requirements": {
-    "total": 88,
-    "done": 56,
-    "inTicket": 0,
+    "total": 11,
+    "done": 0,
+    "inTicket": 11,
     "inSpec": 0,
     "placeholder": 0,
-    "deferred": 32,
+    "deferred": 0,
     "dropped": 0
   },
   "tickets": [
     {
       "id": "01",
-      "title": "Лёгкие профили, подсказка о контексте, замер ходов, модель у субагентов",
+      "title": "r13-model-names-latest",
       "requirements": [
-        "R0001",
-        "R0002",
-        "R0006",
-        "R0101",
-        "R0102",
-        "R0103",
-        "R0104",
-        "R0105",
-        "R0106",
-        "R0107",
-        "R0108",
-        "R0109",
-        "R0201",
-        "R0202",
-        "R0203",
-        "R0204",
-        "R0205",
-        "R0401",
-        "R0402",
-        "R0403",
-        "R0901",
-        "R0902",
-        "R0903",
-        "R0904",
-        "G01",
-        "G02"
+        "R13"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
-        "skills/autopilot/",
-        "tools/",
-        "tests/",
-        "docs/autopilot/"
+        "skills/autopilot/tools/model_router.py",
+        "tests/test_model_router.py",
+        "tests/test_claude_agent_guard.py",
+        "docs/autopilot/model-routing.md"
       ],
       "review": "нет",
       "model": "обычная",
-      "fingerprint": "9cb8f421d8a345475119c55bda3c3d645a5a919f280f26b4d4e59af0050a9038",
-      "status": "done",
-      "startedAt": "2026-11-16T17:26:46+01:00",
-      "finishedAt": "2026-11-16T17:58:28+01:00",
+      "fingerprint": "b4574734bce6dc089a67a81f57f9bec30941df6832a579bf1da125872017ab16",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 987,
-        "failed": 0
-      },
-      "commit": "e07012b",
-      "placeholders": [],
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
         "model": "sonnet",
-        "effort": "medium",
+        "effort": "high",
         "effortEnforced": null,
-        "profile": "balanced",
-        "score": 46,
+        "profile": "strong",
+        "score": 61,
         "factors": {
           "algorithm": 10,
           "coupling": 15,
           "uncertainty": 11,
           "context": 5,
-          "testing": 5,
-          "risk": 0
+          "testing": 10,
+          "risk": 10
         },
-        "reason": "score=46; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=новая логика в нескольких известных местах ap.py и run_log.py, без подписей и guard",
-        "requiresReview": false,
+        "reason": "score=61; profile=strong; high-risk=True; class=обычный; risk=высокий; why=одна правка регэкспа и таблица тестов на имена, зона чувствительная (`model_router`), поэтому маршрут не ниже сильного\r",
+        "requiresReview": true,
         "status": "blocked",
-        "fingerprint": "9cb8f421d8a345475119c55bda3c3d645a5a919f280f26b4d4e59af0050a9038",
+        "fingerprint": "b4574734bce6dc089a67a81f57f9bec30941df6832a579bf1da125872017ab16",
         "hostExecutionVerified": false,
         "error": "No verified host capabilities",
         "applied": false
@@ -207,57 +150,23 @@ window.STATE =
     },
     {
       "id": "02",
-      "title": "Одна команда: генераторы, посадка таска, установка, предполётная проверка, второй круг приёмки",
+      "title": "r17-parallel-test-runner",
       "requirements": [
-        "R0001",
-        "R0002",
-        "R0006",
-        "R0301",
-        "R0302",
-        "R0303",
-        "R0304",
-        "R0501",
-        "R0502",
-        "R0503",
-        "R0504",
-        "R0505",
-        "R0506",
-        "R0507",
-        "R0701",
-        "R0702",
-        "R0703",
-        "R0704",
-        "R0801",
-        "R0802",
-        "R0803",
-        "R1001",
-        "R1002",
-        "R1003",
-        "R1004"
+        "R17"
       ],
-      "blockedBy": [
-        "01"
-      ],
-      "wave": 2,
+      "blockedBy": [],
+      "wave": 1,
       "zone": [
-        "skills/autopilot/",
-        "tests/",
-        "docs/autopilot/"
+        "tools/run-tests.py",
+        "tests/test_run_tests.py",
+        "AGENTS.md"
       ],
       "review": "нет",
       "model": "обычная",
-      "fingerprint": "44c464709c7a71db9b9c97b5af6874a92f344788ea583724bcb4ee0a785f0539",
-      "status": "done",
-      "startedAt": "2026-11-16T17:58:30+01:00",
-      "finishedAt": "2026-11-16T18:31:19+01:00",
+      "fingerprint": "aa13e2fe8256917fa59d39e8a43e20e5f472788e8a99f2d3a73108f2bafb74fc",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1020,
-        "failed": 0
-      },
-      "commit": "cbd1e69",
-      "placeholders": [],
       "plannedRouting": {
         "ticket": "02",
         "provider": "anthropic",
@@ -274,10 +183,10 @@ window.STATE =
           "testing": 5,
           "risk": 0
         },
-        "reason": "score=41; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=пять новых команд ap.py по готовым границам, правила доверия skillDir используются, не меняются",
+        "reason": "score=41; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=новый запускатель на stdlib с дроблением по классам и сложением итогов, логика без риска для данных\r",
         "requiresReview": false,
         "status": "blocked",
-        "fingerprint": "44c464709c7a71db9b9c97b5af6874a92f344788ea583724bcb4ee0a785f0539",
+        "fingerprint": "aa13e2fe8256917fa59d39e8a43e20e5f472788e8a99f2d3a73108f2bafb74fc",
         "hostExecutionVerified": false,
         "error": "No verified host capabilities",
         "applied": false
@@ -285,46 +194,32 @@ window.STATE =
     },
     {
       "id": "03",
-      "title": "Текст навыка: обычный путь короче",
+      "title": "r21-readme-quickstart-history",
       "requirements": [
-        "R0001",
-        "R0002",
-        "R0003",
-        "R0004",
-        "R0005",
-        "R0006",
-        "R0601",
-        "R0602",
-        "R0603",
-        "R0604",
-        "R0605"
+        "R21"
       ],
-      "blockedBy": [
-        "02"
-      ],
-      "wave": 3,
+      "blockedBy": [],
+      "wave": 1,
       "zone": [
-        "skills/autopilot/",
-        "tests/",
-        "docs/",
         "README.md",
         "README.ru.md",
-        "README.de.md"
+        "README.de.md",
+        "STATUS.md",
+        "HANDOFF.md",
+        "HANDOFF_NEXT_CLIENT_2026-10-26.md",
+        "BRIEF-2026-11-improvements.md",
+        "docs/history/",
+        "docs/autopilot/release-readiness.md",
+        "docs/autopilot/scope-and-labs.md",
+        "docs/autopilot/gui-clients.md",
+        "tests/test_documentation_locales.py"
       ],
       "review": "нет",
       "model": "обычная",
-      "fingerprint": "01410406ed849287e58fb7a43e12a229e6161bc286b59370abe1d311cea5ea8c",
-      "status": "done",
-      "startedAt": "2026-11-16T18:31:20+01:00",
-      "finishedAt": "2026-11-16T18:52:50+01:00",
+      "fingerprint": "6f3e54f1bb75027823748e65b1518cad1cb1327051784551facda7e989c0c38a",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1024,
-        "failed": 0
-      },
-      "commit": "11a0d60",
-      "placeholders": [],
       "plannedRouting": {
         "ticket": "03",
         "provider": "anthropic",
@@ -341,58 +236,325 @@ window.STATE =
           "testing": 5,
           "risk": 0
         },
-        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=дословный перенос разделов с правкой тестов и ссылок, решать, что куда, нужно по смыслу режимов",
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=правка трёх README в одном порядке разделов и перенос файлов с исправлением ссылок, нужно держать структуру заголовков и тесты ссылок\r",
         "requiresReview": false,
         "status": "blocked",
-        "fingerprint": "01410406ed849287e58fb7a43e12a229e6161bc286b59370abe1d311cea5ea8c",
+        "fingerprint": "6f3e54f1bb75027823748e65b1518cad1cb1327051784551facda7e989c0c38a",
         "hostExecutionVerified": false,
         "error": "No verified host capabilities",
         "applied": false
       }
     },
     {
-      "id": "F1",
-      "title": "Правки по код-ревью ветки",
+      "id": "04",
+      "title": "r14-r20-server-ping-token-errors",
       "requirements": [
-        "R0001",
-        "R0003",
-        "R0703",
-        "R1002"
+        "R14",
+        "R20"
       ],
       "blockedBy": [],
-      "wave": 4,
+      "wave": 1,
       "zone": [
-        "skills/autopilot/SKILL.md",
         "skills/autopilot/tools/ap.py",
-        "skills/autopilot/phases/5-subagents.md",
-        "tests/"
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_followups_token.py",
+        "tests/test_ap_audit.py",
+        "tests/test_dashboard_views.py",
+        "tests/test_followups_dashboard.py",
+        "docs/adr/0013-server-ping.md",
+        "docs/adr/0001-dashboard-server-token-host-check.md"
       ],
-      "review": "да — ремонт ветки",
-      "model": "сильная",
-      "fingerprint": "2dfc559893bf67950501de2dbc04519c30967cc3bf563e94cb95de1caa098117",
-      "status": "done",
-      "startedAt": "2026-11-16T18:55:23+01:00",
-      "finishedAt": "2026-11-16T19:16:46+01:00",
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "a551de83d47be437072b4dbc9c0fc8e80a76667ea4b21419f5ae01426fc22a17",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1022,
-        "failed": 0
-      },
-      "commit": "cebfd38",
-      "placeholders": [],
-      "routing": {
+      "plannedRouting": {
+        "ticket": "04",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "xhigh",
+        "effortEnforced": null,
+        "profile": "critical",
+        "score": 65,
+        "factors": {
+          "algorithm": 20,
+          "coupling": 20,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=65; profile=critical; high-risk=True; class=сложный; risk=высокий; why=подтверждение сервера по hmac от токена затрагивает защиту токена из ADR 0001, плюс общая серверная часть и поведение страницы при 403\r",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "a551de83d47be437072b4dbc9c0fc8e80a76667ea4b21419f5ae01426fc22a17",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "05",
+      "title": "r15-history-cache",
+      "requirements": [
+        "R15"
+      ],
+      "blockedBy": [
+        "04"
+      ],
+      "wave": 2,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "tests/test_ap_audit.py",
+        "tests/test_ap.py"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "cdb2887fdbf4df71ffd08257c63fc5ff9ec3d6782ee1a4a6096899d38394fc09",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "05",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 41,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 10,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=41; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=кэш по mtime и размеру с молчаливым пересчётом, логика в одной функции\r",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "cdb2887fdbf4df71ffd08257c63fc5ff9ec3d6782ee1a4a6096899d38394fc09",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "06",
+      "title": "r12-router-scale-table",
+      "requirements": [
+        "R12"
+      ],
+      "blockedBy": [
+        "01",
+        "03",
+        "04"
+      ],
+      "wave": 2,
+      "zone": [
+        "docs/autopilot/model-routing.md",
+        "README.md",
+        "README.ru.md",
+        "README.de.md",
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_model_router.py",
+        "tests/test_dashboard_boards.py",
+        "tests/test_followups_dashboard.py",
+        "tests/test_dashboard_views.py",
+        "tests/test_documentation_locales.py"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "3c07e07becf419e1953f910cce7a65a583f2ef0cf04944b227ab568fb34f5e20",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "06",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=таблица и тест сверки с роутером, правка `humanRoute` по готовому формату `reason`\r",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "3c07e07becf419e1953f910cce7a65a583f2ef0cf04944b227ab568fb34f5e20",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "07",
+      "title": "r16-r18-finish-attestations-profiles",
+      "requirements": [
+        "R16",
+        "R18"
+      ],
+      "blockedBy": [
+        "05"
+      ],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/agent_profiles.py",
+        "skills/autopilot/tools/claude_agent_guard.py",
+        "skills/autopilot/phases/0-preflight.md",
+        "skills/autopilot/phases/0-instruments.md",
+        "tests/test_ap.py",
+        "tests/test_light_profiles.py",
+        "tests/test_agent_profiles.py",
+        "docs/autopilot/claude-code.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "9e807ae2dc099de7f50701868ba10ecd2b4fa3e5747de30a938f76e34299273c",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "07",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "reason": "ремонт ветки: маска разрешений и шлюз G4"
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 66,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=66; profile=strong; high-risk=True; class=обычный; risk=высокий; why=собственный код удаляет файлы профилей и переносит подписанный журнал аттестаций при `finish`, ошибка уничтожает чужие профили или ломает подписи\r",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "9e807ae2dc099de7f50701868ba10ecd2b4fa3e5747de30a938f76e34299273c",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "08",
+      "title": "r11-class-model-effort-report",
+      "requirements": [
+        "R11"
+      ],
+      "blockedBy": [
+        "07"
+      ],
+      "wave": 4,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/run_log.py",
+        "tests/test_ap_audit.py",
+        "tests/test_run_log.py",
+        "tests/test_ap.py",
+        "docs/autopilot/run-log.md",
+        "docs/autopilot/measuring-cost.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "2c2f97633f5de63c405ed1db0de4ebbef0a285926901a8f66cf180c8057e532b",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "08",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=новая схема строки журнала и сводная таблица по ней, несколько мест, но без риска для данных\r",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "2c2f97633f5de63c405ed1db0de4ebbef0a285926901a8f66cf180c8057e532b",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "09",
+      "title": "r19-forecast-report-budget",
+      "requirements": [
+        "R19"
+      ],
+      "blockedBy": [
+        "06",
+        "08"
+      ],
+      "wave": 5,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/phases/4-plan.md",
+        "skills/autopilot/phases/8-final.md",
+        "skills/autopilot/phases/0-modes.md",
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_ap_audit.py",
+        "tests/test_dashboard_views.py",
+        "tests/test_dashboard_details.py",
+        "tests/test_text_split.py",
+        "docs/autopilot/observability.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "fingerprint": "527beb5583b28797edd3651da2f48a50bec7bb1528b69d7d9ae2e92872ffe00f",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "09",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=строка прогноза из готовой истории, две строки текста навыка и плитка лимита на дашборде\r",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "527beb5583b28797edd3651da2f48a50bec7bb1528b69d7d9ae2e92872ffe00f",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
       }
     }
   ],
-  "tests": {
-    "passed": 1022,
-    "failed": 0
-  },
+  "tests": null,
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -402,950 +564,221 @@ window.STATE =
   },
   "additions": [],
   "coverage": {
-    "found": 0,
-    "fixed": 0,
+    "found": 14,
+    "fixed": 14,
     "deferred": 0,
     "items": []
   },
   "concerns": [],
-  "blockingFindings": [
-    {
-      "id": "B01",
-      "text": "allowed-tools: маска python *tools/ap.py* пускает python -c и чужой ap.py",
-      "ticket": null,
-      "openedAt": "2026-11-16T18:55:18+01:00",
-      "status": "resolved",
-      "openedCommit": "8784dec",
-      "resolvedAt": "2026-11-16T19:18:57+01:00",
-      "resolutionCommit": "cebfd38",
-      "resolutionTests": {
-        "passed": 1022,
-        "failed": 0
-      },
-      "review": "повторное ревью: маски bootstrap/doctor убраны, обхода через -c нет — закрыто"
-    },
-    {
-      "id": "B02",
-      "text": "blind круг 2: нет нижней границы checked — зелёный G4 при оставшихся расхождениях",
-      "ticket": null,
-      "openedAt": "2026-11-16T18:55:19+01:00",
-      "status": "resolved",
-      "openedCommit": "8784dec",
-      "resolvedAt": "2026-11-16T19:18:58+01:00",
-      "resolutionCommit": "cebfd38",
-      "resolutionTests": {
-        "passed": 1022,
-        "failed": 0
-      },
-      "review": "повторное ревью: круг 2 с checked меньше числа расхождений отказывает без записи — закрыто"
-    }
-  ],
-  "blind": {
-    "checked": 14,
-    "matched": 14,
-    "mismatches": []
-  },
+  "blockingFindings": [],
+  "blind": null,
   "beats": [
-    "2026-11-16T17:13:04+01:00",
-    "2026-11-16T17:13:12+01:00",
-    "2026-11-16T17:13:44+01:00",
-    "2026-11-16T17:13:55+01:00",
-    "2026-11-16T17:15:54+01:00",
-    "2026-11-16T17:15:55+01:00",
-    "2026-11-16T17:25:13+01:00",
-    "2026-11-16T17:25:14+01:00",
-    "2026-11-16T17:26:17+01:00",
-    "2026-11-16T17:26:18+01:00",
-    "2026-11-16T17:26:19+01:00",
-    "2026-11-16T17:26:27+01:00",
-    "2026-11-16T17:26:28+01:00",
-    "2026-11-16T17:26:46+01:00",
-    "2026-11-16T17:58:28+01:00",
-    "2026-11-16T17:58:30+01:00",
-    "2026-11-16T18:31:19+01:00",
-    "2026-11-16T18:31:20+01:00",
-    "2026-11-16T18:52:50+01:00",
-    "2026-11-16T18:52:51+01:00",
-    "2026-11-16T18:55:18+01:00",
-    "2026-11-16T18:55:19+01:00",
-    "2026-11-16T18:55:20+01:00",
-    "2026-11-16T18:55:21+01:00",
-    "2026-11-16T18:55:22+01:00",
-    "2026-11-16T18:55:23+01:00",
-    "2026-11-16T19:07:09+01:00",
-    "2026-11-16T19:18:57+01:00",
-    "2026-11-16T19:18:58+01:00",
-    "2026-11-16T19:18:59+01:00",
-    "2026-11-16T19:33:10+01:00",
-    "2026-11-16T19:33:11+01:00",
-    "2026-11-16T19:33:12+01:00",
-    "2026-11-16T19:33:40+01:00"
+    "2026-11-17T03:03:11+01:00",
+    "2026-11-17T03:03:16+01:00",
+    "2026-11-17T03:03:28+01:00",
+    "2026-11-17T03:03:34+01:00",
+    "2026-11-17T03:03:40+01:00",
+    "2026-11-17T03:03:41+01:00",
+    "2026-11-17T03:13:00+01:00",
+    "2026-11-17T03:15:04+01:00",
+    "2026-11-17T03:15:05+01:00",
+    "2026-11-17T03:15:06+01:00",
+    "2026-11-17T03:15:10+01:00",
+    "2026-11-17T03:15:11+01:00",
+    "2026-11-17T03:15:12+01:00"
   ],
-  "rev": 38,
+  "rev": 14,
   "waiting": null,
-  "waits": [
-    {
-      "kind": "briefing",
-      "from": "2026-11-16T17:13:55+01:00",
-      "to": "2026-11-16T17:15:54+01:00"
-    }
-  ],
+  "waits": [],
   "log": [
     {
-      "t": "2026-11-16T17:13:04+01:00",
+      "t": "2026-11-17T03:03:11+01:00",
       "k": "init"
     },
     {
-      "t": "2026-11-16T17:13:12+01:00",
+      "t": "2026-11-17T03:03:16+01:00",
       "k": "stage",
       "id": "manifest",
       "act": "start"
     },
     {
-      "t": "2026-11-16T17:13:55+01:00",
+      "t": "2026-11-17T03:03:34+01:00",
       "k": "stage",
       "id": "briefing",
       "act": "start"
     },
     {
-      "t": "2026-11-16T17:13:55+01:00",
-      "k": "ask",
-      "kind": "briefing",
-      "note": "четыре вопроса — профили на уровне пользователя, алиас -latest, хвосты прошлой сборки, одна сборка или две"
+      "t": "2026-11-17T03:03:40+01:00",
+      "k": "stage",
+      "id": "briefing",
+      "act": "skip",
+      "note": "бриф однозначен: решения «-latest разрешить», порядок и объём заданы в задаче; остальное — решения планировщика"
     },
     {
-      "t": "2026-11-16T17:15:54+01:00",
-      "k": "answered",
-      "kind": "briefing"
-    },
-    {
-      "t": "2026-11-16T17:15:55+01:00",
+      "t": "2026-11-17T03:03:41+01:00",
       "k": "gate",
       "g": "G1",
       "ok": false,
-      "open": 56,
-      "total": 88
+      "open": 11,
+      "total": 11
     },
     {
-      "t": "2026-11-16T17:15:55+01:00",
+      "t": "2026-11-17T03:03:41+01:00",
       "k": "stage",
       "id": "spec",
       "act": "start"
     },
     {
-      "t": "2026-11-16T17:25:13+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": true,
-      "found": 0,
-      "fixed": 0,
-      "deferred": 0
-    },
-    {
-      "t": "2026-11-16T17:25:13+01:00",
+      "t": "2026-11-17T03:13:00+01:00",
       "k": "gate",
       "g": "G1",
       "ok": true,
       "open": 0,
-      "total": 88
+      "total": 11
     },
     {
-      "t": "2026-11-16T17:25:13+01:00",
+      "t": "2026-11-17T03:13:00+01:00",
+      "k": "stage",
+      "id": "spec",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:15:04+01:00",
       "k": "stage",
       "id": "plan",
       "act": "start"
     },
     {
-      "t": "2026-11-16T17:25:14+01:00",
-      "k": "tier",
-      "v": "T2"
-    },
-    {
-      "t": "2026-11-16T17:26:17+01:00",
+      "t": "2026-11-17T03:15:05+01:00",
       "k": "tickets",
-      "n": 3
+      "n": 9
     },
     {
-      "t": "2026-11-16T17:26:18+01:00",
+      "t": "2026-11-17T03:15:06+01:00",
       "k": "gate",
       "g": "G3",
       "ok": true,
       "problems": 0
     },
     {
-      "t": "2026-11-16T17:26:19+01:00",
+      "t": "2026-11-17T03:15:10+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 14,
+      "fixed": 14,
+      "deferred": 0
+    },
+    {
+      "t": "2026-11-17T03:15:11+01:00",
+      "k": "tier",
+      "v": "T2"
+    },
+    {
+      "t": "2026-11-17T03:15:12+01:00",
       "k": "plan-models",
       "provider": "anthropic",
       "applied": false,
-      "tickets": 3,
-      "blocked": 3
-    },
-    {
-      "t": "2026-11-16T17:26:28+01:00",
-      "k": "stage",
-      "id": "build",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T17:26:46+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T17:58:28+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 987,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-16T17:58:30+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T18:31:19+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1020,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-16T18:31:20+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T18:52:50+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1024,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-16T18:52:51+01:00",
-      "k": "stage",
-      "id": "review",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T18:55:18+01:00",
-      "k": "blocker",
-      "id": "B01",
-      "act": "open"
-    },
-    {
-      "t": "2026-11-16T18:55:19+01:00",
-      "k": "blocker",
-      "id": "B02",
-      "act": "open"
-    },
-    {
-      "t": "2026-11-16T18:55:20+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 7
-    },
-    {
-      "t": "2026-11-16T18:55:21+01:00",
-      "k": "tickets",
-      "n": 4
-    },
-    {
-      "t": "2026-11-16T18:55:22+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-16T18:55:23+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T19:07:09+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1022,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-16T19:18:57+01:00",
-      "k": "blocker",
-      "id": "B01",
-      "act": "resolve"
-    },
-    {
-      "t": "2026-11-16T19:18:58+01:00",
-      "k": "blocker",
-      "id": "B02",
-      "act": "resolve"
-    },
-    {
-      "t": "2026-11-16T19:18:59+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 1
-    },
-    {
-      "t": "2026-11-16T19:18:59+01:00",
-      "k": "stage",
-      "id": "final",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-16T19:33:10+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 14,
-      "matched": 14
-    },
-    {
-      "t": "2026-11-16T19:33:11+01:00",
-      "k": "tests",
-      "passed": 1022,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-16T19:33:12+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 3
-    },
-    {
-      "t": "2026-11-16T19:33:40+01:00",
-      "k": "finish",
-      "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные",
-      "problems": 0
+      "tickets": 9,
+      "blocked": 9
     }
   ],
   "reqList": [
     {
-      "id": "R0001",
-      "text": "«Поведение шлюзов G1–G4, слепой приёмки, подписей, guard и запрет Fable не ослабляются.»",
-      "status": "done"
+      "id": "R11",
+      "text": "«Свод для калибровки роутера» — report-run печатает по сочетанию «класс × модель × усилие»; plan-models печатает строку совета из истории",
+      "status": "in-ticket"
     },
     {
-      "id": "R0002",
-      "text": "«Правила Opus не меняются.»",
-      "status": "done"
+      "id": "R12",
+      "text": "«Шкала роутера показана такой, какая она есть» — таблица в model-routing.md и трёх README; карточка таска на дашборде показывает класс, риск, причину",
+      "status": "in-ticket"
     },
     {
-      "id": "R0003",
-      "text": "«Ни одно правило навыка не теряется при переносе текста.»",
-      "status": "done"
+      "id": "R13",
+      "text": "«Имена моделей семейства 5» — тесты на написания claude--5-; алиас -latest у Haiku и Sonnet разрешён",
+      "status": "in-ticket"
     },
     {
-      "id": "R0004",
-      "text": "«Если сборка выходит за ~36 тыс. строк, делить на две: волны 1–3, затем 4–6.»",
-      "status": "done"
+      "id": "R14",
+      "text": "«ap.py на Windows не зовёт PowerShell на каждую команду»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0005",
-      "text": "«R04 раньше R05; R09 раньше R11; R11 раньше строки прогноза в R19.» · «R06 и R05 оба меняют phases/5-subagents.md: сначала R05, потом перенос.»",
-      "status": "done"
+      "id": "R15",
+      "text": "«История прошлых сборок не перечитывается каждой командой»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0006",
-      "text": "«Чего в этой сборке нет» — постоянные профили в строгом прогоне, усилие low, три исполнителя, ADR-агент на ревью, плагин, мод-панель, нативная изоляция, изменения правил Opus/Fable/шлюзов/слепоты",
-      "status": "done"
+      "id": "R16",
+      "text": "«Аттестации не растут без конца»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0101",
-      "text": "«Появляются четыре постоянных профиля с фиксированными именами, без имени прогона и номера таска: autopilot-executor (Read, Grep, Glob, Bash, Edit, Write), autopilot-reviewer, autopilot-acceptance (Read, Grep, Glob, Bash), autopilot-explor…",
-      "status": "done"
+      "id": "R17",
+      "text": "«Тесты самого Autopilot идут параллельно»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0102",
-      "text": "«Модель и усилие в обычном прогоне задаются параметрами вызова, как сейчас; профиль их не закрепляет.»",
-      "status": "done"
+      "id": "R18",
+      "text": "«Профили агентов сданной сборки удаляются»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0103",
-      "text": "«Профили пишутся в .claude/agents/ при init, если их нет или текст отличается. Профили прошлых прогонов и чужие файлы не трогаются.»",
-      "status": "done"
+      "id": "R19",
+      "text": "«Прогноз после плана и расход в отчёте»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0104",
-      "text": "«Профиля нет в этой сессии (первая сборка в папке, ответ «Agent type not found») — сборка идёт как сейчас, на general-purpose, одной строкой в чате сказано, что со следующего чата будет дешевле. Никогда не останов.»",
-      "status": "done"
+      "id": "R20",
+      "text": "«Понятные ошибки дашборда»",
+      "status": "in-ticket"
     },
     {
-      "id": "R0105",
-      "text": "«Строгий прогон не меняется: свои профили на таск, guard, подписи, аттестация.»",
-      "status": "done"
-    },
-    {
-      "id": "R0106",
-      "text": "«Фазы и 5-host-claude.md называют лёгкий профиль для каждой роли: исполнитель, точечное ревью, ревью ветки, проверка покрытия G2, слепая приёмка, разведка, память, ADR.»",
-      "status": "done"
-    },
-    {
-      "id": "R0107",
-      "text": "«tools/measure-run.py печатает колонку «стартовый контекст» и тип агента по каждому контексту (из первых чисел расхода и meta.json рядом с журналом субагента; текст сообщений не читается).»",
-      "status": "done"
-    },
-    {
-      "id": "R0108",
-      "text": "«Готово, когда: тесты на создание, неизменность при повторном init, отсутствие пути таска в тексте профиля; в docs/autopilot/measuring-cost.md записан замер одной настоящей сборки до и после с оговорками. Если замер после невозможен в этой…",
-      "status": "done"
-    },
-    {
-      "id": "R0109",
-      "text": "«Открытый вопрос брифинга: ставить ли эти же четыре профиля ещё и на уровне пользователя (~/.claude/agents/), чтобы они были видны уже в первой сборке любой папки. Запись вне проекта — только с согласия пользователя. Моя рекомендация: спро…",
-      "status": "done"
-    },
-    {
-      "id": "R0201",
-      "text": "«ap.py читает из журнала главной сессии размер последнего контекста (вход, чтение и запись кэша последнего шага): та же логика поиска журнала, что в session_transcript и spend_orchestrator; только числа.»",
-      "status": "done"
-    },
-    {
-      "id": "R0202",
-      "text": "«На stage build, stage review, stage final и на init при контексте выше порога команда печатает одну строку ↑: сколько сейчас и что /autopilot в новом чате продолжит с этого места. Порог по умолчанию 150 тыс., настраивается.»",
-      "status": "done"
-    },
-    {
-      "id": "R0203",
-      "text": "«Это подсказка, не вопрос и не останов; в строгом прогоне на Claude Code обязательный новый чат после плана остаётся как есть. Журнал не найден — строки нет.»",
-      "status": "done"
-    },
-    {
-      "id": "R0204",
-      "text": "«phases/0-preflight.md: новая сборка в чате, где уже прошла другая, начинается с этой строки.»",
-      "status": "done"
-    },
-    {
-      "id": "R0205",
-      "text": "«Тесты: порог, отсутствие журнала, усечённое имя папки журнала.»",
-      "status": "done"
-    },
-    {
-      "id": "R0301",
-      "text": "«В interfaces.md появляется раздел «Команды-генераторы»: имя, команда, файлы, которые она переписывает. Заполняет планировщик из того, что есть в проекте (счётчики, форматтер, генерация кода).»",
-      "status": "done"
-    },
-    {
-      "id": "R0302",
-      "text": "«ap.py chore <имя> запускает объявленную команду, проверяет, что изменились только объявленные файлы, и коммитит их с трейлером прогона. Изменилось что-то ещё — отказ, ничего не закоммичено.»",
-      "status": "done"
-    },
-    {
-      "id": "R0303",
-      "text": "«Правило 5 в SKILL.md получает одно уточнение: запуск объявленной команды-генератора через ap.py chore — не написание кода. Руками оркестратор по-прежнему ничего в проекте не правит.»",
-      "status": "done"
-    },
-    {
-      "id": "R0304",
-      "text": "«Тесты: объявленная команда; лишний изменённый файл; необъявленное имя; команда с ненулевым кодом выхода.»",
-      "status": "done"
-    },
-    {
-      "id": "R0401",
-      "text": "«Договорённость прошлой сборки: составная команда «тесты, коммит, ticket done» отложена «до замера». Этот пункт и есть замер.»",
-      "status": "done"
-    },
-    {
-      "id": "R0402",
-      "text": "«tools/measure-run.py считает шаги главной сессии между возвратом субагента и следующим запуском субагента и токены на эти шаги. Читаются числа, имена инструментов и тип агента; текст не читается и не сохраняется.»",
-      "status": "done"
-    },
-    {
-      "id": "R0403",
-      "text": "«Таблица с оговорками — в docs/autopilot/measuring-cost.md. Решение по R05 записано рядом одной строкой. В среднем меньше трёх шагов на таск — R05 не делается и уходит в PROGRESS.md с причиной.»",
-      "status": "done"
-    },
-    {
-      "id": "R0501",
-      "text": "«ap.py ticket NN land --zone <пути> --message \"<текст>\" --requirements R01,R02 по порядку: файлы вне зоны (git status --porcelain), полная проверка из interfaces.md с коротким выводом, коммит только зоны с трейлерами, ticket NN done --test…",
-      "status": "done"
-    },
-    {
-      "id": "R0502",
-      "text": "«Красный шаг — останов без коммита, одна-три строки: какой шаг и почему. Ноль тестов считается красным.»",
-      "status": "done"
-    },
-    {
-      "id": "R0503",
-      "text": "«Вывод при успехе не длиннее пяти строк.»",
-      "status": "done"
-    },
-    {
-      "id": "R0504",
-      "text": "«За оркестратором остаются: чтение контракта исполнителя, запись INTERFACES в interfaces.md, учёт заглушек и переменных, строка пользователю.»",
-      "status": "done"
-    },
-    {
-      "id": "R0505",
-      "text": "«Строгий изолированный прогон идёт прежним путём (worktree NN verify, finalize, land); новая команда там отказывает с подсказкой. Отдельные команды работают как раньше.»",
-      "status": "done"
-    },
-    {
-      "id": "R0506",
-      "text": "«phases/5-subagents.md, раздел «After each ticket», переписан под команду и стал короче.»",
-      "status": "done"
-    },
-    {
-      "id": "R0507",
-      "text": "«Тесты: зелёный путь; файл вне зоны; красная проверка; ноль тестов; отказ в строгом изолированном прогоне.»",
-      "status": "done"
-    },
-    {
-      "id": "R0601",
-      "text": "«Из phases/4-plan.md и phases/5-subagents.md в отдельные файлы выносится то, что обычному прогону на Claude Code не нужно: строгий режим и регистрация агентов, Opus, Codex, --sequential-host, контроллер, изолированные таски. Каждый такой ф…",
-      "status": "done"
-    },
-    {
-      "id": "R0602",
-      "text": "«Это перенос, не редактура. Таблица «Reading this skill» в SKILL.md обновлена.»",
-      "status": "done"
-    },
-    {
-      "id": "R0603",
-      "text": "«Тест-ограничитель: сумма байт файлов обычного пути (перечень в тесте) не больше порога. Порог — фактический размер после переноса плюс 5 %; цель — не больше 110 КБ. Цель не достигнута переносом — в отчёте фактическое число, текст ради циф…",
-      "status": "done"
-    },
-    {
-      "id": "R0604",
-      "text": "«Тест: каждый вынесенный файл упомянут в основном файле своей фазы.»",
-      "status": "done"
-    },
-    {
-      "id": "R0605",
-      "text": "«Три README и docs/autopilot/ поправлены там, где ссылаются на перенесённое.»",
-      "status": "done"
-    },
-    {
-      "id": "R0701",
-      "text": "«python3 \"<skillDir>/tools/ap.py\" bootstrap --project . копирует шаблон дашборда и все .py из tools/ навыка, создаёт index.html, печатает skillDir. Идемпотентна.»",
-      "status": "done"
-    },
-    {
-      "id": "R0702",
-      "text": "«upgrade-tools копирует и новые файлы. Правила доверия к skillDir в подписанном прогоне и запрет при таске в работе сохраняются.»",
-      "status": "done"
-    },
-    {
-      "id": "R0703",
-      "text": "«§1 в 0-instruments.md сокращён до поиска навыка и одной команды.»",
-      "status": "done"
-    },
-    {
-      "id": "R0704",
-      "text": "«Тесты: чистая папка; повторный запуск; новый файл в навыке доходит через upgrade-tools; недоверенный skillDir отказывает.»",
-      "status": "done"
-    },
-    {
-      "id": "R0801",
-      "text": "«ap.py doctor (работает из папки навыка, до init) объединяет git-check, claude-version, проверку advisorModel и сводку repo_doctor.py: одна строка для человека на каждую проверку, код выхода 2 только на отказах, которые и сейчас останавлив…",
-      "status": "done"
-    },
-    {
-      "id": "R0802",
-      "text": "«Отдельные команды остаются. phases/0-preflight.md называет doctor вместо отдельных вызовов.»",
-      "status": "done"
-    },
-    {
-      "id": "R0803",
-      "text": "«Тесты: всё зелёное; отказ Git; старая версия Claude Code; нечитаемая версия не отказ.»",
-      "status": "done"
-    },
-    {
-      "id": "R0901",
-      "text": "«Модель и тип агента берутся из журнала субагента и meta.json рядом с ним; только имя модели, тип агента и числа.»",
-      "status": "done"
-    },
-    {
-      "id": "R0902",
-      "text": "«ticket F<n> route в обычном прогоне записывает маршрут так же, как для таска плана.»",
-      "status": "done"
-    },
-    {
-      "id": "R0903",
-      "text": "«Сначала проверить, что из этого уже сделала сборка 2026-11-16-subagent-spend-nonstrict; сделанное не повторять, а назвать в отчёте.»",
-      "status": "done"
-    },
-    {
-      "id": "R0904",
-      "text": "«Готово, когда: в report-run на журнале с записями субагентов нет строки «не указана» там, где модель есть в журнале субагента; тест на это.»",
-      "status": "done"
-    },
-    {
-      "id": "R1001",
-      "text": "«Второй круг получает бриф целиком и список требований, по которым первый круг сказал «частично» или «нет», в словах брифа. Он заново клонирует, поднимает проект, проходит основной сценарий один раз и проверяет названные требования. Осталь…",
-      "status": "done"
-    },
-    {
-      "id": "R1002",
-      "text": "«Проверяющий по-прежнему свежий и по-прежнему не видит спецификацию, манифест и таски. Вердикт первого круга по остальным требованиям сохраняется; ap.py blind второго круга сводит оба.»",
-      "status": "done"
-    },
-    {
-      "id": "R1003",
-      "text": "«Основной сценарий во втором круге не поднялся — это расхождение, даже если его не было в списке.»",
-      "status": "done"
-    },
-    {
-      "id": "R1004",
-      "text": "«Тесты на сведение двух кругов в ap.py; текст запроса второго круга — в 8-final.md.»",
-      "status": "done"
-    },
-    {
-      "id": "R1101",
-      "text": "«report-run печатает по сочетанию «класс × модель × усилие» за текущую и прошлые сборки: тасков, сдано с первого раза, дозапросов, эскалаций Haiku → Sonnet, токенов на таск. Зависит от R09.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1102",
-      "text": "«plan-models печатает одну строку совета из истории, когда она есть: например, сколько механических тасков на Haiku эскалировано. Совет не меняет маршрут: решает планировщик своей оценкой, как записано в PROGRESS.md.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1103",
-      "text": "«Истории нет — строки нет. Тесты на свод и на пустую историю.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1201",
-      "text": "«docs/autopilot/model-routing.md и три README получают одну таблицу: класс, риск, чувствительная зона, только документы → профиль, модель, усилие. Веса остаются для route --scores и описаны как ручная оценка.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1202",
-      "text": "«Дашборд в карточке таска показывает класс, риск и причину словами; число score уходит в подробности.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1203",
-      "text": "«Поведение роутера не меняется; тест, что таблица в документации совпадает с тем, что возвращает роутер на тех же входах.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1301",
-      "text": "«Тесты is_allowed_subagent_model, is_opus_model, is_premium_model на написания claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-2, с префиксами Bedrock и суффиксом даты: Haiku и Sonnet проходят, Opus только с подтвержде…",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1302",
-      "text": "«Алиас claude-3-5-haiku-latest (и вообще -latest у Haiku и Sonnet): открытый пункт PROGRESS.md. Вопрос брифинга; моя рекомендация — разрешить, у Opus -latest уже разбирается.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате; алиас -latest у Haiku и Sonnet — разрешить"
-    },
-    {
-      "id": "R1401",
-      "text": "«Живой сервер подтверждает себя по HTTP: ответом, который может дать только сервер этого прогона (производное от serve.token, сам токен не передаётся). Проверка процесса остаётся для случая, когда такого ответа нет.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1402",
-      "text": "«Защита из docs/adr/0001 не ослабляется: проверки Host, Origin, Sec-Fetch-Site и токена прежние.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1403",
-      "text": "«Тест: при здоровом сервере команда не запускает PowerShell (подмена _ps); чужой процесс на том же порту не признаётся своим.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1501",
-      "text": "«Сводка по архиву кэшируется по времени изменения и размеру файла в игнорируемом git файле внутри .autopilot/. Битый или отсутствующий кэш пересчитывается молча.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1502",
-      "text": "«Тесты: второй вызов не открывает архивы; изменённый архив пересчитан.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1601",
-      "text": "«На finish строки attestations.jsonl этого прогона переносятся в папку прогона; общий файл начинается заново. При незавершённом прогоне файл не трогается.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1602",
-      "text": "«Проверки attestFrom и подписи работают как раньше. Тесты: перенос на finish; повторный finish после reopen.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1701",
-      "text": "«Замер 2026-11-16, Windows, Python 3.14, один процесс: 959 тестов за 532 с, все зелёные, 5 пропущено. Тридцать самых медленных вместе дают около 150 с (самый долгий 17 с); остальное — длинный хвост тестов по 3 с в test_ap.Run, каждый из ко…",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1702",
-      "text": "«Сначала выяснить, сколько из этих 3 с уходит на проверку сервера и PowerShell (R14) и не хватает ли тестам --no-serve: если дело в этом, часть выигрыша приходит без параллельности. Результат — одна строка в отчёте.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1703",
-      "text": "«tools/ получает запускатель на стандартной библиотеке, который делит файлы тестов между процессами и печатает общий итог в том же формате (всего, упало, пропущено). Обычная команда python3 -m unittest discover -s tests остаётся рабочей и…",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1704",
-      "text": "«Тесты, которым нужен общий ресурс (порт, домашняя папка), помечены и идут последовательно.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1705",
-      "text": "«В AGENTS.md записано фактическое время до и после.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1801",
-      "text": "«ap.py finish удаляет из .claude/agents/ профили своего прогона: те, что записаны в его state.js (routing.agentType тасков, roleAgents, repairAgent, opusAgents). Постоянные профили из R01, чужие файлы и профили другого незавершённого прого…",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1802",
-      "text": "«ap.py agents prune удаляет профили autopilot- с именем прогона, на которые не ссылается ни один незавершённый прогон; без --apply только печатает список.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1803",
-      "text": "«reopen сданной сборки: путь к профилям прежний (plan-models --apply и новый чат) — одна строка в phases/0-preflight.md.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1804",
-      "text": "«Сбой удаления не срывает finish. Тесты: свои удалены, чужие и постоянные остались; prune без --apply ничего не удаляет.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1901",
-      "text": "«Экран плана получает одну строку: сколько тасков и оценка токенов и минут, из R11 по тем же классам. Истории нет — строки нет; оценка названа оценкой.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1902",
-      "text": "«Итоговый отчёт (phases/8-final.md §3) получает строку «Расход и время»: токены оркестратора и субагентов, минуты работы, из state.js → spend. Деньги не называются: цен в журнале нет.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R1903",
-      "text": "«Если пользователь назвал лимит токенов, он виден на дашборде рядом с расходом (budgetTokens уже есть в state.js); вступительный блок называет эту возможность одной строкой.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R2001",
-      "text": "«Неверный или отсутствующий ?t=: страница один раз показывает подсказку про ap.py url и перестаёт опрашивать сервер. Удалённый serve.token: следующая команда ap.py поднимает сервер заново, а не оставляет 403 до перезапуска. Оба — известные…",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R2002",
-      "text": "«Тесты на оба случая.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R2101",
-      "text": "«В трёх README первые сорок строк: что это, установка одной командой, первая команда, что увидит пользователь. «Статус и ограничения» идут после.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R2102",
-      "text": "«Добавлен абзац «как собрать дешевле»: Sonnet на сборку, новый чат на новую сборку, лишние MCP-серверы в сессии сборки увеличивают контекст оркестратора на каждом шаге.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "R2103",
-      "text": "«STATUS.md, HANDOFF.md, HANDOFF_NEXT_CLIENT_2026-10-26.md и старые брифы переносятся в docs/history/ через git mv, ссылки поправлены. Файлы .local.md не трогаются. Ничего не удаляется.»",
-      "status": "deferred",
-      "why": "пользователь: «ok» на рекомендации брифинга 2026-11-16: две сборки, волны 4–6 (R11–R21) — следующей сборкой в новом чате"
-    },
-    {
-      "id": "G01",
-      "text": "«.meta.json и collapse_agents» — .meta.json читается с utf-8-sig",
-      "status": "done"
-    },
-    {
-      "id": "G02",
-      "text": "«.meta.json и collapse_agents» — collapse_agents не отбрасывает журнальные строки autopilot-… при хуковой строке без agent (занижение в строгом прогоне)",
-      "status": "done"
+      "id": "R21",
+      "text": "«Быстрый старт в начале README»",
+      "status": "in-ticket"
     }
   ],
   "gates": {
     "G1": {
       "ok": true,
-      "at": "2026-11-16T17:25:13+01:00",
+      "at": "2026-11-17T03:13:00+01:00",
       "open": 0,
-      "total": 88
-    },
-    "G2": {
-      "ok": true,
-      "at": "2026-11-16T17:25:13+01:00",
-      "found": 0,
-      "fixed": 0,
-      "deferred": 0
+      "total": 11
     },
     "G3": {
       "ok": true,
-      "at": "2026-11-16T17:26:18+01:00",
+      "at": "2026-11-17T03:15:06+01:00",
       "problems": 0
     },
-    "G4": {
+    "G2": {
       "ok": true,
-      "at": "2026-11-16T19:33:10+01:00",
-      "checked": 14,
-      "matched": 14
+      "at": "2026-11-17T03:15:10+01:00",
+      "found": 14,
+      "fixed": 14,
+      "deferred": 0
     }
   },
-  "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные",
+  "result": null,
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {
-      "agent": {
-        "n": 11,
-        "input": 724,
-        "output": 326612,
-        "cache_read": 73749368,
-        "cache_write": 1815729,
-        "tokens": 327336,
-        "hit": 98
-      },
-      "orchestrator": {
-        "n": 1,
-        "input": 146,
-        "output": 68794,
-        "cache_read": 13812598,
-        "cache_write": 175173,
-        "tokens": 68940,
-        "hit": 99
-      }
-    },
-    "byModel": {
-      "claude-sonnet-5-5": {
-        "n": 10,
-        "input": 718,
-        "output": 302845,
-        "cache_read": 73519789,
-        "cache_write": 1647080,
-        "tokens": 303563,
-        "hit": 98
-      },
-      "claude-haiku-5-5": {
-        "n": 1,
-        "input": 6,
-        "output": 23767,
-        "cache_read": 229579,
-        "cache_write": 168649,
-        "tokens": 23773,
-        "hit": 58
-      },
-      "claude-fable-5-2": {
-        "n": 1,
-        "input": 146,
-        "output": 68794,
-        "cache_read": 13812598,
-        "cache_write": 175173,
-        "tokens": 68940,
-        "hit": 99
-      }
-    },
-    "byTicket": {
-      "01": {
-        "n": 1,
-        "input": 184,
-        "output": 95142,
-        "cache_read": 25116931,
-        "cache_write": 308361,
-        "tokens": 95326,
-        "hit": 99
-      },
-      "03": {
-        "n": 1,
-        "input": 70,
-        "output": 18634,
-        "cache_read": 4757578,
-        "cache_write": 161784,
-        "tokens": 18704,
-        "hit": 97
-      },
-      "02": {
-        "n": 1,
-        "input": 196,
-        "output": 101160,
-        "cache_read": 24540100,
-        "cache_write": 340747,
-        "tokens": 101356,
-        "hit": 99
-      },
-      "F1": {
-        "n": 1,
-        "input": 40,
-        "output": 8643,
-        "cache_read": 2163501,
-        "cache_write": 79005,
-        "tokens": 8683,
-        "hit": 96
-      }
-    }
+    "byRole": {},
+    "byModel": {},
+    "byTicket": {}
   },
   "history": [
+    {
+      "dir": "2026-11-16-cheaper-faster",
+      "title": "Autopilot: дешевле, быстрее, удобнее",
+      "startedAt": "2026-11-16T17:13:04+01:00",
+      "finishedAt": "2026-11-16T19:33:40+01:00",
+      "minutes": 139,
+      "tickets": 4,
+      "repairs": 0,
+      "tokens": 396276,
+      "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные"
+    },
     {
       "dir": "2026-11-16-subagent-spend-nonstrict",
       "title": "Расход субагентов виден в обычном режиме",
@@ -1469,20 +902,6 @@ window.STATE =
     }
   ],
   "logFailures": 0,
-  "planContractDigest": "af788ad8243ef3f4ccc9afd89f8472c2d9bd72f2766bfd975be3830128751633",
-  "planValidationDigest": "1360eb8133a45fd0a0ad93ff10aa29d0c02991f6ae3459fe36545e5df67a61b8",
-  "report": [
-    "ticket NN land: --zone заменяет зону таска без проверки; коммитит и ручные правки пользователя внутри зоны",
-    "commit_paths: пути без --literal-pathspecs (имена с [ и * читаются как шаблон); переименование оставляет старый путь в индексе; проект в подпапке репозитория не поддержан",
-    "ticket NN land: коммит делается до ticket done — при отказе done остаётся коммит без записи, печатается команда восстановления",
-    "land при параллельных тасках встаёт на красном от чужой незаконченной работы; обход — отдельные команды, в тексте фазы не назван",
-    "upgrade-tools и bootstrap копируют все .py навыка, включая служебные (test_count.py, пилоты) — так сказано в брифе; белого списка нет",
-    "AUTOPILOT_CONTEXT_HINT с не-ASCII цифрой роняет init и stage",
-    "chore и land запускают команду из interfaces.md через оболочку без белого списка — файл пишет оркестратор",
-    "ticket NN land считает «вне зоны» и файлы, грязные до таска: их приходится называть через --allow",
-    "R06: обычный путь навыка 191,5 → 184,0 КБ; цель брифа «не больше 110 КБ» переносом не достигнута, текст ради цифры не резали (как велит бриф); слепой проверяющий отметил пункт как «частично»",
-    "в папке без первого коммита init пишет .gitignore, и первый ticket NN land останавливается на нём как на файле вне зоны",
-    "замер «после» для лёгких профилей не сделан: профили видны Claude Code только со следующего чата"
-  ],
-  "blindRounds": 1
+  "planContractDigest": "c14283e12f228421f7ae4602328eded8451790318f711e99c4d3d2a80293de1c",
+  "planValidationDigest": "86cae297359abd77220694978b34c940f0cad37688d6e59656a9b18daca92de4"
 }
