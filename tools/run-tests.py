@@ -39,13 +39,17 @@ def _walk(suite):
 
 
 def collect(tests_dir=TESTS):
-    """-> {"module.Class": ([method, ...], serial)}; ошибки импорта идут как класс _FailedTest."""
+    """-> {"module.Class": ([method, ...], serial)}; модуль, не импортировавшийся, идёт под своим именем
+    без методов: `unittest <модуль>` в дочернем процессе даёт ту же ошибку с traceback (на 3.11 и 3.13)."""
     if tests_dir not in sys.path:
         sys.path.insert(0, tests_dir)
     suite = unittest.defaultTestLoader.discover(tests_dir, top_level_dir=tests_dir)
     found = {}
     for t in _walk(suite):
         cls = type(t)
+        if cls.__name__ == "_FailedTest":
+            found.setdefault(t._testMethodName, ([], False))
+            continue
         key = "%s.%s" % (cls.__module__, cls.__name__)
         methods, _ = found.setdefault(key, ([], bool(getattr(cls, "serial", False)) or key in SERIAL))
         methods.append(t._testMethodName)
@@ -88,9 +92,10 @@ def parse_summary(text):
     ran = _RAN.search(text)
     if not ran:
         return None
-    res = {"ran": int(ran.group(1)), "failures": 0, "errors": 0, "skipped": 0}
+    res = {"ran": int(ran.group(1)), "failures": 0, "errors": 0, "skipped": 0, "unexpected": 0}
     m = _FAILED.search(text) or _OK.search(text)
-    for k, v in re.findall(r"(\w+)=(\d+)", m.group(1) or "" if m else ""):
+    for k, v in re.findall(r"(unexpected successes|\w+)=(\d+)", m.group(1) or "" if m else ""):
+        k = "unexpected" if k == "unexpected successes" else k
         if k in res:
             res[k] = int(v)
     return res
@@ -98,7 +103,7 @@ def parse_summary(text):
 
 def combine(results):
     """Складывает итоги процессов (None — процесс упал без итога: одна ошибка)."""
-    total = {"ran": 0, "failures": 0, "errors": 0, "skipped": 0}
+    total = {"ran": 0, "failures": 0, "errors": 0, "skipped": 0, "unexpected": 0}
     for r in results:
         if r is None:
             total["errors"] += 1
@@ -110,10 +115,12 @@ def combine(results):
 
 def format_summary(total, seconds):
     out = "Ran %d tests in %.3fs\n\n" % (total["ran"], seconds)
-    bad = total["failures"] + total["errors"]
+    bad = total["failures"] + total["errors"] + total["unexpected"]
     parts = []
-    if bad:
+    if total["failures"] or total["errors"]:
         parts += ["failures=%d" % total["failures"], "errors=%d" % total["errors"]]
+    if total["unexpected"]:
+        parts.append("unexpected successes=%d" % total["unexpected"])
     if total["skipped"]:
         parts.append("skipped=%d" % total["skipped"])
     if bad:
@@ -121,8 +128,8 @@ def format_summary(total, seconds):
     return out + "OK" + (" (%s)" % ", ".join(parts) if parts else "")
 
 
-def run_group(ids):
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join(filter(None, [TESTS, os.environ.get("PYTHONPATH")])))
+def run_group(ids, tests_dir=TESTS):
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(filter(None, [tests_dir, os.environ.get("PYTHONPATH")])))
     p = subprocess.run([sys.executable, "-m", "unittest", "-q"] + ids, cwd=ROOT, env=env,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                        encoding="utf-8", errors="replace")
@@ -132,9 +139,10 @@ def run_group(ids):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("-j", type=int, default=os.cpu_count() or 1, help="число процессов (по умолчанию — ядра)")
+    ap.add_argument("--dir", default=TESTS, help="папка с тестами (по умолчанию tests/ репозитория)")
     ap.add_argument("--list", action="store_true", help="показать разбиение на группы и выйти")
     args = ap.parse_args(argv)
-    parallel, serial = make_units(collect())
+    parallel, serial = make_units(collect(args.dir))
     groups = plan(parallel, args.j)
     if args.list:
         for i, g in enumerate(groups, 1):
@@ -143,15 +151,15 @@ def main(argv=None):
         return 0
     start = time.time()
     with ThreadPoolExecutor(max_workers=len(groups) or 1) as pool:
-        outs = list(pool.map(run_group, groups))
+        outs = list(pool.map(lambda g: run_group(g, args.dir), groups))
     if serial:
-        outs.append(run_group([i for _, ids in serial for i in ids]))
+        outs.append(run_group([i for _, ids in serial for i in ids], args.dir))
     for summary, code, text in outs:
         if summary is None or code != 0:
             print(text, file=sys.stderr)
     total = combine(o[0] for o in outs)
     print("\n" + format_summary(total, time.time() - start), file=sys.stderr)
-    return 1 if (total["failures"] or total["errors"] or any(o[1] for o in outs)) else 0
+    return 1 if (total["failures"] or total["errors"] or total["unexpected"] or any(o[1] for o in outs)) else 0
 
 
 if __name__ == "__main__":

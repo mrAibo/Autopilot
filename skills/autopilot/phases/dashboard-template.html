@@ -1679,7 +1679,7 @@ const SERVED = /^https?:$/.test(location.protocol);
 function showLink(){
   const el = document.getElementById('link');
   if (!el) return;
-  const lost = SERVED && misses >= 2 && !(window.STATE && window.STATE.finishedAt);
+  const lost = SERVED && misses >= 2 && !tokenStop && !(window.STATE && window.STATE.finishedAt);
   el.hidden = !lost;
   el.parentNode.hidden = !lost;
   if (lost) el.textContent = CUR.lost;

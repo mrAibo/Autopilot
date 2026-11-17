@@ -2917,7 +2917,8 @@ class Run(unittest.TestCase):
                      self.profile("autopilot-executor-01-mine", ".codex/agents", ".toml")]
         self.kept = [self.profile(n) for n in self.PERMANENT] + [
             self.profile("autopilot-executor-02-shared"), self.profile("autopilot-executor-09-theirs"),
-            self.profile("my-own-helper"), self.profile("notes", ext=".txt")]
+            self.profile("my-own-helper"), self.profile("notes", ext=".txt"),
+            self.profile("autopilot-mine"), self.profile("autopilot-mine", ".codex/agents", ".toml")]   # чужое имя с префиксом
         self.orphan = self.profile("autopilot-reviewer-orphan")
         self.link = None
         outside = os.path.join(self.root, "outside.md")

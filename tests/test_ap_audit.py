@@ -372,6 +372,15 @@ class SpendHistory(unittest.TestCase):
         self.assertEqual(self.m.compute_history(rows, WIP)[0]["tokens"], 10)   # битый кэш — молча заново
         self.assertEqual(self.m.compute_history([], WIP)[0]["tokens"], 0)      # токены не из кэша
 
+    def test_history_cache_row_without_dir_or_startedat_is_recomputed_not_a_keyerror(self):
+        self.archive("2026-10-05-a", title="Первая", startedAt="2026-10-05T10:00:00+01:00")
+        st = os.stat(os.path.join(self.h.a, "2026-10-05-a", "state.js"))
+        for row in ({}, {"dir": "2026-10-05-a"}, {"dir": "чужая", "startedAt": "x"}):
+            with open(os.path.join(self.h.a, "history-cache.json"), "w", encoding="utf-8") as f:
+                json.dump({"v": 1, "items": {"2026-10-05-a": {"key": [st.st_mtime_ns, st.st_size], "row": row}}}, f)
+            got = self.m.compute_history([], WIP)
+            self.assertEqual([(x["dir"], x["title"]) for x in got], [("2026-10-05-a", "Первая")], row)
+
     def test_state_js_gets_history_spend_and_log_failures(self):
         self.h.init()
         run = self.h.state()["dir"]
@@ -482,6 +491,19 @@ class ClassReport(unittest.TestCase):
         with open(os.path.join(REPO, "skills", "autopilot", "phases", "8-final.md"), encoding="utf-8") as f:
             text = f.read()
         self.assertRegex(text, r"\| Расход и время \| `state\.js` → `spend`")
+
+    def test_plan_models_prints_advice_only_with_haiku_escalation_history(self):
+        h = harness(self)
+        write_journal(h, self.rows())
+        h.plan()
+        self.assertEqual(h.ap("tickets")[0], 0)
+        code, out = h.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, out)
+        self.assertIn("механических тасков на Haiku 2, эскалировано на Sonnet 1", json.loads(out)["advice"])
+        write_journal(h, [{"run": WIP, "k": "phase", "id": "build", "act": "start"}])
+        code, out = h.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("advice", json.loads(out))
 
     def test_plan_models_has_no_forecast_without_history(self):
         h = harness(self)

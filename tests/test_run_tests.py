@@ -1,6 +1,9 @@
 """Запускатель tools/run-tests.py: дробление на группы и сложение итогов (весь набор не гоняется)."""
 import importlib.util
 import os
+import subprocess
+import sys
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -45,21 +48,56 @@ class Splitting(unittest.TestCase):
 class Summary(unittest.TestCase):
     def test_parse_ok_and_failed(self):
         self.assertEqual(rt.parse_summary("Ran 5 tests in 1.0s\n\nOK (skipped=2)\n"),
-                         {"ran": 5, "failures": 0, "errors": 0, "skipped": 2})
+                         {"ran": 5, "failures": 0, "errors": 0, "skipped": 2, "unexpected": 0})
         self.assertEqual(rt.parse_summary("Ran 1 test in 0.1s\n\nFAILED (failures=1, errors=2)\n"),
-                         {"ran": 1, "failures": 1, "errors": 2, "skipped": 0})
+                         {"ran": 1, "failures": 1, "errors": 2, "skipped": 0, "unexpected": 0})
         self.assertIsNone(rt.parse_summary("Traceback..."))
 
     def test_combine_sums_and_counts_a_crashed_process_as_error(self):
-        a = {"ran": 5, "failures": 1, "errors": 0, "skipped": 2}
-        b = {"ran": 3, "failures": 0, "errors": 1, "skipped": 1}
-        self.assertEqual(rt.combine([a, b, None]), {"ran": 8, "failures": 1, "errors": 2, "skipped": 3})
+        a = {"ran": 5, "failures": 1, "errors": 0, "skipped": 2, "unexpected": 0}
+        b = {"ran": 3, "failures": 0, "errors": 1, "skipped": 1, "unexpected": 1}
+        self.assertEqual(rt.combine([a, b, None]), {"ran": 8, "failures": 1, "errors": 2, "skipped": 3, "unexpected": 1})
 
     def test_format_matches_unittest(self):
-        ok = rt.format_summary({"ran": 9, "failures": 0, "errors": 0, "skipped": 5}, 1.5)
+        ok = rt.format_summary({"ran": 9, "failures": 0, "errors": 0, "skipped": 5, "unexpected": 0}, 1.5)
         self.assertEqual(ok, "Ran 9 tests in 1.500s\n\nOK (skipped=5)")
-        bad = rt.format_summary({"ran": 9, "failures": 1, "errors": 2, "skipped": 0}, 1.5)
+        bad = rt.format_summary({"ran": 9, "failures": 1, "errors": 2, "skipped": 0, "unexpected": 0}, 1.5)
         self.assertTrue(bad.endswith("FAILED (failures=1, errors=2)"))
+
+
+class WholeRun(unittest.TestCase):
+    """Настоящий запуск на временной папке tests: сломанный импорт и «неожиданный успех» — падение."""
+
+    def run_on(self, **modules):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, text in modules.items():
+                with open(os.path.join(tmp, name + ".py"), "w", encoding="utf-8") as f:
+                    f.write(text)
+            return subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "run-tests.py"), "-j", "2", "--dir", tmp],
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+
+    OK = "import unittest\nclass A(unittest.TestCase):\n    def test_a(self): pass\n"
+
+    def test_module_that_fails_to_import_is_an_error_with_a_traceback(self):
+        p = self.run_on(test_ok=self.OK, test_broken="import module_that_does_not_exist_xyz\n")
+        self.assertEqual(p.returncode, 1, p.stderr)
+        self.assertRegex(p.stderr, r"FAILED \(.*errors=[1-9]")
+        self.assertIn("module_that_does_not_exist_xyz", p.stderr)
+        self.assertIn("Traceback", p.stderr)
+
+    def test_unexpected_success_fails_the_run_like_unittest(self):
+        ux = "import unittest\nclass U(unittest.TestCase):\n    @unittest.expectedFailure\n    def test_u(self): pass\n"
+        p = self.run_on(test_ok=self.OK, test_ux=ux)
+        self.assertEqual(p.returncode, 1, p.stderr)
+        self.assertTrue(p.stderr.rstrip().endswith("unexpected successes=1)"), p.stderr)   # итог запускателя, не вывод дочернего
+
+    def test_a_clean_folder_is_ok(self):
+        p = self.run_on(test_ok=self.OK)
+        self.assertEqual((p.returncode, "OK" in p.stderr), (0, True), p.stderr)
+
+    def test_summary_keeps_unexpected_successes(self):
+        text = "Ran 2 tests in 0.1s\n\nFAILED (unexpected successes=1)\n"
+        self.assertEqual(rt.parse_summary(text)["unexpected"], 1)
 
 
 if __name__ == "__main__":

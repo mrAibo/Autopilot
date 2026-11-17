@@ -48,7 +48,7 @@ tk.boot = {polls: polls(bad), hint: bad.app.innerHTML.includes('tokhint')};
 fire(bad); answer(bad, 0, 'onerror');
 tk.one = {polls: polls(bad), hint: bad.app.innerHTML.includes('tokhint'), pulls: bad.scripts.length};
 fire(bad); answer(bad, 1, 'onerror');
-tk.two = {polls: polls(bad), html: bad.app.innerHTML, pulls: bad.scripts.length};
+tk.two = {polls: polls(bad), html: bad.app.innerHTML, pulls: bad.scripts.length, linkHidden: bad.link.hidden && bad.link.parentNode.hidden};
 run(bad, 'refreshNow()'); answer(bad, 2, 'onerror');
 tk.refreshFailed = {polls: polls(bad), pulls: bad.scripts.length, hints: bad.app.innerHTML.split('tokhint').length - 1};
 run(bad, 'refreshNow()'); bad.ctx.STATE = input.fixtures.running; answer(bad, 3, 'onload');
@@ -57,7 +57,8 @@ const none = env(null, {}, false, 0, {protocol: 'http:', search: ''});
 tk.noToken = {polls: polls(none), hint: none.app.innerHTML.includes('tokhint')};
 const live = env(input.fixtures.running, {}, false, 0, {protocol: 'http:', search: '?t=abc'});
 fire(live); answer(live, 0, 'onerror'); fire(live); answer(live, 1, 'onerror');
-tk.lost = {polls: polls(live), hint: live.app.innerHTML.includes('tokhint'), misses: run(live, 'misses')};
+tk.lost = {polls: polls(live), hint: live.app.innerHTML.includes('tokhint'), misses: run(live, 'misses'),
+  linkShown: !live.link.hidden && !live.link.parentNode.hidden};
 out.token = tk;
 console.log(JSON.stringify(out));
 """
@@ -194,6 +195,7 @@ class CompactDashboard(unittest.TestCase):
         self.assertEqual((t["two"]["polls"], t["two"]["pulls"]), (0, 2))
         self.assertEqual(t["two"]["html"].count("tokhint"), 1)
         self.assertIn("ap.py url", t["two"]["html"])
+        self.assertTrue(t["two"]["linkHidden"])       # the token hint and "the server is gone" never show together
 
     def test_refresh_resumes_a_stopped_page_and_a_loaded_state_starts_polling_again(self):
         t = self.out["token"]
@@ -206,7 +208,7 @@ class CompactDashboard(unittest.TestCase):
     def test_no_token_at_all_never_polls_and_a_live_page_keeps_polling_through_misses(self):
         t = self.out["token"]
         self.assertEqual(t["noToken"], {"polls": 0, "hint": True})
-        self.assertEqual(t["lost"], {"polls": 1, "hint": False, "misses": 2})      # state is loaded: that is "lost", not the hint
+        self.assertEqual(t["lost"], {"polls": 1, "hint": False, "misses": 2, "linkShown": True})   # state is loaded: "lost", not the hint
 
 
 class Styles(unittest.TestCase):

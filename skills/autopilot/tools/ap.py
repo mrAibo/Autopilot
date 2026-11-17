@@ -3524,7 +3524,7 @@ def profile_refs(state):
 
 
 def profile_files(names=None):
-    """Файлы профилей `autopilot-*` в `.claude/agents` и `.codex/agents`: не ссылки, не четыре постоянных;
+    """Файлы профилей `autopilot-<роль>-<имя>` в `.claude/agents` и `.codex/agents`: не ссылки, не четыре постоянных;
     `names` — только эти имена. Больше ничего не возвращается, значит, больше ничего и не удалят."""
     import agent_profiles
     permanent = {"autopilot-" + r for r in agent_profiles.PERMANENT_ROLES}
@@ -3539,7 +3539,8 @@ def profile_files(names=None):
             continue
         for e in entries:
             stem = e.name[:-len(ext)] if e.name.endswith(ext) else ""
-            if (re.fullmatch(r"autopilot-[A-Za-z0-9._-]+", stem) and stem.lower() not in permanent
+            if (re.fullmatch(r"autopilot-(?:%s)-[A-Za-z0-9._-]+" % "|".join(agent_profiles.PERMANENT_ROLES), stem)
+                    and stem.lower() not in permanent
                     and not e.is_symlink() and e.is_file(follow_symlinks=False)
                     and (names is None or stem in names)):
                 found.append(e.path)
@@ -4160,7 +4161,8 @@ def compute_history(records, current):
             st = os.stat(os.path.join(A, name, "state.js"))
             key = [st.st_mtime_ns, st.st_size]
             hit = cached.get(name)
-            if isinstance(hit, dict) and hit.get("key") == key and isinstance(hit.get("row"), dict):
+            if (isinstance(hit, dict) and hit.get("key") == key and isinstance(hit.get("row"), dict)
+                    and hit["row"].get("dir") == name and "startedAt" in hit["row"]):   # чужая строка кэша — пересчёт
                 row = hit["row"]
             else:
                 old = state_io.read_state_file(os.path.join(A, name, "state.js"))

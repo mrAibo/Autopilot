@@ -42,7 +42,8 @@ function env(state, store, denied, width, opts) {
   const app = {innerHTML: '', listeners: {}, classList: {add() {}, remove() {}},
     addEventListener(n, f) { this.listeners[n] = f; }, contains() { return false; },
     querySelectorAll() { return []; }};
-  const doc = {getElementById: id => id === 'app' ? app : null, querySelectorAll: () => [],
+  const link = {hidden: true, textContent: '', parentNode: {hidden: true}};   // the "server is gone" strip, #link
+  const doc = {getElementById: id => id === 'app' ? app : id === 'link' ? link : null, querySelectorAll: () => [],
     addEventListener() {}, createElement: () => { const s = {remove() {}}; scripts.push(s); return s; }, head: {appendChild() {}},
     documentElement: {attrs: {}, setAttribute(n, v) { this.attrs[n] = v; }, removeAttribute() {}}, activeElement: null, title: ''};
   const ls = {
@@ -57,7 +58,7 @@ function env(state, store, denied, width, opts) {
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(src, ctx);
-  return {ctx, app, store, scripts, timers};
+  return {ctx, app, store, scripts, timers, link};
 }
 const run = (e, code) => vm.runInContext(code, e.ctx);
 const out = {renders: {}, stored: {}, click: {}, i18n: {}};
