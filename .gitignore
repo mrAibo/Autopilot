@@ -27,3 +27,4 @@ state.lock
 .autopilot/run-log.fail
 .autopilot/serve.token
 .autopilot/state.lock
+.autopilot/history-cache.json
