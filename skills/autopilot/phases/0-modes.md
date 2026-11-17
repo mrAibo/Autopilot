@@ -52,6 +52,7 @@ Once, before Phase 1, together with the dashboard and the memory file. **A hint,
 • «режим интервью» — разберу задачу вопросами до конца, дальше соберу сам
 • «ручной режим» — то же плюс согласуешь спецификацию и список тасков
 • «строго по брифу» / «проработай глубоко» — меньше или больше проработки сверх сказанного
+• «лимит N токенов» — поставлю порог (`ap.py budget --tokens N`)
 ```
 
 There can be two `↑` lines: a newer Autopilot, and a long chat (`/autopilot` in a new chat continues from the same place) — each goes in as `ap.py` printed it, a hint and never a question.

@@ -22,6 +22,8 @@ python .autopilot/ap.py budget --tokens 120000
 
 This sets a **threshold of recorded input + output tokens**. New `ticket start` events are blocked once recorded usage meets or exceeds it. It is *not* a pre-paid spending cap, cannot stop a running model turn mid-call, and can be circumvented if usage isn't reported. Displayed as a threshold, not a guaranteed account credit limit.
 
+The **dashboard** shows the threshold next to spend: against recorded `usageEvents` when there are any, otherwise against the tokens from the run log (`state.js` → `spend`, subagents only). The `ticket start` gate is unchanged and still counts `usageEvents` only, so a log-only run is shown against the threshold but not blocked by it.
+
 The `usageEvents` journal keeps at most 2,000 events per run; if full, it fails instead of silently discarding earlier usage. Future iterations can add a dedicated append-only store and direct provider log import. Model cost forecasts should use measured post-run data, not this raw counter alone.
 
 ## Dashboard

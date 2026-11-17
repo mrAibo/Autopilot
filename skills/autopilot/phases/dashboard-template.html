@@ -2252,7 +2252,6 @@ function render(lang){
   const cacheWrite = usageEvents.reduce((n,e) => n + (Number.isSafeInteger(e.cacheWrite) ? e.cacheWrite : 0),0);
   const budget = Number.isSafeInteger(S.budgetTokens) && S.budgetTokens > 0 ? S.budgetTokens : null;
   const countedTokens = tokensInput + tokensOutput;
-  const budgetPercent = budget && usageEvents.length ? Math.min(100,Math.round(100*countedTokens/budget)) : null;
   const numberFormat = n => new Intl.NumberFormat(langRu?'ru-RU':'en-US').format(n);
   // Расход из журнала (state.spend): сообщений usageEvents может не быть, а журнал уже полон — «ещё нет» тогда было бы враньём.
   const spendRaw = S.spend && typeof S.spend === 'object' ? S.spend : {};
@@ -2263,6 +2262,9 @@ function render(lang){
   const spendRole = spendRows('byRole').filter(([k]) => k !== 'orchestrator');
   const spendSum = f => spendRole.reduce((n, [, a]) => n + (Number.isSafeInteger(a[f]) ? a[f] : 0), 0);
   const spendRuns = spendSum('n'), spendTokens = spendSum('tokens');
+  // Лимит — против учтённых сообщений, а без них против расхода из журнала (гейт `ticket start` считает только usageEvents).
+  const budgetUsed = usageEvents.length ? countedTokens : spendRuns ? spendTokens : 0;
+  const budgetPercent = budget && (usageEvents.length || spendRuns) ? Math.min(100,Math.round(100*budgetUsed/budget)) : null;
   const tokenSummary = usageEvents.length
     ? '<div class="resource-usage" aria-label="' + (langRu ? 'Учтённые токены' : 'Reported tokens') + '">'
       + '<div><b>' + numberFormat(tokensInput) + '</b><span>' + (langRu ? 'Входные' : 'Input') + '</span></div>'
@@ -2277,11 +2279,11 @@ function render(lang){
     : '<p class="muted">' + (langRu ? 'Учёт токенов: данных пока нет.' : 'Token telemetry: no data yet.') + '</p>';
   const budgetLine = budget
     ? '<div class="resource-budget"><div class="resource-budget-head"><span>'
-      + (langRu ? 'Лимит учтённых токенов' : 'Recorded token threshold')
-      + '</span><b>' + numberFormat(usageEvents.length?countedTokens:0)
+      + (langRu ? 'Лимит токенов' : 'Token threshold')
+      + '</span><b>' + numberFormat(budgetUsed)
       + ' / ' + numberFormat(budget) + '</b></div>'
       + '<div class="resource-budget-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + budget
-      + '" aria-valuenow="' + Math.min(budget,usageEvents.length?countedTokens:0)
+      + '" aria-valuenow="' + Math.min(budget,budgetUsed)
       + '"><i style="width:' + (budgetPercent || 0) + '%"></i></div></div>'
     : '';
   const oa = S.opusApproval, opusNote = oa && ((oa.tickets || []).length || (oa.roles || []).length)
@@ -2437,7 +2439,7 @@ function render(lang){
   // Карточка есть при любой роли в byRole (и при одном оркестраторе); число в шапке — только субагенты, без них «—», не ложный ноль.
   const spendCard = spendRows('byRole').length
     ? `<section class="card w resource-card" data-spend><div class="whead"><h3 class="wt">${W.tSpend}</h3><span>${spendRuns ? numberFormat(spendTokens) : '—'}</span></div>${
-      spendRuns ? tokenSummary : ''}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
+      spendRuns ? tokenSummary + budgetLine : ''}${spendTable(W.sRole, 'byRole')}${spendTable(W.sModel, 'byModel')}${spendTable(W.sTicket, 'byTicket')}</section>`
     : usageEvents.length ? tokensCard : emptyCard(W.tSpend, `${W.empty} — ${W.spendWhy}`);
   // Лента прошлых сборок (до 20, как отдал ap.py) и сравнение этой сборки со средним по ним; нет прошлых — нет и сравнения.
   const hist = (Array.isArray(S.history) ? S.history : []).filter(h => h && typeof h === 'object').slice(0, 20);

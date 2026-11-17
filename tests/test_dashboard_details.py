@@ -55,6 +55,8 @@ def _states():
             "hist": withhist,
             "many": dict(spent, history=[hist(i) for i in range(1, 26)]),
             "esc": esc,
+            "budget": dict(spent, budgetTokens=10000),   # лимит есть, usageEvents пусты — расход из журнала
+            "nobudget": dict(spent, budgetTokens=None),
             "junk": junk,
             "running": dict(copy.deepcopy(_fixtures()["running"]), usageEvents=[])}
 
@@ -96,6 +98,16 @@ class Details(unittest.TestCase):
         ru = text_of(self.slot(self.page("spend", lang="ru"), "spend"))
         self.assertIn("не указана", ru)
         self.assertIn("Сколько стоил таск", ru)
+
+    def test_token_limit_sits_next_to_log_spend_when_no_usage_events(self):
+        for kind in ("det", "res"):
+            html = self.page("budget", kind)
+            self.assertIn("4,900 / 10,000", text_of(html), kind)   # 3900 + 1000 из журнала
+            self.assertIn('aria-valuenow="4900"', html)
+            self.assertIn("width:49%", html)
+        spend = self.slot(self.page("budget"), "spend")
+        self.assertIn("resource-budget", spend)                     # рядом с карточкой расхода
+        self.assertNotIn("resource-budget", self.page("nobudget"))  # нет лимита — нет строки
 
     def test_no_spend_says_not_yet_with_one_reason(self):
         spend = self.slot(self.page("empty"), "spend")

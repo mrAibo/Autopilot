@@ -141,6 +141,7 @@ A ticket that exists only in the dialogue is not a ticket — the user sees a su
 **Parallelism gets one line, and only if true**: «6 тасков в 4 волны, часть пойдёт параллельно».
 
 - **semi, interview** — one screen, one plain line per ticket saying what the user can do when it lands, then «Показываю план и начинаю. Скажи "стоп", если что-то не так» — and start. Never promise a countdown you cannot hold.
+- **Forecast** — if `ap.py plan-models` printed `forecast`, add it as one line on the screen, as the estimate it is; no key, no line.
 - **full** — the same screen as a notification.
 - **manual** — a gate: `ap.py ask plan`, then technical detail, granularity and order discussed, an explicit «ок» before Phase 5.
 

@@ -453,6 +453,44 @@ class ClassReport(unittest.TestCase):
         self.assertIn("механических тасков на Haiku 2, эскалировано на Sonnet 1",
                       load_ap(harness(self)).history_advice(self.rows()))
 
+    def test_plan_models_forecast_from_history_by_class(self):
+        h = harness(self)
+        old = "2026-10-01-old"
+        t = lambda tid, act, at: {"run": old, "k": "ticket", "id": tid, "act": act, "t": at, "class": "механический"}
+        write_journal(h, [
+            t("01", "start", "2026-10-01T10:00:00+00:00"), spent("autopilot-executor-01-a", 400, 600, run=old),
+            t("01", "done", "2026-10-01T10:10:00+00:00"),
+            t("02", "start", "2026-10-01T10:10:00+00:00"), spent("autopilot-executor-02-b", 1000, 2000, run=old),
+            t("02", "done", "2026-10-01T10:30:00+00:00")])
+        h.plan()
+        self.assertEqual(h.ap("tickets")[0], 0)
+        code, out = h.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, out)
+        # два механических таска плана: (1000 + 3000) / 2 на таск, (10 + 20) / 2 минут на таск
+        self.assertIn("2 тасков", json.loads(out)["forecast"])
+        self.assertIn("≈4000 токенов, ≈30 минут", json.loads(out)["forecast"])
+        self.assertIn("оценк", json.loads(out)["forecast"])
+
+    def test_final_report_row_reads_spend_keys_that_state_js_really_has(self):
+        h = harness(self)
+        h.init()
+        write_journal(h, [spent("autopilot-executor-01-a", 7, 3, run=h.state()["dir"])])
+        self.assertEqual(h.ap()[0], 0)                          # любая команда обновляет spend
+        spend = h.state()["spend"]
+        self.assertTrue({"byRole", "byModel", "byTicket"} <= set(spend))
+        self.assertEqual(spend["byRole"]["executor"]["tokens"], 10)
+        with open(os.path.join(REPO, "skills", "autopilot", "phases", "8-final.md"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertRegex(text, r"\| Расход и время \| `state\.js` → `spend`")
+
+    def test_plan_models_has_no_forecast_without_history(self):
+        h = harness(self)
+        h.plan()
+        self.assertEqual(h.ap("tickets")[0], 0)
+        code, out = h.ap("plan-models", "--provider", "anthropic")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("forecast", json.loads(out))
+
     def test_route_fields_take_class_from_reason(self):
         m = load_ap(harness(self))
         tk = {"plannedRouting": {"model": "haiku", "effort": "high", "reason": "class=механический; risk=обычный"}}

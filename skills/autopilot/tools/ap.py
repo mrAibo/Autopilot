@@ -4242,9 +4242,12 @@ def main():
                 die("plan-models: лишние аргументы")
             state["updatedAt"] = now()
             payload = cmd_plan_models(state, opt)
-            advice = history_advice(run_log.read_all(A)) if run_log else None
+            records = run_log.read_all(A) if run_log else []
+            advice, guess = history_advice(records), forecast(records, state["tickets"])
             if advice:
                 payload["advice"] = advice                 # только совет: маршрут не меняется
+            if guess:
+                payload["forecast"] = guess
             beat(state)
             save(state)
             write_snapshot(state)
@@ -4529,6 +4532,35 @@ def history_advice(records):
     n = sum(a["tickets"] for a in rows)
     return ("история: механических тасков на Haiku %d, эскалировано на Sonnet %d; совет не меняет маршрут"
             % (n, sum(a["esc"] for a in rows))) if n else None
+
+
+def forecast(records, tickets):
+    """Одна строка оценки плана или None: по классам тасков плана (`route_fields`) берёт средние токены и
+    минуты (от первого `start` до последнего `done`) из журнала. Класса в истории нет — таск не считается."""
+    tok, mins, span = {}, {}, {}
+    for a in compute_class_report(records):
+        n, s = tok.get(a["class"], (0, 0))
+        tok[a["class"]] = (n + a["tickets"], s + a["tokens"])
+    for r in records:
+        if isinstance(r, dict) and r.get("k") == "ticket" and isinstance(r.get("id"), str):
+            s = span.setdefault((run_key(r.get("run")), r["id"]), {})
+            if r.get("act") == "start":
+                s.setdefault("start", r.get("t"))
+                s["class"] = r.get("class") or s.get("class")
+            elif r.get("act") == "done":
+                s["end"] = r.get("t")
+    for s in span.values():
+        m = _minutes(s.get("start"), s.get("end")) if s.get("class") and s.get("start") and s.get("end") else None
+        if m is not None:
+            n, total = mins.get(s["class"], (0, 0))
+            mins[s["class"]] = (n + 1, total + m)
+    known = [c for c in (route_fields(tk)["class"] for tk in tickets) if tok.get(c, (0, 0))[1] > 0]
+    if not known:
+        return None
+    tokens = sum(tok[c][1] / tok[c][0] for c in known)
+    minutes = sum(mins[c][1] / mins[c][0] for c in known if c in mins)
+    return ("оценка по истории (не обещание): %d тасков, ≈%d токенов%s; оценено %d из %d"
+            % (len(tickets), round(tokens), ", ≈%d минут" % round(minutes) if minutes else "", len(known), len(tickets)))
 
 
 def cmd_report_run(argv):

@@ -93,6 +93,7 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 | Что осталось после ревью | `state.js` → `report` |
 | Открытые вопросы | `state.js` → `blind`, and `coverage` → `items` that ended up not built; if `landedWith` is set, its `problems` |
 | Opus *(only with `opusApproval`)* | which tickets and roles ran on Opus (`ap.py opus status`) and what it cost: `measure-run.py` for the run, as the actual figure — the extra cost over Sonnet is not measured, say so |
+| Расход и время | `state.js` → `spend` (orchestrator and subagent tokens) and the stage minutes; run any `ap.py` command first so `spend` is fresh; no money — the log has no prices |
 | Память проекта *(only when the file is the user's)* | `memory-proposal.md` — one question: «Предлагаю дополнить твой `CLAUDE.md`: N пунктов — применить?»; in full, only a line naming the file |
 | Запустить / Где что лежит | `memoryFile`, `briefFile`, the commands the memory agent verified |
 
