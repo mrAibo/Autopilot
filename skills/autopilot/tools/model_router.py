@@ -58,10 +58,10 @@ class PolicyError(ValueError):
 
 PREMIUM_FAMILIES = ("opus", "fable")
 # Exact shape of an allowed Anthropic subagent model after normalization:
-# haiku / sonnet, optionally claude-, a leading 3-5 / 3 and trailing version or date.
+# haiku / sonnet, optionally claude-, a leading 3-5 / 3, trailing version or date, or the `-latest` alias.
 ALLOWED_SUBAGENT_RE = re.compile(
-    r"(claude-)?(\d+([.-]\d+)*-)?(haiku|sonnet)(-\d+([.-]\d+)*)?(\[\w+\])?")
-# Same shape for opus (plus the `-latest` alias); only reachable through premium_ok / premium.
+    r"(claude-)?(\d+([.-]\d+)*-)?(haiku|sonnet)(-\d+([.-]\d+)*)?(-latest)?(\[\w+\])?")
+# Same shape for opus; only reachable through premium_ok / premium.
 OPUS_RE = re.compile(
     r"(claude-)?(\d+([.-]\d+)*-)?opus(-\d+([.-]\d+)*)?(-latest)?(\[\w+\])?")
 

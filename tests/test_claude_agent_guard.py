@@ -203,7 +203,8 @@ class HookGuardTests(unittest.TestCase):
         self.assertNotIn("opusApproval", self.state)  # without approval, stated explicitly
         original = self.file.read_text(encoding="utf-8")
         for model in ("us.anthropic.claude-opus-4-1-20250805-v1:0", "claude-3-opus-20240229",
-                      "bedrock/anthropic.claude-opus-4-1", "Opus", "claude-fable-5", "gpt-6-luna"):
+                      "bedrock/anthropic.claude-opus-4-1", "Opus", "claude-fable-5", "claude-fable-5-2", "claude-fable-latest",
+                      "claude-opus-5-5", "gpt-6-luna"):
             with self.subTest(model=model):
                 self.file.write_text(original.replace("haiku", model), encoding="utf-8")
                 ok, why = guard.decision(self.payload(), self.root)

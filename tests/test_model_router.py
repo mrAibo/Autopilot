@@ -323,20 +323,44 @@ class SubagentAllowlistTests(unittest.TestCase):
         "fable", "claude-fable-5", "us.anthropic.claude-fable-5-v1:0",
         "inherit", "", "   ", "gpt-6-luna", "some-host-model", "claude", "sonnet-opus",
         "claude-sonnet-4-5; opus", None, 5,
-        "claude-opus-4-1/haiku", "anthropic.opus/sonnet", "bedrock/claude-fable-5/sonnet")
+        "claude-opus-4-1/haiku", "anthropic.opus/sonnet", "bedrock/claude-fable-5/sonnet",
+        "claude-opus-5-5", "us.anthropic.claude-opus-5-5-20261101-v1:0", "global.anthropic.claude-opus-5-5-v1:0",
+        "claude-fable-5-2", "claude-fable-5-2-20261101", "eu.anthropic.claude-fable-5-2-v1:0",
+        "global.anthropic.claude-fable-5-2-20261101-v1:0", "claude-fable-latest", "claude-fable-5-latest")
     ALLOWED = (
         "haiku", "sonnet", "Haiku", "SONNET", "claude-haiku-5-5", "claude-sonnet-4-5",
         "claude-sonnet-4-5-20250929", "claude-3-5-haiku-20241022", "claude-3-haiku",
         "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "anthropic.claude-3-haiku-20240307-v1:0",
         "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0", "vertex_ai/claude-sonnet-4@20250929",
-        "sonnet[1m]")
+        "sonnet[1m]",
+        "claude-sonnet-5-5", "claude-haiku-5-5-20261101", "claude-sonnet-5-5-20261101",
+        "us.anthropic.claude-haiku-5-5-20261101-v1:0", "anthropic.claude-sonnet-5-5-v1:0",
+        "global.anthropic.claude-sonnet-5-5-20261101-v1:0", "eu.anthropic.claude-haiku-5-5-v1:0",
+        "claude-3-5-haiku-latest", "claude-haiku-latest", "claude-sonnet-4-latest",
+        "claude-sonnet-latest", "claude-3-7-sonnet-latest", "claude-sonnet-latest[1m]")
 
     OPUS = (
         "opus", "Opus", "claude-opus-4-8", "claude-opus-4-1-20250805",
         "claude-3-opus-20240229", "claude-3-opus-latest",
         "us.anthropic.claude-opus-4-1-20250805-v1:0", "eu.anthropic.claude-opus-4-v1:0",
         "anthropic.claude-3-opus-20240229-v1:0", "bedrock/anthropic.claude-opus-4-1-20250805-v1:0",
-        "vertex_ai/claude-opus-4-1@20250805", " OPUS ")
+        "vertex_ai/claude-opus-4-1@20250805", " OPUS ", "claude-opus-latest", "claude-opus-4-latest",
+        "claude-opus-5-5", "us.anthropic.claude-opus-5-5-20261101-v1:0", "global.anthropic.claude-opus-5-5-v1:0")
+    FABLE = tuple(n for n in DENIED if isinstance(n, str) and "claude-fable" in n and "/" not in n)
+
+    def test_premium_family_flags_on_the_family_5_names(self):
+        for name in self.OPUS:
+            with self.subTest(name=name):
+                self.assertTrue(router.is_premium_model(name))
+        for name in self.FABLE:
+            with self.subTest(name=name):
+                self.assertTrue(router.is_premium_model(name))
+                self.assertFalse(router.is_opus_model(name))
+                self.assertFalse(router.is_allowed_subagent_model(name, premium_ok=True))
+        for name in self.ALLOWED:
+            with self.subTest(name=name):
+                self.assertFalse(router.is_premium_model(name))
+                self.assertFalse(router.is_opus_model(name))
 
     def test_premium_and_unknown_names_are_refused_in_every_spelling(self):
         for name in self.DENIED:  # no approval: premium_ok=False, stated explicitly
