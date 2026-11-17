@@ -19,6 +19,18 @@ class DocumentationLocalesTests(unittest.TestCase):
                 self.assertIn("brief.md", content)
                 self.assertNotIn(LEGACY_BRIEF, content)
 
+    def test_quick_start_and_cheaper_paragraph_open_every_readme(self):
+        for name in LOCALES:
+            head = "\n".join((ROOT / name).read_text(encoding="utf-8").splitlines()[:40])
+            for needle in ("npx skills add", "/autopilot", "Sonnet", "MCP"):
+                self.assertIn(needle, head, (name, needle))
+
+    def test_old_documents_live_in_history(self):
+        for name in ("STATUS.md", "HANDOFF.md", "HANDOFF_NEXT_CLIENT_2026-10-26.md",
+                     "BRIEF-2026-11-improvements.md"):
+            self.assertTrue((ROOT / "docs/history" / name).is_file(), name)
+            self.assertFalse((ROOT / name).exists(), name)
+
     def test_three_way_language_navigation(self):
         for name in LOCALES:
             page = (ROOT / name).read_text(encoding="utf-8")

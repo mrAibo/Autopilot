@@ -181,7 +181,7 @@ A **new** run may choose [`--sequential-host`](sequential-host.md) when the name
 3. Run project preflight. Select manual or strict execution modes; use the host's **own** model picker and approval flow.
 4. Autopilot manages specification, tasks, scheduler, detached Git worktrees and dashboard through project files. The GUI agent executes the approved actions using its native tools.
 5. Native named subagents must be discovered in the host session with the approved model/effort. If not, choose the explicit [`--sequential-host` workflow](sequential-host.md) only after reviewing host model/effort and subscription exposure; **never silently inherit a costly parent model or claim verified child dispatch**.
-6. At acceptance, check actual tests, Git commits, requirements and G1–G4 gates. Persist `STATUS.md` and `PROGRESS.md`.
+6. At acceptance, check actual tests, Git commits, requirements and G1–G4 gates. Persist `docs/history/STATUS.md` and `PROGRESS.md`.
 
 ## Host-side lifecycle controller (not GUI agent dispatch)
 

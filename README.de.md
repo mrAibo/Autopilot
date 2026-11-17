@@ -18,6 +18,15 @@ Autopilot ist ein Entwicklungs-Framework in Form eines Skills. Er nimmt deine Id
 
 Er funktioniert für sich allein: Du musst nichts weiter installieren.
 
+### Schnellstart
+
+1. **Installieren** und den Agenten neu starten (Skills werden beim Start geladen): `npx skills add mrAibo/Autopilot`. Details und eine Variante ohne Terminal: [Installation](#installation).
+2. **Beschreiben**: `/autopilot Ich möchte einen Telegram-Bot, der Reparaturanfragen annimmt`, bei einer großen Idee `/autopilot brief.md`. Je mehr du erzählst, desto weniger wird geraten.
+3. **Bauen**: In Claude Code hält Autopilot nach dem Plan an; öffne einen **neuen Chat** im selben Ordner und tippe `/autopilot` (der Grund steht in [So benutzt du es](#so-benutzt-du-es)). Codex läuft in einem Durchgang.
+4. **Zuschauen**: Der Agent öffnet das Dashboard selbst und nennt seine Adresse; die Seite aktualisiert sich von allein, kein Internet nötig.
+
+**Günstiger bauen:** Starte den Bau mit Sonnet (`claude --model sonnet`), öffne für jeden neuen Bau einen neuen Chat und schalte unnötige MCP-Server in der Bausitzung ab: Jeder vergrößert den Kontext des Orchestrators bei jedem Schritt.
+
 ## Wozu Autopilot
 
 **Erst die Schienen, dann der Zug.** Autopilot legt die Strecke, bevor die erste Codezeile entsteht: Deine Worte werden zu einer nummerierten Anforderungsliste, dann zu einer Spezifikation, dann zu kleinen Tasks. Erst danach beginnt der Bau. Nichts von dem, was du bestellt hast, geht unterwegs stillschweigend verloren.
@@ -28,12 +37,6 @@ Er funktioniert für sich allein: Du musst nichts weiter installieren.
 - **Tokens gehen dorthin, wo sie zählen.** Jeder Task bekommt Modell und Aufwand passend zu seiner Schwierigkeit: ein günstiges Modell für Routine, ein starkes nur dort, wo es sich lohnt. Ein frischer, kurzer Kontext pro Task ist günstiger als eine lange Sitzung, weil jeder Schritt alles Vorherige neu liest. `ap.py budget` deckelt die Ausgaben, `measure-run.py` zeigt, was tatsächlich angefallen ist.
 
 Was **nicht** behauptet wird: Eine gemessene Zahl „X % weniger Tokens“ gibt es nicht. Die zusätzlichen Review-Stufen kosten ebenfalls Tokens. Was gemessen ist und was nicht, steht in [measuring-cost.md](docs/autopilot/measuring-cost.md).
-
-### Schnellstart
-
-1. **Installieren** und den Agenten neu starten (Skills werden beim Start geladen): `npx skills add mrAibo/Autopilot`. Details und eine Variante ohne Terminal: [Installation](#installation).
-2. **Beschreiben**: `/autopilot Ich möchte einen Telegram-Bot, der Reparaturanfragen annimmt`, bei einer großen Idee `/autopilot brief.md`. Je mehr du erzählst, desto weniger wird geraten.
-3. **Bauen**: In Claude Code hält Autopilot nach dem Plan an; öffne einen **neuen Chat** im selben Ordner und tippe `/autopilot` (der Grund steht in [So benutzt du es](#so-benutzt-du-es)). Codex läuft in einem Durchgang.
 
 ### Ohne und mit Autopilot
 
@@ -80,7 +83,7 @@ und in der Terminal-CLI qualifiziert; siehe den Hinweis zu 2.4.0 oben.)
 Der optionale Codex-CLI-Pfad startet derzeit **keine** kostenpflichtigen Modelle.
 
 Reine Forschungs-API-Piloten und zusätzliche Supervisoren sind **nicht nötig**, um
-`/autopilot` zu nutzen. Siehe [Umfang und experimentelle Komponenten](docs/autopilot/scope-and-labs.md), [Testdetails](STATUS.md) und
+`/autopilot` zu nutzen. Siehe [Umfang und experimentelle Komponenten](docs/autopilot/scope-and-labs.md), [Testdetails](docs/history/STATUS.md) und
 [Host-Werkzeuge](docs/autopilot/controller.md).
 
 Gemessene Ergebnisse für 2.2 gegenüber 2.3 findest du im [reproduzierbaren Offline-Benchmark R06](docs/autopilot/r06-offline-benchmark.md). Er misst reine Host-Git-/CLI-Prüfungen ohne Modellaufrufe. **Einsparungen bei KI-Tokens zwischen 2.2 und 2.3 sind nicht belegt**; was das Modell der Hauptsitzung und das Ticket-Routing sparen, ist in [measuring-cost.md](docs/autopilot/measuring-cost.md) gemessen.
@@ -89,7 +92,7 @@ Gemessene Ergebnisse für 2.2 gegenüber 2.3 findest du im [reproduzierbaren Off
 
 Alles Folgende sind Release-Stand und bekannte Grenzen; danach kommt die Installation.
 
-> **Entwicklungsstand und Übergabe:** [STATUS.md](STATUS.md) hält den gemergten Stand von main, die aktuelle Validierung, ungelöste Blocker und Anweisungen zum Weitermachen fest.
+> **Entwicklungsstand und Übergabe:** [STATUS.md](docs/history/STATUS.md) hält den gemergten Stand von main, die aktuelle Validierung, ungelöste Blocker und Anweisungen zum Weitermachen fest.
 
 > **Cargo-Testprüfung nach dem Release:** [Vertrauenswürdige Offline-Cargo-Integrationstests](docs/autopilot/trusted-cargo-tests.md) werden auf dem aktuellen Entwicklungsstand `main` für eingeschränkte, eigenständige Rust-Crates ohne Abhängigkeiten unterstützt, mit Test/Manifest/Lock fest an die Basis gebunden, unabhängigem Wiederholungslauf auf dem Host und ohne beliebige Befehle. Das ändert **nicht** den veröffentlichten, rein Python-basierten Tag `v2.3.0` und bedeutet keine Sandbox.
 
@@ -103,7 +106,7 @@ Alles Folgende sind Release-Stand und bekannte Grenzen; danach kommt die Install
 
 > **Release-Qualifikation:** [R01–R06-Nachweise und der abgegrenzte Support in 2.3.0](docs/autopilot/release-readiness.md) — der sequenzielle Host-Modus von Codex ist veröffentlicht; native benannte GUI-Agenten und Modellerzwingung sind weiterhin nicht verifiziert; das strikte Routing von Claude Code ist in 2.4.0 stabil (Desktop-App und Terminal-CLI).
 
-> **Autopilot 2.3.0 — eingeschränkter Codex-Release.** Unterstützter Ablauf: expliziter [sequenzieller Host-Modus](docs/autopilot/sequential-host.md) mit jeweils einem Git-isolierten Ticket und unabhängiger Verifikation per Python-unittest auf dem Host. **Nicht enthalten:** garantierte native benannte Subagenten der Codex-GUI, erzwungenes GUI-Modell/Effort, verifizierte Abo-Abrechnung oder automatische CLI-/API-Inferenz. Siehe [Release-Umfang](docs/autopilot/release-readiness.md), [STATUS.md](STATUS.md) und [brief.md](brief.md).
+> **Autopilot 2.3.0 — eingeschränkter Codex-Release.** Unterstützter Ablauf: expliziter [sequenzieller Host-Modus](docs/autopilot/sequential-host.md) mit jeweils einem Git-isolierten Ticket und unabhängiger Verifikation per Python-unittest auf dem Host. **Nicht enthalten:** garantierte native benannte Subagenten der Codex-GUI, erzwungenes GUI-Modell/Effort, verifizierte Abo-Abrechnung oder automatische CLI-/API-Inferenz. Siehe [Release-Umfang](docs/autopilot/release-readiness.md), [STATUS.md](docs/history/STATUS.md) und [brief.md](brief.md).
 
 > **Autopilot 2.4.0 — Claude Code.** Claude Code mit Abonnement wird im strikten Routing-Modus unterstützt und wurde live in der Desktop-App und in der Terminal-CLI (headless `claude -p`) qualifiziert: siehe [claude-code.md](docs/autopilot/claude-code.md) und die [Qualifikationsergebnisse](docs/autopilot/claude-qualification.md). Bekannte Grenzen:
 > - parallele Tickets sind nur mit `--isolated-tickets` (Autopilot-eigene Worktrees) live getestet; in einem gemeinsamen Baum führe sie einzeln aus;

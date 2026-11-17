@@ -60,11 +60,11 @@ This is an **evidence register**, not a claim that GitHub CI certifies real AI-a
 
 ## Operator constraints and next handoff
 
-**No new experiments are authorized by this document.** Prior actual GUI Codex named-agent probe returned no child; a previous one-shot Codex CLI worker consumed 53,187 input + 341 output tokens despite a 2,000-token **soft** threshold and returned `incomplete` for the bridge. There has separately been a successful Codex CLI synthetic code-edit acceptance (documented in [`STATUS.md`](../../STATUS.md)), which is **not GUI-native named-subagent evidence**. Those runs are different; do not conflate them.
+**No new experiments are authorized by this document.** Prior actual GUI Codex named-agent probe returned no child; a previous one-shot Codex CLI worker consumed 53,187 input + 341 output tokens despite a 2,000-token **soft** threshold and returned `incomplete` for the bridge. There has separately been a successful Codex CLI synthetic code-edit acceptance (documented in [`STATUS.md`](../history/STATUS.md)), which is **not GUI-native named-subagent evidence**. Those runs are different; do not conflate them.
 
 Read-only <HOST> checks as of 2026-10-26: `codex login status` says `Logged in using ChatGPT`; three global skill Junctions resolve to the one working skill `SKILL.md`; Codex CLI `0.165.0-alpha.1`; GUI-bundled CLI `0.164.0-alpha.11.1`; both report `multi_agent_v2=false`; Claude Code CLI missing. No billed model call was needed to compile this assessment.
 
-Next agent: read [`STATUS.md`](../../STATUS.md), this table, [`brief.md`](../../brief.md), then prioritize the **real host R03 gate** rather than building another mock dispatcher. Code review, account model discovery, skill visibility, host CI and actual GUI child execution are five **distinct** levels of proof.
+Next agent: read [`STATUS.md`](../history/STATUS.md), this table, [`brief.md`](../../brief.md), then prioritize the **real host R03 gate** rather than building another mock dispatcher. Code review, account model discovery, skill visibility, host CI and actual GUI child execution are five **distinct** levels of proof.
 
 ## Краткий вывод (Русский)
 

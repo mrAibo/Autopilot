@@ -75,5 +75,5 @@ benefit**.
 5. Stable 2.3 requires the brief's R01–R06 gates, not passing optional
    experimental research milestones. Keep `2.3.0-dev` until then.
 
-For historical implementation detail see [STATUS.md](../../STATUS.md)
+For historical implementation detail see [STATUS.md](../history/STATUS.md)
 and the individual `docs/autopilot/` research reports.
