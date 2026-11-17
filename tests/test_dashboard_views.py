@@ -37,25 +37,27 @@ class FixedDate extends Date {
 }
 function env(state, store, denied, width, opts) {
   opts = opts || {};
+  // scripts: every <script> the page made to pull state.js (a test calls its onload/onerror); timers: what setTimeout got.
+  const scripts = [], timers = [];
   const app = {innerHTML: '', listeners: {}, classList: {add() {}, remove() {}},
     addEventListener(n, f) { this.listeners[n] = f; }, contains() { return false; },
     querySelectorAll() { return []; }};
   const doc = {getElementById: id => id === 'app' ? app : null, querySelectorAll: () => [],
-    addEventListener() {}, createElement: () => ({remove() {}}), head: {appendChild() {}},
+    addEventListener() {}, createElement: () => { const s = {remove() {}}; scripts.push(s); return s; }, head: {appendChild() {}},
     documentElement: {attrs: {}, setAttribute(n, v) { this.attrs[n] = v; }, removeAttribute() {}}, activeElement: null, title: ''};
   const ls = {
     getItem: k => { if (denied) throw new Error('denied'); return k in store ? store[k] : null; },
     setItem: (k, v) => { if (denied) throw new Error('denied'); store[k] = String(v); },
     removeItem: k => { delete store[k]; }};
   const ctx = {document: doc, localStorage: ls, navigator: {language: 'en'}, location: {protocol: 'file:', search: opts.search},
-    matchMedia: q => ({matches: String(q).includes('699') ? !!opts.narrow : false, addEventListener() {}}), setTimeout() { return 0; },
-    clearTimeout() {}, setInterval() { return 0; }, addEventListener() {}, scrollTo() {}, scrollY: 0,
+    matchMedia: q => ({matches: String(q).includes('699') ? !!opts.narrow : false, addEventListener() {}}), setTimeout(f, ms) { timers.push({f, ms, off: false}); return timers.length; },
+    clearTimeout(id) { if (timers[id - 1]) timers[id - 1].off = true; }, setInterval() { return 0; }, addEventListener() {}, scrollTo() {}, scrollY: 0,
     STATE: state, Intl, Date: FixedDate, Math, JSON, console};
   if (width) ctx.innerWidth = width;
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(src, ctx);
-  return {ctx, app, store};
+  return {ctx, app, store, scripts, timers};
 }
 const run = (e, code) => vm.runInContext(code, e.ctx);
 const out = {renders: {}, stored: {}, click: {}, i18n: {}};

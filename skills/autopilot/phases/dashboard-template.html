@@ -1448,6 +1448,7 @@ try { localStorage.removeItem('autopilot-auto'); } catch(e) {}
 let pollT = null;
 let pulling = false;
 let misses = 0;                    // неудачных подгрузок state.js подряд
+let tokenStop = false;             // неверный токен: подсказка показана, опрос остановлен до «обновить»
 let lastStamp = null;              // метка отрисованного состояния — против лишних перерисовок
 let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
@@ -1704,6 +1705,8 @@ function pullState(done){
     pulling = false;
     misses = ok ? 0 : misses + 1;
     if (ok) applyState();
+    // С ?t= в адресе и без данных две неудачи подряд — это неверный токен (тег <script> код ответа не отдаёт): подсказка один раз, опрос стоит.
+    if (!ok && misses >= 2 && SERVED && !window.STATE && /[?&]t=[^&#]+/.test(location.search || '')) { tokenStop = true; tokenHint(); }
     showLink();
     if (done) done(ok);
   };
@@ -1714,13 +1717,14 @@ function pullState(done){
 
 function pollState(){
   clearTimeout(pollT);
-  if (window.STATE && window.STATE.finishedAt) return;
+  if (tokenStop || (window.STATE && window.STATE.finishedAt)) return;
   pollT = setTimeout(() => pullState(pollState), POLL_MS);
 }
 
 // Стрелка сверху: подтянуть state.js сейчас, не дожидаясь круга опроса.
 function refreshNow(btn){
   clearTimeout(pollT);
+  tokenStop = false;                 // «обновить» снимает остановку: удастся — опрос пойдёт дальше
   if (btn) btn.classList.add('busy');
   const started = Date.now();
   pullState(ok => {

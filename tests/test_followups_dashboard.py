@@ -38,6 +38,27 @@ for (const [key, o] of Object.entries({
     noTokenEn: {protocol: 'http:', search: ''}, noTokenRu: {protocol: 'http:', search: '', lang: 'ru'},
     withToken: {protocol: 'http:', search: '?t=abc'}, file: {protocol: 'file:', search: ''}}))
   out.hint[key] = env(null, {}, false, 0, o).app.innerHTML;
+// R20: the poll timers still armed (10 s ones), the next round fired by hand, a failed or loaded state.js by hand.
+const polls = e => e.timers.filter(t => !t.off && t.ms === 10000).length;
+const fire = e => { const t = e.timers.find(t => !t.off && t.ms === 10000); t.off = true; t.f(); };
+const answer = (e, i, kind) => e.scripts[i][kind]();
+const tk = {};
+const bad = env(null, {}, false, 0, {protocol: 'http:', search: '?t=bad'});
+tk.boot = {polls: polls(bad), hint: bad.app.innerHTML.includes('tokhint')};
+fire(bad); answer(bad, 0, 'onerror');
+tk.one = {polls: polls(bad), hint: bad.app.innerHTML.includes('tokhint'), pulls: bad.scripts.length};
+fire(bad); answer(bad, 1, 'onerror');
+tk.two = {polls: polls(bad), html: bad.app.innerHTML, pulls: bad.scripts.length};
+run(bad, 'refreshNow()'); answer(bad, 2, 'onerror');
+tk.refreshFailed = {polls: polls(bad), pulls: bad.scripts.length, hints: bad.app.innerHTML.split('tokhint').length - 1};
+run(bad, 'refreshNow()'); bad.ctx.STATE = input.fixtures.running; answer(bad, 3, 'onload');
+tk.refreshLoaded = {polls: polls(bad), hint: bad.app.innerHTML.includes('tokhint'), html: bad.app.innerHTML};
+const none = env(null, {}, false, 0, {protocol: 'http:', search: ''});
+tk.noToken = {polls: polls(none), hint: none.app.innerHTML.includes('tokhint')};
+const live = env(input.fixtures.running, {}, false, 0, {protocol: 'http:', search: '?t=abc'});
+fire(live); answer(live, 0, 'onerror'); fire(live); answer(live, 1, 'onerror');
+tk.lost = {polls: polls(live), hint: live.app.innerHTML.includes('tokhint'), misses: run(live, 'misses')};
+out.token = tk;
 console.log(JSON.stringify(out));
 """
 
@@ -164,6 +185,28 @@ class CompactDashboard(unittest.TestCase):
         self.assertNotIn("ap.py url", self.out["hint"]["withToken"])
         self.assertNotIn("ap.py url", self.out["hint"]["file"])
         self.assertIn("Dashboard has no state yet", self.out["hint"]["file"])
+
+    # ---- a wrong or missing token (R20.1): one hint, then the page stops asking
+    def test_a_wrong_token_shows_the_hint_once_after_two_failed_pulls_and_stops_polling(self):
+        t = self.out["token"]
+        self.assertEqual(t["boot"], {"polls": 1, "hint": False})        # the boot message and a poll, as before
+        self.assertEqual(t["one"], {"polls": 1, "hint": False, "pulls": 1})   # one miss is a half-written file
+        self.assertEqual((t["two"]["polls"], t["two"]["pulls"]), (0, 2))
+        self.assertEqual(t["two"]["html"].count("tokhint"), 1)
+        self.assertIn("ap.py url", t["two"]["html"])
+
+    def test_refresh_resumes_a_stopped_page_and_a_loaded_state_starts_polling_again(self):
+        t = self.out["token"]
+        self.assertEqual((t["refreshFailed"]["pulls"], t["refreshFailed"]["polls"]), (3, 0))    # asked again, still wrong
+        self.assertEqual(t["refreshFailed"]["hints"], 1)
+        self.assertEqual(t["refreshLoaded"]["polls"], 1)
+        self.assertFalse(t["refreshLoaded"]["hint"])
+        self.assertNotEqual(t["refreshLoaded"]["html"], "")
+
+    def test_no_token_at_all_never_polls_and_a_live_page_keeps_polling_through_misses(self):
+        t = self.out["token"]
+        self.assertEqual(t["noToken"], {"polls": 0, "hint": True})
+        self.assertEqual(t["lost"], {"polls": 1, "hint": False, "misses": 2})      # state is loaded: that is "lost", not the hint
 
 
 class Styles(unittest.TestCase):

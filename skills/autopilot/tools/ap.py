@@ -969,6 +969,31 @@ def serve_token(directory=None):
     return token
 
 
+PING_PATH = "/.ap-ping"        # вне OPEN_PAGES и без `?t=`: ответ не несёт токена, а Host/Origin/Sec-Fetch-Site проверены как везде
+
+
+def ping_digest(token, port):
+    """Ответ сервера на PING_PATH: hex hmac-sha256 с ключом-токеном от «autopilot-ping|<порт>». Токен по сети не уходит;
+    порт внутри — чтобы ответ одного сервера не годился чужому на другом порту."""
+    return hmac.new(token.encode(), ("autopilot-ping|%d" % port).encode(), hashlib.sha256).hexdigest()
+
+
+def ping_reply(port):
+    """Тело ответа PING_PATH или None: сервера нет, он старый (403/404) или это чужой процесс без такого пути."""
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%d%s" % (port, PING_PATH), timeout=2) as r:
+            return r.read(256).decode("utf-8", "replace").strip() if r.status == 200 else None
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
+def server_is_ours(port):
+    """Сервер на порту — наш с текущим токеном: ответ сошёлся с hmac от `serve.token`. Без PowerShell/`ps`.
+    Удалённый или переписанный `serve.token` даёт другой токен, ответ не сходится — вызывающий перезапускает сервер."""
+    got = ping_reply(port)
+    return got is not None and hmac.compare_digest(got.encode(), ping_digest(serve_token(), port).encode())
+
+
 def make_server(directory, port, token):
     """HTTP-сервер каталога `directory` на 127.0.0.1. 403, если чужой Host/Origin,
     `Sec-Fetch-Site: cross-site`, либо запрошено не страница и не статика, а токена `?t=` нет."""
@@ -989,7 +1014,7 @@ def make_server(directory, port, token):
                 return False
             url = urllib.parse.urlsplit(self.path)
             path = urllib.parse.unquote(url.path)
-            if path in OPEN_PAGES or STATIC_NAME.fullmatch(path):
+            if path in OPEN_PAGES or path == PING_PATH or STATIC_NAME.fullmatch(path):
                 return True
             given = (urllib.parse.parse_qs(url.query).get("t") or [""])[0]
             return (posixpath.basename(path) != TOKEN_FILE
@@ -997,9 +1022,12 @@ def make_server(directory, port, token):
 
         def tokenless_page(self):
             """Открытая страница без верного токена: тело с `window.STATE=null`; b"" — подмена не удалась
-            (файл не отдаём, будет 403); None — иная страница или токен верный, отдаём как есть."""
+            (файл не отдаём, будет 403); None — иная страница или токен верный, отдаём как есть.
+            PING_PATH тоже идёт этим путём: тело — подтверждение сервера, не страница."""
             url = urllib.parse.urlsplit(self.path)
             path = urllib.parse.unquote(url.path)
+            if path == PING_PATH:
+                return ping_digest(token, self.server.server_port).encode()
             if path not in OPEN_PAGES:
                 return None
             given = (urllib.parse.parse_qs(url.query).get("t") or [""])[0]
@@ -1075,7 +1103,10 @@ def serve(state, with_token=False):
         return "прогон закрыт"
     if os.environ.get("SSH_CONNECTION") or os.environ.get("CI"):
         return "удалённая сессия — без сервера, дашборд: %s" % PAGE
-    if port and pid and http_ok(port) and is_guarded_server(cmdline(pid)):
+    # Сошёлся ответ сервера — процессы не смотрим (PowerShell на Windows ≈ 0,56 с на команду). Ответ есть, но не
+    # сошёлся (удалён serve.token) — не наш, перезапуск. Ответа нет (старый ap.py, чужой процесс) — прежняя проверка процесса.
+    if port and pid and http_ok(port) and (server_is_ours(port) or (ping_reply(port) is None
+                                                                    and is_guarded_server(cmdline(pid)))):
         return page_url(port, with_token)
     kill_orphans()
     port = free_port(port)
@@ -4082,7 +4113,7 @@ def main():
             if rest:
                 die("url: лишние аргументы")
             port, _ = recorded()
-            if not port:
+            if not port or (not server_is_ours(port) and ping_reply(port) is not None):   # токен сменился — сервер поднимется заново
                 serve(state)
                 port, _ = recorded()
             print(page_url(port) if port else "сервера нет — дашборд открывается файлом: %s" % PAGE)

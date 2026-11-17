@@ -179,6 +179,9 @@ class Server(unittest.TestCase):
         self.assertEqual(ask("/state.js?t=" + token), 200)
         self.assertEqual(ask("/state.js"), 403)
         self.assertEqual(ask("/state.js?t=" + token, host="evil.example"), 403)
+        self.assertEqual(ask("/.ap-ping"), 200)                             # подтверждение сервера без токена в адресе
+        self.assertEqual(ask("/.ap-ping", host="evil.example"), 403)
+        self.assertTrue(load_ap(h).server_is_ours(port))                    # настоящий процесс: токен он взял из serve.token
 
     def test_token_never_reaches_the_server_log(self):
         # serve.log — это stderr сервера: в строках запросов токена `?t=` быть не должно
