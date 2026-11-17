@@ -352,6 +352,26 @@ class SpendHistory(unittest.TestCase):
                                       "minutes": 60, "tickets": 2, "repairs": 3, "tokens": 310, "result": "сдано"})
         self.assertNotIn(RUN, [x["dir"] for x in history])
 
+    def test_history_cache_skips_unchanged_archives_and_recomputes_changed(self):
+        self.archive("2026-10-05-a", title="Первая")
+        self.archive("2026-10-06-b", title="Вторая")
+        first = self.m.compute_history([], WIP)
+        self.assertTrue(os.path.exists(os.path.join(self.h.a, "history-cache.json")))
+        with mock.patch.object(self.m.state_io, "read_state_file", side_effect=AssertionError("opened")):
+            self.assertEqual(self.m.compute_history([], WIP), first)       # архивы не открыты
+        self.archive("2026-10-05-a", title="Первая, переименована надолго")  # другой размер
+        second = self.m.compute_history([], WIP)
+        self.assertIn("Первая, переименована надолго", [x["title"] for x in second])
+
+    def test_history_cache_tokens_are_fresh_and_broken_cache_is_ignored(self):
+        self.archive("2026-10-05-a")
+        self.m.compute_history([], WIP)
+        with open(os.path.join(self.h.a, "history-cache.json"), "w", encoding="utf-8") as f:
+            f.write("{oops")
+        rows = [spent("autopilot-executor-01-a", 4, 6, run="2026-10-05-a")]
+        self.assertEqual(self.m.compute_history(rows, WIP)[0]["tokens"], 10)   # битый кэш — молча заново
+        self.assertEqual(self.m.compute_history([], WIP)[0]["tokens"], 0)      # токены не из кэша
+
     def test_state_js_gets_history_spend_and_log_failures(self):
         self.h.init()
         run = self.h.state()["dir"]

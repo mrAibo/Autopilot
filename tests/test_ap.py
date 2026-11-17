@@ -224,6 +224,7 @@ class Run(unittest.TestCase):
         self.assertIn(".autopilot/model-capabilities.json", read(os.path.join(self.root, ".gitignore")))
         self.assertIn(".autopilot/offline-worker/", read(os.path.join(self.root, ".gitignore")))
         self.assertIn(".autopilot/offline-test-consent", read(os.path.join(self.root, ".gitignore")))
+        self.assertIn(".autopilot/history-cache.json", read(os.path.join(self.root, ".gitignore")))
         self.assertIn("window.STATE={", read(os.path.join(self.a, "dashboard.html")))
 
     def test_init_records_skill_version(self):

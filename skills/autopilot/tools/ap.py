@@ -1262,6 +1262,7 @@ def ensure_gitignore():
                ".autopilot/offline-worker/", ".autopilot/offline-test-consent",
                ".autopilot/__pycache__/", ".autopilot/run-log*.jsonl",
                ".autopilot/worktrees/", ".autopilot/model-capabilities.json",
+               ".autopilot/history-cache.json",
                ".claude/agents/autopilot-*.md", ".codex/agents/autopilot-*.toml"]
     existing = {line.strip() for line in text.splitlines()}
     missing = [entry for entry in entries if entry not in existing]
@@ -3789,6 +3790,7 @@ def cmd_bootstrap(opt):
 # ── данные для дашборда: расход, прошлые сборки, сбои журнала ────────────────
 
 HISTORY_KEPT = 20
+HISTORY_CACHE = "history-cache.json"
 UNKNOWN_MODEL = "не указана"
 RUN_DIR_NAME = re.compile(r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*(?:--wip)?")
 EXEC_TICKET = re.compile(r"autopilot-executor-(?:(\d+)|f(\d+))-")
@@ -4004,21 +4006,44 @@ def compute_history(records, current):
         names = sorted(n for n in os.listdir(A) if RUN_DIR_NAME.fullmatch(n) and run_key(n) != run_key(current))
     except OSError:
         return []
-    found = []
+    cache_path = os.path.join(A, HISTORY_CACHE)
+    try:                                               # битый, чужой или отсутствующий кэш — пересчёт молча
+        with open(cache_path, encoding="utf-8") as f:
+            cached = json.load(f)
+        cached = cached["items"] if cached["v"] == 1 and isinstance(cached["items"], dict) else {}
+    except (OSError, ValueError, KeyError, TypeError):
+        cached = {}
+    items, found = {}, []
     for name in names:
         try:
-            old = state_io.read_state_file(os.path.join(A, name, "state.js"))
-            tickets = [t for t in old.get("tickets") or [] if isinstance(t, dict)]
+            st = os.stat(os.path.join(A, name, "state.js"))
+            key = [st.st_mtime_ns, st.st_size]
+            hit = cached.get(name)
+            if isinstance(hit, dict) and hit.get("key") == key and isinstance(hit.get("row"), dict):
+                row = hit["row"]
+            else:
+                old = state_io.read_state_file(os.path.join(A, name, "state.js"))
+                tickets = [t for t in old.get("tickets") or [] if isinstance(t, dict)]
+                row = {"dir": name, "title": str(old.get("title") or name),
+                       "startedAt": old.get("startedAt"), "finishedAt": old.get("finishedAt"),
+                       "minutes": _minutes(old["startedAt"], old["finishedAt"], old.get("waits") or [])
+                       if old.get("startedAt") and old.get("finishedAt") else None,
+                       "tickets": len(tickets),
+                       "repairs": sum(t["repairs"] for t in tickets if isinstance(t.get("repairs"), int)),
+                       "result": old.get("result")}
+            items[name] = {"key": key, "row": row}
             tokens = sum(a["tokens"] for a in compute_spend(records, name)["byRole"].values())
-            found.append({"dir": name, "title": str(old.get("title") or name),
-                          "startedAt": old.get("startedAt"), "finishedAt": old.get("finishedAt"),
-                          "minutes": _minutes(old["startedAt"], old["finishedAt"], old.get("waits") or [])
-                          if old.get("startedAt") and old.get("finishedAt") else None,
-                          "tickets": len(tickets),
-                          "repairs": sum(t["repairs"] for t in tickets if isinstance(t.get("repairs"), int)),
-                          "tokens": tokens, "result": old.get("result")})
+            found.append(dict(row, tokens=tokens))
         except (state_io.StateError, OSError, TypeError, ValueError, AttributeError, KeyError):
             continue                                   # битый архив не мешает остальным
+    if items != cached:
+        try:
+            tmp = cache_path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"v": 1, "items": items}, f)
+            os.replace(tmp, cache_path)
+        except OSError:
+            pass                                       # кэш — удобство, не обязанность
     found.sort(key=lambda h: (str(h["startedAt"] or ""), h["dir"]), reverse=True)
     return found[:HISTORY_KEPT]
 
