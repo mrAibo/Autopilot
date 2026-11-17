@@ -16,7 +16,7 @@ ROTATE_BYTES = 1024 * 1024
 VALUE_MAX = 120
 KINDS = {
     "phase": ("id", "act"),
-    "ticket": ("id", "act", "cause"),
+    "ticket": ("id", "act", "cause", "class", "model", "effort"),
     "gate": ("g", "ok", "reason"),
     "tests": ("passed", "failed", "seconds", "source"),
     "reset": ("what", "id", "reason"),
@@ -25,7 +25,7 @@ KINDS = {
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
 ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)(?:-|$)")
-TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source", "agent", "ticket")
+TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source", "agent", "ticket", "class")
 
 
 def role_of(agent_type):

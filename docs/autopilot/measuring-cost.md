@@ -60,6 +60,10 @@ Limits, so the numbers are not over-read:
 - **The orchestrator is one line per run.** Main-session turns cannot honestly be assigned to a ticket, so it appears in role and model tables only, never per ticket. It is written at `finish`, so the dashboard has no orchestrator figure while the run is still going unless you call the command yourself.
 - Sidechain (subagent) messages in the session log are skipped there: the subagents are counted from their own transcripts.
 
+## Class x model x effort (calibration of the router)
+
+`report-run` prints, after «## Модели», a table by the combination class x model x effort over every run in the journal: tickets, done at the first attempt, retries, Haiku -> Sonnet escalations, tokens per ticket (input + output of the ticket's executor rows). The combination is read from the `start` row of the ticket; old rows without `class`/`model`/`effort` fall into «не указан». `--share` prints the same numbers, no ticket names. The history is bounded by one journal rotation (`run-log.md`).
+
 ## Subagent spend in a normal run
 
 Without `--strict-routing` there are no hooks, but Claude Code keeps a log per subagent: `<session log without .jsonl>/subagents/agent-<id>.jsonl` plus `agent-<id>.meta.json`. `ap.py spend-subagents [--transcript PATH]` (and `finish`) writes one `executor` row per agent: token sums, model, `agent_type`, agent id, role and ticket. Message text, prompts and `description` are never read or saved.

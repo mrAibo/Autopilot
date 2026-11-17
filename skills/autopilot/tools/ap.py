@@ -269,7 +269,7 @@ def mirror_run_log(state, event, kw, extra):
     elif event == "ticket":
         if kw.get("act") in ("start", "done", "retry", "fail", "repair", "review"):
             for i in kw.get("ids") or []:
-                put("ticket", id=i, act=kw["act"], cause=extra.get("cause"))
+                put("ticket", id=i, act=kw["act"], cause=extra.get("cause"), **(extra.get("routes") or {}).get(i, {}))
         if isinstance(kw.get("tests"), dict):
             put("tests", source="ticket", **kw["tests"])
     elif event == "gate":
@@ -2438,6 +2438,13 @@ def escalate_ticket(state, tk, i, cause, attempts, t):
     log(state, "escalate", id=i, **{"from": route.get("model"), "to": new.get("model")})
 
 
+def route_fields(tk):
+    """Класс, модель и усилие таска для строки журнала: из `routing`, иначе из `plannedRouting`."""
+    r = tk.get("routing") or tk.get("plannedRouting") or {}
+    m = re.search(r"class=([^;]+)", str(r.get("reason") or ""))
+    return {"class": m.group(1).strip() if m else None, "model": r.get("model"), "effort": r.get("effort")}
+
+
 def cmd_ticket(state, pos, opt):
     if "accept-edit" in pos:
         return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
@@ -2740,7 +2747,8 @@ def cmd_ticket(state, pos, opt):
     pair = tests_pair(opt["tests"]) if opt.get("tests") else None
     cause = opt.get("cause") if isinstance(opt.get("cause"), str) and re.fullmatch(
         r"[a-z0-9][a-z0-9-]{0,39}", opt["cause"]) else ("tests-failed" if pair and pair["failed"] else None)
-    log(state, "ticket", ids=ids, act=act, tests=pair, journal={"cause": cause},
+    routes = {i: route_fields(known[i]) for i in ids} if act == "start" else {}
+    log(state, "ticket", ids=ids, act=act, tests=pair, journal={"cause": cause, "routes": routes},
         note=opt["note"] if act in ("repair", "fail") and isinstance(opt.get("note"), str) else None)
 
 
@@ -4234,6 +4242,9 @@ def main():
                 die("plan-models: лишние аргументы")
             state["updatedAt"] = now()
             payload = cmd_plan_models(state, opt)
+            advice = history_advice(run_log.read_all(A)) if run_log else None
+            if advice:
+                payload["advice"] = advice                 # только совет: маршрут не меняется
             beat(state)
             save(state)
             write_snapshot(state)
@@ -4459,6 +4470,67 @@ def render_model_report(rows):
     return lines if rows else lines + ["| — | 0 | — | 0 | — |"]
 
 
+def model_family(name):
+    """`claude-sonnet-5-5` и `sonnet` → `sonnet`; haiku/sonnet/opus, иначе имя как есть; нет → «не указан»."""
+    if not isinstance(name, str) or not name:
+        return "не указан"
+    low = name.casefold()
+    return next((f for f in ("haiku", "sonnet", "opus") if f in low), low)
+
+
+def compute_class_report(records):
+    """Класс × модель × усилие по всему журналу (все прогоны): таски, с первого раза, дозапросы,
+    эскалации Haiku → Sonnet, токены. Таск — пара (прогон, номер); сочетание берётся из его строки
+    `start` (строки без полей — «не указан»); токены — по строкам расхода таска."""
+    tickets = {}
+    for r in records:
+        if isinstance(r, dict) and r.get("k") == "ticket" and isinstance(r.get("id"), str):
+            t = tickets.setdefault((run_key(r.get("run")), r["id"]), {"combo": None, "done": False, "again": False,
+                                                                       "retries": 0, "esc": 0, "tokens": 0})
+            act = r.get("act")
+            if act == "start" and (t["combo"] is None or r.get("class") or r.get("model") or r.get("effort")):
+                t["combo"] = (r.get("class") or "не указан", model_family(r.get("model")), r.get("effort") or "не указано")
+            t["done"] = t["done"] or act == "done"
+            t["again"] = t["again"] or act in ("retry", "fail", "repair")
+            t["retries"] += act == "retry"
+            t["esc"] += act == "escalate"
+    for run in {k[0] for k in tickets}:
+        for r in executor_rows(records, run):
+            t = tickets.get((run, row_ticket(r)))
+            if t:
+                t["tokens"] += _tokens(r, "input") + _tokens(r, "output")
+    rows = {}
+    for t in tickets.values():
+        c = t["combo"] or ("не указан", "не указан", "не указано")
+        a = rows.setdefault(c, dict(zip(("class", "model", "effort"), c), tickets=0, first=0, retries=0, esc=0, tokens=0))
+        a["tickets"] += 1
+        a["first"] += t["done"] and not t["again"]
+        a["retries"] += t["retries"]
+        a["esc"] += t["esc"]
+        a["tokens"] += t["tokens"]
+    return sorted(rows.values(), key=lambda a: (a["class"], a["model"], a["effort"]))
+
+
+def render_class_report(rows):
+    """Блок «Класс × модель × усилие»; нет тасков — нет блока. Названий тасков в нём нет."""
+    if not rows:
+        return []
+    lines = ["", "## Класс × модель × усилие",
+             "| класс | модель | усилие | тасков | сдано с первого раза | дозапросов | эскалаций Haiku → Sonnet | токенов на таск |",
+             "|---|---|---|---|---|---|---|---|"]
+    return lines + ["| %s | %s | %s | %d | %d%% | %d | %d | %d |" % (
+        a["class"], a["model"], a["effort"], a["tickets"], round(100 * a["first"] / a["tickets"]),
+        a["retries"], a["esc"], round(a["tokens"] / a["tickets"])) for a in rows]
+
+
+def history_advice(records):
+    """Одна строка совета из истории или None: сколько механических тасков на Haiku эскалировано."""
+    rows = [a for a in compute_class_report(records) if a["class"] == "механический" and a["model"] == "haiku"]
+    n = sum(a["tickets"] for a in rows)
+    return ("история: механических тасков на Haiku %d, эскалировано на Sonnet %d; совет не меняет маршрут"
+            % (n, sum(a["esc"] for a in rows))) if n else None
+
+
 def cmd_report_run(argv):
     """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
     if run_log is None:
@@ -4474,7 +4546,8 @@ def cmd_report_run(argv):
         return 0
     summary = run_log.summarize(records, run=runs[-1], skipped=unreadable)
     print(run_log.render_report(summary, share="--share" in argv), end="")
-    print("\n".join(render_model_report(compute_model_report(records, runs[-1]))))
+    print("\n".join(render_model_report(compute_model_report(records, runs[-1]))
+                     + render_class_report(compute_class_report(records))))
     return 0
 
 

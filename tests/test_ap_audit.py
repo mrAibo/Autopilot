@@ -404,12 +404,60 @@ class ReportRun(unittest.TestCase):
             t("F1", "start"), t("F1", "done")])
         code, out = h.ap("report-run")
         self.assertEqual(code, 0, out)
-        block = out[out.index("## Модели"):]
+        block = out[out.index("## Модели"):].split("## Класс", 1)[0]
         self.assertIn("| модель | тасков | сдано с первого раза | починок | токенов на таск |", block)
         rows = [x for x in block.splitlines() if x.startswith("| ") and "модель" not in x]
         self.assertEqual(rows, ["| haiku | 2 | 50% | 0 | 700 |",
                                 "| sonnet | 1 | 0% | 1 | 500 |",
                                 "| не указана | 2 | 100% | 0 | 30 |"])      # таск 03 и fix-таск F1 (строки расхода нет)
+
+
+class ClassReport(unittest.TestCase):
+    OLD = RUN.replace("-a", "-b", 1) if "-a" in RUN else RUN + "x"
+
+    def rows(self):
+        def t(tid, act, run=WIP, **f):
+            return dict({"run": run, "k": "ticket", "id": tid, "act": act}, **f)
+        mech = {"class": "механический", "effort": "high"}
+        return [
+            t("01", "start", model="haiku", **mech), spent("autopilot-executor-01-a", 100, 100), t("01", "done"),
+            t("02", "start", model="claude-haiku-5-5", **mech), t("02", "retry"), t("02", "escalate"), t("02", "done"),
+            t("03", "start", model="claude-sonnet-5-5", **{"class": "обычный", "effort": "medium"}),
+            t("03", "done"),
+            t("03", "start", run=self.OLD, model="sonnet", **{"class": "обычный", "effort": "medium"}),
+            spent("autopilot-executor-03-c", 300, 100, run=self.OLD), t("03", "done", run=self.OLD),
+            t("04", "start"), t("04", "done")]
+
+    def test_combo_block_over_all_runs_without_names(self):
+        h = harness(self)
+        write_journal(h, self.rows())
+        for extra in ([], ["--share"]):
+            code, out = h.ap("report-run", *extra)
+            self.assertEqual(code, 0, out)
+            block = out[out.index("## Класс × модель × усилие"):]
+            lines = [x for x in block.splitlines() if x.startswith("| ") and "класс" not in x]
+            self.assertEqual(lines, ["| механический | haiku | high | 2 | 50% | 1 | 1 | 100 |",
+                                     "| не указан | не указан | не указано | 1 | 100% | 0 | 0 | 0 |",
+                                     "| обычный | sonnet | medium | 2 | 100% | 0 | 0 | 200 |"])
+            self.assertIn("## Модели", out)
+
+    def test_empty_history_has_no_block_and_no_advice(self):
+        h = harness(self)
+        write_journal(h, [{"run": WIP, "k": "phase", "id": "build", "act": "start"}])
+        code, out = h.ap("report-run")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("Класс × модель", out)
+        self.assertIsNone(load_ap(h).history_advice([]))
+
+    def test_advice_counts_escalated_mechanical_haiku(self):
+        self.assertIn("механических тасков на Haiku 2, эскалировано на Sonnet 1",
+                      load_ap(harness(self)).history_advice(self.rows()))
+
+    def test_route_fields_take_class_from_reason(self):
+        m = load_ap(harness(self))
+        tk = {"plannedRouting": {"model": "haiku", "effort": "high", "reason": "class=механический; risk=обычный"}}
+        self.assertEqual(m.route_fields(tk), {"class": "механический", "model": "haiku", "effort": "high"})
+        self.assertEqual(m.route_fields({}), {"class": None, "model": None, "effort": None})
 
 
 class Gitignore(unittest.TestCase):

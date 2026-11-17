@@ -28,7 +28,7 @@ Every line has `t` (local time, ISO with offset), `run` (run folder name) and `k
 | `k` | Fields | When |
 |---|---|---|
 | `phase` | `id`, `act` = start / done / skip / fail | `stage` |
-| `ticket` | `id`, `act` = start / done / retry / fail / repair / review / escalate, `cause` | `ticket NN <act>`; `cause` is `tests-failed` or the short tag from `--cause`; `escalate` is the single Haiku -> Sonnet move of `retry --cause tests --escalate` (`retry-policy.md`) |
+| `ticket` | `id`, `act` = start / done / retry / fail / repair / review / escalate, `cause`; on `start` also `class` (from `class=` in the routing reason), `model`, `effort` (from `routing`, else `plannedRouting`) | `ticket NN <act>`; `cause` is `tests-failed` or the short tag from `--cause`; `escalate` is the single Haiku -> Sonnet move of `retry --cause tests --escalate` (`retry-policy.md`) |
 | `gate` | `g`, `ok`, `reason` | G1-G4 decided; `reason` = `plan-changed` after a plan change |
 | `tests` | `passed`, `failed`, `seconds`, `source` = ticket / host / manual | `tests N/M [--seconds S]`, `ticket ... --tests`, `worktree NN verify` (measured) |
 | `reset` | `what` = ticket / gate, `id`, `reason` | edited unfinished ticket (`ticket-edited`), `ticket NN reset` (`manual`), gate reset (`plan-changed`) |
@@ -37,7 +37,9 @@ Every line has `t` (local time, ISO with offset), `run` (run folder name) and `k
 
 `role` is `executor`, `reviewer`, `explorer` or `acceptance` by the profile name
 (`autopilot-<role>-...`; the repair executor is `executor`), otherwise `agent`. The line kind stays
-`executor`; older lines without `role` get it from `agent_type` in the report. `model` and `effort` come from the subagent's profile `.claude/agents/<agent_type>.md`, else from the attested `resolvedModel`, else stay empty; the report shows such lines as «не указана». `report-run` also groups by model: tickets, share done at the first attempt, repairs, tokens per ticket.
+`executor`; older lines without `role` get it from `agent_type` in the report. `model` and `effort` come from the subagent's profile `.claude/agents/<agent_type>.md`, else from the attested `resolvedModel`, else stay empty; the report shows such lines as «не указана». `report-run` also groups by model: tickets, share done at the first attempt, repairs, tokens per ticket. A second block, «Класс × модель × усилие», groups tickets by class, model family (`sonnet` = `claude-sonnet-5-5`) and effort over the **whole** journal (current and past runs): tickets, done at the first attempt, retries, Haiku -> Sonnet escalations, tokens per ticket; lines without the new fields count as «не указан». `plan-models` adds one `advice` line to its JSON from the same history (e.g. how many mechanical Haiku tickets were escalated); it never changes the route, and no history means no key.
+
+**Limit:** the journal keeps one rotation (`run-log.1.jsonl`), so the history is the last two files, not all builds.
 
 A failed write never stops a command, but it is counted in `.autopilot/run-log.fail`; `ap.py` shows the count as `state.logFailures` and the dashboard marks the log as incomplete.
 

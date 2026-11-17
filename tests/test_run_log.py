@@ -49,6 +49,13 @@ class RunLogTests(unittest.TestCase):
         os.mkdir(self.path)                                                  # журнал — каталог
         self.assertFalse(run_log.append(self.d, "phase", id="spec", act="start"))
 
+    def test_ticket_row_carries_class_model_effort(self):
+        run_log.append(self.d, "ticket", run="r1", id="01", act="start", **{"class": "механический"}, model="haiku", effort="high")
+        row = self.rows()[0]
+        self.assertEqual((row["class"], row["model"], row["effort"]), ("механический", "haiku", "high"))
+        s = run_log.summarize(self.rows(), run="r1")                 # строка с новыми полями читается сводкой
+        self.assertEqual(s["tickets"][0]["starts"], 1)
+
     def test_executor_row_carries_model_and_effort(self):
         self.assertTrue(run_log.append(self.d, "executor", agent_type="autopilot-executor-01-x",
                                        role="executor", model="haiku", effort="high", turns=3))
