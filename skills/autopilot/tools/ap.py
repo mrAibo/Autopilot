@@ -26,6 +26,7 @@
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
     python3 .autopilot/ap.py agents install-user --by-user "<цитата>" | --decline   # лёгкие профили в папку настроек Claude Code (один раз)
+    python3 .autopilot/ap.py agents prune [--apply]     # профили autopilot-* сданных прогонов: без --apply только список
     python3 .autopilot/ap.py chore test-count           # генератор из interfaces.md («Команды-генераторы»): запуск и коммит только его файлов
     python3 .autopilot/ap.py ticket 03 land --message "T03: приём заявки" --requirements R01,R02 [--zone a/,b/]   # вне зоны, полная проверка, коммит зоны, done
     python3 "<skillDir>/tools/ap.py" bootstrap --project .   # поставить инструменты и дашборд в .autopilot/ (из папки навыка); печатает skillDir
@@ -1505,6 +1506,8 @@ def user_profiles_answer():
 def cmd_agents(pos, opt):
     """`agents install-user --by-user "<цитата>" | --decline`: запись вне проекта — только со словами пользователя."""
     usage = 'agents install-user --by-user "<слова пользователя>" | --decline'
+    if pos == ["prune"]:
+        return cmd_agents_prune(opt)
     if pos != ["install-user"]:
         die(usage)
     quote = opt.get("by-user")
@@ -3469,6 +3472,134 @@ def landing_problems(state):
     return refuse, caveat
 
 
+def archive_attestations(state):
+    """`finish`: строки общего `.autopilot/attestations.jsonl` — в `<папка прогона>/attestations.jsonl` (дописью, как есть:
+    подписи верны), общий файл начинается заново. Сбой — строка `!`, `finish` не падает."""
+    src, dst_dir = os.path.join(A, "attestations.jsonl"), os.path.join(A, state.get("dir") or "")
+    try:
+        if not state.get("dir") or os.path.islink(src) or not os.path.isfile(src) or not os.path.isdir(dst_dir):
+            return None
+        with open(src, "rb") as f:
+            data = f.read()
+        if not data:
+            return None
+        with open(os.path.join(dst_dir, "attestations.jsonl"), "ab") as f:
+            f.write(data)
+        with open(src, "wb"):
+            pass
+        return "аттестации перенесены: %s/attestations.jsonl" % state["dir"]
+    except OSError as exc:
+        return "! аттестации не перенесены (%s)" % type(exc).__name__
+
+
+PROFILE_DIRS = ((".claude/agents", ".md"), (".codex/agents", ".toml"))
+
+
+def profile_refs(state):
+    """Имена профилей, записанных в state.js прогона: routing и escalatedFrom тасков, roleAgents, repairAgent, opusAgents."""
+    entries = []
+    for tk in state.get("tickets") or []:
+        if isinstance(tk, dict):
+            entries += [tk.get("routing"), tk.get("escalatedFrom")]
+    role_agents = state.get("roleAgents")
+    entries += list(role_agents.values()) if isinstance(role_agents, dict) else []
+    entries.append(state.get("repairAgent"))
+    opus = state.get("opusAgents")
+    entries += list(opus.values()) if isinstance(opus, dict) else []
+    names = set()
+    for entry in entries:
+        values = [entry] if isinstance(entry, str) else (
+            [entry.get("agentType"), os.path.splitext(os.path.basename(str(entry.get("agentFile") or "").replace("\\", "/")))[0]]
+            if isinstance(entry, dict) else [])
+        names.update(v for v in values if isinstance(v, str) and v)
+    return names
+
+
+def profile_files(names=None):
+    """Файлы профилей `autopilot-*` в `.claude/agents` и `.codex/agents`: не ссылки, не четыре постоянных;
+    `names` — только эти имена. Больше ничего не возвращается, значит, больше ничего и не удалят."""
+    import agent_profiles
+    permanent = {"autopilot-" + r for r in agent_profiles.PERMANENT_ROLES}
+    found = []
+    for rel, ext in PROFILE_DIRS:
+        folder = os.path.join(ROOT, *rel.split("/"))
+        try:
+            if os.path.islink(folder):
+                continue
+            entries = sorted(os.scandir(folder), key=lambda e: e.name)
+        except OSError:
+            continue
+        for e in entries:
+            stem = e.name[:-len(ext)] if e.name.endswith(ext) else ""
+            if (re.fullmatch(r"autopilot-[A-Za-z0-9._-]+", stem) and stem.lower() not in permanent
+                    and not e.is_symlink() and e.is_file(follow_symlinks=False)
+                    and (names is None or stem in names)):
+                found.append(e.path)
+    return found
+
+
+def unfinished_profile_refs(own):
+    """Имена профилей незавершённых прогонов, кроме `own`: папки `*--wip` и архивы с пустым `finishedAt`.
+    Второе значение — нечитаемые `--wip` папки: про них неизвестно, что они держат."""
+    refs, unreadable = set(), []
+    try:
+        folders = sorted(n for n in os.listdir(A) if RUN_DIR_NAME.fullmatch(n) and run_key(n) != own)
+    except OSError:
+        return refs, unreadable
+    for n in folders:
+        try:
+            old = state_io.read_state_file(os.path.join(A, n, "state.js"))
+            if n.endswith("--wip") or old.get("finishedAt") is None:
+                refs |= profile_refs(old)
+        except (state_io.StateError, OSError, AttributeError):
+            if n.endswith("--wip"):
+                unreadable.append(n)
+    return refs, unreadable
+
+
+def delete_profiles(paths):
+    """Удалить файлы; сбой одного не мешает остальным. Вернуть (удалённые, строки `!`)."""
+    done, notes = [], []
+    for path in paths:
+        try:
+            os.unlink(path)
+            done.append(path)
+        except OSError as exc:
+            notes.append("! профиль не удалён: %s (%s)" % (os.path.relpath(path, ROOT), type(exc).__name__))
+    return done, notes
+
+
+def remove_run_profiles(state):
+    """`finish`: убрать профили этого прогона; постоянные, чужие файлы и профили других незавершённых прогонов остаются."""
+    try:
+        others, unreadable = unfinished_profile_refs(run_key(state.get("dir")))
+        if unreadable:
+            return ["! профили не удалены: не читается state.js в " + ", ".join(unreadable)]
+        done, notes = delete_profiles(profile_files(profile_refs(state) - others))
+        return ["профили прогона удалены: %d" % len(done)] * bool(done) + notes
+    except (OSError, ImportError) as exc:
+        return ["! профили не удалены (%s)" % type(exc).__name__]
+
+
+def cmd_agents_prune(opt):
+    """`agents prune [--apply]`: профили `autopilot-*`, на которые не ссылается ни один незавершённый прогон."""
+    state = read_state()
+    own = run_key((state or {}).get("dir"))
+    keep, unreadable = unfinished_profile_refs(own)
+    if state and state.get("finishedAt") is None:
+        keep |= profile_refs(state)
+    if unreadable:
+        die("agents prune: не читается state.js в %s — не знаю, что там держится" % ", ".join(unreadable))
+    paths = [p for p in profile_files() if os.path.splitext(os.path.basename(p))[0] not in keep]
+    if opt.get("apply") is not True:
+        print("\n".join(["без --apply ничего не удаляю; бы удалил: %d" % len(paths)]
+                        + ["  " + os.path.relpath(p, ROOT) for p in paths]))
+        return 0
+    done, notes = delete_profiles(paths)
+    print("\n".join(["профили удалены: %d" % len(done)] + notes))
+    return 1 if notes else 0
+
+
 def cmd_finish(state, opt):
     if state.get("gateMark") is not None:
         gate_signed(state)  # never re-sign the record over a forged state
@@ -3545,6 +3676,8 @@ def cmd_finish(state, opt):
     register_row(state, "сдан с оговорками" if problems else "сдан", state["result"])
     sync_run_record(state)
     log(state, "finish", result=state["result"], problems=len(problems))
+    notes += [n for n in [archive_attestations(state)] if n]
+    notes += remove_run_profiles(state)
     notes.append(spend_orchestrator(state))
     notes.append(spend_subagents(state))
     return notes

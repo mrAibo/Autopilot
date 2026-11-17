@@ -78,6 +78,8 @@ Native Claude Code E2E is qualified for strict routing; see the limits in [claud
 
 The advisor is a **server-side tool**, not an `Agent` call. Subagents **inherit** the `advisorModel` setting, and `is_allowed_subagent_model` **does not see** it, so a configured advisor can bring a model the route never approved. In a strict run `phases/0-preflight.md` warns when `advisorModel` is set (user, project or local settings) and offers `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for the duration of the build.
 
+**`finish` clean-up:** the lines of `.autopilot/attestations.jsonl` move unchanged (signatures stay valid) into `<run folder>/attestations.jsonl` (a second `finish` after `reopen` appends) and the shared file starts empty; the run's own `autopilot-*` profiles are deleted from `.claude/agents/` and `.codex/agents/` (never the four permanent ones, other files, symlinks or profiles an unfinished run still names). `ap.py agents prune [--apply]` does the same for leftovers of old runs; without `--apply` it only prints the list.
+
 **Open question R04b:** are advisor calls visible in `.autopilot/attestations.jsonl`? Not answered; do not assume. Live check: enable the advisor, run a disposable strict run with one ticket, then read `attestations.jsonl` and the subagent transcript for advisor entries and record what is there.
 
 ## Executor Bash guard

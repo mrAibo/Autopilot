@@ -2828,6 +2828,151 @@ class Run(unittest.TestCase):
         self.assertEqual(self.stage("final")["status"], "pending")
         self.assertNotIn("finishedAt", self.stage("final"))
 
+    # --- finish: общий журнал аттестаций и профили прогона (R16, R18) ---
+
+    def ap_module(self):
+        """ap.py из временного проекта в процессе теста: A и ROOT указывают на него, не на репозиторий."""
+        spec = importlib.util.spec_from_file_location("ap_tmp", os.path.join(self.a, "ap.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def shared_attestations(self):
+        return os.path.join(self.a, "attestations.jsonl")
+
+    def test_finish_moves_attestations_into_the_run_folder_and_appends_after_reopen(self):
+        self.ready_to_finish()
+        first = '{"ts": "1", "sig": "aa"}\n{"ts": "2", "sig": "bb"}\n'
+        with open(self.shared_attestations(), "w", encoding="utf-8", newline="") as f:
+            f.write(first)
+        code, out = self.ap("finish", "--result", "готово")
+        self.assertEqual(code, 0, out)
+        moved = os.path.join(self.a, self.state()["dir"], "attestations.jsonl")
+        self.assertEqual(read(moved), first)                      # строки (и подписи) не изменены
+        self.assertEqual(read(self.shared_attestations()), "")    # общий файл начался заново
+        self.assertEqual(self.ap_module().attest_mark(), 0)       # attestFrom нового таска — от нуля
+        self.assertEqual(self.ap("reopen")[0], 0)
+        second = '{"ts": "3", "sig": "cc"}\n'
+        with open(self.shared_attestations(), "w", encoding="utf-8", newline="") as f:
+            f.write(second)
+        code, out = self.ap("finish", "--result", "ещё раз", "--by-user", "сдавай как есть")
+        self.assertEqual(code, 0, out)
+        moved = os.path.join(self.a, self.state()["dir"], "attestations.jsonl")
+        self.assertEqual(read(moved), first + second)             # дописано, не затёрто
+        self.assertEqual(read(self.shared_attestations()), "")
+
+    def test_refused_finish_leaves_attestations_alone(self):
+        self.plan()
+        self.ap("tickets")
+        with open(self.shared_attestations(), "w", encoding="utf-8", newline="") as f:
+            f.write('{"ts": "1"}\n')
+        code, _ = self.ap("finish", "--result", "рано")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(read(self.shared_attestations()), '{"ts": "1"}\n')
+
+    def test_attestation_move_failure_is_a_note_not_a_crash(self):
+        self.init()
+        with open(self.shared_attestations(), "w", encoding="utf-8") as f:
+            f.write('{"ts": "1"}\n')
+        module, folder = self.ap_module(), self.state()["dir"]
+        with mock.patch("builtins.open", side_effect=PermissionError):
+            note = module.archive_attestations({"dir": folder})
+        self.assertTrue(note.startswith("! "), note)
+        self.assertEqual(read(self.shared_attestations()), '{"ts": "1"}\n')
+
+    PERMANENT = ("autopilot-executor", "autopilot-reviewer", "autopilot-acceptance", "autopilot-explorer")
+
+    def profile(self, name, folder=".claude/agents", ext=".md"):
+        path = os.path.join(self.root, *folder.split("/"), name + ext)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("profile\n")
+        return path
+
+    def profiles_fixture(self, claim=True):
+        """Свои профили в state.js, постоянные, чужие, профили другого незавершённого прогона, сирота."""
+        if claim:
+            s = self.state()
+            s["tickets"][0]["routing"] = {"agentType": "autopilot-executor-01-mine",
+                                          "agentFile": ".claude/agents/autopilot-executor-01-mine.md"}
+            s["tickets"][1]["escalatedFrom"] = {"agentType": "autopilot-executor-02-shared"}
+            s["roleAgents"] = {"reviewer": {"agentType": "autopilot-reviewer-mine",
+                                            "agentFile": ".claude/agents/autopilot-reviewer-mine.md"}}
+            s["repairAgent"] = {"agentType": "autopilot-executor-fix-mine",
+                                "agentFile": ".codex/agents/autopilot-executor-fix-mine.toml"}
+            s["opusAgents"] = {"reviewer": "autopilot-reviewer-opus-mine",
+                               "repair": "autopilot-executor-01-link"}   # файл-ссылка, если ОС даёт её сделать
+            with open(os.path.join(self.a, "state.js"), "w", encoding="utf-8") as f:
+                f.write("window.STATE =\n" + json.dumps(s, ensure_ascii=False))
+        other = os.path.join(self.a, "2026-01-01-other--wip")
+        os.makedirs(other)
+        with open(os.path.join(other, "state.js"), "w", encoding="utf-8") as f:
+            f.write("window.STATE =\n" + json.dumps({
+                "dir": "2026-01-01-other--wip", "finishedAt": None,
+                "tickets": [{"id": "01", "routing": {"agentType": "autopilot-executor-02-shared"}},
+                            {"id": "02", "routing": {"agentType": "autopilot-executor-09-theirs"}}]}))
+        self.mine = [self.profile("autopilot-executor-01-mine"), self.profile("autopilot-reviewer-mine"),
+                     self.profile("autopilot-executor-fix-mine", ".codex/agents", ".toml"),
+                     self.profile("autopilot-reviewer-opus-mine"),
+                     self.profile("autopilot-executor-01-mine", ".codex/agents", ".toml")]
+        self.kept = [self.profile(n) for n in self.PERMANENT] + [
+            self.profile("autopilot-executor-02-shared"), self.profile("autopilot-executor-09-theirs"),
+            self.profile("my-own-helper"), self.profile("notes", ext=".txt")]
+        self.orphan = self.profile("autopilot-reviewer-orphan")
+        self.link = None
+        outside = os.path.join(self.root, "outside.md")
+        with open(outside, "w", encoding="utf-8") as f:
+            f.write("keep\n")
+        link = os.path.join(self.root, ".claude", "agents", "autopilot-executor-01-link.md")
+        try:
+            os.symlink(outside, link)
+            self.link = link
+            self.kept.append(outside)
+        except (OSError, NotImplementedError):
+            pass                                                # Windows без права на ссылки
+
+    def test_finish_deletes_own_profiles_only(self):
+        self.ready_to_finish()
+        self.profiles_fixture()
+        code, out = self.ap("finish", "--result", "готово")
+        self.assertEqual(code, 0, out)
+        self.assertIn("профили прогона удалены", out)
+        for path in self.mine:
+            self.assertFalse(os.path.exists(path), path)
+        for path in self.kept + [self.orphan]:
+            self.assertTrue(os.path.exists(path), path)          # постоянные, чужие, чужого прогона, сирота
+        if self.link:
+            self.assertTrue(os.path.islink(self.link))
+
+    def test_prune_without_apply_deletes_nothing_and_apply_keeps_unfinished_runs(self):
+        self.ready_to_finish()
+        self.profiles_fixture()
+        everything = self.mine + self.kept + [self.orphan]
+        code, out = self.ap("agents", "prune")
+        self.assertEqual(code, 0, out)
+        self.assertIn("autopilot-reviewer-orphan.md", out)
+        self.assertNotIn("autopilot-executor-01-mine.md", out)    # прогон ещё идёт — его профили держатся
+        self.assertTrue(all(os.path.exists(p) for p in everything))
+        code, out = self.ap("agents", "prune", "--apply")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.exists(self.orphan))
+        self.assertTrue(all(os.path.exists(p) for p in self.mine + self.kept))
+        self.ap("finish", "--result", "готово")                   # после сдачи его профили — тоже мусор
+        self.profile("autopilot-reviewer-orphan")
+        code, out = self.ap("agents", "prune", "--apply")
+        self.assertEqual(code, 0, out)
+        self.assertFalse(os.path.exists(os.path.join(self.root, ".claude", "agents", "autopilot-reviewer-orphan.md")))
+        self.assertTrue(all(os.path.exists(p) for p in self.kept))
+
+    def test_profile_delete_failure_is_a_note_not_a_crash(self):
+        self.ready_to_finish()
+        self.profiles_fixture()
+        module = self.ap_module()
+        with mock.patch.object(module.os, "unlink", side_effect=PermissionError):
+            notes = module.remove_run_profiles(self.state())
+        self.assertTrue(notes and all(n.startswith("! ") for n in notes), notes)
+        self.assertTrue(all(os.path.exists(p) for p in self.mine + self.kept))
+
     def test_commits_flags_a_done_ticket_whose_commit_left_history(self):
         self.plan()
         self.ap("tickets")
