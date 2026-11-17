@@ -29,9 +29,9 @@
 - Исполнитель гоняет только свои файлы тестов (`python -m unittest discover -s tests -p test_x.py`) и `python -m compileall -q skills/autopilot/tools tests tools`; полный прогон (≈ 9 мин) делает оркестратор в `ticket NN land`.
 - Новый тест с общим числом тестов не требует правки счётчика руками: его пересчитывает `chore test-count` в конце.
 
-Полная проверка: `python -m unittest discover -s tests`
+Полная проверка: `python tools/run-tests.py`
 
-(около 9 минут; исполнитель полный прогон не гоняет.)
+(параллельный запуск, около 1,5 минуты; последовательный `python -m unittest discover -s tests` — около 10; исполнитель полный прогон не гоняет.)
 
 ## Команды-генераторы
 

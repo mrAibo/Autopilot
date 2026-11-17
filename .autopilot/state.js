@@ -2,7 +2,7 @@ window.STATE =
 {
   "version": 2,
   "slug": "orchestrator-spend-waves-4-6",
-  "dir": "2026-11-17-orchestrator-spend-waves-4-6--wip",
+  "dir": "2026-11-17-orchestrator-spend-waves-4-6",
   "title": "Autopilot: волны 4–6 (R11–R21)",
   "mode": "semi",
   "depth": "normal",
@@ -15,10 +15,10 @@ window.STATE =
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "d437d20",
   "startedAt": "2026-11-17T03:03:11+01:00",
-  "updatedAt": "2026-11-17T03:15:12+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-17T17:42:42+01:00",
+  "finishedAt": "2026-11-17T17:42:42+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -71,32 +71,57 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-17T03:15:04+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-17T03:15:20+01:00"
         }
       ],
-      "startedAt": "2026-11-17T03:15:04+01:00"
+      "startedAt": "2026-11-17T03:15:04+01:00",
+      "finishedAt": "2026-11-17T03:15:20+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-17T03:15:20+01:00",
+          "finishedAt": "2026-11-17T17:16:05+01:00"
+        }
+      ],
+      "startedAt": "2026-11-17T03:15:20+01:00",
+      "finishedAt": "2026-11-17T17:16:05+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-17T17:16:05+01:00",
+          "finishedAt": "2026-11-17T17:27:15+01:00"
+        }
+      ],
+      "startedAt": "2026-11-17T17:16:05+01:00",
+      "finishedAt": "2026-11-17T17:27:15+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-17T17:27:15+01:00",
+          "finishedAt": "2026-11-17T17:42:42+01:00"
+        }
+      ],
+      "startedAt": "2026-11-17T17:27:15+01:00",
+      "finishedAt": "2026-11-17T17:42:42+01:00"
     }
   ],
   "requirements": {
     "total": 11,
-    "done": 0,
-    "inTicket": 11,
+    "done": 11,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -120,9 +145,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "b4574734bce6dc089a67a81f57f9bec30941df6832a579bf1da125872017ab16",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:16:50+01:00",
+      "finishedAt": "2026-11-17T03:43:01+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      },
+      "commit": "1bac10c",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "01",
         "provider": "anthropic",
@@ -164,9 +197,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "aa13e2fe8256917fa59d39e8a43e20e5f472788e8a99f2d3a73108f2bafb74fc",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:17:50+01:00",
+      "finishedAt": "2026-11-17T03:54:58+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      },
+      "commit": "b262050",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "02",
         "provider": "anthropic",
@@ -217,9 +258,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "6f3e54f1bb75027823748e65b1518cad1cb1327051784551facda7e989c0c38a",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:15:43+01:00",
+      "finishedAt": "2026-11-17T03:53:14+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      },
+      "commit": "ed212b6",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "03",
         "provider": "anthropic",
@@ -267,9 +316,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "a551de83d47be437072b4dbc9c0fc8e80a76667ea4b21419f5ae01426fc22a17",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:15:43+01:00",
+      "finishedAt": "2026-11-17T03:32:53+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      },
+      "commit": "b682840",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "04",
         "provider": "anthropic",
@@ -313,9 +370,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "cdb2887fdbf4df71ffd08257c63fc5ff9ec3d6782ee1a4a6096899d38394fc09",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:55:08+01:00",
+      "finishedAt": "2026-11-17T04:00:06+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1046,
+        "failed": 0
+      },
+      "commit": "4fe8e08",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "05",
         "provider": "anthropic",
@@ -368,9 +433,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "3c07e07becf419e1953f910cce7a65a583f2ef0cf04944b227ab568fb34f5e20",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T03:55:08+01:00",
+      "finishedAt": "2026-11-17T04:01:24+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1046,
+        "failed": 0
+      },
+      "commit": "0e7afc6",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "06",
         "provider": "anthropic",
@@ -421,9 +494,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "9e807ae2dc099de7f50701868ba10ecd2b4fa3e5747de30a938f76e34299273c",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T04:01:31+01:00",
+      "finishedAt": "2026-11-17T04:09:02+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1052,
+        "failed": 0
+      },
+      "commit": "60699b1",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "07",
         "provider": "anthropic",
@@ -471,9 +552,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "2c2f97633f5de63c405ed1db0de4ebbef0a285926901a8f66cf180c8057e532b",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T04:09:03+01:00",
+      "finishedAt": "2026-11-17T17:10:16+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1057,
+        "failed": 0
+      },
+      "commit": "1a72cd7",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "08",
         "provider": "anthropic",
@@ -525,9 +614,17 @@ window.STATE =
       "review": "нет",
       "model": "обычная",
       "fingerprint": "527beb5583b28797edd3651da2f48a50bec7bb1528b69d7d9ae2e92872ffe00f",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-17T17:10:18+01:00",
+      "finishedAt": "2026-11-17T17:16:04+01:00",
       "retries": 0,
       "repairs": 0,
+      "tests": {
+        "passed": 1061,
+        "failed": 0
+      },
+      "commit": "ceb5920",
+      "placeholders": [],
       "plannedRouting": {
         "ticket": "09",
         "provider": "anthropic",
@@ -552,9 +649,56 @@ window.STATE =
         "error": "No verified host capabilities",
         "applied": false
       }
+    },
+    {
+      "id": "F1",
+      "title": "правки по код-ревью ветки",
+      "requirements": [
+        "R14",
+        "R15",
+        "R17",
+        "R18",
+        "R20",
+        "R11"
+      ],
+      "blockedBy": [],
+      "wave": 6,
+      "zone": [
+        "tools/run-tests.py",
+        "tests/test_run_tests.py",
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/phases/dashboard-template.html",
+        "tests/test_ap.py",
+        "tests/test_ap_audit.py",
+        "tests/test_followups_dashboard.py",
+        "tests/test_dashboard_views.py"
+      ],
+      "review": "да — ремонт ветки",
+      "model": "сильная",
+      "fingerprint": "50426b2b0297f523a22f3b466d46e7d4cda315ff4d52d5a573bed3c2a0ee7524",
+      "status": "done",
+      "startedAt": "2026-11-17T17:20:38+01:00",
+      "finishedAt": "2026-11-17T17:26:57+01:00",
+      "retries": 0,
+      "repairs": 0,
+      "tests": {
+        "passed": 1067,
+        "failed": 0
+      },
+      "commit": "00c0314",
+      "placeholders": [],
+      "routing": {
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "reason": "правки ревью ветки: запускатель, удаление профилей, дашборд, кэш"
+      }
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 1072,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -571,7 +715,11 @@ window.STATE =
   },
   "concerns": [],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 11,
+    "matched": 11,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-17T03:03:11+01:00",
     "2026-11-17T03:03:16+01:00",
@@ -585,9 +733,37 @@ window.STATE =
     "2026-11-17T03:15:06+01:00",
     "2026-11-17T03:15:10+01:00",
     "2026-11-17T03:15:11+01:00",
-    "2026-11-17T03:15:12+01:00"
+    "2026-11-17T03:15:12+01:00",
+    "2026-11-17T03:15:19+01:00",
+    "2026-11-17T03:15:20+01:00",
+    "2026-11-17T03:15:43+01:00",
+    "2026-11-17T03:16:50+01:00",
+    "2026-11-17T03:17:50+01:00",
+    "2026-11-17T03:22:05+01:00",
+    "2026-11-17T03:33:03+01:00",
+    "2026-11-17T03:43:02+01:00",
+    "2026-11-17T03:53:32+01:00",
+    "2026-11-17T03:55:08+01:00",
+    "2026-11-17T03:58:49+01:00",
+    "2026-11-17T04:00:07+01:00",
+    "2026-11-17T04:01:31+01:00",
+    "2026-11-17T04:07:31+01:00",
+    "2026-11-17T04:09:03+01:00",
+    "2026-11-17T17:08:50+01:00",
+    "2026-11-17T17:10:18+01:00",
+    "2026-11-17T17:14:19+01:00",
+    "2026-11-17T17:16:05+01:00",
+    "2026-11-17T17:20:36+01:00",
+    "2026-11-17T17:20:37+01:00",
+    "2026-11-17T17:20:38+01:00",
+    "2026-11-17T17:25:25+01:00",
+    "2026-11-17T17:27:15+01:00",
+    "2026-11-17T17:27:41+01:00",
+    "2026-11-17T17:40:42+01:00",
+    "2026-11-17T17:42:20+01:00",
+    "2026-11-17T17:42:42+01:00"
   ],
-  "rev": 14,
+  "rev": 43,
   "waiting": null,
   "waits": [],
   "log": [
@@ -681,63 +857,312 @@ window.STATE =
       "applied": false,
       "tickets": 9,
       "blocked": 9
+    },
+    {
+      "t": "2026-11-17T03:15:20+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:15:43+01:00",
+      "k": "ticket",
+      "ids": [
+        "04",
+        "03"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:16:50+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:17:50+01:00",
+      "k": "ticket",
+      "ids": [
+        "02"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:22:05+01:00",
+      "k": "ticket",
+      "ids": [
+        "04"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T03:33:03+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T03:43:02+01:00",
+      "k": "ticket",
+      "ids": [
+        "03"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T03:53:32+01:00",
+      "k": "ticket",
+      "ids": [
+        "02"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1042,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T03:55:08+01:00",
+      "k": "ticket",
+      "ids": [
+        "05",
+        "06"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T03:58:49+01:00",
+      "k": "ticket",
+      "ids": [
+        "05"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1046,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T04:00:07+01:00",
+      "k": "ticket",
+      "ids": [
+        "06"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1046,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T04:01:31+01:00",
+      "k": "ticket",
+      "ids": [
+        "07"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T04:07:31+01:00",
+      "k": "ticket",
+      "ids": [
+        "07"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1052,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T04:09:03+01:00",
+      "k": "ticket",
+      "ids": [
+        "08"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T17:08:50+01:00",
+      "k": "ticket",
+      "ids": [
+        "08"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1057,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T17:10:18+01:00",
+      "k": "ticket",
+      "ids": [
+        "09"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T17:14:19+01:00",
+      "k": "ticket",
+      "ids": [
+        "09"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1061,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T17:16:05+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T17:20:36+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 5
+    },
+    {
+      "t": "2026-11-17T17:20:36+01:00",
+      "k": "tickets",
+      "n": 10
+    },
+    {
+      "t": "2026-11-17T17:20:37+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "route"
+    },
+    {
+      "t": "2026-11-17T17:20:38+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T17:25:25+01:00",
+      "k": "ticket",
+      "ids": [
+        "F1"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1067,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-17T17:27:15+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-17T17:27:41+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 2
+    },
+    {
+      "t": "2026-11-17T17:40:42+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 11,
+      "matched": 11
+    },
+    {
+      "t": "2026-11-17T17:42:20+01:00",
+      "k": "tests",
+      "passed": 1072,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-17T17:42:42+01:00",
+      "k": "finish",
+      "result": "Волны 4–6 брифа: свод класс×модель×усилие, шкала роутера, -latest, сервер без PowerShell, кэш истории, аттестации и профили на finish, параллельные тесты, ошибки дашборда, быстрый старт README",
+      "problems": 0
     }
   ],
   "reqList": [
     {
       "id": "R11",
       "text": "«Свод для калибровки роутера» — report-run печатает по сочетанию «класс × модель × усилие»; plan-models печатает строку совета из истории",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R12",
       "text": "«Шкала роутера показана такой, какая она есть» — таблица в model-routing.md и трёх README; карточка таска на дашборде показывает класс, риск, причину",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R13",
       "text": "«Имена моделей семейства 5» — тесты на написания claude--5-; алиас -latest у Haiku и Sonnet разрешён",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R14",
       "text": "«ap.py на Windows не зовёт PowerShell на каждую команду»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R15",
       "text": "«История прошлых сборок не перечитывается каждой командой»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R16",
       "text": "«Аттестации не растут без конца»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R17",
       "text": "«Тесты самого Autopilot идут параллельно»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R18",
       "text": "«Профили агентов сданной сборки удаляются»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R19",
       "text": "«Прогноз после плана и расход в отчёте»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R20",
       "text": "«Понятные ошибки дашборда»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R21",
       "text": "«Быстрый старт в начале README»",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
@@ -758,14 +1183,122 @@ window.STATE =
       "found": 14,
       "fixed": 14,
       "deferred": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-17T17:40:42+01:00",
+      "checked": 11,
+      "matched": 11
     }
   },
-  "result": null,
+  "result": "Волны 4–6 брифа: свод класс×модель×усилие, шкала роутера, -latest, сервер без PowerShell, кэш истории, аттестации и профили на finish, параллельные тесты, ошибки дашборда, быстрый старт README",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
-    "byTicket": {}
+    "byRole": {
+      "reviewer": {
+        "n": 3,
+        "input": 82,
+        "output": 37858,
+        "cache_read": 2743561,
+        "cache_write": 190979,
+        "tokens": 37940,
+        "hit": 93
+      },
+      "executor": {
+        "n": 11,
+        "input": 486,
+        "output": 163070,
+        "cache_read": 13050942,
+        "cache_write": 723333,
+        "tokens": 163556,
+        "hit": 95
+      },
+      "agent": {
+        "n": 1,
+        "input": 132,
+        "output": 48404,
+        "cache_read": 11848979,
+        "cache_write": 280204,
+        "tokens": 48536,
+        "hit": 98
+      },
+      "acceptance": {
+        "n": 1,
+        "input": 142,
+        "output": 29786,
+        "cache_read": 4519057,
+        "cache_write": 107212,
+        "tokens": 29928,
+        "hit": 98
+      },
+      "orchestrator": {
+        "n": 2,
+        "input": 228,
+        "output": 78013,
+        "cache_read": 25696387,
+        "cache_write": 474338,
+        "tokens": 78241,
+        "hit": 98
+      }
+    },
+    "byModel": {
+      "claude-sonnet-5-5": {
+        "n": 17,
+        "input": 1070,
+        "output": 357131,
+        "cache_read": 57858926,
+        "cache_write": 1776066,
+        "tokens": 358201,
+        "hit": 97
+      },
+      "<synthetic>": {
+        "n": 1,
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_write": 0,
+        "tokens": 0,
+        "hit": null
+      }
+    },
+    "byTicket": {
+      "08": {
+        "n": 1,
+        "input": 66,
+        "output": 14470,
+        "cache_read": 1857904,
+        "cache_write": 74488,
+        "tokens": 14536,
+        "hit": 96
+      },
+      "09": {
+        "n": 1,
+        "input": 60,
+        "output": 15259,
+        "cache_read": 1501545,
+        "cache_write": 69743,
+        "tokens": 15319,
+        "hit": 96
+      },
+      "07": {
+        "n": 1,
+        "input": 44,
+        "output": 24767,
+        "cache_read": 1216367,
+        "cache_write": 80659,
+        "tokens": 24811,
+        "hit": 94
+      },
+      "F1": {
+        "n": 1,
+        "input": 72,
+        "output": 18553,
+        "cache_read": 2351436,
+        "cache_write": 89750,
+        "tokens": 18625,
+        "hit": 96
+      }
+    }
   },
   "history": [
     {
@@ -776,8 +1309,8 @@ window.STATE =
       "minutes": 139,
       "tickets": 4,
       "repairs": 0,
-      "tokens": 396276,
-      "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные"
+      "result": "Волны 1–3: лёгкие профили, подсказка о контексте, chore, ticket land, bootstrap, doctor, второй круг приёмки по расхождениям, текст обычного пути короче; 1027 тестов зелёные",
+      "tokens": 396276
     },
     {
       "dir": "2026-11-16-subagent-spend-nonstrict",
@@ -787,8 +1320,8 @@ window.STATE =
       "minutes": 37,
       "tickets": 1,
       "repairs": 0,
-      "tokens": 73515,
-      "result": "Расход субагентов виден в обычном режиме: ap.py spend-subagents и finish пишут его из журналов Claude Code, report-run и дашборд показывают; 959 тестов зелёные, слепая приёмка 10 из 11, круг 2 закрыл последний пункт"
+      "result": "Расход субагентов виден в обычном режиме: ap.py spend-subagents и finish пишут его из журналов Claude Code, report-run и дашборд показывают; 959 тестов зелёные, слепая приёмка 10 из 11, круг 2 закрыл последний пункт",
+      "tokens": 73515
     },
     {
       "dir": "2026-11-16-spend-optimization",
@@ -798,8 +1331,8 @@ window.STATE =
       "minutes": 44,
       "tickets": 3,
       "repairs": 0,
-      "tokens": 45662,
-      "result": "Оптимизация расхода: spend видит кэш и главную сессию (оркестратора), report-run и дашборд показывают их, исполнитель запускает проверки с коротким выводом; 942 теста зелёные, слепая приёмка 5 из 7 (замер общего кэша исполнителей не получен)"
+      "result": "Оптимизация расхода: spend видит кэш и главную сессию (оркестратора), report-run и дашборд показывают их, исполнитель запускает проверки с коротким выводом; 942 теста зелёные, слепая приёмка 5 из 7 (замер общего кэша исполнителей не получен)",
+      "tokens": 45662
     },
     {
       "dir": "2026-11-15-dashboard-token-fixes",
@@ -809,8 +1342,8 @@ window.STATE =
       "minutes": 143,
       "tickets": 4,
       "repairs": 0,
-      "tokens": 0,
-      "result": "Доделки после аудита: страница без токена не несёт данных, адрес с токеном печатает только ap.py url, ключ подписи создаётся атомарно, «Сейчас» и «Требования» компактны, маршрут таска задаёт оценка планировщика вместо регулярных выражений; 922 теста зелёные, слепая приёмка 5 из 6 (гонка со старым пустым ключом осталась)"
+      "result": "Доделки после аудита: страница без токена не несёт данных, адрес с токеном печатает только ap.py url, ключ подписи создаётся атомарно, «Сейчас» и «Требования» компактны, маршрут таска задаёт оценка планировщика вместо регулярных выражений; 922 теста зелёные, слепая приёмка 5 из 6 (гонка со старым пустым ключом осталась)",
+      "tokens": 0
     },
     {
       "dir": "2026-11-15-audit-dashboard-haiku",
@@ -820,8 +1353,8 @@ window.STATE =
       "minutes": 325,
       "tickets": 7,
       "repairs": 1,
-      "tokens": 1163950,
-      "result": "Правки аудита: страница «Сейчас», доски, расход и история, сервер дашборда с токеном, класс таска и Haiku-профили с эскалацией на Sonnet, DPAPI-ключ и узкая граница Bash; 865 тестов зелёные, слепая приёмка 29 из 29"
+      "result": "Правки аудита: страница «Сейчас», доски, расход и история, сервер дашборда с токеном, класс таска и Haiku-профили с эскалацией на Sonnet, DPAPI-ключ и узкая граница Bash; 865 тестов зелёные, слепая приёмка 29 из 29",
+      "tokens": 1163950
     },
     {
       "dir": "2026-11-08-opus-auto",
@@ -831,8 +1364,8 @@ window.STATE =
       "minutes": 164,
       "tickets": 4,
       "repairs": 0,
-      "tokens": 148373,
-      "result": "Opus-ремонт и ревью ветки, подписи Opus привязаны к прогону, автообновление инструментов, fix-таски не сбрасывают гейты"
+      "result": "Opus-ремонт и ревью ветки, подписи Opus привязаны к прогону, автообновление инструментов, fix-таски не сбрасывают гейты",
+      "tokens": 148373
     },
     {
       "dir": "2026-11-08-upstream-port-opus",
@@ -842,8 +1375,8 @@ window.STATE =
       "minutes": 121,
       "tickets": 6,
       "repairs": 1,
-      "tokens": 385893,
-      "result": "Порт апстрима 2.2.2/2.2.3 и точечный Opus по подписанному подтверждению"
+      "result": "Порт апстрима 2.2.2/2.2.3 и точечный Opus по подписанному подтверждению",
+      "tokens": 385893
     },
     {
       "dir": "2026-11-06-r22d-run-log-hardening",
@@ -853,8 +1386,8 @@ window.STATE =
       "minutes": 46,
       "tickets": 2,
       "repairs": 0,
-      "tokens": 46237,
-      "result": "Журнал прогона надёжнее: предупреждение без run_log.py, тест списка копирования, свод переживает испорченные строки, роль субагента в журнале"
+      "result": "Журнал прогона надёжнее: предупреждение без run_log.py, тест списка копирования, свод переживает испорченные строки, роль субагента в журнале",
+      "tokens": 46237
     },
     {
       "dir": "2026-11-06-claude-code-wave2-run-log",
@@ -864,8 +1397,8 @@ window.STATE =
       "minutes": 57,
       "tickets": 3,
       "repairs": 0,
-      "tokens": 0,
-      "result": "Журнал прогона и report-run, закрыты дыры хука git, accept-edit проверяет worktree"
+      "result": "Журнал прогона и report-run, закрыты дыры хука git, accept-edit проверяет worktree",
+      "tokens": 0
     },
     {
       "dir": "2026-11-05-claude-code-wave1",
@@ -875,8 +1408,8 @@ window.STATE =
       "minutes": 76,
       "tickets": 2,
       "repairs": 2,
-      "tokens": 0,
-      "result": "Волна 1: отпечатки тасков, accept-edit, запрет git stash у исполнителей, проверка путей и версии Claude Code"
+      "result": "Волна 1: отпечатки тасков, accept-edit, запрет git stash у исполнителей, проверка путей и версии Claude Code",
+      "tokens": 0
     },
     {
       "dir": "2026-11-03-dashboard-themes",
@@ -886,8 +1419,8 @@ window.STATE =
       "minutes": 2699,
       "tickets": 11,
       "repairs": 2,
-      "tokens": 0,
-      "result": "В дашборде восемь видов на выбор, «Обзор» и «Компактный» подогнаны под макеты, лого, заметки по таскам, подписи на полосах Ганта; обновление дашборда читает state.js с BOM"
+      "result": "В дашборде восемь видов на выбор, «Обзор» и «Компактный» подогнаны под макеты, лого, заметки по таскам, подписи на полосах Ганта; обновление дашборда читает state.js с BOM",
+      "tokens": 0
     },
     {
       "dir": "2026-11-03-audit-fixes",
@@ -897,11 +1430,21 @@ window.STATE =
       "minutes": 147,
       "tickets": 4,
       "repairs": 2,
-      "tokens": 0,
-      "result": "Закрыты 18 пунктов аудита: общий state_io, проверка зон и путей, точный allowlist моделей, подпись гейтов, документация и CI"
+      "result": "Закрыты 18 пунктов аудита: общий state_io, проверка зон и путей, точный allowlist моделей, подпись гейтов, документация и CI",
+      "tokens": 0
     }
   ],
   "logFailures": 0,
   "planContractDigest": "c14283e12f228421f7ae4602328eded8451790318f711e99c4d3d2a80293de1c",
-  "planValidationDigest": "86cae297359abd77220694978b34c940f0cad37688d6e59656a9b18daca92de4"
+  "planValidationDigest": "86cae297359abd77220694978b34c940f0cad37688d6e59656a9b18daca92de4",
+  "report": [
+    "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков (строгий прогон и Opus-профили, которые finish теперь удаляет) — ap.py:2163",
+    "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный пользователем вручную, подбирается офлайн",
+    "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается",
+    "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace",
+    "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»",
+    "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED (в репозитории таких тестов нет)",
+    "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории"
+  ],
+  "blindRounds": 1
 }
