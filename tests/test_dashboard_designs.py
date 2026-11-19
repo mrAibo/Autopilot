@@ -124,6 +124,30 @@ class _Slots:
         self.assertRegex(self.out["dx"]["running/en"], r'class="dx-ring"[^>]*aria-label="[^"]*1 of 7[^"]*".*?<b>14<small>%</small>')
         self.assertRegex(self.out["dx"]["finished/en"], r'class="dx-ring".*?<b>100<small>%</small>')
 
+    def test_ticker_runs_the_stage_progress_tests_and_time_and_is_hidden_from_readers(self):
+        run = self.out["dx"]["running/en"]
+        self.assertRegex(run, r'<div class="dx-ticker" aria-hidden="true">')
+        ticker = re.search(r'<div class="dx-ticker".*?</div></div>', run, re.S).group(0)
+        for part in ("Development", "1/7", "29", "min"):  # active stage, done/total tickets, passed tests, time
+            self.assertIn(part, ticker)
+        self.assertRegex(self.out["dx"]["running/ru"], r'class="dx-ticker"[^>]*>.*?Разработка')
+
+    def test_ascii_bars_show_stages_requirements_and_tickets_with_label_and_value(self):
+        html = self.out["dx"]["running/en"]
+        block = re.search(r'<div class="dx-ascii".*?</div></div>', html, re.S).group(0)
+        # 5 of 8 stages -> 13 of 20 cells (JS rounds 12.5 up); 3 of 10 requirements -> 6; 1 of 7 tickets -> 3
+        for bar, value in (("█" * 13 + "░" * 7, "5/8"), ("█" * 6 + "░" * 14, "3/10"), ("█" * 3 + "░" * 17, "1/7")):
+            self.assertIn("[%s]" % bar, block)
+            self.assertIn("<b>%s</b>" % value, block)
+        for label in ("stages", "requirements", "tickets"):
+            self.assertIn(label, block)
+        self.assertIn("требования", self.out["dx"]["running/ru"])
+
+    def test_empty_build_has_neither_ticker_nor_ascii_block(self):
+        for lang in ("en", "ru"):
+            for needle in ("dx-ticker", "dx-ascii"):
+                self.assertNotIn(needle, self.out["dx"]["empty/" + lang])
+
     def test_every_status_element_has_a_word_or_an_icon(self):
         for key, html in self.out["dx"].items():
             for m in re.finditer(r'<(span|p|li)[^>]*class="(?:pill |rs )[^"]*"[^>]*>(.*?)</>', html, re.S):
@@ -320,6 +344,92 @@ class DesignStrings(unittest.TestCase):
         for gone in ("data-skin", "data-vcombo", "VIEW_IDS", "selectView"):
             self.assertNotIn(gone, self.html)
         self.assertEqual(len(re.findall(r"const DESIGNS = \[", self.html)), 1)
+
+
+# The ceiling of the whole template (bytes): if a design does not fit, the design is cut, the ceiling stays.
+TEMPLATE_CEILING = 450 * 1024
+SCHEME = {e[0]: e[3] for e in EXPECTED}
+
+
+class AllDesignLimits(unittest.TestCase):
+    """The brief's points, checked for every one of the six designs."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.html = TEMPLATE.read_text(encoding="utf-8")
+        cls.css = cls.html.split("<style>")[1].split("</style>")[0]
+
+    def halves(self, design):
+        sel = {"aurora": ['html:is([data-design="aurora"]):not([hidden]):not([data-theme="light"])',
+                          'html:is([data-design="aurora"])[data-theme="light"][lang]:not([hidden])']}.get(design) or [
+            'html[data-design="%s"][data-theme="%s"][lang]:not([hidden])' % (design, SCHEME[design])]
+        out = []
+        for s in sel:
+            m = re.search(re.escape(s) + r"\{([^}]*)\}", self.css)
+            self.assertTrue(m, "no token block: " + s)
+            out.append(dict(re.findall(r"--([\w-]+):\s*([^;}]+)", m.group(1))))
+        return out
+
+    def test_every_design_sets_every_shared_token_in_each_half(self):
+        for design in DESIGN_IDS:
+            halves = self.halves(design)
+            self.assertEqual(len(halves), 2 if SCHEME[design] == "both" else 1)
+            for tok in halves:
+                with self.subTest(design=design):
+                    self.assertEqual([t for t in TOKENS if t not in tok], [])
+
+    def test_contrast_is_4_5_to_1_in_every_half_of_every_design(self):
+        for design in DESIGN_IDS:
+            for tok in self.halves(design):
+                for ground in ("card", "bg"):
+                    for name in ("tx", "tx2", "mut", "quiet"):
+                        with self.subTest(design=design, token=name, ground=ground):
+                            self.assertGreaterEqual(contrast(tok[name], tok[ground]), 4.5)
+                for fill, on in (("done", "on-done"), ("rev", "on-rev"), ("fix", "on-fix"), ("bad", "on-bad"), ("now", "now-on")):
+                    with self.subTest(design=design, fill=fill):
+                        self.assertGreaterEqual(contrast(tok[on], tok[fill]), 4.5)
+
+    def test_no_design_borrows_the_aurora_tokens_any_more(self):
+        for m in re.finditer(r"html:is\(([^)]*)\)[^{]*\{[^}]*(?:--aurora-mint|--bg:)", self.css):  # the blocks that carry tokens
+            self.assertNotIn('[data-design="brutal"]', m.group(1))
+            self.assertNotIn('[data-design="terminal"]', m.group(1))
+
+    def test_nothing_external_and_the_template_fits_the_ceiling(self):
+        for bad in ("http://", "https://", "<link", "@import", "@font-face", "fetch("):
+            self.assertNotIn(bad, self.html)
+        self.assertLessEqual(len(self.html.encode("utf-8")), TEMPLATE_CEILING)
+
+    def test_every_design_is_covered_by_motion_and_print_rules(self):
+        self.assertIn("prefers-reduced-motion", self.css)
+        self.assertEqual(sorted(SCHEME), sorted(DESIGN_IDS))
+        self.assertRegex(self.css, r"@media print\{")
+        reduced = self.css.split("prefers-reduced-motion")
+        self.assertTrue(any(".dx-ticker-track{animation:none" in b for b in reduced), "the ticker still runs under reduced motion")
+
+    def test_brutal_and_terminal_are_44px_targets_and_terminal_alone_has_the_crt_layers(self):
+        self.assertRegex(self.css, r'html:is\(\[data-design="brutal"\],\[data-design="terminal"\]\) :is\([^)]*summary[^)]*button[^)]*\)\{[^}]*min-height:44px')
+        for pseudo in ("before", "after"):
+            self.assertRegex(self.css, r'html\[data-design="terminal"\][^{]*body:%s\{' % pseudo)
+            self.assertNotRegex(self.css, r'html\[data-design="(?!terminal)\w+"\][^{]*body:%s\{' % pseudo)
+        self.assertEqual(self.halves("terminal")[0]["bg"].lower()[:2], "#0")  # dark half
+        self.assertRegex(self.css, r'html\[data-design="terminal"\]\[data-theme="dark"\]\[lang\]')
+
+    def test_each_special_slot_has_its_design_and_the_others_hide_it(self):
+        self.assertIn(".dx-ticker,.dx-ascii{display:none}", self.css)
+        self.assertRegex(self.css, r'\[data-design="brutal"\][^{]*\.dx-ticker\{[^}]*display:')
+        self.assertRegex(self.css, r'\[data-design="terminal"\][^{]*\.dx-ascii\{[^}]*display:')
+
+    def test_print_hides_chrome_opens_every_details_and_turns_the_page_light(self):
+        css = self.css.split("@media print{")[1]
+        css = css[:css.index("\n  }\n")]
+        for hidden in (".cockpit-rail", ".askbar", ".dx-ticker", "button"):
+            self.assertRegex(css, r"[^}]*%s[^{]*\{[^}]*display:none" % re.escape(hidden))
+        self.assertRegex(css, r"details[^{]*>[^{]*\{[^}]*display:block")        # the body of a folded section is shown
+        self.assertIn("content-visibility:visible", css)
+        self.assertRegex(css, r"--bg:#fff!important")
+        self.assertRegex(css, r"--tx:#000!important")
+        self.assertRegex(css, r"body:before,body:after\{display:none")          # no CRT layers on paper
+        self.assertGreaterEqual(contrast("#000", "#fff"), 4.5)
 
 
 if __name__ == "__main__":

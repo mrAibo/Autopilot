@@ -654,26 +654,26 @@
   .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
 
   /* ——— Дизайны: токены лежат под html[data-design="<id>"] ———
-     Пока у двух дизайнов нет своей палитры (таск 04), они берут токены «Авроры» через :is(); готовый дизайн
-     убирают из этого списка и пишет свой блок. Акцент берётся из реестра DESIGNS, вес селектора выше блоков токенов. */
+     У каждого из шести дизайнов свой блок токенов; :is() у «Авроры» остался одиночным ради прежних правил.
+     Акцент берётся из реестра DESIGNS, вес селектора выше блоков токенов. */
   /* ——— Скин «Аврора» (концепт 01) ———
      Ночной фон с полярным сиянием, стеклянные карточки, mint/sky/violet.
      Токены перекрывают палитру макетов только у не-«Классики»: у неё свои цвета.
      Тёмная половина — базовая (так выглядит концепт), светлая — производная по кнопке. */
-  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"]){--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
+  html:is([data-design="aurora"]){--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
     --aurora-g1:rgba(77,240,190,.20);--aurora-g2:rgba(99,199,255,.18);--aurora-g3:rgba(182,156,255,.16);
     --aurora-bg2:#070B14;--aurora-bg3:#060911;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.055),rgba(255,255,255,.018) 44%,rgba(99,199,255,.02));
     --aurora-rail1:#0A1424;--aurora-rail2:#050A14;--aurora-rail3:#0B1A24;--aurora-ink:#04130F;
     scrollbar-color:rgba(120,160,220,.35) transparent}
-  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"])[data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
+  html:is([data-design="aurora"])[data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
     --aurora-g1:rgba(10,125,90,.10);--aurora-g2:rgba(27,111,184,.09);--aurora-g3:rgba(124,58,237,.08);
     --aurora-bg2:#F7FAFF;--aurora-bg3:#E9F0F9;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.45) 44%,rgba(99,199,255,.07));
     --aurora-ink:#FFFFFF;scrollbar-color:rgba(60,100,150,.35) transparent}
   /* Тёмные токены работают и до первой отрисовки (атрибутов темы ещё нет): экран
      «дашборд ещё не прочитал состояние» тоже остаётся ночным, а не белой карточкой. */
-  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"]):not([hidden]):not([data-theme="light"]){
+  html:is([data-design="aurora"]):not([hidden]):not([data-theme="light"]){
     color-scheme:dark;
     --bg:#05070D;--card:#0B1322;--inset:#0F1A2E;--soft:#15223A;
     --line:rgba(158,190,255,.14);--line2:rgba(158,190,255,.24);
@@ -688,7 +688,7 @@
     --hero:#0C1424;--hero-shadow:rgba(0,0,0,.75);
     --sh:0 26px 60px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.05);
     --sh-raised:0 18px 44px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06)}
-  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"])[data-theme="light"][lang]:not([hidden]){
+  html:is([data-design="aurora"])[data-theme="light"][lang]:not([hidden]){
     color-scheme:light;
     --bg:#EEF3FA;--card:#FFFFFF;--inset:#F2F6FC;--soft:#E6EEF8;
     --line:#D3DFEE;--line2:#BFD0E4;
@@ -740,6 +740,27 @@
     --fix:#5a4bdb;--fix-soft:#e8e2ff;--fix-tx:#4a3bc4;--on-fix:#fff;
     --bad:#b42318;--bad-soft:#ffe0e9;--bad-tx:#b42318;--on-bad:#fff;
     --idle:#a9a3b5;--accent:#5a4bdb;--warn-bg:#fff0bd;--warn-bd:#e4cf7a;--warn-tx:#6b4a0c}
+  /* ——— «Пульт» (светлый, бумага и лайм) и «Терминал» (тёмный, CRT-фосфор): токены по макетам 03/04, текст не ниже 4,5:1 ——— */
+  html[data-design="brutal"][data-theme="light"][lang]:not([hidden]){color-scheme:light;
+    --bg:#f0ecdf;--card:#faf7ee;--inset:#f3efe2;--soft:#e8e3d2;--line:#11100d;--line2:#11100d;
+    --tx:#11100d;--tx2:#4c473d;--mut:#575141;--quiet:#625c4b;
+    --hero:#11100d;--hero-shadow:#11100d;--sh:5px 5px 0 #11100d;--sh-raised:3px 3px 0 #11100d;
+    --done:#1d6b2f;--done-soft:#e3f5b4;--done-tx:#16521f;--on-done:#fff;
+    --now:#b93a0e;--now-soft:#ffd9c7;--now-tx:#8f2c08;--now-on:#fff;--hatch:#ff5a24;
+    --rev:#2b4bff;--rev-soft:#dde3ff;--rev-tx:#1c33c4;--on-rev:#fff;
+    --fix:#6a2fd0;--fix-soft:#e9ddff;--fix-tx:#5624b0;--on-fix:#fff;
+    --bad:#b42318;--bad-soft:#ffe0d6;--bad-tx:#a01c10;--on-bad:#fff;
+    --idle:#8c8573;--accent:#d8ff3e;--warn-bg:#fff0a8;--warn-bd:#11100d;--warn-tx:#4a3a00}
+  html[data-design="terminal"][data-theme="dark"][lang]:not([hidden]){color-scheme:dark;
+    --bg:#030805;--card:#06110a;--inset:#08170e;--soft:#0d2417;--line:#143d25;--line2:#1f6a42;
+    --tx:#b9f7c8;--tx2:#8fdca8;--mut:#76cc92;--quiet:#68b983;
+    --hero:#08170e;--hero-shadow:rgba(0,0,0,.8);--sh:none;--sh-raised:none;
+    --done:#70ff9a;--done-soft:#0c3a1f;--done-tx:#9bffb9;--on-done:#03150a;
+    --now:#ffc46b;--now-soft:#3a2a10;--now-tx:#ffd9a0;--now-on:#1e1204;--hatch:#e0a24e;
+    --rev:#7fd4ff;--rev-soft:#0b2a3a;--rev-tx:#bde8ff;--on-rev:#04131f;
+    --fix:#c9a2ff;--fix-soft:#241c3d;--fix-tx:#e0d0ff;--on-fix:#160b2e;
+    --bad:#ff7d7d;--bad-soft:#3a1414;--bad-tx:#ffb0b0;--on-bad:#2a0707;
+    --idle:#2f5a40;--accent:#70ff9a;--warn-bg:#2b2410;--warn-bd:#6b5320;--warn-tx:#ffd9a0}
   /* Оформление: тот же набор блоков, другая кожа. */
   html[data-design="editorial"]:not([hidden]) body{background:linear-gradient(180deg,#f6f1e6,#f2ecdf) fixed}
   html[data-design="editorial"]:not([hidden]) :is(.ovh h2,.sec>summary,.wt,.fc-v){font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:400}
@@ -780,6 +801,45 @@
   @keyframes dx-stamp{from{opacity:0;transform:rotate(-7deg) scale(1.5)}to{opacity:1;transform:rotate(-7deg) scale(1)}}
   @keyframes dx-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   @media (prefers-reduced-motion: reduce){.dx-stamp,.dx-dim i:after,.dx-ring{animation:none}}
+  /* «Пульт» и «Терминал»: оформление, тикер и ASCII-шкалы (слоты dxTicker, dxAscii). */
+  .dx-ticker,.dx-ascii{display:none}
+  html:is([data-design="brutal"],[data-design="terminal"]) :is(summary,.vopt,button){min-height:44px}
+  html:is([data-design="brutal"],[data-design="terminal"]) .ovh>.ring{display:none}
+  html[data-design="brutal"]:not([hidden]) body{background:radial-gradient(rgba(17,16,13,.11) .7px,transparent .7px) 0 0/18px 18px,var(--bg)}
+  html[data-design="brutal"]:not([hidden]) .card{border-radius:0;border:2px solid var(--tx);box-shadow:var(--sh)}
+  html[data-design="brutal"]:not([hidden]) :is(.ovh h2,.sec>summary,.wt){font-family:"Bahnschrift","Arial Black","Segoe UI Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:-.01em}
+  html[data-design="brutal"]:not([hidden]) .ovh{overflow:hidden;padding-top:60px}
+  html[data-design="brutal"] .dx-ticker{display:flex;align-items:center;position:absolute;left:0;right:0;top:0;height:32px;overflow:hidden;
+    background:var(--tx);color:var(--accent);border-bottom:2px solid var(--tx)}
+  .dx-ticker-track{display:flex;white-space:nowrap;animation:dx-marq 40s linear infinite;will-change:transform}
+  .dx-ticker:hover .dx-ticker-track,.dx-ticker:focus-within .dx-ticker-track{animation-play-state:paused}
+  .dx-ticker-track span{padding:0 18px;font:700 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;border-right:1px solid rgba(216,255,62,.35)}
+  @keyframes dx-marq{to{transform:translateX(-50%)}}
+  html[data-design="terminal"]:not([hidden]) body{font-family:"Cascadia Mono","Cascadia Code",Consolas,ui-monospace,monospace}
+  html[data-design="terminal"]:not([hidden]) .card{border-radius:0;border:1px solid var(--line2);box-shadow:none;background-image:none}
+  html[data-design="terminal"]:not([hidden]) body:before{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;
+    background:repeating-linear-gradient(180deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);opacity:.55;mix-blend-mode:multiply}
+  html[data-design="terminal"]:not([hidden]) body:after{content:"";position:fixed;inset:0;z-index:4;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(0,0,0,.5) 100%)}
+  html[data-design="terminal"] .dx-ascii{display:grid;flex:1 1 100%;gap:4px;margin:0;padding:12px 0 0;border-top:1px dashed var(--line2);
+    font:13px/1.5 "Cascadia Mono","Cascadia Code",Consolas,ui-monospace,monospace;color:var(--tx2)}
+  .dx-row{display:flex;flex-wrap:wrap;gap:0 12px;align-items:baseline}
+  .dx-row span{flex:0 0 13ch}
+  .dx-row code{font:inherit;color:var(--accent);white-space:pre;overflow:hidden;max-width:100%}
+  .dx-row b{color:var(--tx);font-variant-numeric:tabular-nums}
+  @media (prefers-reduced-motion: reduce){.dx-ticker-track{animation:none}}
+  /* Печать (window.print): без рейки, закреплённой полосы, тикера и кнопок; секции раскрыты; фон светлый, текст тёмный. */
+  @media print{
+    html[data-design][lang]{--bg:#fff!important;--card:#fff!important;--inset:#fff!important;--soft:#eee!important;--hero:#fff!important;
+      --tx:#000!important;--tx2:#222!important;--mut:#333!important;--quiet:#444!important;--line:#999!important;--line2:#666!important;--sh:none!important;--sh-raised:none!important}
+    html[data-design] body,html[data-design] .card,html[data-design] .hero,html[data-design] .ovh{background:#fff!important;color:#000!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+    body:before,body:after{display:none!important}
+    .cockpit-rail,.askbar,.dx-ticker,.dcombo,.skip-link,button{display:none!important}
+    .wrap{padding:0!important;max-width:none!important}
+    details>.sec-body,details.sec>.sec-body{display:block!important}
+    details::details-content{content-visibility:visible;display:block}
+    .card,.sec{break-inside:avoid}
+  }
   html[data-design="aurora"]:not([hidden]) body{
     background:
       radial-gradient(1200px 820px at 12% -12%,var(--aurora-g1),transparent 62%),
@@ -2066,6 +2126,27 @@ const dxDim = c => {
   const ms = c.S.startedAt ? activeMs(c.S.startedAt, c.S.finishedAt || null) : null;
   return ms == null ? '' : `<div class="dx-dim" aria-hidden="true"><i></i><span>${fmtDur(Math.round(ms / 60000))}</span><i></i></div>`;
 };
+const dxTicker = c => {
+  const S = c.S, en = c.L.lang === 'en', T = Array.isArray(S.tickets) ? S.tickets : [];
+  const stg = (Array.isArray(S.stages) ? S.stages : []).filter(Boolean);
+  const cur = stg.find(x => x.status === 'active') || stg.filter(x => x.status === 'done').pop();
+  const ms = S.startedAt ? activeMs(S.startedAt, S.finishedAt || null) : null;
+  const parts = [cur && (c.L.stages[cur.id] || cur.id), T.length && `${T.filter(t => t && t.status === 'done').length}/${T.length} ${en ? 'tickets' : 'тасков'}`,
+    S.tests && `${S.tests.passed} ${en ? 'tests' : 'тестов'}`, ms != null && fmtDur(Math.round(ms / 60000))].filter(Boolean);
+  if (!parts.length) return '';
+  const run = parts.map(x => `<span>${esc(x)}</span>`).join('');
+  return `<div class="dx-ticker" aria-hidden="true"><div class="dx-ticker-track">${run}${run}${run}${run}</div></div>`;
+};
+const dxAscii = c => {
+  const S = c.S, en = c.L.lang === 'en', T = Array.isArray(S.tickets) ? S.tickets : [], R = S.requirements || {};
+  const stg = Array.isArray(S.stages) ? S.stages.filter(Boolean) : [];
+  const bar = (n, of) => `[${'█'.repeat(Math.round(n / of * 20))}${'░'.repeat(20 - Math.round(n / of * 20))}]`;
+  const row = (label, n, of) => of > 0 ? `<div class="dx-row"><span>${label}</span><code aria-hidden="true">${bar(n, of)}</code><b>${n}/${of}</b></div>` : '';
+  const rows = row(en ? 'stages' : 'этапы', stg.filter(x => x.status === 'done').length, stg.length ? STAGE_IDS.length : 0)
+    + row(en ? 'requirements' : 'требования', R.done || 0, R.total || 0)
+    + row(en ? 'tickets' : 'таски', T.filter(t => t && t.status === 'done').length, T.length);
+  return rows ? `<div class="dx-ascii" role="group" aria-label="${en ? 'progress' : 'прогресс'}">${rows}</div>` : '';
+};
 const dxRing = c => {
   const T = Array.isArray(c.S.tickets) ? c.S.tickets : [];
   if (!T.length) return '';
@@ -2554,7 +2635,7 @@ function render(lang){
     tokVal && kv(W.kTokens, tokVal + (budget ? ` ${L.of} ${fmtK(budget)}` : ''))].filter(Boolean).join('');
   const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
     <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
-    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}${dxStamp({S, L})}${dxDim({S, L})}${dxRing({S, L})}</section>`;
+    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}${dxStamp({S, L})}${dxDim({S, L})}${dxRing({S, L})}${dxTicker({S, L})}${dxAscii({S, L})}</section>`;
   // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
   const rsInfo = s => {
     if (s.status === 'done') {

@@ -701,7 +701,8 @@ class TemplateStrings(unittest.TestCase):
 
     def test_narrow_rule_is_the_last_in_the_css_and_makes_one_column(self):
         marker = "@media(max-width:520px){"
-        self.assertEqual(self.css.rfind("@media"), self.css.rfind(marker))  # the last media rule of the style
+        # the last rule by width; @media print and prefers-reduced-motion may stand after it
+        self.assertEqual(max(m.start() for m in re.finditer(r"@media\s*\((?:max|min)-width", self.css)), self.css.rfind(marker))
         narrow = self.css.rsplit(marker, 1)[1]
         self.assertIn("grid-template-columns:minmax(0,1fr)", narrow)
         self.assertIn(".cockpit-content{max-width:none}", narrow)

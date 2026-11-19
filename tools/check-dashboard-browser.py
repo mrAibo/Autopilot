@@ -3,6 +3,9 @@
 
 Creates independent full-width and narrow screenshots; no external services.
 On CI, set AUTOPILOT_SCREENSHOT_DIR to preserve screenshots as artifacts.
+
+`--designs [DIR]` instead takes one screenshot of each of the six designs at 1440 and 400 px
+(default DIR: docs/autopilot/dashboard-designs/); without Chrome it prints a note and exits 0.
 """
 from html import unescape
 import json
@@ -86,8 +89,55 @@ def chrome_browser():
     return None
 
 
+def design_ids(template):
+    return re.search(r"const DESIGN_IDS = DESIGNS\.map", template) and re.findall(
+        r"\{id:'(\w+)', no:'\d\d'", template)
+
+
+def shoot_designs(browser, out_dir):
+    """Six designs x 1440 and 400 px; the 400 px page sits in a same-origin iframe (headless Chrome clamps windows to ~500 px)."""
+    template = TEMPLATE.read_text(encoding="utf-8")
+    anchor = "/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/"
+    ids = design_ids(template)
+    if anchor not in template or len(ids) != 6:
+        print("Dashboard template: state anchor or six designs missing", file=sys.stderr)
+        return 2
+    state = fixture()
+    state["finishedAt"] = None
+    embedded = "/*STATE-BEGIN*/window.STATE=" + json.dumps(state, ensure_ascii=False).replace("</", "<\\/") + ";/*STATE-END*/"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="dashboard-designs-") as temp:
+        for design in ids:
+            probe = ("<script>['mission','reqs','tasks','quality','models','gates','feed'].forEach(id => { UI.sec[id] = true; });"
+                     "applyDesign(%s); render('ru');</script>" % json.dumps(design))
+            child = Path(temp) / ("dashboard-%s.html" % design)
+            child.write_text(template.replace(anchor, embedded).replace("</body>", probe + "</body>"), encoding="utf-8")
+            for width, height in ((1440, 2600), (400, 3600)):
+                page = child
+                if width == 400:
+                    page = Path(temp) / ("frame-%s.html" % design)
+                    page.write_text('<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe src="%s" '
+                                    'style="border:0;width:400px;height:%dpx;display:block"></iframe>' % (child.name, height), encoding="utf-8")
+                png = out_dir / ("%s-%d.png" % (design, width))
+                done = subprocess.run([browser, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+                                       "--allow-file-access-from-files", "--hide-scrollbars", "--virtual-time-budget=2000",
+                                       "--window-size=%d,%d" % (max(width, 500), height), "--screenshot=" + str(png), page.as_uri()],
+                                      capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+                if done.returncode or not png.is_file() or png.stat().st_size < 1000:
+                    print("Screenshot failed: %s %d %s" % (design, width, done.stderr[-500:]), file=sys.stderr)
+                    return 1
+                print("Design screenshot:", png)
+    return 0
+
+
 def main():
     browser = chrome_browser()
+    if "--designs" in sys.argv:
+        if not browser:
+            print("не проверено: нет Chrome")
+            return 0
+        rest = [a for a in sys.argv[2:] if not a.startswith("-")]
+        return shoot_designs(browser, Path(rest[0]) if rest else ROOT / "docs" / "autopilot" / "dashboard-designs")
     if not browser:
         print("Chrome/Chromium not installed (browser test requires headless Chrome)", file=sys.stderr)
         return 2
