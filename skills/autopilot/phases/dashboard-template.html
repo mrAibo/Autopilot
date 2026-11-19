@@ -832,7 +832,7 @@
   @media (prefers-reduced-motion: reduce){.dx-ticker-track{animation:none}}
   /* Печать (window.print): без рейки, закреплённой полосы, тикера и кнопок; секции раскрыты; фон светлый, текст тёмный. */
   @media print{
-    html[data-design][lang]{--bg:#fff!important;--card:#fff!important;--inset:#fff!important;--soft:#eee!important;--hero:#fff!important;
+    html[data-design][lang]{color-scheme:light!important;background:#fff!important;--bg:#fff!important;--card:#fff!important;--inset:#fff!important;--soft:#eee!important;--hero:#fff!important;
       --tx:#000!important;--tx2:#222!important;--mut:#333!important;--quiet:#444!important;--line:#999!important;--line2:#666!important;--sh:none!important;--sh-raised:none!important}
     html[data-design] body,html[data-design] .card,html[data-design] .hero,html[data-design] .ovh{background:#fff!important;color:#000!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
     body:before,body:after{display:none!important}
@@ -842,7 +842,8 @@
     .wrap{padding:0!important;max-width:none!important}
     details>.sec-body,details.sec>.sec-body{display:block!important}
     details::details-content{content-visibility:visible;display:block}
-    .card,.sec{break-inside:avoid}
+    .card{break-inside:avoid}
+    html[data-design] .title:before{color:#333!important}
   }
   html[data-design="aurora"]:not([hidden]) body{
     background:
@@ -1186,6 +1187,7 @@
   html[data-narrow] .wrap{padding:0 12px 25px}
   html[data-narrow] :is(.cols,.ov3,.tl2){grid-template-columns:minmax(0,1fr)}
   html[data-narrow] .ovh{flex-direction:column;align-items:stretch;padding:20px}
+  html[data-narrow] .ovh>:is(.ovh-main,.ovh-side){flex:0 0 auto}
   html[data-narrow] .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
   .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
@@ -1257,6 +1259,7 @@
     .cockpit-content{max-width:none}
     :is(.cols,.tiles,.bd-cols,.bd-cols.r5,.bd-strips){grid-template-columns:minmax(0,1fr)}
     .ovh{flex-direction:column;align-items:stretch;padding:20px}
+    .ovh>:is(.ovh-main,.ovh-side){flex:0 0 auto}
     .sec>summary{padding:10px 14px;font-size:16px}
     .sec-body{padding:2px 14px 16px}
   }

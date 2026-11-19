@@ -6,6 +6,8 @@ On CI, set AUTOPILOT_SCREENSHOT_DIR to preserve screenshots as artifacts.
 
 `--designs [DIR]` instead takes one screenshot of each of the six designs at 1440 and 400 px
 (default DIR: docs/autopilot/dashboard-designs/); without Chrome it prints a note and exits 0.
+`--print [DIR]` prints each design on the `finished` fixture to DIR/<design>-print.pdf (`--print-to-pdf`) and,
+when `pdftotext` is on PATH, checks the text: no rail, bar, ticker or buttons, every section open.
 """
 from html import unescape
 import json
@@ -130,14 +132,79 @@ def shoot_designs(browser, out_dir):
     return 0
 
 
+def finished_fixture():
+    state = fixture()
+    state["finishedAt"] = "2026-10-25T10:30:00+00:00"
+    for stage in state["stages"]:
+        stage.update(status="done", startedAt=stage.get("startedAt", state["startedAt"]), finishedAt=state["finishedAt"])
+    state["tickets"][1].update(status="done", finishedAt=state["finishedAt"])
+    state["requirements"].update(done=2, inTicket=0)
+    state["reqList"][1]["status"] = "done"
+    return state
+
+
+# Lower-case English texts (the PDF is printed in en: pdftotext does not map the Cyrillic of these fonts): chrome that paper must not carry,
+# and headings of the sections that open closed (all seven are folded by default).
+PRINT_GONE = ("project sections", "control center", "autopilot engine", "skip to main content", "models & tokens", "quality checks", "2/2 tickets 24 tests")
+PRINT_OPEN = ("stage route", "requirements", "tickets", "checks and tests", "spend and models", "gates", "event feed")
+
+
+def print_text(pdf):
+    """Text of a PDF through pdftotext, or None when the tool is absent (the check is then 'не проверено')."""
+    tool = shutil.which("pdftotext")
+    if not tool:
+        return None
+    done = subprocess.run([tool, "-layout", str(pdf), "-"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+    return done.stdout if done.returncode == 0 else None
+
+
+def print_designs(browser, out_dir):
+    """Six designs on the finished fixture, window.print equivalent: PDF per design; sections stay as the page opens them (closed ones must still print)."""
+    template = TEMPLATE.read_text(encoding="utf-8")
+    anchor = "/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/"
+    ids = design_ids(template)
+    if anchor not in template or len(ids) != 6:
+        print("Dashboard template: state anchor or six designs missing", file=sys.stderr)
+        return 2
+    embedded = "/*STATE-BEGIN*/window.STATE=" + json.dumps(finished_fixture(), ensure_ascii=False).replace("</", "<\\/") + ";/*STATE-END*/"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    bad = 0
+    with tempfile.TemporaryDirectory(prefix="dashboard-print-") as temp:
+        for design in ids:
+            page = Path(temp) / ("dashboard-%s.html" % design)
+            page.write_text(template.replace(anchor, embedded).replace("</body>", "<script>applyDesign(%s); render('en');</script></body>" % json.dumps(design)), encoding="utf-8")
+            pdf = out_dir / ("%s-print.pdf" % design)
+            done = subprocess.run([browser, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--allow-file-access-from-files",
+                                   "--no-pdf-header-footer", "--virtual-time-budget=2000", "--print-to-pdf=" + str(pdf), page.as_uri()],
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+            if done.returncode or not pdf.is_file() or pdf.stat().st_size < 1000:
+                print("Print failed: %s %s" % (design, done.stderr[-500:]), file=sys.stderr)
+                return 1
+            text = print_text(pdf)
+            if text is None:
+                print("Design print: %s (текст PDF не проверен: нет pdftotext)" % pdf)
+                continue
+            flat = " ".join(text.split()).lower()
+            problems = [("есть лишнее", w) for w in PRINT_GONE if w in flat] + [("нет раздела", w) for w in PRINT_OPEN if w not in flat]
+            print("Design print:", pdf, "OK" if not problems else ascii(problems))
+            bad += bool(problems)
+    return 1 if bad else 0
+
+
 def main():
     browser = chrome_browser()
+    if "--print" in sys.argv:
+        if not browser:
+            print("не проверено: нет Chrome")
+            return 0
+        rest = [a for a in sys.argv[2:] if not a.startswith("-")]
+        return print_designs(browser, Path(rest[0]).resolve() if rest else ROOT / "docs" / "autopilot" / "dashboard-designs")
     if "--designs" in sys.argv:
         if not browser:
             print("не проверено: нет Chrome")
             return 0
         rest = [a for a in sys.argv[2:] if not a.startswith("-")]
-        return shoot_designs(browser, Path(rest[0]) if rest else ROOT / "docs" / "autopilot" / "dashboard-designs")
+        return shoot_designs(browser, Path(rest[0]).resolve() if rest else ROOT / "docs" / "autopilot" / "dashboard-designs")
     if not browser:
         print("Chrome/Chromium not installed (browser test requires headless Chrome)", file=sys.stderr)
         return 2

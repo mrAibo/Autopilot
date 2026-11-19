@@ -493,6 +493,17 @@ class AllDesignLimits(unittest.TestCase):
         self.assertRegex(self.css, r'\[data-design="brutal"\][^{]*\.dx-ticker\{[^}]*display:')
         self.assertRegex(self.css, r'\[data-design="terminal"\][^{]*\.dx-ascii\{[^}]*display:')
 
+    def test_hero_has_no_fixed_height_when_it_stacks_into_a_column(self):
+        # Root cause of the 400 px gap: .ovh-main{flex:1 1 400px} became a 400 px HEIGHT once .ovh turned flex-direction:column.
+        css = re.sub(r"/\*.*?\*/", "", self.css, flags=re.S)
+        stacked = [m.start() for m in re.finditer(r"[^{}]*\.ovh\{[^}]*flex-direction:column", css)]
+        self.assertGreaterEqual(len(stacked), 2)                                  # the data-narrow rule and the 520 px rule
+        reset = [m.start() for m in re.finditer(r"\.ovh>:is\(\.ovh-main,\.ovh-side\)\{[^}]*flex:0 0 auto", css)]
+        self.assertEqual(len(reset), len(stacked), "a stacked hero keeps the row flex-basis of its children")
+        self.assertGreater(min(reset), min(stacked))
+        self.assertGreater(max(reset), max(stacked))                              # the last word of each
+        self.assertNotRegex(css, r"\.ovh(?:-main|-side)?\{[^}]*(?<![-\w])(?:min-)?height:\d")   # no fixed or minimal height on the hero itself
+
     def test_print_hides_chrome_opens_every_details_and_turns_the_page_light(self):
         css = self.css.split("@media print{")[1]
         css = css[:css.index("\n  }\n")]
@@ -502,10 +513,14 @@ class AllDesignLimits(unittest.TestCase):
         self.assertIn("content-visibility:visible", css)
         self.assertRegex(css, r"--bg:#fff!important")
         self.assertRegex(css, r"--tx:#000!important")
+        self.assertRegex(css, r"html\[data-design\]\[lang\]\{[^}]*color-scheme:light!important[^}]*background:#fff!important")  # a dark design left black page edges in the PDF
         self.assertRegex(css, r"body:before,body:after\{display:none")          # no CRT layers on paper
         self.assertRegex(css, r"\.dx-row code\{[^}]*color:#000!important")      # the accent code of the ASCII bars is black on paper
         for part in (r"\.dx-ring", r"\.seg i"):                                  # the ring and the progress segments keep their fills
             self.assertRegex(css, part + r"[^{]*\{[^}]*-webkit-print-color-adjust:exact")
+        self.assertNotRegex(css, r"\.sec[,{][^{]*\{[^}]*break-inside:avoid")     # a whole section never jumps to the next sheet (a 9-page PDF with half-empty pages)
+        self.assertRegex(css, r"\.card\{break-inside:avoid")                    # but a card is not split
+        self.assertRegex(css, r"title:before[^{]*\{[^}]*color:#\w+!important")   # the pale eyebrow gets a dark colour on paper
         self.assertGreaterEqual(contrast("#000", "#fff"), 4.5)
 
 
