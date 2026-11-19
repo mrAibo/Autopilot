@@ -1,4 +1,4 @@
-"""Доделки после аудита (R05, R01.1): «Сейчас» одной строкой, свёртка колонки «Принято», подсказка без токена."""
+"""Доделки после аудита (R05, R01.1): герой единой страницы, свёртка колонки «Принято», подсказка без токена."""
 import copy
 import json
 import pathlib
@@ -18,21 +18,19 @@ if "opts.protocol" not in HEAD or "opts.lang" not in HEAD:
 SCRIPT = HEAD + r"""
 const run = (e, code) => vm.runInContext(code, e.ctx);
 const click = (e, attrs) => e.app.listeners.click({target: {closest: () => ({dataset: {}, hasAttribute: n => (attrs || []).includes(n)})}});
-const show = (e, tab, lang, view) => { run(e, "VIEW = '" + (view || 'now') + "'; UI.tab = '" + tab + "'; render('" + lang + "')"); return e.app.innerHTML; };
+const show = (e, lang) => { run(e, "render('" + lang + "')"); return e.app.innerHTML; };
 const out = {pages: {}, boards: {}, hint: {}};
-for (const [name, st] of Object.entries(input.fixtures)) for (const tab of ['now', 'req']) for (const lang of ['en', 'ru'])
-  out.pages[name + '/' + tab + '/' + lang] = show(env(st, {}, false), tab, lang);
+for (const [name, st] of Object.entries(input.fixtures)) for (const lang of ['en', 'ru'])
+  out.pages[name + '/' + lang] = show(env(st, {}, false), lang);
 const rr = (reason, lang) => run(env(input.fixtures.running, {}, false), `humanRoute(${JSON.stringify({model: 'sonnet', reason})}, I18N.${lang})`);
 out.route = {withWhy: rr('score=62; profile=strong; high-risk=True; class=сложный; risk=высокий; why=запись в общий кэш', 'en'),
   without: rr('score=30; profile=balanced; high-risk=False', 'en'), classOnly: rr('score=30; profile=balanced; high-risk=False; class=обычный; risk=обычный', 'ru')};
-out.pages.classic = show(env(input.fixtures.running, {}, false), 'now', 'en', 'classic');
-out.pages.overview = show(env(input.fixtures.running, {}, false), 'now', 'en', 'overview');
 for (const name of ['many', 'few']) {
   const e = env(input.fixtures[name], {}, false);
-  out.boards[name] = {folded: show(e, 'req', 'en')};
+  out.boards[name] = {folded: show(e, 'en')};
   click(e, ['data-rbok']); out.boards[name].open = e.app.innerHTML;
   click(e, ['data-rbok']); out.boards[name].again = e.app.innerHTML;
-  out.boards[name].ru = show(env(input.fixtures[name], {}, false), 'req', 'ru');
+  out.boards[name].ru = show(env(input.fixtures[name], {}, false), 'ru');
 }
 for (const [key, o] of Object.entries({
     noTokenEn: {protocol: 'http:', search: ''}, noTokenRu: {protocol: 'http:', search: '', lang: 'ru'},
@@ -85,7 +83,7 @@ def rcols(html, name):
 
 
 def hero(html):
-    return re.search(r'<section class="card nowh w.*?</section>', html, re.S).group(0)
+    return re.search(r'<section class="card ovh w.*?</section>', html, re.S).group(0)
 
 
 @unittest.skipUnless(NODE, "node is not installed")
@@ -101,29 +99,27 @@ class CompactDashboard(unittest.TestCase):
             raise AssertionError("node harness failed: " + done.stderr[-800:])
         cls.out = json.loads(done.stdout)
 
-    def page(self, name, tab="now", lang="en"):
-        return self.out["pages"]["%s/%s/%s" % (name, tab, lang)]
+    def page(self, name, lang="en"):
+        return self.out["pages"]["%s/%s" % (name, lang)]
 
-    # ---- the hero of "Now" is one line
-    def test_running_hero_is_one_line_with_a_small_ring_a_titled_heading_time_and_tests(self):
+    # ---- the hero of the single page: one heading, the ring, the time and the tests beside it
+    def test_running_hero_has_one_heading_a_ring_time_and_tests(self):
         for lang in ("en", "ru"):
-            h = hero(self.page("running", lang=lang))
+            h = hero(self.page("running", lang))
             self.assertEqual(h.count("<h2"), 1)
-            self.assertRegex(h, r'<div class="ring sm"')
-            self.assertRegex(h, r'<h2 title="[^"]+">')
-            self.assertIn("kv", h)
+            self.assertRegex(h, r'<div class="ring"')
+            self.assertIn('class="kv"', h)
             self.assertIn("29", h)                      # the tests, next to the title
-            self.assertNotIn('class="lead"', h)
-            self.assertNotIn("ovh-main", h)
+            self.assertIn("ovh-main", h)
             self.assertNotIn("undefined", h)
 
-    def test_finished_hero_is_one_line_and_a_landing_with_caveats_keeps_its_list(self):
+    def test_finished_hero_has_the_result_and_a_landing_with_caveats_keeps_its_list(self):
         h = hero(self.page("finished"))
-        self.assertRegex(h, r'<div class="ring sm"')
+        self.assertRegex(h, r'<div class="ring"')
         self.assertIn("Built it", h)
-        self.assertNotIn("nowh-note", h)
+        self.assertNotIn("no full test run", h)
         landed = hero(self.page("landed"))
-        self.assertIn("nowh-note", landed)
+        self.assertRegex(landed, r"<ul><li>no full test run</li></ul>")
         self.assertIn("no full test run", landed)
 
     def test_the_ring_of_the_hero_is_smaller_than_the_old_one(self):
@@ -139,9 +135,10 @@ class CompactDashboard(unittest.TestCase):
         self.assertEqual(r["without"], "Sonnet: an ordinary ticket")
         self.assertEqual(r["classOnly"], "Sonnet: обычный таск (класс: обычный, риск: обычный)")
 
-    def test_other_views_keep_their_heroes(self):
-        self.assertNotIn("nowh", self.out["pages"]["classic"])
-        self.assertIn("ovh-main", self.out["pages"]["overview"])
+    def test_the_page_has_one_hero_and_no_one_line_hero(self):
+        run = self.page("running")
+        self.assertEqual(run.count('class="card ovh w'), 1)
+        self.assertNotIn("nowh", run)
 
     def test_the_logo_stays_in_the_header_and_the_rail(self):
         self.assertGreaterEqual(self.page("running").count("ap-mark"), 2)

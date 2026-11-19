@@ -1,4 +1,4 @@
-"""Dashboard tab "Details": spend by role/model/ticket, build history and comparison, incomplete-log badge, escalated ticket label
+"""Dashboard models section: spend by role/model/ticket, build history and comparison, incomplete-log badge, escalated ticket label
 (runs the template's JS in node)."""
 import copy
 import json
@@ -13,17 +13,14 @@ from test_dashboard_views import HARNESS, NODE, TEMPLATE, _fixtures
 HEAD = HARNESS.split("const run = ")[0]
 SCRIPT = HEAD + r"""
 const run = (e, code) => vm.runInContext(code, e.ctx);
-const show = (e, tab, lang, view, panel) => {
-  run(e, "VIEW = " + JSON.stringify(view) + "; UI.tab = '" + tab + "'; UI.panel = " + JSON.stringify(panel || null) + "; render('" + lang + "')");
+const show = (e, lang, panel) => {
+  run(e, "UI.panel = " + JSON.stringify(panel || null) + "; render('" + lang + "')");
   return e.app.innerHTML; };
 const out = {};
 for (const [name, st] of Object.entries(input.fixtures)) for (const lang of ['en', 'ru']) {
   const e = env(st, {}, false);
-  out[name + '/det/' + lang] = show(e, 'det', lang, 'now');
-  out[name + '/now/' + lang] = show(e, 'now', lang, 'now');
-  out[name + '/sum/' + lang] = show(e, 'sum', lang, 'now');
-  out[name + '/res/' + lang] = show(e, 'now', lang, 'resources');
-  out[name + '/panel/' + lang] = show(e, 'now', lang, 'now', 'T02');
+  out[name + '/page/' + lang] = show(e, lang);
+  out[name + '/panel/' + lang] = show(e, lang, 'T02');
 }
 console.log(JSON.stringify(out));
 """
@@ -78,7 +75,7 @@ class Details(unittest.TestCase):
             raise AssertionError("node harness failed: " + done.stderr[-800:])
         cls.out = json.loads(done.stdout)
 
-    def page(self, name, kind="det", lang="en"):
+    def page(self, name, kind="page", lang="en"):
         return self.out["%s/%s/%s" % (name, kind, lang)]
 
     def slot(self, html, name):
@@ -100,11 +97,10 @@ class Details(unittest.TestCase):
         self.assertIn("Сколько стоил таск", ru)
 
     def test_token_limit_sits_next_to_log_spend_when_no_usage_events(self):
-        for kind in ("det", "res"):
-            html = self.page("budget", kind)
-            self.assertIn("4,900 / 10,000", text_of(html), kind)   # 3900 + 1000 из журнала
-            self.assertIn('aria-valuenow="4900"', html)
-            self.assertIn("width:49%", html)
+        html = self.page("budget")
+        self.assertIn("4,900 / 10,000", text_of(html))   # 3900 + 1000 из журнала
+        self.assertIn('aria-valuenow="4900"', html)
+        self.assertIn("width:49%", html)
         spend = self.slot(self.page("budget"), "spend")
         self.assertIn("resource-budget", spend)                     # рядом с карточкой расхода
         self.assertNotIn("resource-budget", self.page("nobudget"))  # нет лимита — нет строки
@@ -115,13 +111,13 @@ class Details(unittest.TestCase):
         self.assertNotIn("<table", spend)
         self.assertIn("ещё нет — журнал расхода не вёлся", text_of(self.slot(self.page("empty", lang="ru"), "spend")))
 
-    def test_resources_tab_and_details_do_not_say_tokens_none_when_the_log_has_rows(self):
-        res = self.page("spend", "res")
+    def test_models_section_does_not_say_tokens_none_when_the_log_has_rows(self):
+        res = self.page("spend")
         kpi = re.search(r'<section class="card tile w"><span class="tk">Tokens</span><span class="tv[^"]*">([^<]*)</span><span class="ts">([^<]*)</span>', res)
         self.assertEqual((kpi.group(1), kpi.group(2)), ("4,900", "in 3,800 · out 1,100"))
         self.assertNotIn("Token telemetry: no data yet", res)
         self.assertNotIn("Token telemetry: no data yet", self.page("spend"))
-        bare = re.search(r'<span class="tk">Tokens</span><span class="tv dim">—</span><span class="ts">none yet</span>', self.page("empty", "res"))
+        bare = re.search(r'<span class="tk">Tokens</span><span class="tv dim">—</span><span class="ts">none yet</span>', self.page("empty"))
         self.assertTrue(bare)  # no rows, no usage events: still "none yet"
 
     def test_history_rows_comparison_and_cap(self):
@@ -146,24 +142,24 @@ class Details(unittest.TestCase):
         self.assertIn("прошлых сборок ещё нет", text_of(self.slot(self.page("empty", lang="ru"), "history")))
 
     def test_log_badge_only_when_rows_were_lost(self):
-        for kind in ("det", "now"):  # in the Details tab and under the tabs of "Now"
-            html = self.page("spend", kind)
-            self.assertEqual(html.count("log incomplete: 3 lines not written"), 1, kind)
-            self.assertIn("журнал неполный: 3 строк не записано", self.page("spend", kind, "ru"))
+        html = self.page("spend")  # one badge, under the hero, visible with every section folded
+        self.assertEqual(html.count("log incomplete: 3 lines not written"), 1)
+        self.assertLess(html.index("logbadge"), html.index('<details class="sec"'))
+        self.assertIn("журнал неполный: 3 строк не записано", self.page("spend", lang="ru"))
         for name in ("empty", "hist", "running", "junk"):  # 0, missing, and a non-number ("3")
-            for kind in ("det", "now"):
-                self.assertNotIn("logbadge", self.page(name, kind), name)
+            self.assertNotIn("logbadge", self.page(name), name)
 
     def test_escalated_ticket_is_labelled_on_the_card_and_in_the_panel(self):
-        card = re.search(r'<button type="button" class="tcard[^>]*data-card="T02".*?</button>', self.page("esc", "sum"), re.S).group(0)
+        card = re.search(r'<button type="button" class="tcard[^>]*data-card="T02".*?</button>', self.page("esc"), re.S).group(0)
         self.assertIn('<span class="tc-esc">started on Haiku, finished on Sonnet</span>', card)
         self.assertIn("started on Haiku, finished on Sonnet", re.search(r'aria-label="([^"]*)"', card).group(1))
         panel = re.search(r'<aside class="tpanel".*?</aside>', self.page("esc", "panel"), re.S).group(0)
         self.assertIn('<p class="tp-esc">started on Haiku, finished on Sonnet</p>', panel)
         ru = self.page("esc", "panel", "ru")
-        self.assertEqual(ru.count("начат на Haiku, доделан на Sonnet"), 1)
-        self.assertEqual(self.page("esc", "sum").count('class="tc-esc"'), 1)  # one card only: the others are not escalated
-        self.assertNotIn("tc-esc", self.page("spend", "sum"))
+        self.assertEqual(re.search(r'<aside class="tpanel".*?</aside>', ru, re.S).group(0).count("начат на Haiku, доделан на Sonnet"), 1)
+        self.assertEqual(ru.count("начат на Haiku, доделан на Sonnet"), 3)  # the panel once, the card twice (label and line)
+        self.assertEqual(self.page("esc").count('class="tc-esc"'), 1)  # one card only: the others are not escalated
+        self.assertNotIn("tc-esc", self.page("spend"))
 
     def test_hostile_and_broken_data_never_prints_undefined_or_nan(self):
         for key, html in self.out.items():

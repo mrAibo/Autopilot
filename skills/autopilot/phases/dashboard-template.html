@@ -573,9 +573,7 @@
   .rail-brand .brandmark{width:42px;height:42px}
   .rail-brand .wordmark span{color:var(--rail-tx)}
   .rail-brand .wordmark b{color:var(--rail-accent)}
-  .views{max-width:100%;flex-wrap:wrap;border-radius:18px} /* перенос строкой: в узкой панели видны все темы */
   .cockpit-content:focus{outline:none}
-  .views button{flex:0 0 auto;white-space:nowrap}
   .spotlight.one{grid-template-columns:minmax(0,1fr)}
   .vsec{display:flex;flex-direction:column;gap:13px;scroll-margin-top:18px;min-width:0}
   .trackcard{--h-tx:var(--tx);--h-mut:var(--mut);--h-track:var(--soft)}
@@ -589,14 +587,13 @@
   .flat{margin-top:0;padding-top:0;border-top:0}
   @media(max-width:900px){
     .tools{flex:1 1 100%}
-    .views{flex:1 1 100%}
     .wordmark{font-size:19px}
     .brandmark{width:28px;height:28px}
   }
 
-  /* Dashboard 3.3: палитра макетов. Рубильник — атрибут data-view на корне (его ставит render()):
-     «Классика» атрибута-исключения не получает и остаётся в прежних цветах. */
-  :root[data-view]:not([data-view="classic"]){
+  /* Dashboard 3.3: палитра макетов. Вида-исключения («Классики») больше нет; `[lang]:not([hidden])` у корня всегда
+     истинно и лишь держит прежнюю специфичность правил, чтобы каскад не поменялся. */
+  :root[lang]:not([hidden]){
     --bg:#EDF4F0; --card:#FFFFFF; --line:#D6E4DC; --line2:#C3D6CB;
     --tx:#0F2A22; --tx2:#3F5A50; --mut:#5A7268; --quiet:#5A7268;
     --done:#0A7D5A; --done-soft:#DDF3EA; --done-tx:#075E44; --on-done:#FFFFFF;
@@ -607,7 +604,7 @@
     --inset:#F3F8F5; --soft:#E3EDE7; --idle:#8FA89C; --accent:#0A7D5A;
     --sh:0 1px 2px rgba(15,42,34,.05); --sh-raised:none;
   }
-  :root[data-theme="dark"][data-view]:not([data-view="classic"]){
+  :root[data-theme="dark"][lang]:not([hidden]){
     --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
     --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
     --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
@@ -619,7 +616,7 @@
     --sh:none; --sh-raised:none;
   }
   @media(prefers-color-scheme:dark){
-    :root:not([data-theme])[data-view]:not([data-view="classic"]){
+    :root:not([data-theme])[lang]:not([hidden]){
       --bg:#0B1220; --card:#121B2E; --line:#22304D; --line2:#2E3F63;
       --tx:#E8EEF8; --tx2:#C5D2E8; --mut:#9FB0CC; --quiet:#9FB0CC;
       --done:#34D399; --done-soft:#0F3D31; --done-tx:#6EE7B7; --on-done:#052E22;
@@ -632,33 +629,29 @@
     }
   }
   /* Общие блоки в новой палитре — только вне «Классики». */
-  html:not([data-view="classic"]) :focus-visible{outline-color:var(--tx)}
-  html:not([data-view="classic"]) .card{border-radius:22px;box-shadow:var(--sh)}
-  html:not([data-view="classic"]) .title:before{color:var(--done-tx)}
-  html:not([data-view="classic"]) .brand-version{background:var(--done-soft);color:var(--done-tx)}
-  html:not([data-view="classic"]) .f-done,html:not([data-view="classic"]) .gi.ok{color:var(--on-done)}
-  html:not([data-view="classic"]) .f-rev{color:var(--on-rev)}
-  html:not([data-view="classic"]) .f-bad,html:not([data-view="classic"]) .gi.bad{color:var(--on-bad)}
-  html:not([data-view="classic"]) .tabs{border-color:var(--line);box-shadow:none}
-  html:not([data-view="classic"]) .tabs button,html:not([data-view="classic"]) .iconbtn{min-height:44px;min-width:44px}
-  html:not([data-view="classic"]) .iconbtn{width:44px;height:44px;box-shadow:none}
+  html:not([hidden]) :focus-visible{outline-color:var(--tx)}
+  html:not([hidden]) .card{border-radius:22px;box-shadow:var(--sh)}
+  html:not([hidden]) .title:before{color:var(--done-tx)}
+  html:not([hidden]) .brand-version{background:var(--done-soft);color:var(--done-tx)}
+  html:not([hidden]) .f-done,html:not([hidden]) .gi.ok{color:var(--on-done)}
+  html:not([hidden]) .f-rev{color:var(--on-rev)}
+  html:not([hidden]) .f-bad,html:not([hidden]) .gi.bad{color:var(--on-bad)}
+  html:not([hidden]) .tabs{border-color:var(--line);box-shadow:none}
+  html:not([hidden]) .tabs button,html:not([hidden]) .iconbtn{min-height:44px;min-width:44px}
+  html:not([hidden]) .iconbtn{width:44px;height:44px;box-shadow:none}
   /* Шапка состояния у «Итога»: карточка в палитре вместо синего градиента. */
-  html:not([data-view="classic"]) .hero{--h-tx:var(--tx);--h-mut:var(--tx2);--h-track:var(--soft);
+  html:not([hidden]) .hero{--h-tx:var(--tx);--h-mut:var(--tx2);--h-track:var(--soft);
     background:var(--card);color:var(--tx);border:1px solid var(--line);box-shadow:var(--sh)}
-  html:not([data-view="classic"]) .hero:before{display:none}
-  html:not([data-view="classic"]) .hero.ask{background:var(--warn-bg);border-color:var(--warn-bd);--h-tx:var(--warn-tx);--h-mut:var(--warn-tx)}
-  html:not([data-view="classic"]) .hero.won{background:var(--done-soft);--h-tx:var(--done-tx);--h-mut:var(--done-tx)}
-  html:not([data-view="classic"]) .hero.bad{background:var(--bad-soft);--h-tx:var(--bad-tx);--h-mut:var(--bad-tx)}
-  html:not([data-view="classic"]) .hero .s-done .seg i,html:not([data-view="classic"]) .hero.won .s-done .seg i,
-  html:not([data-view="classic"]) .hero.bad .s-done .seg i,html:not([data-view="classic"]) .hero.ask .s-done .seg i{background:var(--done)}
-  html:not([data-view="classic"]) .hero .s-now .seg i,html:not([data-view="classic"]) .hero.ask .s-now .seg i{background-color:var(--now)}
-  html:not([data-view="classic"]) .hero .s-fail .seg i{background:var(--bad)}
-  html:not([data-view="classic"]) .hero .live{outline-color:var(--card)}
+  html:not([hidden]) .hero:before{display:none}
+  html:not([hidden]) .hero.ask{background:var(--warn-bg);border-color:var(--warn-bd);--h-tx:var(--warn-tx);--h-mut:var(--warn-tx)}
+  html:not([hidden]) .hero.won{background:var(--done-soft);--h-tx:var(--done-tx);--h-mut:var(--done-tx)}
+  html:not([hidden]) .hero.bad{background:var(--bad-soft);--h-tx:var(--bad-tx);--h-mut:var(--bad-tx)}
+  html:not([hidden]) .hero .s-done .seg i,html:not([hidden]) .hero.won .s-done .seg i,
+  html:not([hidden]) .hero.bad .s-done .seg i,html:not([hidden]) .hero.ask .s-done .seg i{background:var(--done)}
+  html:not([hidden]) .hero .s-now .seg i,html:not([hidden]) .hero.ask .s-now .seg i{background-color:var(--now)}
+  html:not([hidden]) .hero .s-fail .seg i{background:var(--bad)}
+  html:not([hidden]) .hero .live{outline-color:var(--card)}
   .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
-
-  /* Переключатель видов: цель нажатия не меньше 44 px, «нажато» — ещё и галочкой, не только цветом. */
-  .views button{min-height:44px;height:44px}
-  .views button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
 
   /* ——— Скин «Аврора» (концепт 01) ———
      Ночной фон с полярным сиянием, стеклянные карточки, mint/sky/violet.
@@ -675,9 +668,9 @@
     --aurora-bg2:#F7FAFF;--aurora-bg3:#E9F0F9;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.45) 44%,rgba(99,199,255,.07));
     --aurora-ink:#FFFFFF;scrollbar-color:rgba(60,100,150,.35) transparent}
-  /* Тёмные токены работают и до первой отрисовки (в шапке нет data-view): экран
+  /* Тёмные токены работают и до первой отрисовки (атрибутов темы ещё нет): экран
      «дашборд ещё не прочитал состояние» тоже остаётся ночным, а не белой карточкой. */
-  html[data-skin="aurora"]:not([data-view="classic"]):not([data-theme="light"]){
+  html[data-skin="aurora"]:not([hidden]):not([data-theme="light"]){
     color-scheme:dark;
     --bg:#05070D;--card:#0B1322;--inset:#0F1A2E;--soft:#15223A;
     --line:rgba(158,190,255,.14);--line2:rgba(158,190,255,.24);
@@ -692,7 +685,7 @@
     --hero:#0C1424;--hero-shadow:rgba(0,0,0,.75);
     --sh:0 26px 60px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.05);
     --sh-raised:0 18px 44px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06)}
-  html[data-skin="aurora"][data-theme="light"][data-view]:not([data-view="classic"]){
+  html[data-skin="aurora"][data-theme="light"][lang]:not([hidden]){
     color-scheme:light;
     --bg:#EEF3FA;--card:#FFFFFF;--inset:#F2F6FC;--soft:#E6EEF8;
     --line:#D3DFEE;--line2:#BFD0E4;
@@ -707,27 +700,27 @@
     --hero:#254991;--hero-shadow:rgba(25,63,128,.3);
     --sh:0 20px 44px -32px rgba(16,42,66,.38),0 1px 2px rgba(16,42,66,.06);
     --sh-raised:0 14px 32px -22px rgba(16,42,66,.32)}
-  html[data-skin="aurora"]:not([data-view="classic"]) body{
+  html[data-skin="aurora"]:not([hidden]) body{
     background:
       radial-gradient(1200px 820px at 12% -12%,var(--aurora-g1),transparent 62%),
       radial-gradient(1000px 760px at 96% 6%,var(--aurora-g2),transparent 63%),
       radial-gradient(1000px 900px at 52% 112%,var(--aurora-g3),transparent 62%),
       linear-gradient(180deg,var(--aurora-bg2),var(--bg) 55%,var(--aurora-bg3));
     background-attachment:fixed}
-  html[data-skin="aurora"]:not([data-view="classic"]) .card{
+  html[data-skin="aurora"]:not([hidden]) .card{
     border-radius:24px;background-image:var(--aurora-sheen);box-shadow:var(--sh);
     -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%)}
   /* Сияние в шапке состояния: цвет состояния остаётся за фоном, сияние только сверху. */
-  html[data-skin="aurora"]:not([data-view="classic"]) .hero:before{
+  html[data-skin="aurora"]:not([hidden]) .hero:before{
     display:block;content:"";position:absolute;right:-120px;top:-180px;width:460px;height:460px;border-radius:50%;
     background:radial-gradient(circle,var(--aurora-g1),transparent 62%);filter:blur(14px);pointer-events:none}
-  html[data-skin="aurora"]:not([data-view="classic"]) .tile:before{height:3px;
+  html[data-skin="aurora"]:not([hidden]) .tile:before{height:3px;
     background:linear-gradient(90deg,var(--aurora-mint),var(--aurora-sky))}
-  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(2):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-violet))}
-  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(3):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-sky))}
-  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(4):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-mint))}
-  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(5):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-mint))}
-  html[data-skin="aurora"][data-view]:not([data-view="classic"]) :is(.tabs button[aria-pressed="true"],.ntabs button[aria-selected="true"],.chip[aria-pressed="true"],.rbmode button[aria-pressed="true"]){
+  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(2):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-violet))}
+  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(3):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-sky))}
+  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(4):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-mint))}
+  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(5):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-mint))}
+  html[data-skin="aurora"][lang]:not([hidden]) :is(.tabs button[aria-pressed="true"],.chip[aria-pressed="true"]){
     background:linear-gradient(135deg,var(--aurora-mint),var(--aurora-sky));color:var(--aurora-ink);
     border-color:transparent;box-shadow:0 10px 28px -18px var(--aurora-g1)}
   html[data-skin="aurora"] .cockpit-rail{
@@ -735,47 +728,9 @@
     border-right-color:rgba(158,190,255,.14)}
   html[data-skin="aurora"] .rail-nav a[aria-current]{background:rgba(77,240,190,.12);color:#B6FFE6;
     border:1px solid rgba(77,240,190,.22)}
-  html[data-skin="aurora"][data-view]:not([data-view="classic"]) :focus-visible{outline-color:var(--aurora-sky)}
+  html[data-skin="aurora"][lang]:not([hidden]) :focus-visible{outline-color:var(--aurora-sky)}
   html[data-skin="aurora"] .skip-link{border-color:var(--aurora-mint);background:var(--aurora-rail1);color:#F8FAFF}
   html[data-skin="aurora"] ::selection{background:rgba(77,240,190,.28)}
-  html[data-skin="aurora"]:not([data-view="classic"]) .vcombo{background-image:var(--aurora-sheen)}
-
-  /* Вид в шапке — поисковый список (combobox): имя вида на двух языках, стрелки, Enter, Esc.
-     Прежняя лента кнопок осталась в разметке скрытым запасным путём: на её data-view
-     держатся переключение вида и тесты. */
-  .vcombo{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:0;
-    padding:0 6px 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--card);
-    box-shadow:var(--sh-raised);flex:0 1 250px}
-  .vcombo[data-open="true"]{border-color:var(--line2);box-shadow:0 0 0 3px var(--soft),var(--sh-raised)}
-  .vcombo-ic{color:var(--mut);flex:none;display:inline-flex}
-  .vcombo-inp{appearance:none;border:0;background:none;font:inherit;font-size:13.5px;font-weight:650;color:var(--tx);
-    min-width:0;width:100%;height:42px;padding:0;outline:none;text-overflow:ellipsis}
-  .vcombo-inp::placeholder{color:var(--mut);font-weight:500}
-  .vcombo-inp::-webkit-search-cancel-button{display:none}
-  .vcombo-btn{appearance:none;border:0;background:none;color:var(--mut);width:32px;height:32px;border-radius:9px;
-    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:transform .18s}
-  .vcombo-btn:hover{color:var(--tx);background:var(--inset)}
-  .vcombo[data-open="true"] .vcombo-btn{transform:rotate(180deg)}
-  .vlistbox{position:absolute;z-index:45;top:calc(100% + 8px);left:0;min-width:100%;width:max-content;
-    max-width:min(340px,90vw);max-height:min(60vh,400px);overflow:auto;padding:6px;
-    background:var(--card);border:1px solid var(--line2);border-radius:16px;box-shadow:var(--sh-raised)}
-  .vlistbox[hidden]{display:none}
-  .vopt{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 12px;border:0;border-radius:11px;
-    background:none;color:var(--tx);font:inherit;font-size:13.5px;font-weight:600;text-align:left;cursor:pointer}
-  .vopt:hover,.vopt.act{background:var(--inset)}
-  .vopt.act{box-shadow:inset 0 0 0 1px var(--line2)}
-  .vopt[aria-selected="true"]{color:var(--accent)}
-  .vopt-name{min-width:0;overflow-wrap:anywhere}
-  .vopt-alt{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut);white-space:nowrap}
-  .vopt[aria-selected="true"] .vopt-alt{color:var(--accent);opacity:.8}
-  .vopt-check{margin-left:4px;font-weight:800;flex:none}
-  .vlistbox-none{margin:0;padding:10px 12px;font-size:13px;color:var(--mut)}
-  @media(max-width:700px){
-    .vcombo{flex:1 1 100%;padding-right:4px}
-    .vcombo-inp{font-size:13px}
-    .vlistbox{width:100%;max-width:none}
-  }
-
   /* «Обзор» */
   .ovh{display:flex;flex-wrap:wrap;align-items:center;gap:28px 36px;padding:32px 34px;border-radius:28px}
   .ring{--rs:210px;width:var(--rs);height:var(--rs);border-radius:50%;flex:none;display:grid;place-items:center}
@@ -949,7 +904,6 @@
   }
   @media(max-width:760px){.ov3{grid-template-columns:minmax(0,1fr)}}
   @media(max-width:560px){.route{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:520px){.ctile b{font-size:15px}.cmp-hero{padding:16px}}
   @media(max-width:360px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gchips{grid-template-columns:minmax(0,1fr)}}
 
   /* «Требования»: матрица пути фразы по семи этапам. Состояние — значок и слово, цвет только помогает. */
@@ -1000,11 +954,11 @@
   .steps span{font-size:13px;line-height:1.4;color:var(--tx2);overflow-wrap:anywhere}
 
   /* Значок события в ленте: у .ei свой фон перебивал цвет статуса, и белая галочка пропадала на светлом поле. */
-  html:not([data-view="classic"]) .ei.f-done{background:var(--done)}
-  html:not([data-view="classic"]) .ei.f-now{background:var(--now)}
-  html:not([data-view="classic"]) .ei.f-rev{background:var(--rev)}
-  html:not([data-view="classic"]) .ei.f-fix{background:var(--fix)}
-  html:not([data-view="classic"]) .ei.f-bad{background:var(--bad)}
+  html:not([hidden]) .ei.f-done{background:var(--done)}
+  html:not([hidden]) .ei.f-now{background:var(--now)}
+  html:not([hidden]) .ei.f-rev{background:var(--rev)}
+  html:not([hidden]) .ei.f-fix{background:var(--fix)}
+  html:not([hidden]) .ei.f-bad{background:var(--bad)}
 
   /* «Ресурсы»: таблица маршрутов — ticket, модель-чип, токены по таскам */
   .tablewrap{margin-top:14px}
@@ -1031,14 +985,18 @@
     .vd-row>.vd-w{grid-area:2/2}.vd-row>.vd-t{grid-area:2/3}.vd-row>.vd-r{grid-area:3/2}.vd-row>.vd-b{grid-area:3/3}
     .vd-row>span[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;color:var(--mut);font-weight:400;letter-spacing:.04em;margin-bottom:2px}
   }
-  /* Страница «Сейчас»: вкладки, закреплённая полоса вопроса, «Ещё» с прежними темами, узкая раскладка по matchMedia */
-  .vlist{display:contents}.vlist[hidden]{display:none}
-  .vmore{color:var(--mut)}
-  .ntabs{display:flex;flex-wrap:wrap;gap:8px}
-  .ntabs button{appearance:none;font:inherit;cursor:pointer;min-height:44px;padding:0 18px;border-radius:12px;
-    border:1px solid var(--line);background:var(--card);color:var(--tx2);font-weight:650}
-  .ntabs button[aria-selected="true"]{background:var(--tx);color:var(--card);border-color:var(--tx)}
-  .ntabs button[aria-selected="true"]::before{content:"✓";margin-right:6px}
+  /* Одна страница (раскладка A «Лента»): колонка по центру до 1100 px, секции <details>, закреплённая полоса вопроса. */
+  .cockpit-content{width:100%;max-width:1100px;margin:0 auto}
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--sh);min-width:0;scroll-margin-top:18px}
+  .sec>summary{list-style:none;cursor:pointer;min-height:44px;padding:10px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;
+    font-size:17px;font-weight:750;color:var(--tx);border-radius:22px}
+  .sec>summary::-webkit-details-marker{display:none}
+  .sec>summary::before{content:"▸";color:var(--mut);width:1em;flex:none}
+  .sec[open]>summary::before{content:"▾"}
+  .sec>summary .sn{margin-left:auto;font-size:13px;font-weight:500;color:var(--tx2)}
+  .sec>summary:focus-visible{outline:3px solid var(--tx);outline-offset:2px}
+  .sec-body{padding:2px 20px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .sec-body>.card{box-shadow:none;border-color:var(--line)}
   .askbar{position:sticky;top:0;z-index:15;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:14px 18px;
     border-radius:16px;background:var(--warn-bg);border:2px solid var(--warn-bd);color:var(--warn-tx)}
   .askbar .ak{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
@@ -1050,7 +1008,6 @@
   html[data-narrow] :is(.cols,.ov3,.tl2){grid-template-columns:minmax(0,1fr)}
   html[data-narrow] .ovh{flex-direction:column;align-items:stretch;padding:20px}
   html[data-narrow] .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  html[data-narrow] .ntabs button{flex:1 1 40%}
   /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
   .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
   .top .upd+.tools{margin-left:auto}
@@ -1071,24 +1028,6 @@
   .sum-h .ovh-side{flex:0 1 300px}
   @media(max-width:1100px){.tl2{grid-template-columns:minmax(0,1fr)}.tl2 .gx{--cols:260px minmax(0,1fr) 150px}}
   @media(max-width:900px){.tl2 .gx{--cols:minmax(0,1fr)}}
-  @media(max-width:520px){
-    .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
-    html:not([data-view="classic"]) .tools .views{order:1}
-    html[data-view="compact"] .title:before,html[data-view="compact"] .title .meta{display:none}
-    html[data-view="compact"] .title{padding:8px 0 0}
-    html[data-view="compact"] .title h1{font-size:19px}
-    .cmp{gap:10px}
-    .cmp .card{padding:14px 16px;border-radius:18px}
-    .cmp .whead{padding-bottom:8px}
-    .cmp .ev{padding:6px 0}
-    .cmp .need{padding:8px 0}
-    .gx.mini .gx-row{padding:7px 0;row-gap:4px}
-    .gx.mini .gx-lane{height:26px}
-    .gx.mini .gx-bar,.gx.mini .gx-tail{top:2px;height:22px}
-    .gx.mini+.gx-legend{margin-top:8px}
-    .gchip{padding:7px 10px}
-    .gchips{gap:6px}
-  }
   /* Доски страницы «Сейчас»: тасков и требований, боковая панель таска. Цвета — только из палитры (светлая и тёмная темы). */
   .bd-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
   .bd-cols.r5{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -1100,11 +1039,8 @@
   .bd-fail{margin-bottom:12px}
   .bd-fail h4{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--bad-tx)}
   .bd-strips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px;align-items:start}
-  .rbmode{display:flex;flex-wrap:wrap;gap:8px}
-  .rbmode button,.tp-close,.askbar [data-notify]{appearance:none;font:inherit;cursor:pointer;min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;
+  .tp-close,.askbar [data-notify]{appearance:none;font:inherit;cursor:pointer;min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;
     border:1px solid var(--line2);background:var(--card);color:var(--tx);font-weight:650}
-  .rbmode button[aria-pressed="true"]{background:var(--tx);color:var(--card);border-color:var(--tx)}
-  .rbmode button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
   .tcard{appearance:none;font:inherit;text-align:left;cursor:pointer;width:100%;display:flex;flex-direction:column;gap:6px;padding:10px 12px;
     border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--tx);min-width:0}
   .tcard:hover{border-color:var(--tx2)}
@@ -1136,6 +1072,15 @@
   .tp-sec em{font-style:normal;color:var(--mut);margin-right:6px;font-variant-numeric:tabular-nums}
   @media(max-width:1100px){.bd-cols,.bd-cols.r5{grid-template-columns:repeat(2,minmax(0,1fr))}}
   html[data-narrow] :is(.bd-cols,.bd-cols.r5,.bd-strips){grid-template-columns:minmax(0,1fr)}
+  /* До 520 px страница сама сжимается в один столбец; правило последнее в CSS, выбора вида нет. */
+  @media(max-width:520px){
+    .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
+    .cockpit-content{max-width:none}
+    :is(.cols,.tiles,.bd-cols,.bd-cols.r5,.bd-strips){grid-template-columns:minmax(0,1fr)}
+    .ovh{flex-direction:column;align-items:stretch;padding:20px}
+    .sec>summary{padding:10px 14px;font-size:16px}
+    .sec-body{padding:2px 14px 16px}
+  }
 </style>
 </head>
 <body>
@@ -1214,22 +1159,7 @@ function applyTheme(t){
   else document.documentElement.removeAttribute('data-theme');
 }
 
-// Вид дашборда (тема раскладки). Первый id — по умолчанию; всё чужое и ошибка хранилища — он же.
-const VIEW_KEY = 'autopilot-view';
-const VIEW_IDS = ['now','overview','timeline','requirements','resources','summary','classic','compact','quality'];
-// Какой пункт рейки подсвечен в теме: якорь её главного блока (в рейке он подписан названием темы).
-const VIEW_HOME = {now:'mission', overview:'mission', timeline:'tasks', requirements:'quality', resources:'models',
-  summary:'quality', classic:'mission', compact:'mission', quality:'quality'};
-function storedView(){
-  try {
-    let v = localStorage.getItem(VIEW_KEY);
-    if (v === 'focus') v = 'compact';  // до переименования «Фокус» хранился как focus
-    if (VIEW_IDS.includes(v)) return v;
-  } catch(e) {}
-  // Выбора нет: в узкой панели рядом с чатом — компактный вид, иначе первый («Сейчас»).
-  return window.innerWidth > 0 && window.innerWidth <= 520 ? 'compact' : VIEW_IDS[0];
-}
-let VIEW = storedView();
+// Вида дашборда больше нет: раскладка одна. Старые `autopilot-view` и `autopilot-boardmode` в хранилище не читаются.
 // Узкое окно (меньше 700 px): раскладка сама складывается в одну колонку — render() ставит data-narrow на корень.
 let NARROW_MQ = null;
 try { NARROW_MQ = matchMedia('(max-width: 699px)'); } catch(e) {}
@@ -1349,8 +1279,6 @@ const I18N = {
     needToken:"Данные прогона открываются по адресу с токеном: возьми его командой ap.py url.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
-    viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",viewSearch:"Поиск вида",viewNone:"ничего не найдено",
-    ntabs:{now:"Сейчас",req:"Требования",sum:"Итог",det:"Подробности"},
     askBar:"Нужен твой ответ",gReset:"сброшена: план изменился",doneAt:t=>`сдано ${t}`,
     notify:"Включить уведомления",notifyBody:"Сборка стоит и ждёт тебя",
     bd:{boardTitle:"Доска тасков",none:"тасков ещё нет",
@@ -1359,7 +1287,7 @@ const I18N = {
       waitsFor:l=>`ждёт ${l.length > 1 ? 'таски' : 'таск'} ${l.join(', ')}`,ready:"готов, ждёт своей очереди",
       writing:"пишется сейчас",inReview:"на проверке",noReason:"причина не записана",
       testsLine:t=>`${t.passed} ${plural(t.passed,'тест','теста','тестов')}${t.failed ? `, ${t.failed} упало` : ', все зелёные'}`,
-      openCard:"открыть историю",reqTitle:"Доска требований",rbLabel:"Что показывать на доске",rbModes:{req:"По требованиям",tk:"По таскам"},
+      openCard:"открыть историю",reqTitle:"Доска требований",
       rcols:{read:"Разбирается",plan:"В плане",doing:"Делается",check:"Проверяется",ok:"Принято"},
       strip:{ph:"Нужны твои данные",def:"Отложено",drop:"Снято"},
       panelLabel:"История таска",close:"Закрыть",
@@ -1368,7 +1296,7 @@ const I18N = {
       noModel:"модель ещё не назначена",planned:"в плане: ",noEvents:"событий ещё нет",noTests:"ещё нет",noCommit:"ещё нет",noReview:"замечаний нет",noZone:"не указана"},
     hrt:{cheap:"простой таск",balanced:"обычный таск",strong:"сложный таск",critical:"самый ответственный таск",
       risky:"усиленный режим: таск трогает подписи и ключи",premium:"включён по твоему подтверждению",cls:"класс",risk:"риск",score:"оценка"},
-    views:{now:"Сейчас",overview:"Обзор",timeline:"Таймлайн",requirements:"Требования",resources:"Ресурсы",summary:"Итог",classic:"Классика",compact:"Компактный",quality:"Качество"},
+    sec:{mission:"Маршрут этапов",reqs:"Требования",tasks:"Таски",quality:"Проверки и тесты",models:"Расход и модели",gates:"Гейты",feed:"Лента событий"},
     vw:{empty:"ещё нет",none:"нет",have:"есть",
       kTokens:"Токены",kIn:"вход",kOut:"выход",kActive:"Работают сейчас",kTrees:"Рабочие копии",kRetries:"Повторы и починки",
       tActive:"В работе сейчас",tWaiting:"Ждут очереди",tReview:"Что сказали проверяющие",tReq:"Сводка требований",tStages:"Этапы",
@@ -1501,8 +1429,6 @@ const I18N = {
     needToken:"Run data opens at the address with the token: get it with the ap.py url command.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
-    viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",viewSearch:"Find a view",viewNone:"no matches",
-    ntabs:{now:"Now",req:"Requirements",sum:"Summary",det:"Details"},
     askBar:"Your answer is needed",gReset:"reset: the plan changed",doneAt:t=>`done ${t}`,
     notify:"Turn on notifications",notifyBody:"The build is stopped and waits for you",
     bd:{boardTitle:"Ticket board",none:"no tickets yet",
@@ -1511,7 +1437,7 @@ const I18N = {
       waitsFor:l=>`waits for ticket ${l.join(', ')}`,ready:"ready, waits for its turn",
       writing:"being written now",inReview:"in review",noReason:"no reason recorded",
       testsLine:t=>`${t.passed} ${en(t.passed,'test','tests')}${t.failed ? `, ${t.failed} failed` : ', all green'}`,
-      openCard:"open its history",reqTitle:"Requirement board",rbLabel:"What the board shows",rbModes:{req:"By requirements",tk:"By tickets"},
+      openCard:"open its history",reqTitle:"Requirement board",
       rcols:{read:"Being read",plan:"In the plan",doing:"Being built",check:"In review",ok:"Accepted"},
       strip:{ph:"Your data needed",def:"Deferred",drop:"Dropped"},
       panelLabel:"Ticket history",close:"Close",
@@ -1520,7 +1446,7 @@ const I18N = {
       noModel:"no model assigned yet",planned:"planned: ",noEvents:"no events yet",noTests:"none yet",noCommit:"none yet",noReview:"no notes",noZone:"not given"},
     hrt:{cheap:"a simple ticket",balanced:"an ordinary ticket",strong:"a hard ticket",critical:"the most critical ticket",
       risky:"reinforced mode: the ticket touches signatures and keys",premium:"on with your confirmation",cls:"class",risk:"risk",score:"score"},
-    views:{now:"Now",overview:"Overview",timeline:"Timeline",requirements:"Requirements",resources:"Resources",summary:"Summary",classic:"Classic",compact:"Compact",quality:"Quality"},
+    sec:{mission:"Stage route",reqs:"Requirements",tasks:"Tickets",quality:"Checks and tests",models:"Spend and models",gates:"Gates",feed:"Event feed"},
     vw:{empty:"none yet",none:"none",have:"yes",
       kTokens:"Tokens",kIn:"in",kOut:"out",kActive:"Working now",kTrees:"Worktrees",kRetries:"Retries and repairs",
       tActive:"In progress now",tWaiting:"Waiting",tReview:"What the reviewers said",tReq:"Requirements summary",tStages:"Stages",
@@ -1567,78 +1493,9 @@ let tokenStop = false;             // неверный токен: подска�
 let lastStamp = null;              // метка отрисованного состояния — против лишних перерисовок
 let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
-// tab — вкладка страницы «Сейчас»; more — раскрыт ли список прежних тем под «Ещё».
-// rb — что показывает доска на вкладке «Требования» (req | tk), запоминается; panel — id таска в боковой панели;
-// focus — куда вернуть фокус после перерисовки (кнопка закрытия панели или карточка таска).
-const RB_KEY = 'autopilot-boardmode';
-function storedRb(){
-  try { return localStorage.getItem(RB_KEY) === 'tk' ? 'tk' : 'req'; } catch(e) { return 'req'; }  // нет хранилища — по требованиям
-}
-const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), rbOkAll: false, panel: null, focus: null,
-  combo: {open: false, q: '', i: 0}};
-
-// ——— вид в шапке: поисковый список (combobox) ———
-// Поиск идёт по имени вида на двух языках и по id; переключение остаётся прежним —
-// та же переменная VIEW, то же хранилище, тот же render(). Состояние списка живёт в UI,
-// поэтому перерисовка на каждом событии сборки не закрывает его и не теряет запрос.
-const COMBO_LANGS = ['ru', 'en'];
-function comboList(q){
-  const needle = String(q == null ? '' : q).trim().toLowerCase();
-  if (!needle) return VIEW_IDS.slice();
-  return VIEW_IDS.filter(id => id.includes(needle)
-    || COMBO_LANGS.some(l => String((I18N[l].views || {})[id] || '').toLowerCase().includes(needle)));
-}
-function selectView(id){
-  VIEW = id;
-  UI.more = false; UI.combo.open = false; UI.combo.q = '';
-  try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
-  render(CUR.lang);
-}
-function comboOpen(open){
-  UI.combo.open = !!open;
-  if (UI.combo.open) {
-    UI.combo.q = '';
-    UI.combo.i = Math.max(0, comboList('').indexOf(VIEW));
-  }
-  comboSync();
-  const app = document.getElementById('app');
-  if (!UI.combo.open || !app || typeof app.querySelector !== 'function') return;
-  const inp = app.querySelector('[data-vcombo-input]');
-  if (inp && typeof inp.focus === 'function') inp.focus({preventScroll: true});
-}
-// Стрелки ведут по отфильтрованному списку, Enter выбирает, Esc закрывает без выбора.
-function comboKey(e){
-  if (!UI.combo.open) return false;
-  const ids = comboList(UI.combo.q), n = ids.length;
-  if (e.key === 'ArrowDown') { UI.combo.i = n ? (UI.combo.i + 1) % n : 0; comboSync(); return true; }
-  if (e.key === 'ArrowUp') { UI.combo.i = n ? (UI.combo.i - 1 + n) % n : 0; comboSync(); return true; }
-  if (e.key === 'Enter') { if (ids[UI.combo.i]) { selectView(ids[UI.combo.i]); return true; } return false; }
-  if (e.key === 'Escape') { comboOpen(false); return true; }
-  return false;
-}
-// Перерисовка не нужна: открытие, фильтр и подсветка — три атрибута и два класса.
-function comboSync(){
-  const app = document.getElementById('app');
-  if (!app || typeof app.querySelector !== 'function') return;
-  const wrap = app.querySelector('[data-vcombo]'), inp = app.querySelector('[data-vcombo-input]'),
-        box = app.querySelector('.vlistbox');
-  if (!inp || !box) return;
-  const L = CUR || I18N.ru, ids = comboList(UI.combo.q);
-  if (UI.combo.i >= ids.length) UI.combo.i = 0;
-  const opts = [...box.querySelectorAll('[data-vopt]')];
-  opts.forEach(o => { o.hidden = ids.indexOf(o.dataset.vopt) < 0; o.classList.remove('act'); });
-  const active = opts.find(o => o.dataset.vopt === ids[UI.combo.i]);
-  if (active && UI.combo.open) { active.classList.add('act'); inp.setAttribute('aria-activedescendant', active.id); }
-  else inp.removeAttribute('aria-activedescendant');
-  const none = box.querySelector('.vlistbox-none');
-  if (none) none.hidden = ids.length > 0;
-  box.hidden = !UI.combo.open;
-  if (wrap) wrap.setAttribute('data-open', String(UI.combo.open));
-  inp.setAttribute('aria-expanded', String(UI.combo.open));
-  const toggle = app.querySelector('[data-vcombo-toggle]');
-  if (toggle) toggle.setAttribute('aria-expanded', String(UI.combo.open));
-  inp.value = UI.combo.open ? UI.combo.q : ((L.views || {})[VIEW] || '');
-}
+// sec — какие секции <details> пользователь раскрыл или свернул (id → bool; нет записи — как по умолчанию в page());
+// panel — id таска в боковой панели; focus — куда вернуть фокус после перерисовки (кнопка закрытия панели или карточка таска).
+const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus: null};
 
 // ——— «нужен твой ответ»: значок вкладки и уведомление ———
 // Значок — всегда (data:-картинка, без запросов); уведомление — только с явного разрешения, которое просит кнопка по клику.
@@ -1956,86 +1813,23 @@ const REQ_KIND = {'done':'done', 'in-ticket':'work', 'in-spec':'work', 'open':'o
 const REQ_PILL = {done:'p-done', work:'p-mut', open:'p-mut', placeholder:'p-now', deferred:'p-mut', dropped:'p-mut'};
 const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 
-// Реестр тем: id → раскладка уже посчитанных в render() блоков (c = ctx).
-// Функция только склеивает строки: STATE не читает и в DOM не пишет.
-// Новая тема — новая строка здесь и id в VIEW_IDS, названия — в I18N.<lang>.views.
-const VIEWS = {
-  // Страница по умолчанию: вкладки «Сейчас · Требования · Итог · Подробности». «Сейчас» подбирает содержимое по
-  // состоянию сборки: ждёт ответа — сверху закреплённая полоса вопроса (c.askBar); идёт разработка — доска тасков
-  // (c.board); сдано — итог. «Требования» — доска требований (c.reqBoard) над матрицей; «Итог» у сданной сборки — Гант
-  // и доска, где все карточки в «Сдан». «Подробности» — места под модели, расход, проверки и историю сборок.
-  // Коды проверок в основном тексте не показываются (c.gatesPlain). Боковую панель таска render() кладёт в конец <main>.
-  now: c => {
-    const part = (id, html) => `<div id="${id}" class="vsec" tabindex="-1">${html}</div>`;
-    const body = {
-      now: c.fin
-        ? `<div id="mission" class="vsec" tabindex="-1" data-mode="done">${c.nowHero}${c.nextCard}${c.needSum}${c.mismatchCard}</div>`
-        : `<div id="mission" class="vsec" tabindex="-1" data-mode="${c.askBar ? 'ask' : 'dev'}">${c.nowHero}${c.route}</div>`
-          + part('tasks', c.board)
-          + part('quality', `${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.feedView}`),
-      req: part('mission', c.reqBoard + c.matrixCard + c.wordsView),
-      sum: part('mission', c.sumHero + (c.ganttFull || c.emptyGantt) + (c.fin ? c.board : '') + c.verdictCard + (c.mismatchCard || c.blindCard)
-        + c.reportCard + c.concernsCard + (c.fin ? '' : c.summaryCard)),
-      det: part('mission', `${c.logBadge}<div class="det-slot" data-slot="models">${c.routesCard}</div><div class="det-slot" data-slot="spend">${c.spendCard}</div>`
-        + `<div class="det-slot" data-slot="checks">${c.gatesPlain}</div><div class="det-slot" data-slot="history">${c.historyCard}</div>`)
-    };
-    // Бейдж неполного журнала — под вкладками «Сейчас»; в «Подробностях» он стоит в самом блоке.
-    return `${c.askBar}${c.nowTabs}${c.tab === 'det' ? '' : c.logBadge}${body[c.tab] || body.now}`;
-  },
-  // Макет: кольцо и прогноз, маршрут этапов, диаграмма Ганта, три колонки (слова · лента · проверки); больше ничего.
-  // Ход сборки по волнам — это сам Гант (волна подписана в каждой строке), второго списка тасков нет.
-  // «Модели и ресурсы» и «Изоляция» — в «Ресурсах» и «Классике»; якоря #models здесь нет, рейка его не рисует.
-  overview: c => `
-  <div id="mission" class="vsec" tabindex="-1">${c.ovHero}</div>
-  ${c.route}
-  <div id="tasks" class="vsec" tabindex="-1">${c.gantt || c.tasksEmpty}</div>
-  <div id="quality" class="ov3" tabindex="-1"><div class="col">${c.wordsCard}${c.extras}</div>
-    <div class="col">${c.feedView}</div>
-    <div class="col">${c.gatesCard}${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}</div></div>`,
-  // Макет: герой с фразой, прогнозом и маршрутом; пять карточек; слева подробный Гант, справа «Понадобится от вас»,
-  // проверки и лента; «Ваши слова» внизу. Блок без данных не рисуется.
-  timeline: c => `
-  <div id="mission" class="vsec" tabindex="-1">${c.tlHero}</div>
-  ${c.tlTiles}
-  <div class="tl2"><div id="tasks" class="vsec" tabindex="-1">${c.ganttFull || c.emptyGantt}</div>
-    <div id="quality" class="vsec" tabindex="-1">${c.needCard ? `<div class="ask-card">${c.needCard}</div>` : ''}${c.gatesCard}${c.feedAll}</div></div>
-  ${c.wordsCard}`,
-  // Матрица пути требований сверху; список со статусами и фильтрами, шлюзы и остатки — под ней.
-  requirements: c => `
-  <div id="quality" class="vsec" tabindex="-1">${c.matrixCard}<div class="cols"><div class="col">${c.wordsView}</div>
-    <div class="col">${c.gatesCard}${c.reqSummary}${c.debtCard}</div></div></div>`,
-  resources: c => `
-  <div id="models" class="vsec" tabindex="-1">${c.kpiRow}${c.routesCard}${c.tokensCard}${c.isolationView}</div>`,
-  // Итог: кольцо и цифры, вердикт по каждому требованию, расхождение приёмки (если есть), замечания ревью;
-  // справа — что делать дальше и что нужно от вас. Блока без данных в state.js нет — его и не рисуем.
-  summary: c => `
-  <div id="mission" class="vsec sum-top" tabindex="-1">${c.sumHero}</div>
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.verdictCard}${c.mismatchCard || c.blindCard}${c.reportCard}${c.concernsCard}</div>
-    <div class="col">${c.nextCard}${c.needSum}${c.asmCard}${c.addCard}${c.fin ? '' : c.summaryCard}</div></div>`,
-  // Узкая панель: одна колонка, то же главное — кольцо, прогноз, фраза, плитки, полоса этапов, мини-Гант.
-  // Без «Моделей и ресурсов», «Изоляции» и списка решений за вас: они в Обзоре и Итоге, здесь только то, что нужно от вас.
-  compact: c => `
-  <div class="cmp"><div id="mission" class="vsec" tabindex="-1">${c.cHero}</div>
-  <div id="tasks" class="vsec" tabindex="-1">${c.cstrip}${c.miniGantt || c.tasksEmpty}</div>
-  <div id="quality" class="vsec" tabindex="-1">${c.needSlim}${c.gchips}${c.feedCompact}</div></div>`,
-  quality: c => `
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.gatesCard}${c.blindView}${c.reviewView}</div>
-    <div class="col">${c.wordsView}${c.debtCard}</div></div>`,
-  classic: c => `
-  <div id="mission" class="spotlight" tabindex="-1">${c.hero}${c.opsBlock}</div>
-  ${c.sectionTitle('01',c.langRu ? 'Состояние работы' : 'Execution health',c.langRu ? 'Прогресс и проверки' : 'Progress and validation')}
-  ${c.tiles}
-  <div id="tasks" class="pipeline" tabindex="-1">
-    ${c.sectionTitle('02',c.langRu ? 'Поток задач' : 'Task pipeline',c.langRu ? 'Этапы и исполнители' : 'Waves and workers')}
-    ${c.fin ? '' : c.buildCard}
-  </div>
-  <div id="models" class="intelligence" tabindex="-1">
-    ${c.sectionTitle('03',c.langRu ? 'Модели и ресурсы' : 'Models & resources',c.langRu ? 'Маршруты, токены и изоляция' : 'Routing, tokens and worktrees')}
-    ${c.resourceBlock}
-    ${c.isolationBlock}
-  </div>
-  ${c.sectionTitle('04',c.langRu ? 'Качество и решения' : 'Quality & decisions',c.langRu ? 'Требования и приёмка' : 'Requirements and acceptance')}
-  <div id="quality" class="cols" tabindex="-1"><div class="col">${c.leftCol.join('')}</div><div class="col">${c.rightCol.join('')}</div></div>`
+// Страница одна — раскладка A «Лента»: герой, закреплённая полоса «ждёт ответа», секции <details> по важности
+// (id секции — якорь рейки). Функция только склеивает строки готовых блоков (c = ctx из render()): данных не читает и в DOM не пишет.
+// Сворачивание помнит c.secOpen (id → bool); нет записи — раскрыто по умолчанию (последний аргумент sec()).
+const page = c => {
+  const sec = (id, note, body, dflt) => `<details class="sec" id="${id}" tabindex="-1"${(c.secOpen[id] ?? dflt) ? ' open' : ''}>`
+    + `<summary>${c.L.sec[id]}${note ? `<span class="sn">${note}</span>` : ''}</summary><div class="sec-body">${body}</div></details>`;
+  const need = c.fin ? c.needSum + c.nextCard + c.mismatchCard : c.needCard ? `<div class="ask-card">${c.needCard}</div>` : '';
+  return c.askBar + c.ovHero + c.tiles + c.logBadge
+    + sec('mission', c.stageNote, c.route, true)
+    + sec('reqs', c.reqNote, (c.hasReqs ? c.reqBoard + c.matrixCard : '') + c.wordsView, true)
+    + sec('tasks', c.taskNote, c.ganttFull ? c.ganttFull + c.board : c.emptyGantt, true)
+    + sec('quality', c.testsNote, need + c.verdictCard + c.blindView + c.reviewView + c.asmCard + c.addCard, false)
+    + sec('models', c.tokenNote, c.kpiRow + `<div class="det-slot" data-slot="models">${c.routesCard}</div>`
+      + `<div class="det-slot" data-slot="spend">${c.spendCard}</div><div class="det-slot" data-slot="history">${c.historyCard}</div>`
+      + c.isolationView, false)
+    + sec('gates', c.gatesNote, c.gatesCard, false)
+    + sec('feed', c.feedNote, c.feedAll, false);
 };
 
 function render(lang){
@@ -2096,25 +1890,23 @@ function render(lang){
   }
   const cpMin = Math.max(0, ...T.map(t => chainMin(t.id, new Set())));
   const stageMin = id => stageMs(stage(id)) / 60000;
-  let left = null, lateEta = false;
+  let left = null;
   if (!fin && !waiting && !failedStage) {
     const buildSoFar = stageMin('build');
     if (activeStage && activeStage.id === 'build' && median) {
       left = cpMin + Math.max(10, 0.5 * (buildSoFar + cpMin)) + 8;
     } else if (activeStage && activeStage.id === 'review') {
-      left = Math.max(5, 0.6 * buildSoFar - stageMin('review')) + 8; lateEta = true;
+      left = Math.max(5, 0.6 * buildSoFar - stageMin('review')) + 8;
     } else if (activeStage && activeStage.id === 'final') {
-      left = Math.max(3, 10 - stageMin('final')); lateEta = true;
+      left = Math.max(3, 10 - stageMin('final'));
     }
   }
   const eta = left ? [Math.max(1, Math.round(left * 0.75)), Math.max(2, Math.round(left * 1.4))] : null;
-  const etaText = eta ? (eta[1] < 60 ? `${eta[0]}–${eta[1]}<small>${L.min}</small>`
-    : `${fmtDur(eta[0])} — ${fmtDur(eta[1])}`) : '';
 
   // ——— шапка ———
   const names = list => list.map(t => q(esc(t.title), L.lang)).join(', ');
   const idsOf = list => list.map(t => esc(t.id)).join(', '); // «Обзор»: название таска видно один раз, в Ганте
-  let heroCls = '', stateLine, h2, lead = '', ovLead = null, big = '', bigSub = '', hint = '';
+  let heroCls = '', stateLine, h2, lead = '', ovLead = null, hint = '';
   if (fin) {
     heroCls = 'won';
     const k = (S.debt?.emptyEnv || []).length, p = (S.debt?.placeholders || []).length;
@@ -2123,16 +1915,12 @@ function render(lang){
     h2 = esc(S.result || L.doneDefault);
     lead = k || p ? L.doneNeed(k, p) : L.doneNothing;
     if (lw) lead = `${L.landedLead}<ul>${lp.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` + lead;
-    big = fmtClock(activeMs(S.startedAt, S.finishedAt));
-    bigSub = L.doneBig(hhmm(S.finishedAt));
   } else if (waiting) {
     heroCls = 'ask';
     stateLine = `<span class="live" aria-hidden="true"></span>${L.waitState}`;
     h2 = L.waitH2[waiting.kind] || L.waitState;
     lead = waiting.note ? esc(waiting.note) : '';
     hint = `<span class="hint">${ic('msg','m')}${L.waitHint}</span>`;
-    big = `<span data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span>`;
-    bigSub = L.waitBig;
   } else if (failedStage) {
     heroCls = 'bad';
     stateLine = `<span class="badge-ic">${ic('x','xs')}</span>${L.failState}`;
@@ -2151,34 +1939,7 @@ function render(lang){
       h2 = L.h2Run[cur.id] || stName(cur);
       lead = cur.note ? esc(cur.note) : (L.leadRun[cur.id] || '');
     }
-    if (eta) { big = etaText; bigSub = lateEta ? L.etaLate : L.etaLbl; }
-    else if (cur.startedAt) { big = timerHTML(cur.startedAt, null); bigSub = L.stageClock(stName(cur)); }
   }
-  // Шкала этапов: пройденное залито, текущее — в полоску, пропущенное — штриховкой.
-  const segs = stages.map(s => {
-    const st = s.status;
-    let cls = 's-pend', fill = '0%', inner = '', time = L.ahead;
-    if (st === 'done') { cls = 's-done'; fill = '100%'; time = s.startedAt ? fmtClock(stageMs(s)) : '—'; }
-    else if (st === 'skipped') { cls = 's-skip'; time = L.skipped; }
-    else if (st === 'failed') { cls = 's-fail'; fill = '100%'; time = L.failedSt; }
-    else if (st === 'active') {
-      cls = 's-now'; inner = 'stripes';
-      fill = s.id === 'build' && T.length ? Math.max(8, Math.round(done.length / T.length * 100)) + '%' : '50%';
-      time = waiting ? L.waitingSt : (s.startedAt ? stageTimer(s) : '—');
-    }
-    return `<div class="${cls}" role="listitem"><div class="seg"><i class="${inner}" style="width:${fill}"></i></div>
-      <span class="s-name">${esc(stName(s))}</span><span class="s-time">${time}</span></div>`;
-  }).join('');
-  const hero = `<section class="hero ${heroCls} w" aria-live="polite">
-    <div class="hero-top">
-      <div class="hero-main"><div class="state">${stateLine}</div><h2>${h2}</h2>
-        ${lead ? `<p class="lead">${lead}</p>` : ''}${hint}</div>
-      ${big ? `<div class="big"><b>${big}</b><span>${bigSub}</span>
-        <span class="paused" data-idle-note hidden>${L.paused}</span></div>` : ''}
-    </div>
-    <div class="track" role="list">${segs}</div>
-  </section>`;
-
   // ——— плитки ———
   const reqList = S.reqList || [];
   const rk = {done:R.done||0, work:(R.inTicket||0)+(R.inSpec||0), ph:R.placeholder||0, def:R.deferred||0, drop:R.dropped||0};
@@ -2228,39 +1989,6 @@ function render(lang){
       : t.status === 'failed' && (t.concerns || []).length ? ['bad', t.concerns.join('; ')] : null;
   };
   const redoOf = t => [t.repairs ? L.tkParts.repair(t.repairs) : '', t.retries ? L.tkParts.retry(t.retries) : ''].filter(Boolean).join(' · ');
-  const taskRow = t => {
-    const k = kindOf(t);
-    const time = taskTime(t);
-    const note = noteOf(t);
-    const extra = redoOf(t) ? ' · ' + redoOf(t) : '';  // повторы и починки видны у таска в любом состоянии
-    return `<div class="tl"><span class="tl-id${k.on ? ' on' : ''}">${esc(t.id)}</span>
-      <div class="bar ${k.bar}" title="${esc(t.title)}"><span class="nm">${esc(t.title)}</span>
-        <span class="chipin">${ic(k.icon,'xs')}<span class="lbl">${L.chip[k.k]}${extra}</span></span></div>
-      <span class="tl-time ${k.on ? k.k : ''}">${time}</span>
-      ${note ? `<div class="tl-note ${note[0]}">${ic(KIND[t.status].icon)}<span>${esc(note[1])}</span></div>` : ''}</div>`;
-  };
-  let buildCard = '';
-  if (T.length) {
-    const counts = {};
-    T.forEach(t => { const k = kindOf(t).k; counts[k] = (counts[k] || 0) + 1; });
-    const legend = ['done','now','rev','fix','bad','wait'].filter(k => counts[k]).map(k =>
-      `<span class="lg"><i class="${{done:'f-done',now:'f-now',rev:'f-rev',fix:'f-fix',bad:'f-bad',wait:'f-wait'}[k]}"></i>${L.kinds[k]} <b>${counts[k]}</b></span>`).join('');
-    const waves = [...new Set(T.map(t => t.wave ?? 1))].sort((a,b) => a-b);
-    const rows = waves.map(w => {
-      const inWave = T.filter(t => (t.wave ?? 1) === w)
-        .sort((a,b) => String(a.id).localeCompare(String(b.id), undefined, {numeric:true}));
-      const blockers = [...new Set(inWave.flatMap(t => t.blockedBy || []))].filter(b => byId[b] && byId[b].status !== 'done');
-      const sub = inWave.every(t => t.status === 'pending') && blockers.length ? L.waveWaits(blockers)
-        : inWave.length > 1 ? L.waveSub(inWave.length) : '';
-      return `<div class="wave">${esc(L.wave(w))}${sub ? ` <span>${esc(sub)}</span>` : ''}</div>` + inWave.map(taskRow).join('');
-    }).join('');
-    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3><div class="legend">${legend}</div></div>${rows}</section>`;
-  } else if (t0 && (activeStage?.id === 'build' || stage('build').status === 'done')) {
-    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3></div><div class="empty">${ic('list','m')}<span>${L.t0}</span></div></section>`;
-  } else if (!fin) {
-    buildCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.build}</h3></div><div class="empty">${ic('list','m')}<span>${L.noTickets}</span></div></section>`;
-  }
-
   // ——— списки ———
   const list = (key, arr, n, fmt) => {
     if (!arr || !arr.length) return '';
@@ -2328,7 +2056,6 @@ function render(lang){
       L.g4(esc(G.G4.matched), esc(G.G4.checked), Math.max(0, (+G.G4.checked||0) - (+G.G4.matched||0)))) : later('G4', L.g4later);
   const okGates = ['G1','G2','G3','G4'].filter(g => G[g] && G[g].ok).length;
   const gatesCard = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div>${g1}${g2}${g3}${g4}</section>`;
-  const gatesPlain = gatesCard.replace(/<span class="gk">G\d<\/span>/g, '');  // страница «Сейчас»: кодов G1–G4 в тексте нет
 
   // ——— лента ———
   const evText = e => {
@@ -2357,10 +2084,6 @@ function render(lang){
       fin ? `<em>${hhmm(e.t)}</em>` : `<em data-ago-short="${esc(e.t)}">${agoShort(e.t)}</em>`}</div>`;
   };
   const feedEvents = (S.log || []).filter(e => e.k !== 'tier');
-  const feedRows = feedEvents.slice(-12).reverse().map(feedRow).join('');
-  const feedCard = feedRows ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3>${fin ? '' :
-    `<span data-ago="${esc(S.updatedAt || '')}">${S.updatedAt ? agoText(S.updatedAt) : ''}</span>`}</div>${feedRows}</section>` : '';
-
   // ——— Mission control + provider/model transparency ———
   const langRu = L.lang === 'ru';
   const activeWorkers = T.filter(t => ['in-progress','review','repair'].includes(t.status));
@@ -2373,55 +2096,9 @@ function render(lang){
     : fin ? (langRu ? 'Сборка завершена' : 'Build completed')
     : readyWorkers.length ? (langRu ? 'Следующая задача готова' : 'Next task is ready')
     : (langRu ? 'Подготовка следующего шага' : 'Preparing next step');
-  const nextDetail = waiting
-    ? (waiting.note || (langRu ? 'Для продолжения требуется решение пользователя.' : 'A decision is required to continue.'))
-    : failedWorkers.length ? failedWorkers.map(t => t.id + ': ' + t.title).join(' · ')
-    : activeWorkers.length ? activeWorkers.map(t => t.id + ': ' + t.title).join(' · ')
-    : fin ? (S.result || (langRu ? 'Сводка и подтверждения ниже.' : 'See acceptance and checks below.'))
-    : readyWorkers.length ? readyWorkers.slice(0,2).map(t => t.id + ': ' + t.title).join(' · ')
-    : (langRu ? 'Проверьте этапы и требования ниже.' : 'Review stages and requirements below.');
-  const completedCount = done.length;
-  const percent = T.length ? Math.round(100 * completedCount / T.length) : null;
-  const opsBlock = '<section class="ops" aria-label="' + (langRu ? 'Операционный центр' : 'Mission control') + '">'
-    + '<div><div class="ops-eyebrow">' + (langRu ? 'ОПЕРАЦИОННЫЙ ЦЕНТР · СЛЕДУЮЩИЙ ШАГ' : 'MISSION CONTROL · NEXT ACTION')
-    + '</div><div class="ops-head">' + esc(nextTitle)
-    + '</div><div class="ops-detail">' + esc(nextDetail)
-    + '</div></div><div class="ops-meta">'
-    + '<div class="ops-metric"><b>' + (percent === null ? '—' : String(percent) + '%')
-    + '</b><span>' + (langRu ? 'готовность задач' : 'tasks complete') + '</span></div>'
-    + '<div class="ops-metric"><b>' + activeWorkers.length
-    + '</b><span>' + (langRu ? 'активных' : 'active') + '</span></div>'
-    + '<div class="ops-metric"><b>' + okGates + '/4</b><span>'
-    + (langRu ? 'проверок пройдено' : 'quality gates passed') + '</span></div>'
-    + '</div></section>';
   const routed = T.filter(t => t.routing && t.routing.model);
-  const resourceItems = routed.map(t => {
-    const info = t.routing;
-    return '<div class="resource-item"><div class="resource-title">' + esc(t.id + ' · ' + t.title)
-      + '</div><div class="resource-tags">'
-      + '<span class="resource-chip">' + esc(info.provider || '—') + '</span>'
-      + '<span class="resource-chip">' + esc(info.model) + '</span>'
-      + '<span class="resource-chip">Effort: ' + esc(info.effort || '—') + '</span>'
-      + '<span class="resource-chip">' + (langRu ? 'Сложность ' : 'Score ') + esc(info.score ?? '—') + '/100</span>'
-      + '</div><div class="resource-reason">' + esc(info.reason ? humanRoute(info) : '—') + '</div></div>';
-  }).join('');
   const proposals = T.filter(t => t.plannedRouting && !t.routing);
   const blockedProposals = proposals.filter(t => t.plannedRouting.status === 'blocked');
-  const proposalItems = proposals.map(t => {
-    const p = t.plannedRouting;
-    return '<div class="resource-item"><div class="resource-title">' +
-      esc(t.id + ' · ' + t.title) + '</div><div class="resource-tags">' +
-      '<span class="resource-chip">' + (p.status === 'blocked' ?
-        (langRu ? 'ЗАБЛОКИРОВАНО' : 'BLOCKED') : (langRu ? 'НЕ ПРИМЕНЕНО' : 'NOT APPLIED')) + '</span>' +
-      '<span class="resource-chip">' + esc(p.provider || '—') + '</span>' +
-      '<span class="resource-chip">' + esc(p.model || '—') + '</span>' +
-      '<span class="resource-chip">Effort: ' + esc(p.effort || '—') + '</span>' +
-      '<span class="resource-chip">' + esc(p.profile || '—') + '</span>' +
-      '<span class="resource-chip">' + esc(p.score ?? '—') + '/100</span>' +
-      '</div><div class="resource-reason">' +
-      (langRu ? 'Предложение, не запуск: ' : 'Plan only, not executed: ') +
-      esc(p.error || (p.reason ? humanRoute(p) : '—')) + '</div></div>';
-  }).join('');
   const usageEvents = Array.isArray(S.usageEvents) ? S.usageEvents.filter(e =>
     e && Number.isSafeInteger(e.input) && Number.isSafeInteger(e.output) &&
     e.input >= 0 && e.output >= 0) : [];
@@ -2485,20 +2162,6 @@ function render(lang){
       'Cost: no verified billing data. Token counts are tool reports (' + usageEvents.length +
       '); input and cache counters can overlap. The budget only blocks new tasks after usage is reported.')
     + '</div>';
-  const resourceBlock = '<section class="card w resource-card"><div class="whead">'
-    + '<h3 class="wt">' + (langRu ? 'Модели и ресурсы' : 'Models & resources') + '</h3>'
-    + '<span>' + (langRu ? 'Маршруты записаны: ' : 'Routes recorded: ') + routed.length + '/' + T.length + '</span></div>'
-    + routeNotes
-    + (routed.length ? '<div class="resource-list">' + resourceItems + '</div>' :
-      (proposals.length ? '<p class="muted">' + (langRu ?
-        'Модель и Effort рассчитаны на этапе планирования; профили не применены и реальный GUI не подтверждён.' :
-        'Model and Effort calculated at planning time; profiles not applied and live GUI unverified.') +
-        '</p>' : '<p class="muted">' + (langRu ? 'Назначения моделей пока не зарегистрированы.' :
-        'No per-task model assignments recorded yet.') + '</p>'))
-    + (proposals.length ? '<div class="resource-list" id="planned-model-routes">' + proposalItems + '</div>' : '')
-    + '<div class="resource-meters">' + tokenSummary + budgetLine + '</div>'
-    + resourceFooter + '</section>';
-
   // ——— Isolation & recovery; read-only health indicators ———
   const isolated = T.filter(t => t.worktree || t.retries || t.repairs);
   const isolationRows = isolated.map(t => {
@@ -2553,23 +2216,7 @@ function render(lang){
       : kpi(W.kRetries, '—', W.empty, true))
     + '</div>';
 
-  const trackCard = `<section class="card w trackcard"><div class="whead"><h3 class="wt">${W.tStages}</h3></div><div class="track" role="list">${segs}</div></section>`;
-  const attention = activeWorkers.concat(failedWorkers);
-  const none = `<p class="muted">${W.empty}</p>`;
-  const tasksEmpty = emptyCard(L.build, t0 ? L.t0 : L.noTickets);
   const emptyGantt = emptyCard(W.tGantt, t0 ? L.t0 : L.noTickets);
-  const waitingT = T.filter(t => t.status === 'pending');
-  const activeCard = T.length
-    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tActive}</h3><span>${attention.length}</span></div>${attention.length ? rowsList('act', attention.map(taskRow), 4) : none}</section>`
-    : tasksEmpty;
-  const waitingCard = T.length
-    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tWaiting}</h3><span>${waitingT.length}</span></div>${waitingT.length ? rowsList('wt', waitingT.map(taskRow), 4) : none}</section>`
-    : '';
-  const reqSummary = R.total
-    ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tReq}</h3><span>${rk.done} ${L.of} ${live}</span></div>${reqStack}
-        <p class="muted" style="margin-top:10px">${reqPartsText}</p>${T.length ? `<p class="muted" style="margin-top:6px">${L.g3ok(live, T.length)}</p>` : ''}</section>`
-    : emptyCard(W.tReq, L.reqLater);
-  const feedView = feedCard || emptyCard(L.feed, W.empty);
   const wordsView = wordsCard || emptyCard(L.words, L.reqLater);
   const blindView = blindCard || emptyCard(L.blind, W.empty);
   const reviewView = reportCard + concernsCard || emptyCard(W.tReview, W.empty);
@@ -2579,8 +2226,6 @@ function render(lang){
   const feedAll = feedItems.length
     ? `<section class="card w"><div class="whead"><h3 class="wt">${W.tFeedAll}</h3><span>${feedItems.length}</span></div>${rowsList('feed', feedItems, 15)}</section>`
     : emptyCard(W.tFeedAll, W.empty);
-
-  const debtCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tDebt}</h3><span>${env.length + ph.length + asm.length}</span></div>${keysBlock + phBlock + asmBlock || none}</section>`;
 
   // Ждущий таск без маршрута тоже получает строку: токенов 0, рабочей копии нет. Причин выбора без данных не выдумываем.
   const unrouted = T.filter(t => t.status === 'pending' && !t.routing && !t.plannedRouting);
@@ -2604,7 +2249,7 @@ function render(lang){
         : t.status === 'pending' ? `<span class="pill p-mut">${W.notCreated}</span>` : '—'}</td>` : '') + '</tr>';
   };
   const routesCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tRoutes}</h3><span>${routed.length}/${T.length}</span></div>${routeNotes}${routeRows.length
-    ? `<div class="tablewrap"><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+    ? `<div class="tablewrap"${proposals.length ? ' id="planned-model-routes"' : ''}><table class="routes"><thead><tr>${routeCols.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
       routeRows.map(routeRow).join('')}</tbody></table></div>` : emptyBox(W.empty)}</section>`;
   const tokensCard = `<section class="card w resource-card"><div class="whead"><h3 class="wt">${W.tTokens}</h3><span>${usageEvents.length || spendRuns}</span></div><div class="resource-meters flat">${tokenSummary}${budgetLine}</div>${resourceFooter}</section>`;
   const isolationView = isolationBlock || emptyCard(W.tIsolation, W.empty);
@@ -2642,10 +2287,6 @@ function render(lang){
   const logBadge = Number.isSafeInteger(S.logFailures) && S.logFailures > 0
     ? `<p class="pill p-bad logbadge" role="status">${esc(W.logBadge(S.logFailures))}</p>` : '';
 
-  const checks = [[W.cResult, fin && S.result], [L.tTests, tests], [L.blind, B], [L.report, report.length], [L.assumptions, asm.length], [L.concerns, concerns.length]];
-  const summaryCard = `<section class="card w"><div class="whead"><h3 class="wt">${W.tSummary}</h3></div>${fin ? '' : `<p class="muted">${W.notDone}</p>`}${
-    checks.map(([name, ok]) => `<div class="req"><p>${name}</p><span class="pill ${ok ? 'p-done' : 'p-mut'}">${ok ? W.have : (fin ? W.none : W.empty)}</span></div>`).join('')}</section>`;
-
   // ——— Обзор и Компактный: кольцо, прогноз, маршрут этапов, диаграмма Ганта ———
   // Блок без данных не рисуется. Прогноз — только когда есть готовые таски с началом и концом (median).
   const fmtK = n => n >= 1000 ? Math.round(n / 1000) + 'k' : String(n);
@@ -2672,17 +2313,6 @@ function render(lang){
   const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
     <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
     ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
-  // «Сейчас»: герой одной строкой. Фраза-пояснение уходит в title заголовка; список оговорок сданной сборки остаётся под строкой.
-  const plain = html => String(html).replace(/<[^>]*>/g, '');
-  const nowSide = [timeVal && kv(W.kTime, timeVal), testsVal && kv(L.tTests, testsVal)].filter(Boolean).join('');
-  const nowHero = `<section class="card nowh w ${heroCls}" aria-live="polite">${ringHTML(' sm')}
-    <h2 title="${esc(plain(h2) + (!fin && (ovLead ?? lead) ? ' — ' + plain(ovLead ?? lead) : ''))}">${h2}</h2>
-    <div class="nowh-side">${chipState}${nowSide}</div>${fin && S.landedWith ? `<div class="nowh-note">${lead}</div>` : ''}</section>`;
-  const ctile = (k, v) => `<div class="ctile"><span>${k}</span><b>${v}</b></div>`;
-  const ctiles = [testsVal && ctile(L.tTests, testsVal), timeVal && ctile(W.kTime, timeVal), tokVal && ctile(W.kTokens, tokVal)].filter(Boolean);
-  const cHero = `<section class="card cmp-hero w ${heroCls}" aria-live="polite"><div class="cmp-top">${ringHTML(' sm')}
-    <div class="cmp-side">${chipState}${foreBlock}</div></div><h2>${h2}</h2>${evNote}${ctiles.length ? `<div class="ctiles">${ctiles.join('')}</div>` : ''}</section>`;
-
   // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
   const rsInfo = s => {
     if (s.status === 'done') {
@@ -2701,34 +2331,6 @@ function render(lang){
   const curSt = activeStage || failedStage || stages.find(s => s.status === 'pending') || stages[stages.length - 1];
   const curNo = stages.indexOf(curSt) + 1;
   const stageOf = esc(W.cStage(curNo, stages.length, stName(curSt)));
-  const nextNames = stages.slice(curNo).filter(s => s.status === 'pending').slice(0, 2).map(stName);
-  const cstrip = `<section class="card w"><div class="cstrip"><div class="cs-head"><b>${stageOf}</b><span class="cs-sub">${rsInfo(curSt).sub}</span></div>
-    <div class="cs-bar" role="img" aria-label="${stageOf}">${stages.map(s => `<i class="${rsInfo(s).cls}"></i>`).join('')}</div>
-    ${nextNames.length ? `<p class="muted">${esc(W.cNext(nextNames.join(' → ')))}</p>` : fin ? `<p class="muted">${W.cDone}</p>` : ''}</div></section>`;
-
-  // Компактный: только то, что нужно от вас, — ключи и заглушки; решения за вас и пустое «пока ничего» в узкой панели не нужны.
-  const needSlim = keysBlock + phBlock
-    ? `<div class="ask-card"><section class="card w"><div class="whead"><h3 class="wt">${fin ? L.prep : L.need}</h3><span>${env.length + ph.length}</span></div>${keysBlock}${phBlock}</section></div>` : '';
-
-  // «Таймлайн»: пять карточек (только с данными), герой с прогнозом и маршрутом этапов.
-  const tileTok = usageEvents.length
-    ? `<section class="card tile w"><span class="tk">${W.kTokens}</span><span class="tv">${fmtK(countedTokens)}${budget ? `<small>${L.of} ${fmtK(budget)}</small>` : ''}</span>${
-        budget ? `<div class="stack" aria-hidden="true"><i class="f-done" style="flex:${budgetPercent || 0}"></i><i class="f-idle" style="flex:${100 - (budgetPercent || 0)}"></i></div>` : ''}
-        <span class="ts">${W.kIn} ${numberFormat(tokensInput)} · ${W.kOut} ${numberFormat(tokensOutput)}</span></section>` : '';
-  const tlTilesList = [R.total && tileReq, T.length && tileTk, tests && tileTests, tileTok, S.startedAt && tileTime].filter(Boolean);
-  const tlTiles = tlTilesList.length ? `<div class="tiles t5">${tlTilesList.join('')}</div>` : '';
-  const tlHero = `<section class="card ovh tlh w ${heroCls}" aria-live="polite"><div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}</div>
-    ${foreBlock ? `<div class="ovh-side">${foreBlock}</div>` : ''}${route}</section>`;
-
-  // «Итог»: герой с карточками справа — рабочее время, тесты, токены. «Коммитов» в state.js нет — карточки нет.
-  const kcard = (k, v, sub) => `<div class="kcard"><span class="kk">${k}</span><b>${v}</b>${sub ? `<span class="ks">${sub}</span>` : ''}</div>`;
-  const kcards = [timeVal && kcard(W.kTime, timeVal, L.timeSub),
-    tests && kcard(L.tTests, esc(tests.passed), tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk),
-    tokVal && kcard(W.kTokens, tokVal, budget ? `${L.of} ${fmtK(budget)}` : '')].filter(Boolean);
-  const sumHero = `<section class="card ovh sum-h w ${heroCls}" aria-live="polite">${ringHTML('')}
-    <div class="ovh-main">${chipState}<h2>${h2}</h2>${lead ? `<p class="lead">${lead}</p>` : ''}${hint}${evNote}</div>
-    ${foreBlock || kcards.length ? `<div class="ovh-side">${foreBlock}${kcards.length ? `<div class="kcards">${kcards.join('')}</div>` : ''}</div>` : ''}</section>`;
-
   // Диаграмма Ганта: настоящие отрезки по startedAt/finishedAt; ждущие таски — пунктиром после тех, от кого зависят.
   const GT = 60000, gNow = Date.now(), placed = {};
   const place = (t, seen) => {
@@ -2749,7 +2351,7 @@ function render(lang){
   const gRows = T.slice().sort((x, y) => ((x.wave ?? 1) - (y.wave ?? 1)) || byTicketId(x, y))
     .map(t => [t, place(t, new Set())]);  // у таска без отметок времени места на оси нет (null), но строка остаётся
   const timedRows = gRows.filter(x => x[1]);
-  let gantt = '', ganttFull = '', miniGantt = '';
+  let ganttFull = '';
   if (gRows.length) {
     const gFrom = Math.min(...timedRows.map(x => x[1].a), ...(fin && timedRows.length ? [] : [gNow]));
     const gTo = Math.max(...timedRows.map(x => x[1].b + x[1].tail), ...(fin && timedRows.length ? [] : [gNow]));
@@ -2790,23 +2392,12 @@ function render(lang){
     const row = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><div><b>${esc(t.title)}</b><small>${esc(subOf(t))}</small></div></div>
       <div class="gx-lane">${grid}${p ? gBar(t, p, false) : `<span class="gx-none">${W.noMarks}</span>`}</div><div class="gx-mdl">${t.routing && t.routing.model
         ? `<span class="mchip">${esc(t.routing.model)}${t.routing.effort ? ' · ' + esc(t.routing.effort) : ''}</span>` : ''}</div>${gNote(t)}</div>`;
-    const miniRow = ([t, p]) => `<div class="gx-row"><div class="gx-lab"><span class="gx-id">${esc(t.id)}</span><b>${esc(t.title)}</b><span class="pill ${PILLK[kindOf(t).k]}">${L.chip[kindOf(t).k]}</span></div>
-      <div class="gx-lane">${grid}${p ? gBar(t, p, true) : `<span class="gx-none">${W.noMarks}</span>`}</div>${gNote(t)}</div>`;
     const legend = `<div class="gx-legend">${['done', 'now', 'rev', 'wait'].map(k => `<span><i class="sw sw-${k}"></i>${k === 'wait' ? W.lgPlan : L.chip[k]}</span>`).join('')}</div>`;
     const ganttCard = rows => `<section class="card w"><div class="whead"><div><h3 class="wt">${W.tGantt}</h3><p class="muted">${W.gSub}</p></div>${legend}</div>
       <div class="gx">${axis}${rows}</div></section>`;
-    // «Обзор» — краткий (до восьми строк, без разделителей волн: волна подписана в строке), «Таймлайн» — подробный: все таски, волны названы.
-    gantt = ganttCard(rowsList('gt', gRows.map(row), 8));
+    // Гант целиком: все таски, волны названы.
     ganttFull = ganttCard(gRows.map((x, i) => (i && (x[0].wave ?? 1) === (gRows[i - 1][0].wave ?? 1) ? '' : `<div class="wave">${esc(L.wave(x[0].wave ?? 1))}</div>`) + row(x)).join(''));
-    miniGantt = `<section class="card w"><div class="whead"><h3 class="wt">${W.tGantt}</h3></div>
-      <div class="gx mini">${axis}${rowsList('gtm', gRows.map(miniRow), 8)}</div>${legend}</section>`;
   }
-  const gOk = g => G[g] && G[g].ok;
-  const gchips = `<section class="card w"><div class="whead"><h3 class="wt">${L.gates}</h3><span>${L.gatesOf(okGates)}</span></div><div class="gchips">${
-    ['G1', 'G2', 'G3', 'G4'].map(g => `<span class="gchip ${gOk(g) ? 'ok' : G[g] ? 'warn' : 'wait'}">${gOk(g) ? '✓' : G[g] ? '!' : '○'} ${g} · ${L.gT[g]}${wasReset(g) ? ' — ' + L.gReset : ''}</span>`).join('')}</div></section>`;
-  const feedShort = feedEvents.slice(-5).reverse().map(feedRow).join('');
-  const feedCompact = feedShort ? `<section class="card w"><div class="whead"><h3 class="wt">${L.feed}</h3></div>${feedShort}</section>` : emptyCard(L.feed, W.empty);
-
   // ——— «Требования» и «Итог»: путь каждой фразы брифа ———
   // У требования в state.js нет ссылок на таски, но у таска есть requirements[]: связь берём оттуда
   // (R03.1 — это R03). Что в state.js нет — то не рисуется: ни «было/стало», ни решений за вас.
@@ -2937,17 +2528,14 @@ function render(lang){
       reqColHtml(c)}</ul></section>`).join('')}</div>
     <div class="bd-strips">${['ph', 'def', 'drop'].map(c => `<section class="bd-strip" data-rstrip="${c}" aria-label="${esc(BD.strip[c] + ', ' + reqIn(c).length)}"><h4>${esc(BD.strip[c])} <span>${reqIn(c).length}</span></h4><ul>${
       reqIn(c).map(reqCard).join('') || '<li class="bd-none">—</li>'}</ul></section>`).join('')}</div>`;
-  const rbSwitch = `<div class="rbmode" role="group" aria-label="${esc(BD.rbLabel)}">${['req', 'tk'].map(m =>
-    `<button type="button" data-rbmode="${m}" aria-pressed="${UI.rb === m}">${esc(BD.rbModes[m])}</button>`).join('')}</div>`;
-  const reqBoard = `<section class="card w bd"><div class="whead"><h3 class="wt">${UI.rb === 'tk' ? BD.boardTitle : BD.reqTitle}</h3>${rbSwitch}</div>${
-    UI.rb === 'tk' ? (T.length ? boardBody : emptyBox(t0 ? L.t0 : BD.none)) : reqRows.length ? reqBoardBody : emptyBox(L.reqLater)}</section>`;
+  const reqBoard = `<section class="card w bd"><div class="whead"><h3 class="wt">${BD.reqTitle}</h3></div>${reqBoardBody}</section>`;
 
   // Боковая панель таска: что делать, требования, зона, модель и причина, лента событий, тесты, коммит, замечания ревью.
   // Открыта — пока в UI.panel лежит id; состояние читает заново на каждой перерисовке, поэтому живёт вместе со сборкой.
   const openT = UI.panel != null ? byId[UI.panel] : null;
   if (UI.panel != null && !openT) UI.panel = null;
   let panel = '';
-  if (openT && VIEW === VIEW_IDS[0]) {
+  if (openT) {
     const t = openT, r = routeOf(t);
     const sec = (head, html) => `<section class="tp-sec"><h4>${esc(head)}</h4>${html}</section>`;
     const reqText = id => ((reqList.find(x => x.id === id) || reqList.find(x => x.id === reqBase(id))) || {}).text;
@@ -2971,59 +2559,22 @@ function render(lang){
     </aside>`;
   }
 
-  // ——— страница «Сейчас» ———
-  // Ждёт ответа — вопрос закреплён сверху на любой вкладке: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно:
+  // ——— полоса «ждёт ответа» ———
+  // Ждёт ответа — вопрос закреплён сверху: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно:
   // кнопка есть, пока браузер умеет уведомления и разрешения ещё нет; без неё полоса и значок остаются.
   const canAsk = typeof Notification !== 'undefined' && Notification.permission === 'default';
   const askBar = waiting ? `<section class="askbar" role="status"><span class="ak">${L.askBar}</span>
     <p>${esc(waiting.note || L.waitH2[waiting.kind] || L.waitState)}</p>
     <span class="aw" data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span>${
       canAsk ? `<button type="button" data-notify>${esc(L.notify)}</button>` : ''}</section>` : '';
-  if (!['now','req','sum','det'].includes(UI.tab)) UI.tab = 'now';
-  const nowTabs = `<div class="ntabs" role="tablist" aria-label="${esc(L.ntabsLabel)}">${['now','req','sum','det'].map(id =>
-    `<button type="button" role="tab" data-ntab="${id}" aria-selected="${UI.tab === id}">${esc(L.ntabs[id])}</button>`).join('')}</div>`;
 
-  // ——— раскладка ———
-  // Слева — длинное (слова, ход сборки в отчёте), справа — короткое; «Понадобится»
-  // слева под словами, иначе правая колонка уходит вниз, а левая стоит пустой.
-  const leftCol = fin ? [needCard, blindCard, buildCard, wordsCard] : [wordsCard, needCard];
-  const rightCol = fin ? [gatesCard, reportCard, asmCard, concernsCard, addCard, feedCard]
-                    : [gatesCard, feedCard, reportCard, concernsCard, addCard];
-  // Остальные карточки «Классики» (слепая приёмка, отчёт, замечания…) — под «Твоими словами» в Обзоре.
-  const shown = [buildCard, wordsCard, feedCard, gatesCard, needCard];
-  const extras = leftCol.concat(rightCol).filter(x => x && !shown.includes(x)).join('');
+  // ——— страница ———
   const when = S.startedAt ? (fin
     ? L.startedRange(new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}), hhmm(S.finishedAt))
     : L.started(new Date(S.startedAt).toDateString() === new Date().toDateString()
         ? `${L.today} ${hhmm(S.startedAt)}`
         : new Date(S.startedAt).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}))) : '';
 
-  // Первая тема — страница «Сейчас»; остальные под «Ещё» (раскрыты, пока выбрана одна из них).
-  const viewBtn = id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`;
-  const moreOpen = UI.more || VIEW !== VIEW_IDS[0];
-  // Вид в шапке — поисковый combobox: имя вида на двух языках, стрелки, Enter, Esc.
-  // Прежняя лента кнопок (data-view) остаётся в разметке скрытой: на ней держатся
-  // data-view, «Ещё» и тесты, а выбирает вид тот же selectView().
-  const comboIds = comboList(UI.combo.q);
-  if (UI.combo.i >= comboIds.length || UI.combo.i < 0) UI.combo.i = 0;
-  const comboActive = UI.combo.open && comboIds.length ? 'vopt-' + comboIds[UI.combo.i] : '';
-  const comboOpt = id => {
-    const alt = L.lang === 'ru' ? I18N.en.views[id] : I18N.ru.views[id];
-    const on = UI.combo.open && comboIds[UI.combo.i] === id;
-    return `<button type="button" role="option" id="vopt-${id}" class="vopt${on ? ' act' : ''}" data-vopt="${id}" aria-selected="${VIEW === id}" tabindex="-1">`
-      + `<span class="vopt-name">${esc(L.views[id])}</span><span class="vopt-alt">${esc(alt)}</span>${VIEW === id ? '<span class="vopt-check" aria-hidden="true">✓</span>' : ''}</button>`;
-  };
-  const viewCombo = `<div class="vcombo" data-vcombo data-open="${UI.combo.open}">
-      <span class="vcombo-ic" aria-hidden="true">${ic('search')}</span>
-      <input id="view-combo" class="vcombo-inp" type="text" role="combobox" autocomplete="off" spellcheck="false" aria-haspopup="listbox"
-        aria-label="${esc(L.viewLabel)}" aria-expanded="${UI.combo.open}" aria-controls="view-listbox" aria-autocomplete="list"${
-        comboActive ? ` aria-activedescendant="${comboActive}"` : ''} placeholder="${esc(L.viewSearch)}"
-        value="${esc(UI.combo.open ? UI.combo.q : L.views[VIEW])}" data-vcombo-input>
-      <button type="button" class="vcombo-btn" data-vcombo-toggle aria-label="${esc(L.viewLabel)}" aria-expanded="${UI.combo.open}">${ic('chev')}</button>
-      <div class="vlistbox" id="view-listbox" role="listbox" aria-label="${esc(L.viewLabel)}"${UI.combo.open ? '' : ' hidden'}>
-        ${comboIds.map(comboOpt).join('')}<p class="vlistbox-none"${comboIds.length ? ' hidden' : ''}>${esc(L.viewNone)}</p>
-      </div>
-    </div>`;
   // «Сдано <время>» вместо «обновлено N назад»: у сданной сборки обновлений больше нет. Другой день — с датой.
   const doneAtMs = toMs(S.finishedAt) ?? toMs(S.updatedAt);
   const doneStamp = doneAtMs == null ? '' : new Date(doneAtMs).toDateString() === new Date().toDateString() ? hhmm(new Date(doneAtMs))
@@ -3031,41 +2582,43 @@ function render(lang){
   document.documentElement.lang = L.lang;
   if (NARROW_MQ && NARROW_MQ.matches) document.documentElement.setAttribute('data-narrow', '1');
   else document.documentElement.removeAttribute('data-narrow');
-  document.documentElement.setAttribute('data-view', VIEW);  // палитра макетов включается всем видам, кроме «Классики»
   const app = document.getElementById('app');
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-rbok','data-notify','data-vcombo-input'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh','data-card','data-pclose','data-rbok','data-notify'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
   const focusTag = focusAttr ? active.tagName : null;
   const focusId = !focusAttr && active && typeof app.contains === 'function' && app.contains(active)
-    && ['mission','tasks','models','quality'].includes(active.id) ? active.id : null;
-  const sectionTitle = (number, title, sub) =>
-    `<div class="section-top"><span>${number}</span>${title}<small>${sub}</small></div>`;
-  const page = VIEWS[VIEW]({L, S, T, fin, langRu, sectionTitle, hero, opsBlock, tiles, kpiRow, trackCard, tasksEmpty, activeCard, waitingCard,
-    buildCard, reqSummary, gatesCard, feedView, wordsView, blindView, reviewView, feedAll, debtCard, routesCard, tokensCard,
-    isolationView, summaryCard, blindCard, reportCard, concernsCard, addCard, asmCard, resourceBlock, isolationBlock, leftCol, rightCol, activeWorkers,
-    ovHero, nowHero, route, gantt, ganttFull, emptyGantt, matrixCard, verdictCard, mismatchCard, nextCard, needSum, wordsCard, needCard, extras, cHero, cstrip, miniGantt, gchips, feedCompact, needSlim, tlHero, tlTiles, sumHero,
-    askBar, nowTabs, tab: UI.tab, gatesPlain, historyCard, spendCard, logBadge, board, reqBoard});
-  // Ссылка рейки показывается, только если в блоках выбранной темы есть её якорь.
-  const has = id => page.includes(`id="${id}"`);
+    && ['mission','reqs','tasks','quality','models','gates','feed'].includes(active.id) ? active.id : null;
+  // Заметки в заголовках секций (справа): число, которое видно и в свёрнутой секции.
+  const secNote = {
+    stageNote: stageOf,
+    reqNote: R.total ? `${rk.done} ${L.of} ${live}` : '',
+    taskNote: T.length ? `${done.length} ${L.of} ${T.length}` : '',
+    testsNote: tests ? `${esc(tests.passed)} · ${tests.failed ? esc(L.testsBad(tests.failed)) : L.testsOk}` : '',
+    tokenNote: usageEvents.length ? fmtK(countedTokens) : spendRuns ? fmtK(spendTokens) : '',
+    gatesNote: L.gatesOf(okGates),
+    feedNote: feedItems.length ? String(feedItems.length) : ''
+  };
+  const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, askBar, ovHero, tiles, logBadge, route, reqBoard,
+    matrixCard, wordsView, ganttFull, emptyGantt, board, needSum, nextCard, mismatchCard, needCard, verdictCard, blindView, reviewView,
+    asmCard, addCard, kpiRow, routesCard, spendCard, historyCard, isolationView, gatesCard, feedAll}, secNote));
+  // Ссылка рейки показывается, только если на странице есть её якорь.
+  const has = id => pageHtml.includes(`id="${id}"`);
   // Версия навыка из состояния (текстом, state недоверенный); нет версии — нет и подписи.
   const skillVer = typeof S.skillVersion === 'string' ? S.skillVersion.slice(0, 16) : '';
-  const cur = id => VIEW_HOME[VIEW] === id;
-  const navAttr = id => cur(id) ? ' aria-current="page"' : '';
-  const navText = (id, label) => cur(id) ? esc(L.views[VIEW]) : label;
   const rail = `<aside class="cockpit-rail" aria-label="${langRu ? 'Навигация' : 'Navigation'}">
     <div class="rail-brand">${BRAND_SVG}
       <span>${BRAND_WORD}<small>CONTROL CENTER${skillVer ? ' / ' + esc(skillVer) : ''}</small></span></div>
     <div class="rail-label">${langRu ? 'Разделы проекта' : 'Project sections'}</div>
     <nav class="rail-nav">
-      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"${navAttr('mission')}><span class="sym" aria-hidden="true">◉</span>${navText('mission', langRu ? 'Обзор' : 'Overview')}</a>` : ''}
-      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"${navAttr('tasks')}><span class="sym" aria-hidden="true">▤</span>${navText('tasks', langRu ? 'Задачи' : 'Tickets')}</a>` : ''}
-      ${has('models') ? `<a data-focus-key="nav-models" href="#models"${navAttr('models')}><span class="sym" aria-hidden="true">◈</span>${navText('models', langRu ? 'Модели и токены' : 'Models & tokens')}</a>` : ''}
-      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"${navAttr('quality')}><span class="sym" aria-hidden="true">◇</span>${navText('quality', langRu ? 'Проверки' : 'Quality checks')}</a>` : ''}
+      ${has('mission') ? `<a data-focus-key="nav-mission" href="#mission"><span class="sym" aria-hidden="true">◉</span>${langRu ? 'Обзор' : 'Overview'}</a>` : ''}
+      ${has('tasks') ? `<a data-focus-key="nav-tasks" href="#tasks"><span class="sym" aria-hidden="true">▤</span>${langRu ? 'Задачи' : 'Tickets'}</a>` : ''}
+      ${has('models') ? `<a data-focus-key="nav-models" href="#models"><span class="sym" aria-hidden="true">◈</span>${langRu ? 'Модели и токены' : 'Models & tokens'}</a>` : ''}
+      ${has('quality') ? `<a data-focus-key="nav-quality" href="#quality"><span class="sym" aria-hidden="true">◇</span>${langRu ? 'Проверки' : 'Quality checks'}</a>` : ''}
     </nav>
     <div class="rail-monitor"><label>${fin ? (langRu ? 'ГОТОВО' : 'COMPLETED') : (langRu ? 'МОНИТОРИНГ' : 'LIVE MONITOR')}</label>
       <b>${esc(nextTitle)}</b>
@@ -3081,15 +2634,9 @@ function render(lang){
   <main class="cockpit-content" id="content" tabindex="-1">
   <header class="top">
     <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
-    ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${fin ? esc(L.doneAt(doneStamp)) : `${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span>`}</span>` : ''}
+    ${toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${fin ? esc(L.doneAt(doneStamp)) : `${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span>`}</span>` : ''}
     <div class="tools">
-      ${viewCombo}
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
-      <div class="tabs views" role="group" aria-label="${L.viewLabel}" hidden>
-        ${viewBtn(VIEW_IDS[0])}
-        <button type="button" class="vmore" data-views-more aria-expanded="${moreOpen}">${esc(L.moreViews)}</button>
-        <span class="vlist"${moreOpen ? '' : ' hidden'}>${VIEW_IDS.slice(1).map(viewBtn).join('')}</span>
-      </div>
       <div class="tabs" role="group" aria-label="${L.themeLabel}">
         <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${effectiveTheme()==='light'}">${ic('sun')}</button>
         <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}" aria-pressed="${effectiveTheme()==='dark'}">${ic('moon')}</button>
@@ -3105,7 +2652,7 @@ function render(lang){
     <div class="meta">${S.mode ? `<span class="tag">${esc(L.modes[S.mode] || S.mode)}</span>` : ''}${
       S.depth ? `<span class="tag">${esc(L.depths[S.depth] || S.depth)}</span>` : ''}<span class="when">${when}</span></div>
   </div>
-  ${page}
+  ${pageHtml}
   <footer>
     <span>${L.filesIn} <code>.autopilot/${esc(S.dir || S.slug)}/</code></span>
     <span>${fin ? L.frozen : `${L.updated}: <span data-ago="${esc(S.updatedAt || '')}"
@@ -3117,7 +2664,7 @@ function render(lang){
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
     const replacement = focusAttr
-      ? [...app.querySelectorAll('button, a[href], input')].find(node =>
+      ? [...app.querySelectorAll('button, a[href], input, summary')].find(node =>
           node.tagName === focusTag && node.getAttribute(focusAttr) === focusValue)
       : document.getElementById(focusId);
     if (replacement) replacement.focus({preventScroll:true});
@@ -3187,29 +2734,15 @@ document.getElementById('app').addEventListener('click', e => {
     try { localStorage.setItem('autopilot-theme', t); } catch(err) {}
     applyTheme(t);
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
-  } else if (b.dataset.vopt) {
-    selectView(b.dataset.vopt);
-  } else if (b.hasAttribute('data-vcombo-toggle')) {
-    comboOpen(!UI.combo.open);
-  } else if (VIEW_IDS.includes(b.dataset.view)) {
-    selectView(b.dataset.view);
-  } else if (b.dataset.ntab) {
-    UI.tab = b.dataset.ntab; render(CUR.lang);
   } else if (b.dataset.card) {
     UI.panel = b.dataset.card; UI.focus = {}; render(CUR.lang);
   } else if (b.hasAttribute('data-pclose')) {
     closePanel();
   } else if (b.hasAttribute('data-rbok')) {
     UI.rbOkAll = !UI.rbOkAll; render(CUR.lang);
-  } else if (b.dataset.rbmode) {
-    UI.rb = b.dataset.rbmode === 'tk' ? 'tk' : 'req';
-    try { localStorage.setItem(RB_KEY, UI.rb); } catch(err) {}
-    render(CUR.lang);
   } else if (b.hasAttribute('data-notify')) {
     // Разрешение просим только здесь — по клику пользователя; когда ответит, перерисовка пошлёт уведомление.
     if (typeof Notification !== 'undefined') Promise.resolve(Notification.requestPermission()).then(() => render(CUR.lang));
-  } else if (b.hasAttribute('data-views-more')) {
-    UI.more = !UI.more; render(CUR.lang);
   } else if (b.hasAttribute('data-refresh')) {
     refreshNow(b);
   } else if (b.dataset.filter) {
@@ -3219,36 +2752,11 @@ document.getElementById('app').addEventListener('click', e => {
   }
 });
 
-// Вид в шапке: ввод фильтрует список, стрелки/Enter/Esc — пока фокус в комбобоксе.
-// Слушаем #app: он перерисовывается целиком, а события всплывают от полей к нему.
-document.getElementById('app').addEventListener('input', e => {
-  const inp = e.target && e.target.closest ? e.target.closest('[data-vcombo-input]') : null;
-  if (!inp) return;
-  UI.combo.q = inp.value || '';
-  UI.combo.i = 0;
-  comboSync();
-});
-document.getElementById('app').addEventListener('keydown', e => {
-  const inCombo = e.target && e.target.closest ? e.target.closest('[data-vcombo]') : null;
-  if (!inCombo) return;
-  if (!UI.combo.open) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); comboOpen(true); }
-    return;
-  }
-  if (e.key === 'Tab') { comboOpen(false); return; }
-  if (comboKey(e)) { e.preventDefault(); e.stopPropagation(); }
-});
-// Клик по полю открывает список, клик мимо — закрывает; выбор пункта ловит общий обработчик.
-document.addEventListener('click', e => {
-  const t = e.target;
-  const inCombo = t && t.closest ? t.closest('[data-vcombo]') : null;
-  if (inCombo) {
-    const inp = t.closest('[data-vcombo-input]');
-    if (inp && !UI.combo.open) comboOpen(true);
-    return;
-  }
-  if (UI.combo.open) comboOpen(false);
-});
+// Секции <details>: toggle не всплывает, поэтому слушаем в фазе перехвата. Что раскрыто, переживает перерисовку (UI.sec).
+document.getElementById('app').addEventListener('toggle', e => {
+  const d = e.target;
+  if (d && d.classList && d.classList.contains('sec') && d.id) UI.sec[d.id] = !!d.open;
+}, true);
 
 // Esc закрывает панель таска; фокус возвращается на карточку.
 function closePanel(){

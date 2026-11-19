@@ -12,8 +12,8 @@ PAGE = ROOT / "skills" / "autopilot" / "phases" / "dashboard-template.html"
 
 def main():
     html = PAGE.read_text(encoding="utf-8")
-    if "const opsBlock" not in html or "const resourceBlock" not in html:
-        print("Dashboard 3.0 sections missing", file=sys.stderr)
+    if "const page = c =>" not in html or "const routesCard" not in html:
+        print("Dashboard page or models section missing", file=sys.stderr)
         return 2
     scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", html, re.I | re.S)
     source = [s for s in scripts if s.strip()]

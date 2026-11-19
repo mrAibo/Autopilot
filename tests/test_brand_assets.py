@@ -16,7 +16,6 @@ class BrandingSmoke(unittest.TestCase):
         self.assertEqual(dashboard.count('<div class="brand"'), 2)
         self.assertIn('class="cockpit-rail"', dashboard)
         self.assertIn('class="cockpit-content"', dashboard)
-        self.assertIn('class="spotlight"', dashboard)
         self.assertIn('href="#models"', dashboard)
         self.assertIn('.cockpit-rail{display:none}', dashboard)
         self.assertNotIn("2.3 DEV", dashboard)

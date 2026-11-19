@@ -308,7 +308,7 @@ class DashboardCacheColumn(unittest.TestCase):
         cls.out = json.loads(done.stdout)
 
     def cells(self, lang):
-        html = self.out["cache/det/" + lang]
+        html = self.out["cache/page/" + lang]
         spend = html[html.index("data-spend"):]
         return [[re.sub(r"<[^>]*>", "", c) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", r)]
                 for r in re.findall(r"<tr>(.*?)</tr>", spend, re.S)]
@@ -325,7 +325,7 @@ class DashboardCacheColumn(unittest.TestCase):
 
 
     def test_orchestrator_stays_in_tables_but_out_of_header_and_tile(self):
-        html = self.out["orch/det/en"]
+        html = self.out["orch/page/en"]
         spend = html[html.index("data-spend"):]
         head = re.sub(r"<[^>]*>", "", re.search(r'<div class="whead">(.*?)</div>', spend, re.S).group(1))
         self.assertIn("4,900", head)
@@ -333,12 +333,13 @@ class DashboardCacheColumn(unittest.TestCase):
         rows = {r[0]: r for r in self.cells_of(spend)}
         self.assertEqual(rows["orchestrator"][2], "100,000")      # строка таблицы осталась
         self.assertEqual(rows["orchestrator"][3], "7%")
-        for page in ("now", "res"):                               # плитка «токены»
-            self.assertNotIn("104,900", re.sub(r"<[^>]*>", " ", self.out["orch/%s/en" % page]), page)
+        tile = re.search(r'<span class="tk">Tokens</span><span class="tv[^"]*">([^<]*)</span>', html).group(1)  # плитка «токены»
+        self.assertNotIn("104,900", tile)
+        self.assertNotIn("104,900", re.sub(r"<[^>]*>", " ", self.outside_spend(html)))  # и всё, что вне карточки расхода
 
     def test_orchestrator_only_spend_still_shows_the_card_without_a_false_zero(self):
         for lang, empty in (("en", "none yet"), ("ru", "ещё нет")):
-            html = self.out["only/det/" + lang]
+            html = self.out["only/page/" + lang]
             self.assertIn("data-spend", html, lang)
             spend = html[html.index("data-spend"):]
             self.assertNotIn(empty, spend[:spend.index("</section>")], lang)
@@ -348,8 +349,15 @@ class DashboardCacheColumn(unittest.TestCase):
             head = re.sub(r"<[^>]*>", "", re.search(r'<div class="whead">(.*?)</div>', spend, re.S).group(1))
             self.assertIn("—", head, lang)                       # не ложный «0» расхода сборки
             self.assertNotIn("33", head, lang)
-        for page in ("now", "res"):
-            self.assertNotIn("33,547", re.sub(r"<[^>]*>", " ", self.out["only/%s/en" % page]), page)
+        html = self.out["only/page/en"]
+        tile = re.search(r'<span class="tk">Tokens</span><span class="tv[^"]*">([^<]*)</span>', html).group(1)  # плитка «токены»
+        self.assertNotIn("33,547", tile)
+        self.assertNotIn("33,547", re.sub(r"<[^>]*>", " ", self.outside_spend(html)))  # и всё, что вне карточки расхода
+
+    @staticmethod
+    def outside_spend(html):
+        i = html.index("data-spend")
+        return html[:i] + html[i + html[i:].index("</section>"):]
 
     @staticmethod
     def cells_of(spend):

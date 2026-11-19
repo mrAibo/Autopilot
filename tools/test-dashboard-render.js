@@ -29,7 +29,7 @@ function render(state, options = {}) {
   const sandbox = {
     STATE: state, document, navigator: {language: 'ru-RU'},
     location: {protocol: 'file:'},
-    localStorage: {getItem(key) {return key === 'autopilot-lang' ? options.lang || null : key === 'autopilot-view' ? options.view || null : null}, setItem() {}, removeItem() {}},
+    localStorage: {getItem(key) {return key === 'autopilot-lang' ? options.lang || null : null}, setItem() {}, removeItem() {}},
     matchMedia() {return {matches: false, addEventListener() {}}},
     setTimeout() {return 1}, clearTimeout() {}, setInterval() {},
     Date, Intl, Math, Number, String, Object, Array, JSON, console,
@@ -57,21 +57,14 @@ const base = {
   tickets: [{id:'01',title:'Safe task', status:'pending',wave:1,blockedBy:[]}],
   requirements: {total:0,dropped:0}, gates: {}, log: []
 };
-// Темы показывают разные поля («Сейчас» не показывает, например, волну): сырой тег не должен
-// попасть ни в одну тему, а экранированным текстом поле обязано быть видно хотя бы в одной.
-const VIEWS = ['now','overview','timeline','requirements','resources','summary','classic','compact','quality'];
+// Страница одна: сырой тег не должен попасть в разметку, а экранированным текстом поле обязано быть видно.
 function assertEscaped(name, state, expected) {
-  let shown = false, shownExpected = !expected;
-  for (const view of VIEWS) {
-    const {html, title} = render(state, {view});
-    assert.ok(html.includes('class="cockpit-rail"'), name + ' [' + view + ']: dashboard render did not complete');
-    assert.ok(!html.includes(injection), name + ' [' + view + ']: raw hostile tag reached innerHTML');
-    assert.ok(title.includes('autopilot'), name + ' [' + view + ']: document title missing');
-    shown = shown || html.includes('&lt;img');
-    shownExpected = shownExpected || html.includes(expected);
-  }
-  assert.ok(shown, name + ': hostile content absent as escaped text in every view');
-  assert.ok(shownExpected, name + ': expected element not shown');
+  const {html, title} = render(state);
+  assert.ok(html.includes('class="cockpit-rail"'), name + ': dashboard render did not complete');
+  assert.ok(!html.includes(injection), name + ': raw hostile tag reached innerHTML');
+  assert.ok(title.includes('autopilot'), name + ': document title missing');
+  assert.ok(html.includes('&lt;img'), name + ': hostile content absent as escaped text');
+  assert.ok(!expected || html.includes(expected), name + ': expected element not shown');
 }
 assertEscaped('test counts', {...base, tests: {passed: injection, failed: 0}});
 assertEscaped('failed test count', {...base, tests: {passed: 3, failed: injection}});
@@ -89,14 +82,10 @@ assertEscaped('task title', {...base,
   tickets: [{...base.tickets[0], title: injection}]});
 
 const englishState = {...base, gates: {G3: {ok: false, problems: injection}}};
-let englishShown = false;
-for (const view of VIEWS) {
-  const english = render(englishState, {lang: 'en', view});
-  assert.ok(english.html.includes('class="cockpit-rail"'));
-  assert.ok(!english.html.includes(injection));
-  englishShown = englishShown || english.html.includes('&lt;img');
-}
-assert.ok(englishShown, 'english: hostile content absent as escaped text in every view');
+const english = render(englishState, {lang: 'en'});
+assert.ok(english.html.includes('class="cockpit-rail"'));
+assert.ok(!english.html.includes(injection));
+assert.ok(english.html.includes('&lt;img'), 'english: hostile content absent as escaped text');
 
 const boot = render(base, {bootError: injection});
 assert.ok(boot.html.includes('&lt;img'));

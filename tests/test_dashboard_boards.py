@@ -1,4 +1,4 @@
-"""Dashboard boards of the page "Now": ticket board, requirement board, ticket side panel, "your answer is needed" (runs the template's JS in node)."""
+"""Dashboard boards of the page: ticket board, requirement board, ticket side panel, "your answer is needed" (runs the template's JS in node)."""
 import copy
 import json
 import pathlib
@@ -18,23 +18,19 @@ if PATCHED == HEAD:
 SCRIPT = PATCHED + r"""
 const run = (e, code) => vm.runInContext(code, e.ctx);
 const click = (e, ds, attrs) => e.app.listeners.click({target: {closest: () => ({dataset: ds || {}, hasAttribute: n => (attrs || []).includes(n)})}});
-const show = (e, tab, lang) => { run(e, "UI.tab = '" + tab + "'; render('" + lang + "')"); return e.app.innerHTML; };
+const show = (e, lang) => { run(e, "render('" + lang + "')"); return e.app.innerHTML; };
 const out = {pages: {}};
 (async () => {
-  for (const [name, st] of Object.entries(input.fixtures)) for (const tab of ['now', 'req', 'sum']) for (const lang of ['en', 'ru'])
-    out.pages[name + '/' + tab + '/' + lang] = show(env(st, {}, false), tab, lang);
-  // the mode switch of the requirement board: remembered in localStorage, a denied storage does not break it
-  const store = {}, t = env(input.fixtures.boards, store, false);
-  out.toggle = {first: show(t, 'req', 'en')};
-  click(t, {rbmode: 'tk'});
-  out.toggle.tk = t.app.innerHTML; out.toggle.saved = store['autopilot-boardmode'];
-  out.toggle.reload = show(env(input.fixtures.boards, store, false), 'req', 'en');
-  out.toggle.denied = show(env(input.fixtures.boards, {}, true), 'req', 'en');
+  for (const [name, st] of Object.entries(input.fixtures)) for (const lang of ['en', 'ru'])
+    out.pages[name + '/' + lang] = show(env(st, {}, false), lang);
+  // both boards stand on the page; the old "autopilot-boardmode" key is ignored and storage that throws changes nothing
+  out.boardmode = {base: show(env(input.fixtures.boards, {}, false), 'en'), tk: show(env(input.fixtures.boards, {'autopilot-boardmode': 'tk'}, false), 'en'),
+    denied: show(env(input.fixtures.boards, {}, true), 'en')};
   // the side panel: open by click, close by button and by Esc, focus goes back to the card
   const p = env(input.fixtures.boards, {}, false), focused = [];
   const node = (attr, val, name) => ({tagName: 'BUTTON', hasAttribute: n => n === attr, getAttribute: n => n === attr ? val : null, focus() { focused.push(name); }});
   p.app.querySelectorAll = sel => sel === 'button' ? [node('data-pclose', '', 'close'), node('data-card', 'T03', 'card T03'), node('data-card', 'T01', 'card T01')] : [];
-  show(p, 'now', 'en');
+  show(p, 'en');
   out.panel = {before: p.app.innerHTML};
   click(p, {card: 'T03'}); out.panel.open = p.app.innerHTML; out.panel.f1 = focused.slice();
   click(p, {}, ['data-pclose']); out.panel.closed = p.app.innerHTML; out.panel.f2 = focused.slice();
@@ -48,24 +44,24 @@ const out = {pages: {}};
   const mkLink = () => { const l = {}; return l; };
   const a = env(input.fixtures.ask, {}, false), link = mkLink(), made = [];
   a.ctx.document.querySelector = () => link;
-  out.ask = {plain: show(a, 'now', 'en'), icon: link.href, title: a.ctx.document.title};
+  out.ask = {plain: show(a, 'en'), icon: link.href, title: a.ctx.document.title};
   let asked = 0;
   class N { constructor(title, o) { made.push([title, o]); }
     static requestPermission() { asked++; N.permission = 'granted'; return Promise.resolve('granted'); } }
   N.permission = 'default';
   a.ctx.Notification = N;
-  out.ask.askedAfterRender = asked; show(a, 'now', 'en');
+  out.ask.askedAfterRender = asked; show(a, 'en');
   out.ask.button = a.app.innerHTML; out.ask.askedAfterRender2 = asked; out.ask.madeBefore = made.length;
   click(a, {}, ['data-notify']);
   await new Promise(r => setImmediate(r));
   out.ask.asked = asked; out.ask.made = made.length; out.ask.note = made[0];
-  out.ask.after = show(a, 'now', 'en'); out.ask.madeAfterRerender = made.length;
+  out.ask.after = show(a, 'en'); out.ask.madeAfterRerender = made.length;
   run(a, "STATE.waiting = Object.assign({}, STATE.waiting, {since: '2026-11-03T08:20:00Z'}); render('en')");
   out.ask.madeNewQuestion = made.length;
-  N.permission = 'denied'; show(env(input.fixtures.ask, {}, false), 'now', 'en');
-  const d = env(input.fixtures.ask, {}, false); d.ctx.Notification = N; out.ask.denied = show(d, 'now', 'en');
+  N.permission = 'denied'; show(env(input.fixtures.ask, {}, false), 'en');
+  const d = env(input.fixtures.ask, {}, false); d.ctx.Notification = N; out.ask.denied = show(d, 'en');
   const r = env(input.fixtures.running, {}, false), rl = mkLink(); r.ctx.document.querySelector = () => rl;
-  r.ctx.Notification = N; N.permission = 'granted'; show(r, 'now', 'en');
+  r.ctx.Notification = N; N.permission = 'granted'; show(r, 'en');
   out.dur = run(r, 'fmtDur(98)');
   out.ask.runIcon = rl.href; out.ask.runMade = made.length; out.ask.runTitle = r.ctx.document.title;
   console.log(JSON.stringify(out));
@@ -126,12 +122,12 @@ class Boards(unittest.TestCase):
         if done.returncode:
             raise AssertionError("node harness failed: " + done.stderr[-800:])
         cls.out = json.loads(done.stdout)
-        cls.page = lambda self, name, tab="now", lang="en": cls.out["pages"]["%s/%s/%s" % (name, tab, lang)]
+        cls.page = lambda self, name, lang="en": cls.out["pages"]["%s/%s" % (name, lang)]
 
     # ---- the ticket board
     def test_columns_hold_tickets_by_state_and_the_failed_one_is_a_red_card_on_top(self):
         for lang, names in (("ru", ["Ждёт", "Пишется", "Проверяется", "Сдан"]), ("en", ["Waiting", "Writing", "In review", "Done"])):
-            page = self.page("boards", lang=lang)
+            page = self.page("boards", lang)
             heads = re.findall(r'<section class="bd-col" data-col="\w+" aria-label="[^"]*"><h4>(\D+?) <span>', page)
             self.assertEqual(heads, names)
         page = self.page("boards")
@@ -165,7 +161,7 @@ class Boards(unittest.TestCase):
 
     def test_cards_are_buttons_with_labels_so_enter_and_space_open_them(self):
         for name in ("boards", "finished"):
-            page = self.page(name, "sum" if name == "finished" else "now")
+            page = self.page(name)
             cards = re.findall(r'<button type="button" class="tcard[^"]*" data-card="\w+"[^>]*>', page)
             self.assertTrue(cards)
             for c in cards:
@@ -173,29 +169,27 @@ class Boards(unittest.TestCase):
         label = re.search(r'data-card="T03"[^>]*aria-label="([^"]*)"', self.page("boards")).group(1)
         self.assertIn("returned ×1", label)
 
-    def test_empty_board_says_no_tickets_yet(self):
-        self.assertIn("no tickets yet", self.page("empty"))
-        self.assertIn("тасков ещё нет", self.page("empty", lang="ru"))
+    def test_empty_build_says_tickets_appear_after_the_spec_instead_of_an_empty_board(self):
+        self.assertIn("Tickets appear after the spec", self.page("empty"))
+        self.assertIn("Таски появятся после спецификации", self.page("empty", "ru"))
         self.assertNotIn("bd-col", self.page("empty"))
 
-    def test_finished_build_has_the_board_in_summary_with_the_gantt_and_every_card_done(self):
-        page = self.page("finished", "sum")
+    def test_finished_build_has_the_board_after_the_gantt_and_every_card_done(self):
+        page = self.page("finished")
         self.assertIn('class="gx"', page)
         self.assertLess(page.index('class="gx"'), page.index('class="bd-cols"'))
         self.assertEqual(len(ids(col(page, "done"))), 7)
         for c in ("wait", "write", "check"):
             self.assertEqual(ids(col(page, c)), [])
         self.assertNotIn('class="tcard fail"', page)
-        self.assertNotIn("bd-col", self.page("finished", "now"))  # "Now" of a finished build stays the summary
-        self.assertNotIn("bd-col", self.page("running", "sum"))  # the board of a running build is on "Now"
-        self.assertIn("bd-col", self.page("running", "now"))
+        self.assertIn("bd-col", self.page("running"))  # a running build has the same board
 
     # ---- the requirement board
     def test_requirement_board_columns_strip_and_stages_from_the_matrix(self):
-        page = self.page("boards", "req")
+        page = self.page("boards")
         for lang, cols, strip in (("ru", ["Разбирается", "В плане", "Делается", "Проверяется", "Принято"], ["Нужны твои данные", "Отложено", "Снято"]),
                                   ("en", ["Being read", "In the plan", "Being built", "In review", "Accepted"], ["Your data needed", "Deferred", "Dropped"])):
-            html = self.page("boards", "req", lang)
+            html = self.page("boards", lang)
             self.assertEqual(re.findall(r'<section class="bd-col" data-rcol="\w+"[^>]*><h4>(\D+?) <span>', html), cols)
             self.assertEqual(re.findall(r'<section class="bd-strip" data-rstrip="\w+"[^>]*><h4>(\D+?) <span>', html), strip)
         reqs = lambda kind, name: re.findall(r'data-req="(\w+)"', re.search(r'<section class="bd-(?:col|strip)" data-%s="%s".*?</section>' % (kind, name), page, re.S).group(0))
@@ -205,17 +199,13 @@ class Boards(unittest.TestCase):
         self.assertIn("Requirement 3 &lt;u&gt;x&lt;/u&gt;", page)
         self.assertEqual(page.count('class="mx-row"'), 11)  # the matrix is still there, below the board
 
-    def test_switch_by_requirements_by_tickets_is_remembered_in_local_storage(self):
-        tg = self.out["toggle"]
-        self.assertIn('data-rbmode="req" aria-pressed="true"', tg["first"])  # requirements first
-        self.assertNotIn('data-card="T03"', tg["first"])
-        self.assertIn('data-rbmode="tk" aria-pressed="true"', tg["tk"])
-        self.assertEqual(len(ids(tg["tk"])), 7)  # the ticket board
-        self.assertNotIn('data-rcol=', tg["tk"])
-        self.assertEqual(tg["saved"], "tk")
-        self.assertIn('data-rbmode="tk" aria-pressed="true"', tg["reload"])  # after a reload
-        self.assertIn('data-rbmode="req" aria-pressed="true"', tg["denied"])  # no storage: the default, no crash
-        self.assertEqual(re.findall(r'data-rbmode="\w+"[^>]*>([^<]+)<', self.page("boards", "req", "ru")), ["По требованиям", "По таскам"])
+    def test_both_boards_stand_on_the_page_and_the_old_mode_key_is_ignored(self):
+        bm = self.out["boardmode"]
+        self.assertIn('data-rcol="read"', bm["base"])  # the requirement board ...
+        self.assertEqual(len(ids(bm["base"])), 7)  # ... and the ticket board, both at once
+        self.assertNotIn("rbmode", bm["base"])  # no switch between them
+        self.assertEqual(bm["tk"], bm["base"])  # "autopilot-boardmode" is not read
+        self.assertEqual(bm["denied"], bm["base"])  # storage that throws changes nothing
 
     # ---- the side panel
     def test_click_opens_the_panel_with_what_to_do_requirements_zone_model_events_tests_commit_and_review(self):
@@ -306,7 +296,7 @@ class Boards(unittest.TestCase):
         for key, page in self.out["pages"].items():
             for junk in ("undefined", "NaN", "[object"):
                 self.assertNotIn(junk, text_of(page), key)
-            self.assertNotRegex(text_of(page), r"score=|\bG[1-4]\b" if key.startswith("boards") else r"score=")
+            self.assertNotIn("score=", text_of(page))  # the gate codes live in the gates section now: only the service string stays out
 
 
 if __name__ == "__main__":

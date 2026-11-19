@@ -5,7 +5,6 @@ Creates independent full-width and narrow screenshots; no external services.
 On CI, set AUTOPILOT_SCREENSHOT_DIR to preserve screenshots as artifacts.
 """
 from html import unescape
-from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
@@ -17,28 +16,6 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "skills" / "autopilot" / "phases" / "dashboard-template.html"
-
-
-class RenderedDOM(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.sections = []
-        self.content = []
-        self.hidden = 0
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ("script", "style"):
-            self.hidden += 1
-        if not self.hidden and tag == "section":
-            self.sections.append(dict(attrs).get("class", ""))
-
-    def handle_endtag(self, tag):
-        if tag in ("script", "style"):
-            self.hidden = max(0, self.hidden - 1)
-
-    def handle_data(self, data):
-        if not self.hidden:
-            self.content.append(data)
 
 
 def fixture():
@@ -144,8 +121,8 @@ try {
       effort:'low', profile:'cheap', score:12,
       status:'blocked', error:'No verified host capabilities'};
   }
-  // Проверка рассчитана на полный набор блоков «Классики»; тема по умолчанию («Обзор») их не все показывает.
-  VIEW = 'classic';
+  // Страница одна; секции, где лежат проверяемые блоки, свёрнуты по умолчанию — раскрываем их до отрисовки (innerText не видит свёрнутое).
+  ['quality', 'models', 'gates', 'feed'].forEach(id => { UI.sec[id] = true; });
   render(%(lang)s);
   applyTheme(%(theme)s);
   // Exercise the real delegated language-click rerender and a later refresh.
@@ -225,12 +202,12 @@ try {
     has_isolation: visible.includes('Изоляция и восстановление') ||
                    visible.includes('Isolation & recovery'),
     has_model_name: visible.includes('haiku'),
-    has_models_title: visible.includes('Модели и ресурсы') ||
-                      visible.includes('Models & resources'),
+    has_models_title: visible.includes('Расход и модели') ||
+                      visible.includes('Spend and models'),
     has_sequential_notice: !!document.getElementById('sequential-host-notice') &&
       visible.includes(%(sequential_warning)s),
     has_planned_route: !!document.getElementById('planned-model-routes') &&
-      visible.includes(%(planned_label)s) &&
+      visible.toLowerCase().includes(%(planned_label)s) &&
       visible.includes('No verified host capabilities'),
     has_blocked_notice: !!document.getElementById('model-routing-blocked-notice') &&
       visible.includes(%(blocked_label)s) && visible.includes(%(blocked_action)s),
@@ -253,8 +230,7 @@ try {
        "sequential": json.dumps(label == "mobile-dark"),
        "planned": json.dumps(label in ("narrow", "mobile")),
        "planned_label": json.dumps(
-           "Plan only, not executed:" if lang == "en" else
-           "Предложение, не запуск:"),
+           "blocked" if lang == "en" else "заблокировано"),
        "blocked_label": json.dumps(
            "BLOCKED: 1" if lang == "en" else "БЛОКИРОВКА: 1"),
        "blocked_action": json.dumps(
@@ -317,7 +293,8 @@ const repeat = setInterval(() => {
             if not use_frame:
                 needed = ('class="cockpit-rail"', 'class="cockpit-content"',
                           'id="mission"', 'id="tasks"', 'id="models"',
-                          'id="quality"', 'href="#models"', 'class="spotlight"')
+                          'id="quality"', 'id="reqs"', 'id="gates"', 'id="feed"',
+                          'href="#models"', 'class="sec"')
                 missing = [part for part in needed if part not in proc.stdout]
                 if missing:
                     print("Command center missing: " + label + " " +
@@ -380,12 +357,6 @@ const repeat = setInterval(() => {
                 print("Dashboard sections/text missing: " + label + " " +
                       repr(metrics), file=sys.stderr)
                 return 1
-            if not use_frame:
-                parsed = RenderedDOM()
-                parsed.feed(proc.stdout)
-                if not any("ops" in cls.split() for cls in parsed.sections):
-                    print("Mission control not rendered: " + label, file=sys.stderr)
-                    return 1
             if output_dir:
                 dest = Path(output_dir)
                 dest.mkdir(parents=True, exist_ok=True)
