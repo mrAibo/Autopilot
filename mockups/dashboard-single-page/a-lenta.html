@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autopilot — Лента</title>
+<style>
+:root{color-scheme:light dark;--bg:#f4f5f8;--card:#fff;--line:#d9dde5;--tx:#1a1d23;--mu:#4b5563;--ok:#146c2e;--okbg:#e3f4e8;--wn:#8a5200;--wnbg:#fff1d6;--bd:#b42318;--bdbg:#fde7e4;--ac:#1d4ed8;--acbg:#e6edff;--bar:#cfd5e0}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--line:#2b323d;--tx:#e8eaee;--mu:#a6afbc;--ok:#62d68c;--okbg:#12301e;--wn:#f0b653;--wnbg:#3a2b0c;--bd:#ff8f80;--bdbg:#40191a;--ac:#93b4ff;--acbg:#1b2a52;--bar:#3a4251}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:1100px;margin:0 auto;padding:0 16px 48px}
+header.top{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)}
+header.top b{font-size:16px}header.top span{color:var(--mu);font-size:13px}
+header.top .sp{flex:1}
+.pin{position:sticky;top:0;z-index:5;background:var(--wnbg);color:var(--wn);border:2px solid var(--wn);border-radius:10px;margin:12px 0;padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.pin strong{flex:1 1 260px}
+.btn{min-height:44px;min-width:44px;padding:10px 16px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+@media(prefers-color-scheme:dark){.btn{color:#0e1116}}
+.btn.ghost{background:transparent;color:var(--ac)}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;margin:16px 0}
+.hero h1{font-size:clamp(22px,4vw,32px);line-height:1.2;margin:8px 0 6px}
+.hero p{margin:0;color:var(--mu)}
+.pill{display:inline-flex;gap:6px;align-items:center;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok);background:var(--okbg)}.wn{color:var(--wn);background:var(--wnbg)}.bd{color:var(--bd);background:var(--bdbg)}.ac{color:var(--ac);background:var(--acbg)}.mt{color:var(--mu)}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:20px}
+.kp div{border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kp b{display:block;font-size:22px}.kp small{color:var(--mu)}
+.prog{height:10px;background:var(--bar);border-radius:6px;overflow:hidden;margin-top:16px}.prog i{display:block;height:100%;background:var(--ok)}
+details.c{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:14px 0}
+details.c>summary{list-style:none;cursor:pointer;min-height:44px;padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-weight:700;font-size:17px}
+details.c>summary::-webkit-details-marker{display:none}
+details.c>summary::before{content:"▸";color:var(--mu);width:1em}
+details.c[open]>summary::before{content:"▾"}
+details.c>summary .n{font-weight:400;font-size:13px;color:var(--mu);margin-left:auto}
+.b{padding:4px 18px 18px}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.route{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.route li{flex:1 1 110px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.route small{display:block;color:var(--mu)}
+.rq{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:start;margin:0;padding:0;list-style:none}
+.rq li{display:contents}.rq b{white-space:nowrap}
+details.sub{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+details.sub summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--ac);font-weight:600}
+.g{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,2fr) auto;gap:6px 14px;align-items:center}
+.g .ax{grid-column:2;display:flex;justify-content:space-between;font-size:12px;color:var(--mu)}
+.t{border-top:1px solid var(--line);padding-top:8px;display:contents}
+.tt{min-width:0}.tt b{display:block;overflow-wrap:anywhere}.tt small{color:var(--mu)}
+.tr{position:relative;height:16px;background:var(--bar);border-radius:4px}
+.tr i{position:absolute;top:0;bottom:0;min-width:5px;background:var(--ok);border-radius:4px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}th{color:var(--mu);font-weight:600}td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.sc{overflow-x:auto}
+.ev{list-style:none;margin:0;padding:0}.ev li{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}.ev time{color:var(--mu);font-variant-numeric:tabular-nums}
+.h2{margin:0 0 8px;font-size:15px}
+.cf{display:flex;flex-wrap:wrap;gap:8px}
+ul.fl{margin:6px 0 0;padding-left:20px}
+@media(max-width:640px){.g{grid-template-columns:1fr auto}.g .tr{grid-column:1/-1}.g .ax{grid-column:1/-1}.hero{padding:16px}}
+</style>
+</head>
+<body>
+<div class="w">
+<header class="top"><b id="ttl"></b><span id="stg"></span><span class="sp"></span><span id="upd"></span></header>
+<div id="pin"></div>
+<section class="hero" id="hero" aria-live="polite"></section>
+<div id="secs"></div>
+</div>
+<script>
+// Данные: срез .autopilot/state.js сборки «волны 4–6» (сдана 2026-11-17). ?wait=1 — показать полосу «ждёт ответа».
+const S={title:"Autopilot: волны 4–6 (R11–R21)",slug:"orchestrator-spend-waves-4-6",mode:"semi",tier:"T2",base:"d437d20",
+updated:"2026-11-17T17:42:42+01:00",result:"Волны 4–6 брифа: свод класс×модель×усилие, шкала роутера, -latest, сервер без PowerShell, кэш истории, аттестации и профили на finish, параллельные тесты, ошибки дашборда, быстрый старт README",
+stages:[["preflight","Предполёт","done","03:03","03:03"],["manifest","Манифест","done","03:03","03:03"],["briefing","Бриф","skipped","03:03","03:03"],["spec","Спецификация","done","03:03","03:15"],["plan","План","done","03:15","03:15"],["build","Сборка","done","03:15","17:16"],["review","Ревью","done","17:16","17:27"],["final","Финал","done","17:27","17:42"]],
+req:[["R11","«Свод для калибровки роутера» — report-run печатает «класс × модель × усилие»; plan-models печатает строку совета из истории","done"],["R12","«Шкала роутера показана такой, какая она есть» — таблица в model-routing.md и README; карточка таска показывает класс, риск, причину","done"],["R13","«Имена моделей семейства 5» — тесты на написания; алиас -latest у Haiku и Sonnet разрешён","done"],["R14","«ap.py на Windows не зовёт PowerShell на каждую команду»","done"],["R15","«История прошлых сборок не перечитывается каждой командой»","done"],["R16","«Аттестации не растут без конца»","done"],["R17","«Тесты самого Autopilot идут параллельно»","done"],["R18","«Профили агентов сданной сборки удаляются»","done"],["R19","«Прогноз после плана и расход в отчёте»","done"],["R20","«Понятные ошибки дашборда»","done"],["R21","«Быстрый старт в начале README»","done"]],
+tk:[["01","r13-model-names-latest",1,"03:16","03:43",1042,"обычная","1bac10c"],["02","r17-parallel-test-runner",1,"03:17","03:54",1042,"обычная",""],["03","r21-readme-quickstart-history",1,"03:15","03:53",1042,"обычная",""],["04","r14-r20-server-ping-token-errors",1,"03:15","03:32",1042,"обычная",""],["05","r15-history-cache",2,"03:55","04:00",1046,"обычная",""],["06","r12-router-scale-table",2,"03:55","04:01",1046,"обычная",""],["07","r16-r18-finish-attestations-profiles",3,"04:01","04:09",1052,"обычная",""],["08","r11-class-model-effort-report",4,"04:09","17:10",1057,"обычная",""],["09","r19-forecast-report-budget",5,"17:10","17:16",1061,"обычная",""],["F1","правки по код-ревью ветки",6,"17:20","17:26",1067,"сильная",""]],
+gates:[["G1","Требования закрыты","11 из 11","03:13"],["G2","Находки аудита исправлены","14 из 14","03:15"],["G3","План без проблем","0 проблем","03:15"],["G4","Слепая сверка","11 из 11 совпали","17:40"]],
+tests:{passed:1072,failed:0,skipped:5},
+spend:{roles:[["Исполнитель",11,163556,95],["Оркестратор",2,78241,98],["Агент",1,48536,98],["Ревьюер",3,37940,93],["Приёмка",1,29928,98]],model:"claude-sonnet-5-5",total:358201,cache:57858926},
+concerns:["archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается","Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace","compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»","tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1","ap.py:4164: строка кэша истории без title/tokens/minutes принимается, и сборка тихо выпадает из истории"],
+log:[["17:42","Сборка сдана, проблем 0","ok"],["17:42","Тесты: 1072 прошли, 0 упали","ok"],["17:40","Гейт G4: 11 из 11 совпали","ok"],["17:27","Этап «Финал» начат","ac"],["17:25","Таск F1 сдан, тесты 1067","ok"],["17:20","Таск F1 начат (сильный маршрут)","ac"],["17:16","Этап «Ревью» начат","ac"],["17:16","Таск 09 сдан, тесты 1061","ok"],["04:09","Таск 08 начат; сдан в 17:10","ac"]]};
+const $=id=>document.getElementById(id),m=t=>{const[a,b]=t.split(":");return+a*60+ +b};
+const L={done:["ok","✓ готово"],skipped:["mt","– пропущено"],active:["ac","● идёт"],wait:["wn","⏸ ждёт"]};
+const pill=k=>`<span class="pill ${L[k][0]}">${L[k][1]}</span>`;
+const waiting=location.search.includes("wait=1");
+const n=x=>x.toLocaleString("ru");
+const done=S.tk.length, minutes=m("17:42")-m("03:03");
+$("ttl").textContent=S.title;
+$("stg").textContent="Этап: Финал · режим "+S.mode+" · "+S.tier;
+$("upd").textContent="обновлено 12 с назад";
+if(waiting)$("pin").innerHTML=`<div class="pin" role="alert"><strong>⏸ Автопилот ждёт вашего ответа: брать ли Opus для таска F2?</strong><button class="btn">Ответить в чате</button><button class="btn ghost">Подробнее</button></div>`;
+$("hero").innerHTML=`${pill("done")}<h1>Сборка сдана: все 11 требований выполнены</h1><p>${S.result}</p>
+<div class="prog" role="img" aria-label="Требования 11 из 11"><i style="width:100%"></i></div>
+<div class="kp"><div><b>11 / 11</b><small>требований закрыто</small></div><div><b>${done} / ${done}</b><small>тасков сдано</small></div><div><b>${n(S.tests.passed)}</b><small>тестов прошло, 0 упало</small></div><div><b>${Math.floor(minutes/60)} ч ${minutes%60} мин</b><small>от старта до сдачи; осталось 0</small></div></div>`;
+const sec=(t,badge,note,body,open)=>`<details class="c"${open?" open":""}><summary>${t} ${badge||""}<span class="n">${note||""}</span></summary><div class="b">${body}</div></details>`;
+let h="";
+h+=sec("Маршрут этапов",pill("done"),"8 этапов, 14 ч 39 мин",`<ol class="route">${S.stages.map(s=>`<li><b>${s[1]}</b> ${pill(s[2])}<small>${s[3]}–${s[4]}</small></li>`).join("")}</ol>`,true);
+h+=sec("Требования",pill("done"),"11 из 11 закрыто",`<p class="mt" style="margin:0">Открытых требований нет.</p><details class="sub"><summary>Показать закрытые (11)</summary><ul class="rq">${S.req.map(r=>`<li><b>${r[0]}</b><span>${r[1]}</span>${pill("done")}</li>`).join("")}</ul></details>`,true);
+const A=m("03:00"),Z=m("17:45"),W=Z-A,pc=x=>((m(x)-A)/W*100).toFixed(2);
+h+=sec("Таски",pill("done"),"10 из 10 сданы, 6 волн",`<div class="g">${S.tk.map(t=>`<div class="tt"><b>${t[0]} · ${t[1]}</b><small>волна ${t[2]} · класс «${t[6]}»${t[7]?" · коммит "+t[7]:""}</small></div><div class="tr" role="img" aria-label="${t[3]}–${t[4]}"><i style="left:${pc(t[3])}%;width:${(m(t[4])-m(t[3]))/W*100}%"></i></div><div>${pill("done")} <small class="mt">${t[3]}–${t[4]}</small></div>`).join("")}<div class="ax"><span>03:00</span><span>10:00</span><span>17:45</span></div></div><p class="mt" style="font-size:13px">Таск 08 длился до 17:10 — пауза в работе, не расчёт. Ширина полосы — реальное время.</p>`,true);
+h+=sec("Проверки и тесты",pill("done"),`${n(S.tests.passed)} тестов, 0 упало`,`<div class="cols"><div><h3 class="h2">Гейты</h3><table><tbody>${S.gates.map(g=>`<tr><td><b>${g[0]}</b></td><td>${g[1]}</td><td>${g[2]}</td><td>${pill("done")}</td></tr>`).join("")}</tbody></table></div><div><h3 class="h2">Тесты</h3><div class="cf"><span class="pill ok">✓ прошло ${n(S.tests.passed)}</span><span class="pill ok">✓ упало 0</span><span class="pill mt">– пропущено ${S.tests.skipped}</span></div><p class="mt">Рост по таскам: 1042 → 1046 → 1052 → 1057 → 1061 → 1067 → 1072.</p><h3 class="h2">Остаточные замечания (5, блокирующих нет)</h3><details class="sub"><summary>Показать замечания</summary><ul class="fl">${S.concerns.map(c=>`<li>${c}</li>`).join("")}</ul></details></div></div>`,false);
+h+=sec("Расход и модели",pill("done"),`${n(S.spend.total)} токенов`,`<div class="sc"><table><thead><tr><th>Роль</th><th class="r">Вызовов</th><th class="r">Токенов</th><th class="r">Кэш-попадание</th></tr></thead><tbody>${S.spend.roles.map(r=>`<tr><td>${r[0]}</td><td class="r">${r[1]}</td><td class="r">${n(r[2])}</td><td class="r">${r[3]} %</td></tr>`).join("")}</tbody></table></div><p class="mt">Все 18 вызовов — модель ${S.spend.model}; из кэша прочитано ${n(S.spend.cache)} токенов. Эскалаций модели не было.</p>`,false);
+h+=sec("Лента событий",null,"последние 9",`<ul class="ev">${S.log.map(e=>`<li><time>${e[0]}</time><span>${pill(e[2]==="ok"?"done":"active").replace(/>[^<]*</,">"+(e[2]==="ok"?"✓":"●")+"<")} ${e[1]}</span></li>`).join("")}</ul>`,false);
+$("secs").innerHTML=h;
+</script>
+</body>
+</html>
