@@ -654,26 +654,26 @@
   .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
 
   /* ——— Дизайны: токены лежат под html[data-design="<id>"] ———
-     Пока у пяти дизайнов нет своей палитры (таски 03 и 04), они берут токены «Авроры» через :is(); готовый дизайн
+     Пока у двух дизайнов нет своей палитры (таск 04), они берут токены «Авроры» через :is(); готовый дизайн
      убирают из этого списка и пишет свой блок. Акцент берётся из реестра DESIGNS, вес селектора выше блоков токенов. */
   /* ——— Скин «Аврора» (концепт 01) ———
      Ночной фон с полярным сиянием, стеклянные карточки, mint/sky/violet.
      Токены перекрывают палитру макетов только у не-«Классики»: у неё свои цвета.
      Тёмная половина — базовая (так выглядит концепт), светлая — производная по кнопке. */
-  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"]){--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
+  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"]){--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
     --aurora-g1:rgba(77,240,190,.20);--aurora-g2:rgba(99,199,255,.18);--aurora-g3:rgba(182,156,255,.16);
     --aurora-bg2:#070B14;--aurora-bg3:#060911;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.055),rgba(255,255,255,.018) 44%,rgba(99,199,255,.02));
     --aurora-rail1:#0A1424;--aurora-rail2:#050A14;--aurora-rail3:#0B1A24;--aurora-ink:#04130F;
     scrollbar-color:rgba(120,160,220,.35) transparent}
-  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"])[data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
+  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"])[data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
     --aurora-g1:rgba(10,125,90,.10);--aurora-g2:rgba(27,111,184,.09);--aurora-g3:rgba(124,58,237,.08);
     --aurora-bg2:#F7FAFF;--aurora-bg3:#E9F0F9;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.45) 44%,rgba(99,199,255,.07));
     --aurora-ink:#FFFFFF;scrollbar-color:rgba(60,100,150,.35) transparent}
   /* Тёмные токены работают и до первой отрисовки (атрибутов темы ещё нет): экран
      «дашборд ещё не прочитал состояние» тоже остаётся ночным, а не белой карточкой. */
-  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"]):not([hidden]):not([data-theme="light"]){
+  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"]):not([hidden]):not([data-theme="light"]){
     color-scheme:dark;
     --bg:#05070D;--card:#0B1322;--inset:#0F1A2E;--soft:#15223A;
     --line:rgba(158,190,255,.14);--line2:rgba(158,190,255,.24);
@@ -688,7 +688,7 @@
     --hero:#0C1424;--hero-shadow:rgba(0,0,0,.75);
     --sh:0 26px 60px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.05);
     --sh-raised:0 18px 44px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06)}
-  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"])[data-theme="light"][lang]:not([hidden]){
+  html:is([data-design="aurora"],[data-design="brutal"],[data-design="terminal"])[data-theme="light"][lang]:not([hidden]){
     color-scheme:light;
     --bg:#EEF3FA;--card:#FFFFFF;--inset:#F2F6FC;--soft:#E6EEF8;
     --line:#D3DFEE;--line2:#BFD0E4;
@@ -708,6 +708,78 @@
   html[data-design="terminal"][lang]:not([hidden]):not([data-theme="none"]){--accent:#70ff9a}
   html[data-design="blueprint"][lang]:not([hidden]):not([data-theme="none"]){--accent:#1849a9}
   html[data-design="bento"][lang]:not([hidden]):not([data-theme="none"]){--accent:#5a4bdb}
+  /* ——— «Отчёт», «Чертёж», «Бенто»: светлые по природе, схема фиксирована (data-theme="light" ставит applyDesign) ———
+     Токены — по макетам 02/05/06; текст не ниже 4,5:1 (проверяет tests/test_dashboard_designs.py); шрифты только системные. */
+  html[data-design="editorial"][data-theme="light"][lang]:not([hidden]){color-scheme:light;
+    --bg:#f4efe4;--card:#faf6ed;--inset:#efe8d8;--soft:#e7ddcb;--line:#d5c9b4;--line2:#bfb092;
+    --tx:#191510;--tx2:#4f473b;--mut:#5f5648;--quiet:#6a604f;
+    --hero:#2a2218;--hero-shadow:rgba(42,34,24,.28);--sh:0 1px 0 rgba(25,21,16,.05);--sh-raised:0 8px 20px -14px rgba(25,21,16,.3);
+    --done:#1e5743;--done-soft:#dcebe2;--done-tx:#1e5743;--on-done:#fff;
+    --now:#8a6310;--now-soft:#f3e6c4;--now-tx:#6e4f0e;--now-on:#fff;--hatch:#c9a455;
+    --rev:#2a5a8c;--rev-soft:#dde8f2;--rev-tx:#244e7a;--on-rev:#fff;
+    --fix:#6b3d7a;--fix-soft:#ece0f0;--fix-tx:#5d3369;--on-fix:#fff;
+    --bad:#a82a14;--bad-soft:#f6dfd8;--bad-tx:#a82a14;--on-bad:#fff;
+    --idle:#9a8f7c;--accent:#bf3a1e;--warn-bg:#f6ead0;--warn-bd:#dcc58f;--warn-tx:#6b4a0c}
+  html[data-design="blueprint"][data-theme="light"][lang]:not([hidden]){color-scheme:light;
+    --bg:#dfe9f5;--card:#f7fbff;--inset:#eaf1fa;--soft:#d8e4f2;--line:#b7cbe6;--line2:#93aed3;
+    --tx:#0a1f42;--tx2:#3d5578;--mut:#4a6285;--quiet:#516a8c;
+    --hero:#123a82;--hero-shadow:rgba(18,58,130,.3);--sh:0 0 0 1px rgba(24,73,169,.06);--sh-raised:0 6px 16px -12px rgba(10,31,66,.4);
+    --done:#167a54;--done-soft:#d6efe5;--done-tx:#0f5f41;--on-done:#fff;
+    --now:#b8420f;--now-soft:#fbe4d6;--now-tx:#8f3208;--now-on:#fff;--hatch:#e8895a;
+    --rev:#1849a9;--rev-soft:#dbe6f7;--rev-tx:#153f91;--on-rev:#fff;
+    --fix:#6a3fb5;--fix-soft:#e8def6;--fix-tx:#58309c;--on-fix:#fff;
+    --bad:#b42318;--bad-soft:#fbe3e0;--bad-tx:#b42318;--on-bad:#fff;
+    --idle:#8ea3c2;--accent:#1849a9;--warn-bg:#fbeedc;--warn-bd:#eac79c;--warn-tx:#7a3a0c}
+  html[data-design="bento"][data-theme="light"][lang]:not([hidden]){color-scheme:light;
+    --bg:#f5efe6;--card:#fffdf8;--inset:#f7f1e7;--soft:#ece5d8;--line:rgba(33,28,51,.1);--line2:rgba(33,28,51,.18);
+    --tx:#211c33;--tx2:#5a546b;--mut:#655f75;--quiet:#6d677c;
+    --hero:#3a2f8c;--hero-shadow:rgba(58,47,140,.28);--sh:0 10px 26px -20px rgba(33,28,51,.35);--sh-raised:0 8px 20px -16px rgba(33,28,51,.35);
+    --done:#147a58;--done-soft:#dff3e5;--done-tx:#0e5f44;--on-done:#fff;
+    --now:#b5510f;--now-soft:#ffe3d2;--now-tx:#8a3c08;--now-on:#fff;--hatch:#e59a62;
+    --rev:#3558c0;--rev-soft:#dfe9ff;--rev-tx:#2a4699;--on-rev:#fff;
+    --fix:#5a4bdb;--fix-soft:#e8e2ff;--fix-tx:#4a3bc4;--on-fix:#fff;
+    --bad:#b42318;--bad-soft:#ffe0e9;--bad-tx:#b42318;--on-bad:#fff;
+    --idle:#a9a3b5;--accent:#5a4bdb;--warn-bg:#fff0bd;--warn-bd:#e4cf7a;--warn-tx:#6b4a0c}
+  /* Оформление: тот же набор блоков, другая кожа. */
+  html[data-design="editorial"]:not([hidden]) body{background:linear-gradient(180deg,#f6f1e6,#f2ecdf) fixed}
+  html[data-design="editorial"]:not([hidden]) :is(.ovh h2,.sec>summary,.wt,.fc-v){font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:400}
+  html[data-design="editorial"]:not([hidden]) .card{border-radius:3px;border:1px solid var(--line);box-shadow:none}
+  html[data-design="editorial"]:not([hidden]) .ovh{border-top:3px double var(--line2);padding-right:170px}
+  html[data-design="blueprint"]:not([hidden]) body{background-color:var(--bg);
+    background-image:linear-gradient(rgba(24,73,169,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(24,73,169,.09) 1px,transparent 1px);
+    background-size:28px 28px;background-attachment:fixed}
+  html[data-design="blueprint"]:not([hidden]) .card{border-radius:2px;border:1px solid var(--line2);box-shadow:var(--sh)}
+  html[data-design="blueprint"]:not([hidden]) :is(.ovh h2,.sec>summary,.wt){font-family:"Bahnschrift","Arial Narrow",system-ui,sans-serif;letter-spacing:.01em}
+  html[data-design="blueprint"]:not([hidden]) .ovh{padding-bottom:56px}
+  html[data-design="bento"]:not([hidden]) .card{border-radius:22px;border:1px solid var(--line);box-shadow:var(--sh)}
+  html[data-design="bento"]:not([hidden]) .tile:nth-child(1){background:#dff3e5}
+  html[data-design="bento"]:not([hidden]) .tile:nth-child(2){background:#e8e2ff}
+  html[data-design="bento"]:not([hidden]) .tile:nth-child(3){background:#ffe3d2}
+  html[data-design="bento"]:not([hidden]) .tile:nth-child(4){background:#fff0bd}
+  html[data-design="bento"]:not([hidden]) .tile:nth-child(5){background:#dfe9ff}
+  html:is([data-design="editorial"],[data-design="blueprint"],[data-design="bento"]) :is(summary,.vopt,button){min-height:44px}
+  html:is([data-design="editorial"],[data-design="blueprint"],[data-design="bento"]) .ovh>.ring{display:none}
+  /* Слоты особых элементов: рисуются из состояния (dxStamp, dxDim, dxRing), общий CSS их прячет, дизайн показывает свой. */
+  .dx-stamp,.dx-dim,.dx-ring{display:none}
+  html[data-design="editorial"] .dx-stamp{display:block;position:absolute;right:26px;top:24px;transform:rotate(-7deg);
+    border:2.5px double var(--bad-tx);color:var(--bad-tx);padding:10px 16px 8px;text-align:center;pointer-events:none;animation:dx-stamp .5s ease-out both}
+  .dx-stamp b{display:block;font:700 19px/1 Georgia,"Times New Roman",serif;letter-spacing:.18em;text-transform:uppercase}
+  .dx-stamp small{display:block;margin-top:4px;font:11px/1.4 ui-monospace,Consolas,monospace;letter-spacing:.08em}
+  html[data-design="blueprint"] .dx-dim{display:flex;position:absolute;left:14px;right:14px;bottom:12px;height:24px;align-items:center;gap:10px;
+    color:var(--rev-tx);font:600 12px/1 ui-monospace,Consolas,monospace;letter-spacing:.08em;pointer-events:none}
+  .dx-dim i{flex:1;height:10px;border:solid var(--rev);border-width:0 1px;position:relative}
+  .dx-dim i:after{content:"";position:absolute;left:0;right:0;top:4px;height:1px;background:var(--rev);transform-origin:left;animation:dx-draw .6s ease-out both}
+  html:is([data-design="aurora"],[data-design="bento"]) .dx-ring{display:grid;place-items:center;width:132px;height:132px;border-radius:50%;flex:none;order:-1;
+    background:conic-gradient(var(--done) calc(var(--p) * 1%),var(--line) 0)}
+  .dx-ring-in{width:78%;height:78%;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;line-height:1.1}
+  .dx-ring-in b{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+  .dx-ring-in b small{font-size:.55em;color:var(--mut)}
+  .dx-ring-in span{font-size:11px;color:var(--tx2);max-width:10ch;margin-top:3px}
+  .ovh{position:relative}
+  @keyframes dx-stamp{from{opacity:0;transform:rotate(-7deg) scale(1.5)}to{opacity:1;transform:rotate(-7deg) scale(1)}}
+  @keyframes dx-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @media (prefers-reduced-motion: reduce){.dx-stamp,.dx-dim i:after,.dx-ring{animation:none}}
   html[data-design="aurora"]:not([hidden]) body{
     background:
       radial-gradient(1200px 820px at 12% -12%,var(--aurora-g1),transparent 62%),
@@ -1981,6 +2053,27 @@ const page = c => {
     + sec('feed', c.feedNote, c.feedAll, false);
 };
 
+// Слоты особых элементов дизайнов: чистые функции от состояния (c = {S, L}), без данных возвращают '' и пустой рамки не оставляют.
+// Какой дизайн их видит — решает CSS (.dx-stamp, .dx-dim, .dx-ring).
+const dxStamp = c => {
+  const f = toMs(c.S.finishedAt);
+  if (f == null) return '';
+  const date = new Date(f).toLocaleDateString(c.L.lang === 'en' ? 'en-GB' : 'ru-RU', {day: 'numeric', month: 'short', year: 'numeric'});
+  const word = c.L.lang === 'en' ? 'Done' : 'Сдано';
+  return `<div class="dx-stamp" role="img" aria-label="${esc(word + ', ' + date)}"><b>${word}</b><small>${esc(date)}</small></div>`;
+};
+const dxDim = c => {
+  const ms = c.S.startedAt ? activeMs(c.S.startedAt, c.S.finishedAt || null) : null;
+  return ms == null ? '' : `<div class="dx-dim" aria-hidden="true"><i></i><span>${fmtDur(Math.round(ms / 60000))}</span><i></i></div>`;
+};
+const dxRing = c => {
+  const T = Array.isArray(c.S.tickets) ? c.S.tickets : [];
+  if (!T.length) return '';
+  const done = T.filter(t => t && t.status === 'done').length, pct = Math.round(done / T.length * 100);
+  const cap = c.L.lang === 'en' ? 'tickets done' : 'тасков готово';
+  return `<div class="dx-ring" role="img" aria-label="${esc(`${done} ${c.L.of} ${T.length} ${cap}`)}" style="--p:${pct}"><div class="dx-ring-in"><b>${pct}<small>%</small></b><span>${cap}</span></div></div>`;
+};
+
 function render(lang){
   const L = I18N[lang] || I18N.ru;
   CUR = L;
@@ -2461,7 +2554,7 @@ function render(lang){
     tokVal && kv(W.kTokens, tokVal + (budget ? ` ${L.of} ${fmtK(budget)}` : ''))].filter(Boolean).join('');
   const ovHero = `<section class="card ovh w ${heroCls}" aria-live="polite">${ringHTML('')}
     <div class="ovh-main">${chipState}<h2>${h2}</h2>${(ovLead ?? lead) ? `<p class="lead">${ovLead ?? lead}</p>` : ''}${hint}${evNote}</div>
-    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}</section>`;
+    ${foreBlock || stats ? `<div class="ovh-side">${foreBlock}${stats ? `<div class="kvs">${stats}</div>` : ''}</div>` : ''}${dxStamp({S, L})}${dxDim({S, L})}${dxRing({S, L})}</section>`;
   // Маршрут этапов: минуты пройденных, часы текущего, «впереди» у остальных — состояние всегда словами.
   const rsInfo = s => {
     if (s.status === 'done') {

@@ -82,6 +82,12 @@ run(r, 'railSync()'); out.rail0 = cur();
 secs.forEach((s, i) => s.top = (i - 2) * 300 + 50); run(r, 'railSync()'); out.rail2 = cur();   // tasks is at 50 px, reqs above it
 secs.forEach((s, i) => s.top = (i - 1) * 300 + 100); run(r, 'railSync()'); out.railReqs = cur(); // reqs at 100 px, it has no link: the one above stays
 out.pick = [run(r, 'railPick([-500, -200, 30, 400], 120)'), run(r, 'railPick([10, 200], 120)'), run(r, 'railPick([300, 600], 120)')];
+// the slots and the status words: the same page text for every design, only the CSS shows a slot
+out.dx = {};
+for (const name of ['empty', 'running', 'finished', 'gated']) for (const lang of ['en', 'ru']) {
+  const x = env(input.fixtures[name], {}, false); run(x, `applyDesign('editorial'); render('${lang}')`);
+  out.dx[name + '/' + lang] = x.app.innerHTML;
+}
 console.log(JSON.stringify(out));
 """
 
@@ -95,8 +101,39 @@ EXPECTED = [  # id, no, accent, scheme, tags: the registry of mockups/dashboard-
 ]
 
 
+class _Slots:
+    def test_empty_build_draws_no_slot_at_all(self):
+        for lang in ("en", "ru"):
+            html = self.out["dx"]["empty/" + lang]
+            for needle in ("dx-stamp", "dx-dim", "dx-ring"):
+                self.assertNotIn(needle, html)
+
+    def test_stamp_only_on_a_finished_build_with_the_word_and_the_date(self):
+        for name in ("running", "gated"):
+            self.assertNotIn("dx-stamp", self.out["dx"][name + "/en"])
+        en, ru = self.out["dx"]["finished/en"], self.out["dx"]["finished/ru"]
+        self.assertRegex(en, r'class="dx-stamp"[^>]*><b>Done</b>[^<]*<small>[^<]*2026')
+        self.assertRegex(ru, r'class="dx-stamp"[^>]*><b>Сдано</b>[^<]*<small>[^<]*2026')
+
+    def test_dimension_lines_carry_the_minutes_of_work_only_when_there_is_time(self):
+        for name in ("running", "finished"):
+            self.assertRegex(self.out["dx"][name + "/en"], r'class="dx-dim"[^>]*>.*?\d+ min')
+
+    def test_ring_is_the_share_of_done_tickets_with_percent_in_the_centre(self):
+        # running: 1 of 7 tickets is done -> 14 %; finished: 7 of 7 -> 100 %
+        self.assertRegex(self.out["dx"]["running/en"], r'class="dx-ring"[^>]*aria-label="[^"]*1 of 7[^"]*".*?<b>14<small>%</small>')
+        self.assertRegex(self.out["dx"]["finished/en"], r'class="dx-ring".*?<b>100<small>%</small>')
+
+    def test_every_status_element_has_a_word_or_an_icon(self):
+        for key, html in self.out["dx"].items():
+            for m in re.finditer(r'<(span|p|li)[^>]*class="(?:pill |rs )[^"]*"[^>]*>(.*?)</>', html, re.S):
+                with self.subTest(page=key, el=m.group(0)[:60]):
+                    inner = m.group(2)
+                    self.assertTrue(re.sub(r"<[^>]*>", "", inner).strip() or "<svg" in inner or "<i" in inner, m.group(0)[:120])
+
+
 @unittest.skipUnless(NODE, "node is not installed")
-class DesignRuns(unittest.TestCase):
+class DesignRuns(_Slots, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         with tempfile.TemporaryDirectory() as tmp:
@@ -184,6 +221,75 @@ class DesignRuns(unittest.TestCase):
         self.assertRegex(html, r"addEventListener\('scroll', railSync")
         self.assertRegex(html, r"addEventListener\('hashchange', railSync")
         self.assertRegex(html, r"gxFit\(app\);\s*railSync\(\);")
+
+
+def _lum(hex_):
+    hex_ = hex_.strip()
+    if len(hex_) == 4:
+        hex_ = "#" + "".join(c * 2 for c in hex_[1:])
+    ch = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    ch = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in ch]
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+
+
+def contrast(a, b):
+    hi, lo = sorted((_lum(a), _lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+LIGHT = ("editorial", "blueprint", "bento")
+TOKENS = ("bg card inset soft line line2 tx tx2 mut quiet hero hero-shadow sh sh-raised done done-soft done-tx on-done now now-soft now-tx now-on hatch "
+          "rev rev-soft rev-tx on-rev fix fix-soft fix-tx on-fix bad bad-soft bad-tx on-bad idle accent warn-bg warn-bd warn-tx").split()
+
+
+class DesignPalettes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.html = TEMPLATE.read_text(encoding="utf-8")
+        cls.css = cls.html.split("<style>")[1].split("</style>")[0]
+
+    def block(self, design):
+        m = re.search(r'html\[data-design="%s"\]\[data-theme="light"\]\[lang\]:not\(\[hidden\]\)\{([^}]*)\}' % design, self.css)
+        self.assertTrue(m, design + ": no token block")
+        return dict(re.findall(r"--([\w-]+):\s*([^;}]+)", m.group(1)))
+
+    def test_each_light_design_sets_every_shared_token(self):
+        for design in LIGHT:
+            with self.subTest(design=design):
+                self.assertEqual([t for t in TOKENS if t not in self.block(design)], [])
+
+    def test_text_and_filled_status_colours_reach_4_5_to_1(self):
+        for design in LIGHT:
+            tok = self.block(design)
+            for ground in ("card", "bg"):
+                for name in ("tx", "tx2", "mut", "quiet"):
+                    with self.subTest(design=design, token=name, ground=ground):
+                        self.assertGreaterEqual(contrast(tok[name], tok[ground]), 4.5)
+            for fill, on in (("done", "on-done"), ("rev", "on-rev"), ("fix", "on-fix"), ("bad", "on-bad"), ("now", "now-on")):
+                with self.subTest(design=design, fill=fill):
+                    self.assertGreaterEqual(contrast(tok[on], tok[fill]), 4.5)
+
+    def test_the_three_designs_left_the_aurora_fallback_list_and_use_system_stacks(self):
+        for m in re.finditer(r"html:is\(([^)]*)\)", self.css):
+            for design in LIGHT if "terminal" in m.group(1) else ():  # the fallback list; my own :is() lists are fine
+                self.assertNotIn('[data-design="%s"]' % design, m.group(1))
+        mine = "".join(re.findall(r'html\[data-design="(?:editorial|blueprint|bento)"\][^{]*\{[^}]*\}', self.css))
+        for bad in ("http://", "https://", "@import", "@font-face", "url("):
+            self.assertNotIn(bad, mine)
+        self.assertNotIn("<link", self.html)
+        self.assertIn("Georgia", mine)
+
+    def test_common_css_hides_each_slot_and_each_design_shows_its_own(self):
+        for slot in ("dx-stamp", "dx-dim", "dx-ring"):
+            self.assertIn(".%s" % slot, self.css)
+        self.assertIn(".dx-stamp,.dx-dim,.dx-ring{display:none}", self.css)
+        for design, slot in (("editorial", "dx-stamp"), ("blueprint", "dx-dim"), ("bento", "dx-ring")):
+            self.assertRegex(self.css, r'\[data-design="%s"\][^{]*\.%s\{[^}]*display:' % (design, slot))
+
+    def test_targets_are_44px_and_motion_respects_the_reduced_motion_query(self):
+        self.assertRegex(self.css, r'html:is\(\[data-design="editorial"\],\[data-design="blueprint"\],\[data-design="bento"\]\) :is\([^)]*summary[^)]*\.vopt[^)]*button[^)]*\)\{[^}]*min-height:44px')
+        blocks = self.css.split("prefers-reduced-motion: reduce")[1:]
+        self.assertTrue(any(".dx-stamp" in b and "animation:none" in b for b in blocks), "no reduced-motion rule for the new elements")
 
 
 class DesignStrings(unittest.TestCase):
