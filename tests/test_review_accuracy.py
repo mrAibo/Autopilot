@@ -37,6 +37,10 @@ class Units(unittest.TestCase):
         self.assertEqual(plan_items.parse_items("### Приёмка\n* b\n"), ["b"])
         self.assertEqual(plan_items.parse_items("# T\n\n## Что должно заработать\n- x\n"), [])
 
+    def test_parse_items_ignores_a_level_one_title_with_the_keyword(self):
+        text = "# 01 — Точность приёмки и ревью\n\n## Что должно заработать\n- x\n\n## Критерии приёмки\n- [ ] a\n- [ ] b\n"
+        self.assertEqual(plan_items.parse_items(text), ["a", "b"])
+
     def test_build_plan_fact_needs_evidence(self):
         fact = plan_items.build_plan_fact(
             {"02": ["a", "b", "c"]},

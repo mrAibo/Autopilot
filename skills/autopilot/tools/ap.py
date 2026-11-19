@@ -3048,7 +3048,7 @@ def cmd_land(state, pos, opt):
     tests = {f for f in land_check.tracked_files(ROOT) if kinds.is_test_path(f)} if kind == "refactor" else set()
     kind_bad = kinds.land_problems(kind, tk, files, tests, tk.get("redproof"), state.get("tickets") or [])
     quote = clean_quote(opt.get("by-user")) if kind == "bug" else None
-    if kind_bad and not quote:
+    if kind_bad and (not quote or repro):                      # красный тест слово пользователя не снимает
         red("вид «%s»" % kind, kind_bad[0], kind_bad[1] if len(kind_bad) > 1 else None)
     if kind_bad:
         tk.setdefault("concerns", []).append("land по слову пользователя вопреки виду bug: " + quote)
@@ -3083,8 +3083,9 @@ def cmd_land(state, pos, opt):
     try:
         cmd_ticket(state, [i, "done"], done)
     except SystemExit:
-        print("land %s: коммит %s сделан, но `ticket done` отказал — после исправления: ticket %s done --tests %s --commit %s"
-              % (i, sha, i, done["tests"], sha))
+        tests_arg = " --tests %s" % done["tests"] if "tests" in done else ""    # у воспроизводящего таска тестов нет
+        print("land %s: коммит %s сделан, но `ticket done` отказал — после исправления: ticket %s done%s --commit %s"
+              % (i, sha, i, tests_arg, sha))
         raise
     if repro:
         return "таск %s посажен: коммит %s (красный тест, полная проверка не гонялась), файлов %d" % (i, sha, len(files))

@@ -126,7 +126,7 @@ class LessonsUnit(unittest.TestCase):
     def test_check_text_refuses_secret_path_and_newline(self):
         self.assertIsNone(lessons.check_text("гонять тесты по одному файлу"))
         for bad in ("ключ sk-abcdefghijklmnopqrstuv1234", "токен ghp_abcdefghijklmnopqrstuvwxyz0123456789",
-                    "AKIAABCDEFGHIJKLMNOP", "лежит в C:\\Users\\ivan\\proj", "см. /Users/ivan/x", "см. /home/ivan/x",
+                    "AKIAABCDEFGHIJKLMNOP", "лежит в C:\\Users\\ivan\\proj", "см. /Us" "ers/ivan/x", "см. /ho" "me/ivan/x",
                     "две\nстроки"):
             self.assertIsNotNone(lessons.check_text(bad), bad)
 

@@ -7,13 +7,13 @@ import re
 
 DONE, PARTLY, NOT_DONE = "сделано", "частично", "не сделано"
 STATUSES = (DONE, PARTLY, NOT_DONE)
-HEADING = re.compile(r"^#{1,6}\s+(.*)$")
+HEADING = re.compile(r"^#{2,6}\s+(.*)$")
 TITLE = re.compile(r"критери|приёмк|приемк|acceptance", re.I)
 BULLET = re.compile(r"^\s*[-*]\s+(?:\[[ xX]\]\s*)?(.*\S)\s*$")
 
 
 def parse_items(ticket_text):
-    """Строки `- …` / `- [ ] …` из первого раздела про критерии/приёмку/acceptance; нет раздела — []."""
+    """Строки `- …` / `- [ ] …` из первого раздела (заголовки `##` и ниже) про критерии/приёмку/acceptance; нет раздела — []."""
     items, inside = [], False
     for line in ticket_text.splitlines():
         head = HEADING.match(line)

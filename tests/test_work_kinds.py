@@ -305,6 +305,16 @@ class BugKind(LandBase):
         self.assertEqual(code, 0, out)
         self.assertEqual(self.tk("01")["status"], "done")
 
+    def test_by_user_does_not_lift_the_missing_redproof_and_no_commit_is_made(self):
+        self.start("01")
+        self.put("tests/test_bug.py", "def test_x():\n    assert False\n")
+        head = git(self.root, "rev-parse", "HEAD").stdout
+        code, out = self.land("01", "--by-user", "разрешаю без красного")
+        self.assertEqual(code, 2, out)
+        self.assertIn("redproof", out)
+        self.assertNotEqual(self.tk("01")["status"], "done")
+        self.assertEqual(git(self.root, "rev-parse", "HEAD").stdout, head)
+
     def test_fix_land_needs_the_repro_done_and_by_user_lifts_it(self):
         self.start("02")
         self.put("src/f.py", "ok = 1\n")
