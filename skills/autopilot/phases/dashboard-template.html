@@ -1819,12 +1819,13 @@ const REQ_RANK = {placeholder:0, deferred:1, dropped:2};
 const page = c => {
   const sec = (id, note, body, dflt) => `<details class="sec" id="${id}" tabindex="-1"${(c.secOpen[id] ?? dflt) ? ' open' : ''}>`
     + `<summary>${c.L.sec[id]}${note ? `<span class="sn">${note}</span>` : ''}</summary><div class="sec-body">${body}</div></details>`;
-  const need = c.fin ? c.needSum + c.nextCard + c.mismatchCard : c.needCard ? `<div class="ask-card">${c.needCard}</div>` : '';
-  return c.askBar + c.ovHero + c.tiles + c.logBadge
+  // «Нужно от вас» — над секциями, под героем; пустого блока (нет ключей, заглушек, допущений) нет вовсе.
+  const need = c.fin ? c.needSum : c.hasNeed ? `<div class="ask-card">${c.needCard}</div>` : '';
+  return c.askBar + c.ovHero + c.tiles + c.logBadge + need
     + sec('mission', c.stageNote, c.route, true)
     + sec('reqs', c.reqNote, (c.hasReqs ? c.reqBoard + c.matrixCard : '') + c.wordsView, true)
     + sec('tasks', c.taskNote, c.ganttFull ? c.ganttFull + c.board : c.emptyGantt, true)
-    + sec('quality', c.testsNote, need + c.verdictCard + c.blindView + c.reviewView + c.asmCard + c.addCard, false)
+    + sec('quality', c.testsNote, c.nextCard + c.mismatchCard + c.verdictCard + c.blindView + c.reviewView + c.asmCard + c.addCard, false)
     + sec('models', c.tokenNote, c.kpiRow + `<div class="det-slot" data-slot="models">${c.routesCard}</div>`
       + `<div class="det-slot" data-slot="spend">${c.spendCard}</div><div class="det-slot" data-slot="history">${c.historyCard}</div>`
       + c.isolationView, false)
@@ -2603,7 +2604,7 @@ function render(lang){
     gatesNote: L.gatesOf(okGates),
     feedNote: feedItems.length ? String(feedItems.length) : ''
   };
-  const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, askBar, ovHero, tiles, logBadge, route, reqBoard,
+  const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, hasNeed: !!(keysBlock + phBlock + asmBlock), askBar, ovHero, tiles, logBadge, route, reqBoard,
     matrixCard, wordsView, ganttFull, emptyGantt, board, needSum, nextCard, mismatchCard, needCard, verdictCard, blindView, reviewView,
     asmCard, addCard, kpiRow, routesCard, spendCard, historyCard, isolationView, gatesCard, feedAll}, secNote));
   // Ссылка рейки показывается, только если на странице есть её якорь.

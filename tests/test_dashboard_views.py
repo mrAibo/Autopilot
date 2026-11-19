@@ -275,6 +275,24 @@ class TemplateRuns(unittest.TestCase):
                          ["Requirements", "Tickets", "Tests", "Working time"])
         self.assertIn("Built it", self.page("finished"))
 
+    def test_needed_from_you_stands_above_the_first_section_and_leaves_no_empty_frame(self):
+        for name in ("running", "ask", "notes", "finished", "landed"):  # keys, stubs and assumptions in the state
+            ru = "Нужно от вас" if name in ("finished", "landed") else "Понадобится от тебя"  # the title of a build in progress differs
+            for lang, head in (("en", "Needed from you"), ("ru", ru)):
+                page = self.page(name, lang)
+                with self.subTest(fixture=name, lang=lang):
+                    self.assertEqual(page.count('<div class="ask-card">'), 1)  # one block, not repeated inside a section
+                    top = page[:page.index('<details class="sec"')]
+                    self.assertIn('<div class="ask-card">', top)
+                    self.assertIn(head, top)
+                    self.assertIn("API_KEY", top)  # the empty variables the user must give
+                    self.assertGreater(page.index('class="ask-card"'), page.index('class="ring"'))  # under the hero
+        for name in ("empty", "old", "oldfin"):  # no debt in the state: no block, no empty frame
+            for lang in ("en", "ru"):
+                with self.subTest(fixture=name, lang=lang):
+                    self.assertNotIn("ask-card", self.page(name, lang))
+                    self.assertNotIn("Needed from you" if lang == "en" else "Понадобится от тебя", self.page(name, lang))
+
     def test_landed_with_caveats_header_lists_problems_and_plain_finish_keeps_old_header(self):
         for lang, text in (("en", "Landed with caveats"), ("ru", "Сдано с оговорками")):
             with self.subTest(lang=lang):
