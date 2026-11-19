@@ -2,7 +2,7 @@
 
 **Требования:** R31, R31a, R31b, R31c, R31d
 **Зависит от:** 03
-**Зона:** `skills/autopilot/phases/dashboard-template.html` · `tests/test_dashboard_designs.py` · `tools/check-dashboard-browser.py` · `docs/autopilot/dashboard-designs/`
+**Зона:** `skills/autopilot/phases/dashboard-template.html` · `tests/test_dashboard_designs.py` · `tests/test_dashboard_views.py` · `tools/check-dashboard-browser.py` · `docs/autopilot/dashboard-designs/`
 **Волна:** 4
 **Ревью:** нет
 **Модель:** обычная
@@ -33,3 +33,4 @@
 - [ ] `tests/test_dashboard_designs.py`: цикл по `DESIGN_IDS` проверяет у каждого из шести: все общие токены заданы; контраст ≥4,5:1 по токенам (у `both` — обе половины); нет `https?://`, `<link`, `@import`, `@font-face`, `fetch(`; есть `prefers-reduced-motion` и `@media print`; размер шаблона ≤ 450 КБ (константа в тесте, не поднимается: если не помещается — режется дизайн)
 - [ ] `tools/check-dashboard-browser.py` снимает шесть дизайнов на 1440 и 400 px в `docs/autopilot/dashboard-designs/` (нет Chrome — выводит строку «не проверено: нет Chrome» и завершается кодом 0); если файлы получились, они в зоне таска; крупные файлы не коммитятся, если суммарно >3 МБ (тогда в папку прогона)
 - [ ] `python -m unittest discover -s tests -p "test_dashboard_*.py"` зелёный, `python tools/run-tests.py` зелёный
+- [ ] Тест «правило 520 px последнее» (`test_narrow_rule_is_the_last_in_the_css`) проверяет, что оно последнее среди правил по ширине, а не среди всех `@media` — `@media print` и `prefers-reduced-motion` могут стоять после

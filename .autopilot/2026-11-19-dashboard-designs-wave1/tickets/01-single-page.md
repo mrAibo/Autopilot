@@ -2,7 +2,7 @@
 
 **Требования:** R30, R30a, R30b, R30c, R30d, R32b
 **Зависит от:** —
-**Зона:** `skills/autopilot/phases/dashboard-template.html` · `tests/test_dashboard_views.py` · `tests/test_dashboard_now.py` · `tests/test_dashboard_boards.py` · `tests/test_dashboard_details.py` · `tools/test-dashboard-render.js` · `tools/check-dashboard.py` · `tools/check-dashboard-browser.py`
+**Зона:** `skills/autopilot/phases/dashboard-template.html` · `tests/test_dashboard_views.py` · `tests/test_dashboard_now.py` · `tests/test_dashboard_boards.py` · `tests/test_dashboard_details.py` · `tools/test-dashboard-render.js` · `tools/check-dashboard.py` · `tools/check-dashboard-browser.py` · `tests/test_brand_assets.py` · `tests/test_followups_dashboard.py` · `tests/test_spend_accounting.py`
 **Волна:** 1
 **Ревью:** да — фундамент
 **Модель:** сильная

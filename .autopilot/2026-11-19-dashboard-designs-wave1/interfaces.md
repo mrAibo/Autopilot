@@ -41,3 +41,27 @@
 
 ## Что построили сданные таски
 (пока ничего)
+
+### Таск 01 (страница)
+- `const page = c => html` — единственная раскладка; секции `<details class="sec" id="mission|reqs|tasks|quality|models|gates|feed">`; `UI.sec` (id→bool открыта), слушатель `toggle`; строки `I18N.<lang>.sec`.
+- Тест-модуль `tests/test_dashboard_views.py`: временно `DESIGN_IDS=['aurora']`, `SECTIONS`; харнесс без `VIEW`.
+- Палитровые селекторы теперь `:root[lang]:not([hidden])` (прежняя специфичность без `data-view`).
+- Осталось мёртвым в CSS: `.nowh`, `.ov3`, `.tl2`, `.hero:before`-варианты раскладок — таск 02 чистит то, что не нужно странице; рейка без подсветки текущего пункта.
+
+### Таск 02 (реестр)
+- `DESIGNS`, `DESIGN_IDS`, `DESIGN_KEY`, `DEFAULT_DESIGN`, `designOf(id)`, `storedDesign()`, `applyDesign(id)`, `selectDesign(id)`, `comboList(q)`, `comboOpen(b)`, `comboKey(e)`, `comboSync()`, `railPick(tops,edge)`, `railSync()`; `UI.combo={open,q,i}`; разметка `data-dcombo`, `data-dcombo-input`, `data-dcombo-toggle`, `data-dopt`, `#dopt-<id>`.
+- Незавершённые дизайны (editorial, brutal, terminal, blueprint, bento) берут токены «Авроры» через `html:is([data-design=…])` в четырёх блоках токенов; таски 03 и 04 убирают свой id из этого списка, когда пишут палитру.
+- Дизайны с одной схемой ставят `data-theme` = своя схема; акцент дизайна — правило `html[data-design=X][lang]:not([hidden]):not([data-theme="none"])`.
+- `data-narrow` и CSS `.ov3/.tl2/.nowh` остаются: их читают `test_dashboard_now.py:58` и `test_dashboard_boards.py:288` (вне зоны таска 02).
+
+### Таск 03 (светлые дизайны, слоты)
+- `dxStamp(c)`, `dxDim(c)`, `dxRing(c)` с `c={S,L}` — чистые функции, '' без данных; классы `.dx-stamp`, `.dx-dim`, `.dx-ring`, скрыты общим `.dx-stamp,.dx-dim,.dx-ring{display:none}`; Отчёт показывает штамп, Чертёж размерные линии, Аврора и Бенто кольцо.
+- Блоки токенов `html[data-design="editorial|blueprint|bento"][data-theme="light"][lang]:not([hidden])`; id этих трёх убраны из списка `html:is([data-design=…])`. Остались на токенах «Авроры»: brutal, terminal.
+- Старое кольцо требований `ringHTML('')` (класс `ring`) не тронуто (его требует `test_dashboard_views.py`, в том числе на фикстуре `empty`); в трёх новых дизайнах оно скрыто CSS.
+
+### Таск 04 (тёмные дизайны, печать, пределы)
+- `dxTicker({S,L})`, `dxAscii({S,L})` — '' без данных; классы `.dx-ticker`, `.dx-ticker-track`, `.dx-ascii`, `.dx-row`; скрыты общим правилом `.dx-ticker,.dx-ascii{display:none}`, показаны Пульту и Терминалу.
+- `tools/check-dashboard-browser.py --designs [DIR]` снимает шесть дизайнов на 1440 и 400 px; `TEMPLATE_CEILING = 450*1024` в `tests/test_dashboard_designs.py`.
+- Снимки (12 файлов, ~4,1 МБ) лежат в `.autopilot/2026-11-19-dashboard-designs-wave1--wip/shots/`, а не в `docs/` (больше 3 МБ).
+- `@media print` стоит перед CSS досок (тест `test_dashboard_boards` запрещает hex-цвета после правила 520 px); тест 520 px сравнивает только правила по ширине.
+- Все шесть дизайнов теперь имеют свои палитры (список `html:is([data-design=…])` пуст или удалён).
