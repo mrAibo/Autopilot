@@ -58,6 +58,8 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 | — | `phases/kind-bug.md` — `kind=bug`: a red reproduction ticket first | `redproof` |
 | — | `phases/kind-refactor.md` — `kind=refactor`: green before and after, no edits to old tests | `baseline` |
 | — | `phases/kind-quick.md` — `kind=quick`: one ticket, short spec | |
+| — | `phases/5-parallel.md` — after a ticket returns: checks and review at once, one bundle message, silent agents | `ticket NN bundle`, `silence` |
+| — | `phases/9-lessons.md` — after `finish`: a light agent picks up to 5 lessons | `.autopilot/lessons.md`, `profile.md` |
 | — | `phases/8-plan-fact.md` — before the report: the line «план: N из M» | |
 | — | `phases/9-memory.md` — also in Phase 5, when a ticket discovered something worth keeping | |
 | — | `phases/rationalizations.md` — on a failed gate, on catching yourself excusing something, once before the report | |

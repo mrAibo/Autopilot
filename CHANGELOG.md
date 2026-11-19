@@ -8,6 +8,13 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Speed and lessons (R26, R27).
+
+- **One message back:** `ap.py ticket NN bundle` prints the failed check's tail (`lastCheck`, saved by `land` on a red check), open blockers and the ticket's concerns; checks and review run together (`phases/5-parallel.md`); executors run only their own tests.
+- **Silence, not age:** `ap.py silence [--limit] [--transcript]` lists agents without output for `AUTOPILOT_SILENCE_SECONDS` (600), exit code 3; `ap.py stage` warns about a stage over 60 minutes. Nothing is stopped by the tool.
+- **Worktree dependencies:** `worktree NN prepare` copies `node_modules` when lock files match (Linux/macOS); on Windows the old path stays (`docs/autopilot/worktrees.md`). The before/after cost is recorded as not measured.
+- **Lessons and profile:** `ap.py lessons candidates|add|show|drop|check`, `ap.py profile refresh` (also on `finish`), `phases/9-lessons.md`; up to 5 lessons, 2 KB read by executors; no secrets or absolute paths; files stay in `.autopilot/`.
+
 Pre-landing check and kinds of work (R24, R25, G01).
 
 - **Before landing:** `ap.py ticket NN land` and `worktrees.py land` count how far the target moved, files of the zone changed by foreign commits after `startHead`, and in-progress tickets with overlapping zones; a conflict is a refusal with a command. `--include` lands foreign new files; bypass signals (`skip`, removed asserts) are printed, not refused. Nothing is merged or changed by the check; a project in a repo subfolder gets a warning.

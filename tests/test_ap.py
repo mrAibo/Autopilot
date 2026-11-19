@@ -75,7 +75,7 @@ class Run(unittest.TestCase):
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
         for name in ("state_io.py", "process_containment.py", "gate_sign.py", "run_log.py", "dashboard_upgrade.py",
-                     "plan_items.py", "review_checks.py", "kinds.py", "land_check.py"):
+                     "plan_items.py", "review_checks.py", "kinds.py", "land_check.py", "silence.py", "lessons.py"):
             shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
@@ -925,6 +925,8 @@ class Run(unittest.TestCase):
         self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "run")
         code, out = self.ap("finish", "--result", "готово")
         self.assertEqual(code, 0, out)
+        self.assertIn("9-lessons.md", out)                          # подсказка про уроки после finish
+        self.assertTrue(os.path.isfile(os.path.join(self.a, "profile.md")))
         self.assertFalse(self.state()["dir"].endswith("--wip"))
         self.assertIs(json.loads(read(self.record_file()))["finished"], True)
         self.assertEqual(gate_sign.run_status(self.state(), self.root), "signed")

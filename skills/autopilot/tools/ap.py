@@ -3058,7 +3058,10 @@ def cmd_land(state, pos, opt):
         red("проверка", "таймаут 1800 с")
     counts = (0, 0) if repro else count_tests(out)
     if code:
+        tk["lastCheck"] = "\n".join(out.strip().splitlines()[-30:])[-3000:]      # хвост для `ticket NN bundle`
+        save(state)
         red("проверка", "красная: код %d%s" % (code, ", упало %d" % counts[1] if counts else ""), last_line(out))
+    tk.pop("lastCheck", None)
     if counts is None:
         red("проверка", "не смог посчитать тесты: вывод не unittest, pytest или cargo", "отдельно: ticket %s done --tests N/0 --commit SHA" % i)
     passed, failed = counts
@@ -3087,6 +3090,102 @@ def cmd_land(state, pos, opt):
         return "таск %s посажен: коммит %s (красный тест, полная проверка не гонялась), файлов %d" % (i, sha, len(files))
     ahead = " · цель ушла на %d коммит." % report["ahead"] if report["ahead"] else ""
     return "таск %s посажен: коммит %s, тестов %d/0, файлов %d%s" % (i, sha, passed, len(files), ahead)
+
+
+def cmd_bundle(state, pos):
+    """`ticket NN bundle`: одно сообщение исполнителю — хвост упавшей проверки, открытые блокеры, замечания таска."""
+    if len(pos) != 1:
+        die("ticket NN bundle")
+    tk = next((x for x in state.get("tickets") or [] if x["id"] == pos[0]), None)
+    if tk is None:
+        die("таск %s: нет" % pos[0])
+    blockers = [b for b in blocker_ledger(state) if b["status"] == "open" and b.get("ticket") == tk["id"]]
+    notes = [str(c) for c in tk.get("concerns") or []] + [str(c) for c in tk.get("repairFindings") or []]
+    out = ["таск %s — сводка для исполнителя" % tk["id"], "", "Проверка:",
+           tk.get("lastCheck") or "  нет упавшей проверки", "", "Открытые блокеры:"]
+    out += ["  %s %s" % (b["id"], b["text"]) for b in blockers] or ["  нет"]
+    out += ["", "Замечания таска:"] + (["  - " + n for n in notes] or ["  нет"])
+    return "\n".join(out)
+
+
+def cmd_silence(opt):
+    """`silence [--limit СЕК] [--transcript ПУТЬ]`: тихие агенты → код 3; агента не останавливает."""
+    import silence
+    try:
+        limit = int(opt["limit"]) if opt.get("limit") else silence.limit_from_env()
+    except ValueError:
+        die("silence: --limit — число секунд")
+    path = opt["transcript"] if isinstance(opt.get("transcript"), str) else session_transcript()
+    if not path:
+        print("тишина: журнала сессии не нашёл (путь задаёт --transcript)")
+        return 0
+    quiet = silence.silent_agents(os.path.splitext(path)[0] + os.sep + "subagents", limit)
+    for q in quiet:
+        print("тихий агент %s: %d с без вывода (срок %d) — останови его TaskStop и пересоздай таск" % (q["file"], q["idle"], limit))
+    if not quiet:
+        print("тишина: все агенты подают признаки жизни (срок %d с)" % limit)
+    return 3 if quiet else 0
+
+
+def lessons_path():
+    return os.path.join(A, "lessons.md")
+
+
+def cmd_lessons(state, pos, opt):
+    """`lessons candidates|add|show|drop|check` — только `.autopilot/lessons.md` (и `.seen` рядом)."""
+    import lessons
+    act, args = (pos[0] if pos else ""), pos[1:]
+    path = lessons_path()
+    if act == "candidates":
+        try:
+            n = int(opt.get("max", lessons.DEFAULT_MAX))
+        except ValueError:
+            die("lessons candidates: --max — число")
+        print("\n".join("- " + c for c in lessons.candidates(state, n)) or "кандидатов нет")
+        return 0
+    if act == "add" and args:
+        refused = lessons.add(path, args, int(opt["max"]) if str(opt.get("max", "")).isdigit() else lessons.DEFAULT_MAX)
+        print("\n".join("отказ — " + r for r in refused) or "уроки записаны: .autopilot/lessons.md")
+        return 1 if refused else 0
+    if act == "show":
+        print(lessons.render(path) or "уроков нет")
+        return 0
+    if act == "drop" and len(args) == 1 and args[0].isdigit():
+        ok = lessons.drop(path, int(args[0]))
+        print("урок удалён" if ok else "нет урока с таким номером")
+        return 0 if ok else 1
+    if act == "check":
+        bad = []
+        try:
+            with open(path, encoding="utf-8") as f:
+                bad = [(i, lessons.check_text(x.rstrip("\n"))) for i, x in enumerate(f, 1)]
+        except OSError:
+            pass
+        bad = [(i, why) for i, why in bad if why]
+        print("\n".join("строка %d: %s" % b for b in bad) or "уроки чистые")
+        return 1 if bad else 0
+    die("lessons candidates [--max N] | add \"текст\" … | show | drop N | check")
+
+
+def cmd_profile(state, pos):
+    import lessons
+    if pos != ["refresh"]:
+        die("profile refresh")
+    try:
+        changed = lessons.refresh_profile(ROOT, full_check_command(state))
+    except OSError as exc:
+        die("profile: не записан (%s)" % type(exc).__name__)
+    print("профиль: записан .autopilot/profile.md" if changed else "профиль: без изменений")
+
+
+def lessons_note():
+    """Строка для `init`: сколько строк в уроках, если файл не пуст."""
+    try:
+        with open(lessons_path(), encoding="utf-8") as f:
+            n = sum(1 for x in f if x.startswith("- "))
+    except OSError:
+        return None
+    return "уроки: %d строк (.autopilot/lessons.md, читать вместе с profile.md)" % n if n else None
 
 
 def cmd_worktree(state, pos, opt):
@@ -3192,7 +3291,11 @@ def cmd_worktree(state, pos, opt):
             tk["worktree"] = {"status": "prepared", "baseCommit": result["baseCommit"],
                               "cwd": result["cwd"]}
             log(state, "worktree", act="prepare", ticket=ident)
-            return "worktree %s подготовлен: %s" % (ident, result["cwd"])
+            try:
+                deps = worktrees.link_deps(ROOT, result["cwd"])
+            except Exception as exc:                  # копия зависимостей — удобство, prepare она не роняет
+                deps = "skipped: %s" % type(exc).__name__
+            return "worktree %s подготовлен: %s · зависимости: %s" % (ident, result["cwd"], deps)
         if action == "verify":
             record = tk.get("worktree") or {}
             if (record.get("status") != "prepared" or
@@ -3885,6 +3988,13 @@ def cmd_finish(state, opt):
     notes += remove_run_profiles(state)
     notes.append(spend_orchestrator(state))
     notes.append(spend_subagents(state))
+    try:
+        import lessons
+        if lessons.refresh_profile(ROOT, full_check_command(state)):
+            notes.append("профиль проекта обновлён: .autopilot/profile.md")
+    except OSError:
+        pass
+    notes.append("уроки: запусти лёгкого агента по phases/9-lessons.md (ap.py lessons candidates)")
     return notes
 
 
@@ -4450,6 +4560,7 @@ def main():
     notes, landed = [], None
     if cmd == "init":
         state, notes = cmd_init(opt)
+        notes += [n for n in [lessons_note()] if n]
     else:
         state = read_state()
         if state is None:
@@ -4517,6 +4628,16 @@ def main():
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
             return                                    # только печать: state.js не трогаем
+        if cmd == "ticket" and rest[-1:] == ["bundle"]:
+            print(cmd_bundle(state, rest[:-1]))
+            return                                        # только печать
+        if cmd == "silence":
+            sys.exit(cmd_silence(opt))                    # только чтение: state.js не трогаем
+        if cmd == "lessons":
+            sys.exit(cmd_lessons(state, rest, opt))       # state.js не трогаем
+        if cmd == "profile":
+            cmd_profile(state, rest)
+            return
         if cmd == "check-review-report":
             sys.exit(cmd_check_review_report(opt))        # только чтение файла: state.js не трогаем
         if cmd == "check-bypass":
@@ -4549,6 +4670,9 @@ def main():
         elif cmd == "stage":
             notes += upgrade_note(state)
             cmd_stage(state, rest, opt)
+            import silence
+            notes += ["! стадия %s идёт %d мин — проверь, не завис ли агент (`ap.py silence`)" % x
+                      for x in silence.long_stages(state.get("stages"), 60)]
         elif cmd == "ticket":
             landed = cmd_ticket(state, rest, opt)
         elif cmd == "tickets":

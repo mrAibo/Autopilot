@@ -178,3 +178,7 @@ Caveats, so the numbers are not over-read:
 ## Доля блокирующих, снятых вторым проходом
 
 Не измерено: журналы блокеров прошлых сборок не хранят вердиктов второго прохода (`blocker confirm` появился в этой сборке). Измерить можно по `blockingFindings` со статусом `downgraded` на следующей сборке.
+
+## Speed changes: before and after
+
+Not measured (not measured, on purpose): parallel check and review, the one-message bundle, the silence watchdog and the worktree dependency copy have no before/after numbers. The earlier runs' logs do not record how long a red check waited for the review or how long agents sat silent, so there is no baseline to compare with, and a single run after the change would not be a comparison. To measure: on the next build record the minutes between `ticket NN land` and the reviewer's verdict (`run-log.jsonl`) and the count of `ap.py silence` exits with code 3; compare with this build.

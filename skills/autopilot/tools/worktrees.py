@@ -8,6 +8,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -51,6 +52,39 @@ def source_dirty(root):
     """Track user source modifications, excluding only the Autopilot runtime ledger."""
     return bool(git(root, "status", "--porcelain", "--untracked-files=all",
                     "--", ".", ":(exclude).autopilot").stdout.strip())
+
+
+LOCKS = ("package-lock.json", "pnpm-lock.yaml", "yarn.lock")
+
+
+def link_deps(root, worktree):
+    """Копия `node_modules` в worktree, если lock-файлы совпали побайтно (Linux: reflink, macOS: clone).
+    → `copied` | `skipped: <причина>`; ошибка копирования — `skipped`, остаётся прежний путь. На Windows не трогает."""
+    if sys.platform == "win32":
+        return "skipped: windows"                      # прежний путь: зависимости ставит исполнитель сам
+    src, dst = Path(root) / "node_modules", Path(worktree) / "node_modules"
+    if not src.is_dir():
+        return "skipped: нет node_modules в основной копии"
+    locks = [n for n in LOCKS if (Path(root) / n).is_file()]
+    if not locks:
+        return "skipped: нет lock-файла"
+    try:
+        if any(not (Path(worktree) / n).is_file() or (Path(root) / n).read_bytes() != (Path(worktree) / n).read_bytes()
+               for n in locks):
+            return "skipped: lock-файлы не совпали"
+        if dst.exists():
+            return "skipped: node_modules уже есть"
+    except OSError as exc:
+        return "skipped: lock-файлы не прочитаны (%s)" % type(exc).__name__
+    cmd = ["cp", "-c", "-R"] if sys.platform == "darwin" else ["cp", "--reflink=auto", "-r"]
+    try:
+        done = subprocess.run(cmd + [str(src), str(dst)], capture_output=True, timeout=600)
+        if done.returncode:
+            raise OSError("cp: код %d" % done.returncode)
+    except (OSError, subprocess.SubprocessError) as exc:
+        shutil.rmtree(dst, ignore_errors=True)         # недокопированное не оставляем (dst до cp не было)
+        return "skipped: копирование не удалось (%s)" % type(exc).__name__
+    return "copied"
 
 
 def create(root, ticket, base="HEAD"):

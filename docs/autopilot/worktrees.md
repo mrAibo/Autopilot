@@ -205,3 +205,11 @@ The `--acknowledge-loss` option is deliberately explicit because cherry-picking 
 - Do not run `land` for multiple executors simultaneously. The primary Git tree is a single-writer integration target.
 - A task that creates multiple commits, has uncommitted modifications, or needs history rewrites requires explicit manual integration rather than automatic `land`.
 - `.autopilot/worktrees/` must be Git-ignored. Reused dependency installations may need their own isolated setup.
+
+## Dependency copy (`worktrees.link_deps`)
+
+`worktree NN prepare` calls `link_deps(root, worktree)` after creating the checkout and prints `зависимости: copied` or `зависимости: skipped: <why>`. It copies `node_modules` from the primary checkout only when it exists there and every lock file the primary has (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`) is byte-identical in the worktree. Linux uses `cp --reflink=auto -r`, macOS `cp -c -R` (copy-on-write where the filesystem knows it, a plain copy otherwise).
+
+- **On Windows the old path stays:** nothing is copied and the result is `skipped: windows`; the executor installs dependencies itself.
+- Locks differ, no lock file, no `node_modules`, or the copy fails: `skipped`, a half-made copy is removed, `prepare` still succeeds.
+- Only `node_modules` is covered; other ecosystems (`.venv`, `vendor`) keep the old path.
