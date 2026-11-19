@@ -8,6 +8,13 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Six dashboard designs on one page.
+
+- **One page:** the nine layouts and tabs are gone; the dashboard is a single column with collapsible sections, on live `window.STATE` data.
+- **Six designs:** Aurora (default), Report, Pulse, Terminal, Blueprint, Bento, from the `DESIGNS` registry; picked in a searchable header combobox and kept in `localStorage['autopilot-design']`. The light/dark buttons work only for Aurora.
+- **Slots:** ticker, ASCII bars, dimension lines, "Done" stamp and ring are drawn from the state and are empty without data; print styles, `prefers-reduced-motion`, 450 KB ceiling.
+- Docs: `dashboard-views.md` (registry, "add a seventh design", deviations from the mockups); the mockups README says the production template is the only place with live data.
+
 Upstream port 2.2.2/2.2.3 and Opus on the user's yes.
 
 - **Limits and gates:** `ap.py` holds the repair/retry limits (a third is refused; the user lifts it with `ticket NN reset --by-user "<quote>"`); G1 is recomputed from the manifest; `done` needs a commit; blind acceptance is at most two rounds (`blindRounds`, then the report).
