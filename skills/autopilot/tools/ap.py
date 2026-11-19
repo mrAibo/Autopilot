@@ -3564,7 +3564,7 @@ def cmd_plan_fact(state, pos, multi):
         return [plan_line(state)]
     by_ticket = plan_items_by_ticket(state)
     if pos[0] == "list":
-        return ["T%s.%d — %s" % (t, n, text) for t, texts in by_ticket.items() for n, text in enumerate(texts, 1)]
+        return ["%s.%d — %s" % (plan_items.item_prefix(t), n, text) for t, texts in by_ticket.items() for n, text in enumerate(texts, 1)]
     verdicts = [plan_items.parse_verdict(v) for v in multi.get("verdict", [])]
     if not verdicts or None in verdicts:
         die("plan-fact record: --verdict \"T02.1 | сделано|частично|не сделано | доказательство\" (по одному на пункт)")

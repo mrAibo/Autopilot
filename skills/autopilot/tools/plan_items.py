@@ -32,9 +32,14 @@ def parse_items(ticket_text):
 def parse_verdict(line):
     """`T02.1 | сделано | файл:строка` -> {id, status, evidence}; не по формату — None."""
     parts = [p.strip() for p in str(line).split("|", 2)]
-    if len(parts) < 2 or not re.fullmatch(r"T\w+\.\d+", parts[0]):
+    if len(parts) < 2 or not re.fullmatch(r"(?:T\w+|F\d+)\.\d+", parts[0]):
         return None
     return {"id": parts[0], "status": parts[1].lower(), "evidence": parts[2] if len(parts) > 2 else ""}
+
+
+def item_prefix(ticket):
+    """Id таска -> префикс пункта: `02` -> `T02`, fix-таск `F1` остаётся `F1`."""
+    return ticket if re.fullmatch(r"F\d+", ticket) else "T" + ticket
 
 
 def build_plan_fact(items_by_ticket, verdicts):
@@ -44,7 +49,7 @@ def build_plan_fact(items_by_ticket, verdicts):
     items = []
     for ticket, texts in items_by_ticket.items():
         for n, text in enumerate(texts, 1):
-            item_id = "T%s.%d" % (ticket, n)
+            item_id = "%s.%d" % (item_prefix(ticket), n)
             v = given.get(item_id) or {}
             evidence = str(v.get("evidence") or "").strip()
             status = v.get("status") if v.get("status") in STATUSES and evidence else NOT_DONE

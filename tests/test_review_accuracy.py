@@ -50,6 +50,14 @@ class Units(unittest.TestCase):
         self.assertEqual([i["status"] for i in fact["items"]], ["сделано", "не сделано", "частично"])
         self.assertEqual((fact["done"], fact["total"]), (1, 3))
 
+    def test_fix_ticket_verdicts(self):
+        self.assertEqual(plan_items.parse_verdict("F1.2 | сделано | x")["id"], "F1.2")
+        self.assertEqual(plan_items.parse_verdict("T02.1 | сделано | x")["id"], "T02.1")
+        for bad in ("X1.1 | сделано | x", "1.1 | сделано | x", "F.1 | сделано | x", "FX1.1 | сделано | x"):
+            self.assertIsNone(plan_items.parse_verdict(bad), bad)
+        fact = plan_items.build_plan_fact({"F1": ["a"]}, [{"id": "F1.1", "status": "сделано", "evidence": "f.py"}])
+        self.assertEqual((fact["items"][0]["id"], fact["done"]), ("F1.1", 1))
+
     def test_missing_checklist(self):
         full = "\n".join("- %s: нет проблем" % p for p in review_checks.CHECKLIST)
         self.assertEqual(review_checks.missing_checklist(full), [])
