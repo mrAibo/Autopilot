@@ -54,6 +54,8 @@ It returns every finding sorted into three: **fix now** — it costs more to lea
 
 **All the fix-now findings become one ticket, `F1`**: `tickets/F1-<slug>.md` with the requirements the fixed code serves, `Зависит от: —`, the wave after the last one, the union of the files named as its zone, `Ревью: да — ремонт ветки`, `Модель: сильная`, and the findings as its acceptance criteria, verbatim. `ap.py tickets`, one executor (strict Claude Code: `ticket F1 route` assigns the repair executor registered in Phase 4 (the Opus repair profile if the user approved the `repair` role; `agent-for repair` prints the name), `phases/5-host-claude.md` — no new profile, no new chat; ordinary run: `autopilot-executor`, and `ticket F1 route --model … --effort … --reason "…"` records the route without a profile), the check, one re-review in mode «ремонт» — what it still finds open goes to the report, not to a second round — one commit — never by you, never by the reviewer: a fix that skips the ticket path skips the rollback point and the green check. Every **nonblocking** «report» finding → `ap.py add report "…" "…"`, in words the user understands; the final report reads them from there. An unresolved item still labeled BLOCKING stays open in the blocker ledger, even if a reviewer can no longer justify another bounded repair: do not declare final acceptance until it is genuinely resolved with reviewed evidence.
 
+The branch reviewer also follows `prompts/review-checklist.md` (plan items → `ap.py plan-fact`, six risk points → `ap.py check-review-report`); every `BLOCKING` goes to a second pass, `prompts/confirm.md`.
+
 Then `phases/8-final.md`.
 
 ## Reporting

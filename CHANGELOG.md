@@ -8,6 +8,12 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Review accuracy (R22, R23, G02).
+
+- **Plan vs fact:** `ap.py plan-fact list|record|show` takes the criteria from ticket files, stores `planFact` and shows «план: N из M» in the report and on the dashboard; partial and undone items go to `concerns`. The blind checker never sees the plan.
+- **Review:** a six-point risk checklist (`prompts/review-checklist.md`, `ap.py check-review-report`), a second pass on every blocker (`prompts/confirm.md`, `ap.py blocker confirm`; unconfirmed becomes `downgraded` + a concern), `ap.py check-bypass` for added skips and removed asserts.
+- **Fix:** `agent-for reviewer|repair` now works in an ordinary run (`autopilot-reviewer` / `autopilot-executor`); Opus still only on the user's signed approval, never Fable.
+
 Six dashboard designs on one page.
 
 - **One page:** the nine layouts and tabs are gone; the dashboard is a single column with collapsible sections, on live `window.STATE` data.

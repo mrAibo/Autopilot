@@ -25,6 +25,10 @@
     python3 .autopilot/ap.py opus status                # что пользователь подтвердил, подпись верна?
     python3 .autopilot/ap.py agent-for reviewer --diff-lines 3500   # какого агента звать: Opus или обычного
     python3 .autopilot/ap.py agent-for repair
+    python3 .autopilot/ap.py plan-fact list | record --verdict "T02.1 | сделано | файл:строка" … | show   # план -> факт, «план: N из M»
+    python3 .autopilot/ap.py check-review-report --file ФАЙЛ   # пункты чек-листа без ответа (код 1)
+    python3 .autopilot/ap.py check-bypass [РЕВИЗИЯ..РЕВИЗИЯ]   # добавленные skip/xfail/--no-verify, удалённые assert
+    python3 .autopilot/ap.py blocker confirm --id B01 --verdict confirmed|not-confirmed --quote "…"   # второй проход
     python3 .autopilot/ap.py agents install-user --by-user "<цитата>" | --decline   # лёгкие профили в папку настроек Claude Code (один раз)
     python3 .autopilot/ap.py agents prune [--apply]     # профили autopilot-* сданных прогонов: без --apply только список
     python3 .autopilot/ap.py chore test-count           # генератор из interfaces.md («Команды-генераторы»): запуск и коммит только его файлов
@@ -2065,7 +2069,9 @@ def cmd_agent_for(state, pos, opt):
     plain = (state.get("repairAgent") if role == "repair" else (state.get("roleAgents") or {}).get("reviewer"))
     name = plain.get("agentType") if isinstance(plain, dict) else None
     if not name:
-        die("agent-for: профиль роли %s не зарегистрирован — `plan-models --apply` в строгом Claude-прогоне" % role)
+        if state.get("strictRouting") is True or state.get("gateMark") is not None:
+            die("agent-for: профиль роли %s не зарегистрирован — `plan-models --apply` в строгом Claude-прогоне" % role)
+        name = "autopilot-reviewer" if role == "reviewer" else "autopilot-executor"   # обычный прогон: постоянные профили
     return name
 
 
@@ -3283,7 +3289,7 @@ def blocker_ledger(state):
                 or entry["id"] in ids
                 or not isinstance(entry.get("text"), str)
                 or not entry["text"].strip()
-                or entry.get("status") not in ("open", "resolved")
+                or entry.get("status") not in ("open", "resolved", "downgraded")
                 or (entry.get("ticket") is not None
                     and not isinstance(entry.get("ticket"), str))):
             die("блокирующие замечания: повреждён журнал")
@@ -3312,9 +3318,100 @@ def open_blocker(state, text, ticket=None):
     return item
 
 
+def blocker_confirm(state, opt):
+    """Второй проход по блокирующему: не подтверждено — блокер `downgraded`, условие уходит в concerns."""
+    entry = next((b for b in blocker_ledger(state) if b["id"] == opt.get("id")), None)
+    if entry is None or entry["status"] != "open":
+        die("blocker: нет открытого замечания с этим ID")
+    verdict, quote = opt.get("verdict"), opt.get("quote")
+    if verdict not in ("confirmed", "not-confirmed"):
+        die("blocker confirm: --verdict confirmed|not-confirmed")
+    if not isinstance(quote, str) or not quote.strip():
+        die("blocker confirm: нужна цитата второго прохода --quote (место кода и что в нём)")
+    entry["confirmQuote"] = clean_quote(quote)
+    if verdict == "confirmed":
+        log(state, "blocker", id=entry["id"], act="confirmed", ticket=entry.get("ticket"))
+        return
+    entry.update(status="downgraded", downgradedAt=state["updatedAt"])
+    cmd_add(state, ["concerns", "не подтверждено вторым проходом: " + entry["text"]])
+    log(state, "blocker", id=entry["id"], act="downgraded", ticket=entry.get("ticket"))
+
+
+def plan_items_by_ticket(state):
+    """Пункты плана по таскам прогона: {id таска: [текст…]} из файлов тасков (раздел критериев)."""
+    import plan_items
+    out = {}
+    for tk in state.get("tickets") or []:
+        files = ticket_files(state, "%s-*.md" % tk["id"])
+        if len(files) != 1:
+            continue
+        with open(files[0], encoding="utf-8") as stream:
+            items = plan_items.parse_items(stream.read())
+        if items:
+            out[tk["id"]] = items
+    return out
+
+
+def plan_line(state):
+    fact = state.get("planFact") or {}
+    return "план: %d из %d" % (fact.get("done", 0), fact.get("total", 0))
+
+
+def cmd_plan_fact(state, pos, multi):
+    """plan-fact list | record --verdict "T02.1 | сделано | файл:строка" … | show"""
+    import plan_items
+    if len(pos) != 1 or pos[0] not in ("list", "record", "show"):
+        die("plan-fact list | plan-fact record --verdict \"T02.1 | сделано | файл:строка\" … | plan-fact show")
+    if pos[0] == "show":
+        return [plan_line(state)]
+    by_ticket = plan_items_by_ticket(state)
+    if pos[0] == "list":
+        return ["T%s.%d — %s" % (t, n, text) for t, texts in by_ticket.items() for n, text in enumerate(texts, 1)]
+    verdicts = [plan_items.parse_verdict(v) for v in multi.get("verdict", [])]
+    if not verdicts or None in verdicts:
+        die("plan-fact record: --verdict \"T02.1 | сделано|частично|не сделано | доказательство\" (по одному на пункт)")
+    fact = state["planFact"] = plan_items.build_plan_fact(by_ticket, verdicts)
+    for item in fact["items"]:
+        if item["status"] != plan_items.DONE:
+            cmd_add(state, ["concerns", "план: %s — %s — %s" % (item["id"], item["status"], item["text"])])
+    log(state, "plan-fact", done=fact["done"], total=fact["total"])
+    return [plan_line(state)]
+
+
+def cmd_check_review_report(opt):
+    import review_checks
+    path = opt.get("file")
+    if not isinstance(path, str):
+        die("check-review-report --file ФАЙЛ")
+    try:
+        with open(path, encoding="utf-8") as stream:
+            missing = review_checks.missing_checklist(stream.read())
+    except (OSError, UnicodeDecodeError) as exc:
+        die("check-review-report: %s" % exc)
+    print("\n".join("в отчёте нет ответа по пункту: " + m for m in missing) or "чек-лист закрыт полностью")
+    return 1 if missing else 0
+
+
+def cmd_check_bypass(pos):
+    """Печатает добавленные skip/xfail/--no-verify и удалённые assert; только сигнал, код 0."""
+    import review_checks
+    rev = pos[1] if len(pos) > 1 else "HEAD~1..HEAD"
+    if rev.startswith("-") or len(pos) > 2:
+        die("check-bypass [РЕВИЗИЯ..РЕВИЗИЯ]")
+    done = subprocess.run(["git", "-C", ROOT, "diff", "--no-color", rev, "--"], capture_output=True,
+                          text=True, encoding="utf-8", errors="replace")
+    if done.returncode:
+        die("check-bypass: git diff %s не удался" % rev)
+    print("\n".join(review_checks.bypass_lines(done.stdout)) or "обхода не видно")
+    return 0
+
+
 def cmd_blocker(state, pos, opt):
-    if len(pos) != 1 or pos[0] not in ("open", "resolve"):
-        die("blocker open --note TEXT [--ticket NN] | blocker resolve --id BNN --commit SHA --tests N/0 --note REVIEW")
+    if len(pos) != 1 or pos[0] not in ("open", "resolve", "confirm"):
+        die("blocker open --note TEXT [--ticket NN] | blocker resolve --id BNN --commit SHA --tests N/0 --note REVIEW"
+            " | blocker confirm --id BNN --verdict confirmed|not-confirmed --quote \"цитата кода\"")
+    if pos[0] == "confirm":
+        return blocker_confirm(state, opt)
     if pos[0] == "open":
         ticket = None
         if opt.get("ticket") is not None:
@@ -4326,6 +4423,13 @@ def main():
         if cmd == "agent-for":
             print(cmd_agent_for(state, rest, opt))
             return                                    # только печать: state.js не трогаем
+        if cmd == "check-review-report":
+            sys.exit(cmd_check_review_report(opt))        # только чтение файла: state.js не трогаем
+        if cmd == "check-bypass":
+            sys.exit(cmd_check_bypass(pos))               # только печать: state.js не трогаем
+        if cmd == "plan-fact" and rest[:1] != ["record"]:
+            print("\n".join(cmd_plan_fact(state, rest, multi)))
+            return                                        # list и show только печатают
         if cmd == "chore":
             sys.exit(cmd_chore(state, rest))              # коммитит сам; state.js не трогаем
         if cmd == "upgrade-tools":
@@ -4393,6 +4497,8 @@ def main():
             cmd_add(state, rest)
         elif cmd == "blocker":
             cmd_blocker(state, rest, opt)
+        elif cmd == "plan-fact":
+            notes += cmd_plan_fact(state, rest, multi)
         elif cmd in ("coverage", "blind"):
             cmd_numbers(state, cmd, rest, multi)
         elif cmd == "tests":

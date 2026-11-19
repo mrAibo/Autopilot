@@ -6,7 +6,7 @@
 
 | Agent | Question | Receives | Never receives |
 |---|---|---|---|
-| blind checker | что из брифа сделано | the brief files, the repository | `spec.md`, `manifest.md`, tickets |
+| blind checker | что из брифа сделано | the brief files, the repository | `spec.md`, `manifest.md`, tickets, plan items (`planFact`) |
 | ADR *(T2+)* | почему сделано именно так и как здесь называются вещи | `spec.md`, `manifest.md`, `interfaces.md`, `notes.md` | the repo |
 | memory | как этим пользоваться завтра | the repo, the memory file, `interfaces.md`, the tier, the commands the checker ran | `spec.md`, tickets |
 
@@ -90,7 +90,7 @@ Run the check once more first, truncated, and record it — `ap.py tests N/M`. T
 | Что не вошло | `deferred` and `dropped` rows, with their quotes |
 | Что я добавил сверх заказанного | `state.js` → `additions`, checked against the spec's `A##` |
 | Что пошло не по плану | every `D##` row, every failed ticket |
-| Что осталось после ревью | `state.js` → `report` |
+| Что осталось после ревью | `state.js` → `report`; the line «план: N из M» — `phases/8-plan-fact.md` |
 | Открытые вопросы | `state.js` → `blind`, and `coverage` → `items` that ended up not built; if `landedWith` is set, its `problems` |
 | Opus *(only with `opusApproval`)* | which tickets and roles ran on Opus (`ap.py opus status`) and what it cost: `measure-run.py` for the run, as the actual figure — the extra cost over Sonnet is not measured, say so |
 | Расход и время | `state.js` → `spend` (orchestrator and subagent tokens) and the stage minutes; run any `ap.py` command first so `spend` is fresh; no money — the log has no prices |

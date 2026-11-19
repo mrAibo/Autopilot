@@ -17,3 +17,10 @@ Rules:
   `state_io.ensure_schema_version` and grows with the first breaking change.
 - `state.spendLedger` is a bounded snapshot of `run-log.jsonl`, not a second spend source; see
   `docs/autopilot/measuring-cost.md`.
+- `state.planFact` (optional, additive; absent in older runs): `{items: [{id: "T02.1", ticket, text,
+  status: "сделано"|"частично"|"не сделано", evidence}], done, total}`, written by
+  `ap.py plan-fact record` (an item without evidence is `не сделано`); the dashboard shows
+  «план: N из M» only when the field exists.
+- `blockingFindings[].status` may be `downgraded`: the second pass (`ap.py blocker confirm
+  --verdict not-confirmed`) did not confirm the finding; it no longer blocks, the condition is
+  copied to `concerns` as «не подтверждено вторым проходом: …». `confirmQuote` keeps the quote.

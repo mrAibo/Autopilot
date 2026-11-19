@@ -1528,7 +1528,7 @@ const I18N = {
       sVerdict:"Твои слова: вердикт по каждому требованию",sVerdictSub:"Вычеркнуть требование может только ты. Здесь видно, где оно в проекте и кто его проверил.",
       cWhere:"Где в проекте",cTests:"Тесты",cReview:"Ревью",cBlind:"Слепая приёмка",
       rvOk:"пройдено",rvFix:n=>`исправлено: ${n}`,rvOn:"идёт ревью",rvWait:"ждёт",bOk:"прошла",bBad:"расходится",bWait:"в финале",
-      sMis:id=>`Расхождение по ${id}: приёмка и трекер не совпали`,sMisAny:"Расхождение: приёмка и трекер не совпали",
+      planOf:(n,m)=>`план: ${n} из ${m}`,sMis:id=>`Расхождение по ${id}: приёмка и трекер не совпали`,sMisAny:"Расхождение: приёмка и трекер не совпали",
       sNext:"Что делать дальше",sNeed:"Нужно от вас",
       nEnv:n=>`Впиши ${n} ${plural(n,'значение','значения','значений')} в .env`,nEnvD:"имена переменных ниже, значения только у тебя",
       nPh:n=>`Замени ${n} ${plural(n,'заглушку','заглушки','заглушек')}`,nPhD:"видимые заглушки: агент не стал придумывать за тебя",
@@ -1678,7 +1678,7 @@ const I18N = {
       sVerdict:"Your words: a verdict on each requirement",sVerdictSub:"Only you can strike a requirement out. Here you see where it lives in the project and who checked it.",
       cWhere:"Where",cTests:"Tests",cReview:"Review",cBlind:"Blind acceptance",
       rvOk:"passed",rvFix:n=>`${n} fixed`,rvOn:"in review",rvWait:"waiting",bOk:"passed",bBad:"differs",bWait:"at the end",
-      sMis:id=>`Mismatch on ${id}: acceptance and tracker disagree`,sMisAny:"Mismatch: acceptance and tracker disagree",
+      planOf:(n,m)=>`plan: ${n} of ${m}`,sMis:id=>`Mismatch on ${id}: acceptance and tracker disagree`,sMisAny:"Mismatch: acceptance and tracker disagree",
       sNext:"What to do next",sNeed:"Needed from you",
       nEnv:n=>`Fill in ${n} ${en(n,'value','values')} in .env`,nEnvD:"the variable names are below; the values are only yours",
       nPh:n=>`Replace ${n} ${en(n,'placeholder','placeholders')}`,nPhD:"visible stubs the agent did not invent for you",
@@ -2113,7 +2113,7 @@ const page = c => {
     + sec('mission', c.stageNote, c.route, true)
     + sec('reqs', c.reqNote, (c.hasReqs ? c.reqBoard + c.matrixCard : '') + c.wordsView, true)
     + sec('tasks', c.taskNote, c.ganttFull ? c.ganttFull + c.board : c.emptyGantt, true)
-    + sec('quality', c.testsNote, c.nextCard + c.mismatchCard + c.verdictCard + c.blindView + c.reviewView + c.asmCard + c.addCard, false)
+    + sec('quality', c.testsNote, c.nextCard + c.planCard + c.mismatchCard + c.verdictCard + c.blindView + c.reviewView + c.asmCard + c.addCard, false)
     + sec('models', c.tokenNote, c.kpiRow + `<div class="det-slot" data-slot="models">${c.routesCard}</div>`
       + `<div class="det-slot" data-slot="spend">${c.spendCard}</div><div class="det-slot" data-slot="history">${c.historyCard}</div>`
       + c.isolationView, false)
@@ -2784,6 +2784,8 @@ function render(lang){
   const mismatchCard = mism.map(m => `<section class="card w mis"><h3 class="wt">${m.id ? W.sMis(esc(m.id)) : W.sMisAny}</h3><p>${esc(m.text)}</p></section>`).join('');
   const steps = fin ? [env.length && [W.nEnv(env.length), W.nEnvD], ph.length && [W.nPh(ph.length), W.nPhD],
     ...mism.map(m => m.id ? [W.nMis(m.id), W.nMisD] : [W.sMisAny, W.nMisD]), asm.length && [W.nAsm(asm.length), W.nAsmD]].filter(Boolean) : [];
+  const PF = S.planFact && Number.isFinite(+S.planFact.total) ? S.planFact : null;   // старый state.js без planFact — строки нет
+  const planCard = PF ? `<section class="card w"><div class="whead"><h3 class="wt">${W.planOf(+PF.done || 0, +PF.total)}</h3></div></section>` : '';
   const nextCard = steps.length ? `<section class="card w"><div class="whead"><h3 class="wt">${W.sNext}</h3></div><ol class="steps">${
     steps.map(([a, b]) => `<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')}</ol></section>` : '';
   const needSum = env.length || ph.length
@@ -2956,7 +2958,7 @@ function render(lang){
     feedNote: feedItems.length ? String(feedItems.length) : ''
   };
   const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, hasNeed: !!(keysBlock + phBlock + asmBlock), askBar, ovHero, tiles, logBadge, route, reqBoard,
-    matrixCard, wordsView, ganttFull, emptyGantt, board, needSum, nextCard, mismatchCard, needCard, verdictCard, blindView, reviewView,
+    matrixCard, wordsView, ganttFull, emptyGantt, board, needSum, nextCard, planCard, mismatchCard, needCard, verdictCard, blindView, reviewView,
     asmCard, addCard, kpiRow, routesCard, spendCard, historyCard, isolationView, gatesCard, feedAll}, secNote));
   // Ссылка рейки показывается, только если на странице есть её якорь.
   const has = id => pageHtml.includes(`id="${id}"`);
