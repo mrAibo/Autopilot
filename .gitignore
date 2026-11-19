@@ -30,3 +30,5 @@ state.lock
 .autopilot/history-cache.json
 
 .playwright-mcp/
+mockups/dashboard-2026/shots/*
+!mockups/dashboard-2026/shots/thumb-*.png

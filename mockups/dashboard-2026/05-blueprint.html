@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чертёж — Autopilot</title>
+<style>
+  :root{
+    --paper:#dfe9f5; --sheet:#f7fbff; --ink:#0a1f42; --ink2:#3d5578; --blue:#1849a9; --cyan:#0a8fb8;
+    --line:#b7cbe6; --line2:#d8e4f2; --orange:#d65318; --green:#167a54;
+    --disp:"Bahnschrift","Arial Narrow",Impact,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:24px}
+  body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(rgba(24,73,169,.09) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(24,73,169,.09) 1px,transparent 1px),
+      linear-gradient(rgba(24,73,169,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(24,73,169,.045) 1px,transparent 1px);
+    background-size:100px 100px,100px 100px,20px 20px,20px 20px}
+  a{color:var(--blue)}
+  button{font:inherit}
+  ::selection{background:#cfe0ff}
+  :focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  .sheet{width:calc(100% - 40px);max-width:1440px;margin:20px auto;background:var(--sheet);border:2px solid var(--blue);box-shadow:0 30px 70px -40px rgba(10,31,66,.55);position:relative}
+  .sheet:before{content:"";position:absolute;inset:5px;border:1px solid var(--line);pointer-events:none}
+  .inner{position:relative;padding:0 24px 20px}
+  .top{display:flex;align-items:center;gap:18px;padding:14px 0 12px;border-bottom:2px solid var(--blue);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font:700 13px/1 var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+  .brand .mk{width:26px;height:26px;border:2px solid var(--blue);display:grid;place-items:center;font:700 11px/1 var(--disp);background:var(--blue);color:#fff}
+  .top .doc{font:10px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);border-left:1px solid var(--line);padding-left:18px}
+  .top .doc b{color:var(--blue)}
+  .top .rev{margin-left:auto;display:flex;align-items:center;gap:12px;font:9px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+  .top .rev a{border:1px solid var(--line);padding:4px 7px;color:var(--blue);white-space:nowrap}
+  .top .rev a:hover{border-color:var(--blue)}
+  .hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:30px;padding:26px 0 22px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 9px/1.4 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+  h1{font:700 clamp(58px,8.2vw,112px)/.82 var(--disp);letter-spacing:-.045em;text-transform:uppercase;color:var(--blue);margin:14px 0 0}
+  h1 span{color:var(--orange)}
+  .deck{max-width:760px;margin:16px 0 0;font-size:14px;line-height:1.6;color:var(--ink2)}
+  .deck b{color:var(--ink)}
+  .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .meta span{font:600 8.5px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);border:1px solid var(--line);padding:5px 7px;background:rgba(255,255,255,.4)}
+  .dimwrap{position:relative;border-left:1px solid var(--blue);border-right:1px solid var(--blue);padding:22px 22px 18px;display:flex;flex-direction:column;justify-content:center;min-height:260px}
+  .dimwrap:before,.dimwrap:after{content:"";position:absolute;left:6px;right:6px;height:1px;background:var(--blue)}
+  .dimwrap:before{top:10px}.dimwrap:after{bottom:10px}
+  .dimwrap .big{font:700 clamp(72px,7vw,108px)/.82 var(--disp);letter-spacing:-.06em;color:var(--blue);text-align:center;font-variant-numeric:tabular-nums}
+  .dimwrap .big i{font-style:normal;color:var(--orange)}
+  .dimwrap .cap{margin-top:8px;text-align:center;font:600 8.5px/1.5 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+  .dimwrap .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--blue)}
+  .dimwrap .tick.l{left:12px}.dimwrap .tick.r{right:12px}
+  .dimwrap .note{position:absolute;left:0;right:0;bottom:18px;text-align:center;font:500 8px/1.4 var(--mono);letter-spacing:.08em;color:var(--ink2);text-transform:uppercase}
+  .stamp{position:absolute;right:16px;top:16px;border:2px solid var(--orange);color:var(--orange);padding:6px 9px;font:700 9px/1.25 var(--mono);letter-spacing:.1em;text-transform:uppercase;transform:rotate(-8deg);opacity:.85;text-align:center}
+  .stamp small{display:block;font:500 7px/1.4 var(--mono);letter-spacing:.05em;text-transform:none;margin-top:2px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+  .kpi{padding:14px 16px;border-left:1px solid var(--line)}
+  .kpi:first-child{border-left:0;padding-left:0}
+  .kpi .lab{font:600 8px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .kpi b{display:block;margin-top:6px;font:700 30px/.95 var(--disp);letter-spacing:-.04em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .kpi small{display:block;margin-top:4px;font:500 9px/1.4 var(--mono);color:var(--ink2)}
+  .section{padding:22px 0 0}
+  .shead{display:flex;align-items:baseline;gap:12px;border-top:2px solid var(--blue);padding-top:8px;margin-bottom:14px}
+  .shead .no{font:700 9px/1 var(--mono);letter-spacing:.08em;color:var(--orange)}
+  .shead h2{font:700 18px/1 var(--disp);text-transform:uppercase;letter-spacing:.02em;color:var(--blue);margin:0}
+  .shead .aside{margin-left:auto;font:500 9px/1.4 var(--mono);color:var(--ink2);letter-spacing:.04em;text-transform:uppercase;text-align:right}
+  .plan{display:flex;position:relative;padding:16px 0 8px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .plan:before{content:"";position:absolute;left:0;right:0;top:29px;height:1px;background:var(--blue)}
+  .st{flex:1 0 110px;position:relative;padding:0 12px 0 0}
+  .st .dot{position:absolute;top:23px;left:0;width:9px;height:9px;border:1px solid var(--blue);background:var(--sheet);z-index:1}
+  .st.done .dot{background:var(--blue)}
+  .st.skip .dot{border-style:dashed;background:transparent}
+  .st .tm{font:500 8px/1.3 var(--mono);color:var(--ink2);letter-spacing:.02em}
+  .st .nm{display:block;margin-top:7px;font:700 11px/1.2 var(--disp);text-transform:uppercase;color:var(--ink);white-space:nowrap}
+  .st .du{display:block;margin-top:2px;font:500 8px/1.3 var(--mono);color:var(--ink2)}
+  .st.skip .nm{color:var(--ink2)}
+  .taskhead,.task{display:grid;grid-template-columns:36px minmax(0,1fr) 74px 60px 54px;gap:10px;align-items:center}
+  .taskhead{padding:0 0 6px;border-bottom:1px solid var(--blue);font:600 8px/1.3 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+  .taskhead span:nth-child(3),.taskhead span:nth-child(4),.taskhead span:nth-child(5){text-align:right}
+  .task{padding:8px 0;border-bottom:1px solid var(--line2)}
+  .task .id{font:600 9px/1 var(--mono);color:var(--orange)}
+  .task .tt b{display:block;font:600 12px/1.25 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task .tt small{display:block;margin-top:1px;font:500 8px/1.3 var(--mono);color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task .wm{text-align:right;font:600 10px/1.2 var(--mono);color:var(--ink);white-space:nowrap}
+  .task .tm{text-align:right;font:500 8.5px/1.3 var(--mono);color:var(--ink2);white-space:nowrap}
+  .task .ts{text-align:right;font:500 8.5px/1.3 var(--mono);color:var(--ink2);white-space:nowrap}
+  .task .bar{grid-column:2/6;height:4px;background:var(--line2);margin:-3px 0 2px;position:relative}
+  .task .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+  .pause{color:var(--orange);font:500 8px/1.3 var(--mono);margin-left:4px}
+  .checks{display:grid;grid-template-columns:1.15fr .85fr;gap:28px}
+  .gates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gate{border:1px solid var(--line);padding:9px 10px;position:relative;background:rgba(255,255,255,.35)}
+  .gate:before{content:"";position:absolute;left:4px;top:4px;width:6px;height:6px;border-left:1px solid var(--blue);border-top:1px solid var(--blue)}
+  .gate .gh{display:flex;justify-content:space-between;font:600 8px/1 var(--mono);letter-spacing:.07em;color:var(--ink2)}
+  .gate .gh .ok{color:var(--green)}
+  .gate b{display:block;margin-top:7px;font:700 22px/.9 var(--disp);color:var(--blue);letter-spacing:-.03em}
+  .gate span{display:block;margin-top:4px;font:500 8.5px/1.3 var(--mono);color:var(--ink2)}
+  .testpanel{border:1px solid var(--line);padding:12px 14px;background:rgba(255,255,255,.3)}
+  .testpanel .topline{display:flex;align-items:flex-end;gap:12px}
+  .testpanel .topline b{font:700 48px/.85 var(--disp);letter-spacing:-.05em;color:var(--blue)}
+  .testpanel .topline span{font:600 9px/1.4 var(--mono);color:var(--green);padding-bottom:5px}
+  .testpanel .topline span small{display:block;color:var(--ink2);font-weight:500;font-size:8px}
+  .testpanel .rows{margin-top:10px;border-top:1px solid var(--line)}
+  .testpanel .r{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line2);font:500 8.5px/1.4 var(--mono);color:var(--ink2)}
+  .testpanel .r b{color:var(--ink);font-weight:600}
+  .res{display:grid;grid-template-columns:300px 1fr;gap:28px;align-items:start}
+  .tok{font:700 48px/.85 var(--disp);letter-spacing:-.05em;color:var(--blue);font-variant-numeric:tabular-nums}
+  .tok small{display:block;margin-top:5px;font:500 8px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+  .cachenote{margin-top:12px;border-top:1px solid var(--line);padding-top:8px;font:500 8.5px/1.6 var(--mono);color:var(--ink2)}
+  .cachenote b{color:var(--green)}
+  .roles{border-top:1px solid var(--blue)}
+  .role{display:grid;grid-template-columns:110px 1fr 72px 42px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line2);font:500 9px/1.3 var(--mono);color:var(--ink2)}
+  .role .tr{height:7px;background:var(--line2);position:relative}
+  .role .tr i{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+  .role b{text-align:right;color:var(--ink);font-weight:600}
+  .role small{text-align:right;color:var(--ink2);font-size:8px}
+  .history{display:grid;grid-template-columns:52px 1fr 62px 74px;gap:8px;align-items:center;margin-top:12px}
+  .history .hh{font:600 8px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--blue);padding-bottom:5px}
+  .history .r{display:contents}
+  .history .c{font:500 9px/1.4 var(--mono);color:var(--ink2);border-bottom:1px solid var(--line2);padding:6px 0}
+  .history .c.t{color:var(--ink)}
+  .history .r.cur .c{color:var(--blue)}
+  .history .c.n{text-align:right;color:var(--ink)}
+  .notes{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;border-top:1px solid var(--line)}
+  details.note{border-bottom:1px solid var(--line2);padding:0}
+  details.note summary{list-style:none;display:grid;grid-template-columns:26px 1fr auto;gap:7px;align-items:baseline;padding:7px 0;cursor:pointer;font-size:10px}
+  details.note summary::-webkit-details-marker{display:none}
+  details.note summary:hover{background:rgba(24,73,169,.04)}
+  .note .n{font:600 8px/1.4 var(--mono);color:var(--orange)}
+  .note .s{color:var(--ink);line-height:1.35}
+  .note .src{font:500 7.5px/1.3 var(--mono);color:var(--ink2);white-space:nowrap}
+  .note p{margin:0;padding:0 0 9px 33px;font:500 9.5px/1.5 var(--mono);color:var(--ink2)}
+  .reqs{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;border-top:1px solid var(--line)}
+  details.req{border-bottom:1px solid var(--line2)}
+  details.req summary{list-style:none;display:grid;grid-template-columns:38px 1fr auto;gap:7px;align-items:baseline;padding:6px 0;cursor:pointer;font-size:10px}
+  details.req summary::-webkit-details-marker{display:none}
+  details.req summary:hover{background:rgba(24,73,169,.04)}
+  .req .rid{font:600 8px/1.4 var(--mono);color:var(--orange)}
+  .req .rs{color:var(--ink);line-height:1.35}
+  .req .ok{font:600 7.5px/1.3 var(--mono);color:var(--green)}
+  .req p{margin:0;padding:0 0 9px 45px;font:500 9.5px/1.5 var(--mono);color:var(--ink2)}
+  .foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px;padding:9px 0 2px;border-top:2px solid var(--blue);font:500 8px/1.4 var(--mono);letter-spacing:.04em;color:var(--ink2);text-transform:uppercase}
+  .foot .sp{flex:1}
+  .foot a{color:var(--blue);border-bottom:1px solid var(--line)}
+  @media(max-width:1000px){
+    .hero{grid-template-columns:1fr}
+    .dimwrap{min-height:210px;max-width:420px}
+    .checks{grid-template-columns:1fr}
+    .res{grid-template-columns:1fr}
+    .reqs,.notes{grid-template-columns:1fr}
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi:nth-child(3){border-left:0;padding-left:0}
+    .kpi:nth-child(1),.kpi:nth-child(2){border-bottom:1px solid var(--line)}
+  }
+  @media(max-width:620px){
+    .sheet{width:calc(100% - 16px);margin:8px auto}
+    .inner{padding:0 12px 14px}
+    .top .doc{display:none}
+    .top .rev{margin-left:0;width:100%;justify-content:space-between}
+    h1{font-size:clamp(48px,15vw,76px)}
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi b{font-size:25px}
+    .plan{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;overflow:visible;padding:8px 0 10px}
+    .plan:before{display:none}
+    .st{flex:none;min-width:0;padding:7px 0 4px;border-top:1px solid var(--line)}
+    .st .dot{position:static;display:inline-block;width:7px;height:7px;margin-right:5px;vertical-align:0}
+    .st .tm{display:inline-block;font-size:8px}
+    .st .nm{margin-top:3px;white-space:normal;font-size:10px}
+    .st .du{font-size:8px}
+    .taskhead,.task{grid-template-columns:30px minmax(0,1fr) 56px}
+    .taskhead span:nth-child(4),.taskhead span:nth-child(5),.task .ts,.task .tm{display:none}
+    .task .bar{grid-column:2/4}
+    .gates{grid-template-columns:1fr}
+    .role{grid-template-columns:92px 1fr 62px}
+    .role small{display:none}
+    .history{grid-template-columns:42px 1fr 54px}
+    .history .hh:nth-child(4),.history .c:nth-child(4){display:none}
+    .stamp{right:8px;top:8px}
+    .foot{font-size:7.5px}
+  }
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="inner">
+    <header class="top">
+      <a class="brand" href="dashboard.html"><span class="mk">A</span>Autopilot</a>
+      <div class="doc">Build <b>№18</b> · drawing <b>05</b> · waves 4–6</div>
+      <div class="rev"><span>scale 1:1 · 17.11.2026 · rev A</span><a href="dashboard.html">← design deck</a></div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Drawing 18.11 · status: complete</div>
+          <h1>Build<br><span>complete</span></h1>
+          <p class="deck" id="deck"></p>
+          <div class="meta">
+            <span>0 blockers</span><span>blind 11/11</span><span>1 review round</span><span>state.js 17:42</span>
+          </div>
+        </div>
+        <div class="dimwrap" aria-label="11 из 11 требований">
+          <span class="tick l"></span><span class="tick r"></span>
+          <div class="stamp">Checked<small>17.11.2026 / 17:42</small></div>
+          <div class="big">11<i>/</i>11</div>
+          <div class="cap">requirements accepted<br>G1–G4 passed</div>
+          <div class="note">all dimensions in minutes · scale 1:1</div>
+        </div>
+      </section>
+
+      <div class="kpis">
+        <div class="kpi"><div class="lab">Work time</div><b>2 ч 25 мин</b><small>14 h 39 min wall · 12 h 15 min pause</small></div>
+        <div class="kpi"><div class="lab">Tests</div><b>1 072</b><small>+30 · 0 failed · 5 skipped</small></div>
+        <div class="kpi"><div class="lab">Tokens</div><b>358 201</b><small>97 % cache · 18 calls</small></div>
+        <div class="kpi"><div class="lab">Gates</div><b>4 / 4</b><small>blind 11/11 · audit 14/14</small></div>
+      </div>
+
+      <section class="section" id="plan">
+        <div class="shead"><span class="no">01</span><h2>Plan</h2><span class="aside">8 stages · active minutes</span></div>
+        <div class="plan" id="planOut"></div>
+      </section>
+
+      <section class="section" id="scope">
+        <div class="shead"><span class="no">02</span><h2>Scope</h2><span class="aside">10 tasks · 6 waves · item list</span></div>
+        <div class="taskhead"><span>Item</span><span>Task</span><span>Work</span><span>Window</span><span>Tests</span></div>
+        <div id="taskOut"></div>
+      </section>
+
+      <section class="section" id="checks">
+        <div class="shead"><span class="no">03</span><h2>Inspection</h2><span class="aside">G1–G4 · tests · blind acceptance</span></div>
+        <div class="checks">
+          <div class="gates" id="gatesOut"></div>
+          <div class="testpanel">
+            <div class="topline"><b>1 072</b><span>+30 in this build<small>0 failed · 5 skipped</small></span></div>
+            <div class="rows">
+              <div class="r"><span>blind acceptance</span><b>11 / 11</b></div>
+              <div class="r"><span>mismatches</span><b>0</b></div>
+              <div class="r"><span>review rounds</span><b>1</b></div>
+              <div class="r"><span>audit findings</span><b>14 / 14</b></div>
+              <div class="r"><span>deferred</span><b>0</b></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="resources">
+        <div class="shead"><span class="no">04</span><h2>Resources</h2><span class="aside">spend by role · history</span></div>
+        <div class="res">
+          <div>
+            <div class="tok" id="tokOut"></div>
+            <div class="cachenote" id="cacheOut"></div>
+            <div class="roles" id="rolesOut"></div>
+          </div>
+          <div>
+            <div class="history" id="histOut"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="requirements">
+        <div class="shead"><span class="no">05</span><h2>Requirements</h2><span class="aside">11 / 11 accepted · click for quote</span></div>
+        <div class="reqs" id="reqsOut"></div>
+      </section>
+
+      <section class="section" id="notes">
+        <div class="shead"><span class="no">06</span><h2>Notes</h2><span class="aside">7 non-blocking · 0 blockers</span></div>
+        <div class="notes" id="notesOut"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>Autopilot 2.7.0 · sheet 05 · state.js snapshot 17.11.2026 17:42</span><span class="sp"></span><span>no network · system fonts</span><a href="dashboard.html">← design deck</a>
+    </footer>
+  </div>
+</div>
+
+<script>window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};</script>
+<script>
+(function(){
+  const D = window.D;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const esc = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const nf = new Intl.NumberFormat("ru-RU");
+  $("#deck").textContent = D.result;
+  $("#planOut").innerHTML = D.stages.map(s=>`<div class="st ${s.status==="skipped"?"skip":"done"}"><span class="dot"></span><span class="tm">${s.start}–${s.end}</span><span class="nm">${esc(s.name)}</span><span class="du">${s.status==="skipped"?"пропущен":(s.min===0?"0 мин":s.min+" мин")}${s.wall?" · "+esc(s.wall)+" стены":""}</span></div>`).join("");
+
+  const range = ts=>{const st=[...ts].map(t=>t.start).sort(), en=[...ts].map(t=>t.end).sort(); return st[0]+"–"+en[en.length-1];};
+  $("#taskOut").innerHTML = D.waves.map(w=>{
+    const ts = D.tickets.filter(t=>t.wave===w.n);
+    return ts.map(t=>`<div class="task">
+      <span class="id">${esc(t.id)}</span>
+      <span class="tt"><b>${esc(t.title)}</b><small>wave ${w.n} · ${esc(w.name)} · ${t.reqs.join(" · ")} · ${esc(t.model)} ${esc(t.effort)}${t.pause?`<span class="pause">pause 12 h 15 min</span>`:""}</small></span>
+      <span class="wm">${t.active} мин</span><span class="tm">${t.start}–${t.end}</span><span class="ts">${nf.format(t.tests)}</span>
+      <span class="bar"><i style="width:${Math.max(3,t.active/48*100).toFixed(1)}%"></i></span>
+    </div>`).join("");
+  }).join("");
+
+  $("#gatesOut").innerHTML = D.gates.map(g=>`<div class="gate"><div class="gh"><span>${esc(g.id)} · checked</span><span class="ok">✓ pass</span></div><b>${esc(g.value)}</b><span>${esc(g.title)}</span></div>`).join("");
+  $("#tokOut").innerHTML = `${nf.format(D.spend.total)}<small>tokens total · ${D.spend.calls} calls</small>`;
+  $("#cacheOut").innerHTML = `cache hit <b>${D.spend.hit}%</b> · ${(D.spend.cacheRead/1e6).toFixed(1)}M read from cache · model <b>${esc(D.spend.model)}</b>`;
+  const maxRole = Math.max(...D.spend.roles.map(r=>r.tokens));
+  $("#rolesOut").innerHTML = D.spend.roles.map(r=>`<div class="role"><span>${esc(r.name)}</span><span class="tr"><i style="width:${(r.tokens/maxRole*100).toFixed(1)}%"></i></span><b>${nf.format(r.tokens)}</b><small>${r.hit}%</small></div>`).join("");
+
+  const hist=[{date:"17.11",title:"Волны 4–6 · эта сборка",minutes:145,tokens:D.spend.total,current:true},...D.history];
+  $("#histOut").innerHTML = `<div class="hh">Date</div><div class="hh">Build</div><div class="hh" style="text-align:right">Time</div><div class="hh" style="text-align:right">Tokens</div>`+
+    hist.map(r=>`<div class="r ${r.current?"cur":""}"><div class="c">${r.date}</div><div class="c t">${esc(r.title)}${r.current?" · this":""}</div><div class="c n">${r.minutes} min</div><div class="c n">${r.tokens?nf.format(r.tokens):"n/a"}</div></div>`).join("");
+
+  $("#reqsOut").innerHTML = D.requirements.items.map(r=>`<details class="req"><summary><span class="rid">${esc(r.id)}</span><span class="rs">${esc(r.short)}</span><span class="ok">accepted</span></summary><p>${esc(r.text)}</p></details>`).join("");
+  $("#notesOut").innerHTML = D.report.map((n,i)=>`<details class="note"><summary><span class="n">N${String(i+1).padStart(2,"0")}</span><span class="s">${esc(n.short)}</span><span class="src">${esc(n.source)}</span></summary><p>${esc(n.long)}</p></details>`).join("");
+})();
+</script>
+</body>
+</html>

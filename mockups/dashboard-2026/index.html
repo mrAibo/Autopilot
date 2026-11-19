@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — шесть дизайнов</title>
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#111318; --panel2:#15171d; --line:#292c35; --line2:#373b46;
+    --tx:#f2eee6; --tx2:#aaa69b; --tx3:#76736a; --lite:#d9d3c6;
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+    radial-gradient(1000px 600px at 85% -10%,rgba(216,255,62,.045),transparent 60%),
+    radial-gradient(800px 500px at 0% 10%,rgba(99,199,255,.05),transparent 60%),
+    var(--bg);color:var(--tx);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  h1,h2,h3{margin:0;font-family:var(--disp);font-weight:650}
+  .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip{position:fixed;left:16px;top:-60px;z-index:100;background:#f2eee6;color:#0a0b0e;padding:9px 14px;border-radius:6px;font:600 12px var(--sans);transition:top .2s}
+  .skip:focus{top:14px}
+  .wrap{width:100%;max-width:1380px;margin:0 auto;padding:0 30px}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font:500 10px/1.4 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--tx3)}
+  .top{padding-top:26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font:700 14px/1 var(--disp);letter-spacing:-.02em;text-transform:uppercase}
+  .brand i{width:28px;height:28px;border:1px solid var(--line2);display:grid;place-items:center;border-radius:8px;color:#d8ff3e;font-style:normal;font:700 13px/1 var(--disp)}
+  .top .issue{margin-left:auto;font:10px/1.4 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);text-align:right}
+  .top .issue b{color:var(--tx2)}
+  .deck-cta{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 13px;border:1px solid var(--line2);border-radius:99px;background:var(--panel);color:var(--tx2);font:600 9px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;transition:.16s}
+  .deck-cta:hover{color:var(--tx);border-color:var(--tx3);background:var(--panel2)}
+  .deck-cta i{width:6px;height:6px;border-radius:50%;background:#d8ff3e;box-shadow:0 0 8px #d8ff3e}
+  .addstrip{display:flex;align-items:center;gap:14px;margin-top:18px;padding:14px 16px;border:1px dashed var(--line2);border-radius:14px;background:rgba(255,255,255,.012);color:var(--tx2);transition:.16s}
+  .addstrip:hover{border-color:var(--tx3);background:rgba(255,255,255,.026)}
+  .addstrip .plus{width:34px;height:34px;border:1px solid var(--line2);border-radius:9px;display:grid;place-items:center;color:#d8ff3e;font:400 20px/1 var(--sans);flex:none}
+  .addstrip .at{flex:1;min-width:0}
+  .addstrip .at > b{display:block;font:600 12px/1.3 var(--sans);color:var(--tx)}
+  .addstrip .at small{display:block;margin-top:3px;color:var(--tx3);font-size:11.5px;line-height:1.45}
+  .addstrip .at small b{display:inline;color:var(--tx2);font-weight:600}
+  .addstrip .go{margin-left:auto;font:600 9px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);white-space:nowrap}
+  .addstrip:hover .go{color:var(--tx2)}
+  header.hero{padding:64px 0 0}
+  h1{font-size:clamp(44px,7.2vw,92px);line-height:.98;letter-spacing:-.055em;max-width:1050px;font-weight:700}
+  h1 em{font-style:normal;color:#8b877b}
+  .lede{max-width:720px;margin:24px 0 0;color:var(--tx2);font-size:17px;line-height:1.65}
+  .lede b{color:var(--tx)}
+  .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:24px}
+  .meta span{font:10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);border:1px solid var(--line);border-radius:99px;padding:7px 10px}
+  .meta span b{color:var(--lite);font-weight:500}
+  .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:54px}
+  .card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;min-width:0}
+  .card:hover{transform:translateY(-5px);border-color:var(--line2);box-shadow:0 30px 70px -40px rgba(0,0,0,.9)}
+  .shot{position:relative;background:#06070a;border-bottom:1px solid var(--line)}
+  .shot img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+  .shot .num{position:absolute;left:12px;top:12px;background:rgba(10,11,14,.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:#f2eee6;font:600 10px/1 var(--mono);letter-spacing:.1em;padding:6px 8px;border-radius:6px}
+  .cbody{padding:18px 20px 20px;display:flex;flex-direction:column;flex:1}
+  .crow{display:flex;align-items:baseline;gap:10px}
+  .crow h2{font-size:24px;letter-spacing:-.03em;line-height:1.05}
+  .crow .kind{margin-left:auto;font:9px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);border:1px solid var(--line);padding:5px 6px;border-radius:4px;white-space:nowrap}
+  .card p{margin:10px 0 0;color:var(--tx2);font-size:13px;line-height:1.55}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:13px}
+  .tags span{font:9px/1 var(--mono);letter-spacing:.03em;color:#928e82;border:1px solid var(--line);border-radius:4px;padding:4px 6px}
+  .open{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+  .card:hover .open{color:var(--tx)}
+  .open svg{color:#d8ff3e}
+  .section{margin-top:76px;border-top:1px solid var(--line);padding-top:20px}
+  .shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .shead h2{font-size:clamp(26px,3vw,38px);letter-spacing:-.03em}
+  .shead .snote{margin-left:auto;font:italic 13px/1.4 var(--sans);color:var(--tx3);text-align:right}
+  .compare{width:100%;border-collapse:collapse;margin-top:24px}
+  .compare th{font:500 9px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);text-align:left;padding:0 16px 10px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  .compare td{padding:14px 16px 14px 0;border-bottom:1px solid #1d2027;vertical-align:top;font-size:13px;color:var(--tx2);line-height:1.5}
+  .compare td:first-child{color:var(--tx3);font:10px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;width:150px}
+  .compare td b{color:var(--tx);font-weight:600}
+  .compare tr:hover td{background:rgba(255,255,255,.018)}
+  .hint-mobile{display:none}
+  .mob{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:24px}
+  .mob .m{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column}
+  .mob img{width:100%;aspect-ratio:1/2;object-fit:cover;display:block;border-bottom:1px solid var(--line)}
+  .mob .cap{padding:10px 12px;font:9.5px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);display:flex;justify-content:space-between;gap:8px}
+  .mob .cap b{color:var(--tx2);font-weight:500}
+  .notes{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:24px}
+  .note h3{font:600 10px/1.4 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .note p{margin:10px 0 0;color:var(--tx2);font-size:13px;line-height:1.6}
+  .note p b{color:var(--tx);font-weight:600}
+  footer{margin-top:76px;border-top:1px solid var(--line);padding:26px 0 34px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;color:var(--tx3)}
+  footer .f{font:600 12px/1.4 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+  footer p{margin:0;font-size:12px;line-height:1.55;max-width:600px}
+  footer .up{margin-left:auto;font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--tx2);border-bottom:1px solid var(--line2);padding-bottom:3px}
+  footer .up:hover{color:var(--tx);border-color:var(--tx3)}
+  @media(max-width:1000px){
+    .cards{grid-template-columns:1fr;gap:14px}
+    .card{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+    .shot{border-bottom:0;border-right:1px solid var(--line)}
+    .shot img{height:100%;aspect-ratio:auto;min-height:260px}
+    .notes{grid-template-columns:1fr;gap:18px}
+    .compare td:first-child{width:120px}
+  }
+  @media(max-width:680px){
+    .wrap{padding:0 16px}
+    header.hero{padding-top:42px}
+    .top .issue{display:none}
+    .cards{margin-top:34px}
+    .card{display:flex;flex-direction:column}
+    .shot{border-right:0;border-bottom:1px solid var(--line)}
+    .shot img{aspect-ratio:4/3;min-height:0}
+    .mob{grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .compare{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+    .hint-mobile{display:block;margin:10px 0 0;font:9px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--tx3)}
+    .shead .snote{display:none}
+    .section{margin-top:52px}
+    footer .up{margin-left:0}
+    .deck-cta{margin-left:auto}
+    .addstrip{align-items:flex-start;flex-wrap:wrap;gap:10px}
+    .addstrip .go{margin-left:44px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*:before,*:after{transition-duration:.001ms!important;animation-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">К содержанию</a>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="#top"><i>A</i>Autopilot</a>
+    <div class="issue">Design study <b>01–06</b><br>сборка №18 · 17.11.2026</div>
+    <a class="deck-cta" href="dashboard.html"><i></i>Переключатель дизайнов →</a>
+  </div>
+
+  <header class="hero" id="top">
+    <div class="eyebrow">Шесть дизайн-концептов · один настоящий снимок</div>
+    <h1>Один снимок.<br><em>Шесть характеров.</em></h1>
+    <p class="lede">Одна и та же сборка <b>«Волны 4–6»</b> — 11 закрытых требований, 1 072 теста, 358 201 токен и 2 часа 25 минут работы — показана шестью разными языками дизайна. Данные не меняются: меняется только то, как они звучат.</p>
+    <div class="meta">
+      <span><b>6</b> дизайнов</span>
+      <span><b>1600</b> / <b>900</b> / <b>500</b> px</span>
+      <span>без внешних запросов</span>
+      <span>клавиатура и печать</span>
+      <span><b>state.js</b> · снимок 17:42</span>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="cards" aria-label="Шесть концептов">
+      <a class="card" href="dashboard.html?d=aurora">
+        <div class="shot"><img src="shots/cover-01.png" alt="Тёмный дашборд «Аврора»: заголовок «Одиннадцать требований. Ноль хвостов», кольцо прогресса и стеклянные карточки"><span class="num">01 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Аврора</h2><span class="kind">dark · glass</span></div>
+          <p>Кинематографичный mission control: стеклянные панели, северное сияние, светящееся кольцо приёмки. Плотный, но спокойный ночной интерфейс.</p>
+          <div class="tags"><span>glassmorphism</span><span>градиенты</span><span>compact panel</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+
+      <a class="card" href="dashboard.html?d=editorial">
+        <div class="shot"><img src="shots/cover-02.png" alt="Светлый печатный дашборд «Отчёт»: крупная антиква «Одиннадцать из одиннадцати», фигуры и штамп СДАНО"><span class="num">02 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Отчёт</h2><span class="kind">light · print</span></div>
+          <p>Годовой отчёт в бумаге: антиква, тонкие линейки, красный акцент и штамп «Сдано». Тихий, дорогой и очень читаемый.</p>
+          <div class="tags"><span>editorial</span><span>serif</span><span>print-first</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+
+      <a class="card" href="dashboard.html?d=brutal">
+        <div class="shot"><img src="shots/cover-03.png" alt="Нео-брутальный дашборд «Пульт»: кислый лайм, гигантское «СДАНО», тикер и жёсткие тени"><span class="num">03 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Пульт</h2><span class="kind">lime · brutal</span></div>
+          <p>Сигнальная доска: гигантское «СДАНО», кислотный лайм, жёсткие тени, бегущая строка и фильтры волн. Громко, но по делу.</p>
+          <div class="tags"><span>neo-brutalism</span><span>ticker</span><span>hard shadows</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+      <a class="card" href="dashboard.html?d=terminal">
+        <div class="shot"><img src="shots/cover-04.png" alt="Тёмный терминальный дашборд «Терминал»: фосфорный зелёный, BUILD_COMPLETE и строки лога"><span class="num">04 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Терминал</h2><span class="kind">dark · mono</span></div>
+          <p>CRT-консоль: фосфорный зелёный, сканлайны, ASCII-шкалы и лог сборки. Для тех, кто читает статус как вывод команды.</p>
+          <div class="tags"><span>CRT</span><span>monospace</span><span>dark</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+
+      <a class="card" href="dashboard.html?d=blueprint">
+        <div class="shot"><img src="shots/cover-05.png" alt="Светлый blueprint-дашборд «Чертёж»: синий контур, размерные линии и BUILD COMPLETE"><span class="num">05 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Чертёж</h2><span class="kind">light · technical</span></div>
+          <p>Технический лист: синий контур, размерные линии, план этапов и спецификация требований. Точность вместо декора.</p>
+          <div class="tags"><span>blueprint</span><span>mono</span><span>light</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+
+      <a class="card" href="dashboard.html?d=bento">
+        <div class="shot"><img src="shots/cover-06.png" alt="Пастельный bento-дашборд «Бенто»: мягкие карточки, кольцо из 11 сегментов и слово Сдано"><span class="num">06 / 06</span></div>
+        <div class="cbody">
+          <div class="crow"><h2>Бенто</h2><span class="kind">light · soft</span></div>
+          <p>Мягкий bento: пастельные карточки, круглые формы и спокойные цифры. Самый дружелюбный способ показать серьёзный результат.</p>
+          <div class="tags"><span>bento</span><span>pastel</span><span>soft</span></div>
+          <div class="open"><span>Открыть в переключателе</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </a>
+    </section>
+
+    <a class="addstrip" href="dashboard.html?add=1">
+      <span class="plus" aria-hidden="true">+</span>
+      <span class="at"><b>Новый дизайн — за два шага</b><small>Скопируйте <b>_template.html</b> и допишите объект в <b>designs.js</b>. Переключатель подхватит без сборки.</small></span>
+      <span class="go">Открыть инструкцию →</span>
+    </a>
+
+    <section class="section">
+      <div class="shead"><div class="eyebrow">Сравнение</div><h2>Что выбрать под задачу</h2><span class="snote">все шесть читают один state.js<br>и не ходят в сеть</span></div>
+      <table class="compare">
+        <thead><tr><th>Критерий</th><th>01 · Аврора</th><th>02 · Отчёт</th><th>03 · Пульт</th><th>04 · Терминал</th><th>05 · Чертёж</th><th>06 · Бенто</th></tr></thead>
+        <tbody>
+          <tr><td>Настроение</td><td>тихий космос</td><td>бумага, музей</td><td>сигнал, плакат</td><td>CRT-консоль</td><td>чертёж</td><td>пастель</td></tr>
+          <tr><td>Свет</td><td>тёмный, стекло</td><td>светлый, антиква</td><td>светлый, лайм</td><td>тёмный, фосфор</td><td>светлый, синий</td><td>светлый, мягкий</td></tr>
+          <tr><td>Кому</td><td>панель у чата</td><td>печать, PDF</td><td>монитор в цехе</td><td>диагностика</td><td>спека, разбор</td><td>презентация</td></tr>
+          <tr><td>Плотность</td><td>высокая, воздушная</td><td>средняя, поля</td><td>высокая, блочная</td><td>высокая, mono</td><td>средняя, линии</td><td>средняя, воздух</td></tr>
+          <tr><td>Сильный ход</td><td>кольцо и лента</td><td>хроника и штамп</td><td>тикер и «СДАНО.»</td><td>ASCII-шкалы и лог</td><td>размерные линии</td><td>кольцо и карточки</td></tr>
+          <tr><td>Лучший сценарий</td><td>следить вживую</td><td>отдать отчёт</td><td>статус за 3 секунды</td><td>читать лог по шагам</td><td>разбирать конструкцию</td><td>показать без страха</td></tr>
+        </tbody>
+      </table>
+      <p class="hint-mobile">↔ таблица прокручивается вбок</p>
+    </section>
+
+    <section class="section">
+      <div class="shead"><div class="eyebrow">Шесть макетов · 500 px</div><h2>Не ломается в панели</h2><span class="snote">проверено скриншотами<br>1600 / 900 / 500</span></div>
+      <div class="mob">
+        <div class="m"><img src="shots/mcover-01.png" alt="Мобильная версия концепта «Аврора»"><div class="cap"><b>01 Аврора</b><span>500 px</span></div></div>
+        <div class="m"><img src="shots/mcover-02.png" alt="Мобильная версия концепта «Отчёт»"><div class="cap"><b>02 Отчёт</b><span>500 px</span></div></div>
+        <div class="m"><img src="shots/mcover-03.png" alt="Мобильная версия концепта «Пульт»"><div class="cap"><b>03 Пульт</b><span>500 px</span></div></div>
+        <div class="m"><img src="shots/mcover-04.png" alt="Мобильная версия концепта «Терминал»"><div class="cap"><b>04 Терминал</b><span>500 px</span></div></div>
+        <div class="m"><img src="shots/mcover-05.png" alt="Мобильная версия концепта «Чертёж»"><div class="cap"><b>05 Чертёж</b><span>500 px</span></div></div>
+        <div class="m"><img src="shots/mcover-06.png" alt="Мобильная версия концепта «Бенто»"><div class="cap"><b>06 Бенто</b><span>500 px</span></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="shead"><div class="eyebrow">Что внутри</div><h2>Одинаковые данные, разные акценты</h2></div>
+      <div class="notes">
+        <div class="note"><h3>Информация</h3><p>Требования, волны, таски, маршруты, тесты, гейты G1–G4, слепая приёмка, расход по ролям, кэш, история и 7 неблокирующих замечаний. Всё взято из настоящего снимка <b>state.js</b>.</p></div>
+        <div class="note"><h3>Удобство</h3><p>Фильтры волн, раскрывающиеся цитаты и замечания, активная навигация, тултипы, печать. На узкой ширине — одна колонка, без горизонтальной прокрутки страницы.</p></div>
+        <div class="note"><h3>Доступность</h3><p>Смысл не только в цвете: статусы подписаны словами. Клавиатурный фокус, <b>aria</b>-подписи у графиков, <b>prefers-reduced-motion</b>, контраст текста. Внешних шрифтов и запросов нет.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="f">Autopilot 2.7.0<br><span style="color:var(--tx3);font-weight:400">design study</span></div>
+    <p>Откройте любой концепт в браузере: каждый HTML самодостаточен, данные встроены, сеть не нужна. Полные снимки страниц — в <span class="mono">shots/</span>, исходный снимок — в <span class="mono">.autopilot/state.js</span> проекта.</p>
+    <a class="up" href="#top">Наверх ↑</a>
+  </footer>
+</div>
+</body>
+</html>
+

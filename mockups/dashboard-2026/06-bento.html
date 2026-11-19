@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Бенто — Autopilot</title>
+<style>
+  :root{
+    --bg:#f5efe6; --card:#fffdf8; --ink:#211c33; --ink2:#6b657b; --ink3:#938da1;
+    --mint:#dff3e5; --lav:#e8e2ff; --peach:#ffe3d2; --butter:#fff0bd; --blue:#dfe9ff; --rose:#ffe0e9;
+    --accent:#5a4bdb; --ok:#147a58; --line:rgba(33,28,51,.08); --line2:rgba(33,28,51,.13);
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(700px 420px at 88% -8%,rgba(232,226,255,.75),transparent 65%),
+      radial-gradient(650px 420px at -5% 18%,rgba(223,243,229,.75),transparent 65%),
+      radial-gradient(600px 380px at 50% 110%,rgba(255,224,233,.6),transparent 65%)}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit}
+  ::selection{background:#d8d0ff}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:5px}
+  .page{max-width:1440px;margin:0 auto;padding:0 24px 34px}
+  .top{display:flex;align-items:center;gap:14px;padding:20px 0 18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font:700 13px/1 var(--disp);letter-spacing:.02em}
+  .brand .mk{width:34px;height:34px;border-radius:12px;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 13px/1 var(--disp);box-shadow:0 8px 20px -10px rgba(33,28,51,.6)}
+  .brand small{display:block;font:500 8px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:2px}
+  .buildpill{font:600 9px/1 var(--mono);letter-spacing:.04em;color:var(--ink2);background:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:99px;padding:7px 10px}
+  .top .sp{flex:1}
+  .status{display:inline-flex;align-items:center;gap:7px;background:var(--mint);color:var(--ok);border-radius:99px;padding:7px 11px;font:700 9px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .status i{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(20,122,88,.13)}
+  .ghost{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:rgba(255,255,255,.55);border-radius:99px;padding:7px 11px;font:600 9px/1 var(--mono);letter-spacing:.04em;color:var(--ink2);transition:.16s}
+  .ghost:hover{background:#fff;color:var(--ink)}
+  .bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+  .card{position:relative;background:var(--card);border-radius:26px;padding:22px;box-shadow:0 20px 45px -36px rgba(40,32,64,.55),inset 0 1px 0 rgba(255,255,255,.7);min-width:0;overflow:hidden}
+  .card h2{font:700 17px/1.1 var(--disp);letter-spacing:-.02em;margin:0}
+  .bhead{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .bhead .hint{margin-left:auto;font:600 8.5px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+  .lab{font:600 8.5px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .hero{grid-column:span 7;min-height:330px;background:linear-gradient(135deg,var(--butter),var(--peach) 55%,var(--lav))}
+  .hero:after{content:"";position:absolute;width:300px;height:300px;right:-100px;bottom:-170px;border-radius:50%;background:rgba(255,255,255,.4);filter:blur(4px)}
+  .hero .k{font:700 8.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+  .hero h1{font:750 clamp(56px,8.4vw,112px)/.84 var(--disp);letter-spacing:-.07em;margin:14px 0 0;color:var(--ink)}
+  .hero h1 span{color:var(--accent)}
+  .hero p{max-width:520px;margin:15px 0 0;font-size:13px;line-height:1.6;color:var(--ink2)}
+  .hero .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+  .hero .tags span{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);border-radius:99px;padding:5px 8px;font:600 8px/1 var(--mono);letter-spacing:.03em;color:var(--ink2)}
+  .ring{position:absolute;right:26px;bottom:24px;width:178px;height:178px;border-radius:50%;background:repeating-conic-gradient(from -90deg,var(--accent) 0 7.5deg,transparent 7.5deg 32.72deg);display:grid;place-items:center;transform:rotate(-8deg)}
+  .ring:before{content:"";position:absolute;inset:16px;border-radius:50%;background:linear-gradient(135deg,var(--butter),var(--peach))}
+  .ring .c{position:relative;text-align:center}
+  .ring .c b{display:block;font:750 37px/.9 var(--disp);letter-spacing:-.05em;color:var(--ink)}
+  .ring .c small{display:block;margin-top:3px;font:600 7.5px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+  .sticker{position:absolute;right:20px;top:20px;background:var(--card);border-radius:99px;padding:8px 11px;font:700 9px/1 var(--mono);color:var(--ok);box-shadow:0 10px 24px -16px rgba(20,122,88,.6);transform:rotate(4deg)}
+  .passport{grid-column:span 5;background:var(--lav);min-height:330px;display:flex;flex-direction:column}
+  .passport .who{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .passport .ava{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.6);display:grid;place-items:center;font:700 15px/1 var(--disp);color:var(--accent)}
+  .passport .who b{display:block;font:700 13px/1.2 var(--disp)}
+  .passport .who small{display:block;font:500 8px/1.3 var(--mono);color:var(--ink3);margin-top:2px}
+  .passport .rows{display:flex;flex-direction:column;border-top:1px solid rgba(33,28,51,.1)}
+  .passport .row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(33,28,51,.1);font:600 9px/1.3 var(--mono);letter-spacing:.02em;color:var(--ink2)}
+  .passport .row b{color:var(--ink);font-weight:700}
+  .passport .foot{margin-top:auto;padding-top:14px;font:500 9px/1.5 var(--mono);color:var(--ink2)}
+  .kpi{grid-column:span 3;min-height:132px;display:flex;flex-direction:column}
+  .kpi .lab{color:var(--ink2)}
+  .kpi b{display:block;margin-top:10px;font:750 clamp(29px,2.6vw,40px)/.9 var(--disp);letter-spacing:-.05em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .kpi small{margin-top:auto;padding-top:10px;font:600 8.5px/1.4 var(--mono);color:var(--ink2)}
+  .kpi.mint{background:var(--mint)}.kpi.lav{background:var(--lav)}.kpi.butter{background:var(--butter)}.kpi.blue{background:var(--blue)}
+  .route{grid-column:span 12}
+  .steps{display:flex;overflow-x:auto;scrollbar-width:thin;padding:4px 0 2px}
+  .step{flex:1 0 106px;position:relative;padding:26px 10px 0 0}
+  .step:before{content:"";position:absolute;left:0;right:0;top:8px;height:1px;background:var(--line2)}
+  .step:first-child:before{left:50%}.step:last-child:before{right:50%}
+  .step .dot{position:absolute;left:0;top:1px;width:15px;height:15px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 8px/1 var(--sans)}
+  .step.skip .dot{background:transparent;border:1px dashed var(--ink3);color:transparent}
+  .step.skip:before{background:repeating-linear-gradient(90deg,var(--line2) 0 3px,transparent 3px 7px)}
+  .step b{display:block;font:700 11.5px/1.2 var(--disp);white-space:nowrap}
+  .step.skip b{color:var(--ink3)}
+  .step small{display:block;margin-top:3px;font:500 8px/1.3 var(--mono);color:var(--ink3);white-space:nowrap}
+  .step .du{display:inline-block;margin-top:5px;font:600 8px/1 var(--mono);background:rgba(90,75,219,.09);color:var(--accent);border-radius:99px;padding:4px 6px;white-space:nowrap}
+  .step.skip .du{background:rgba(33,28,51,.06);color:var(--ink3)}
+  .tasks{grid-column:span 8}
+  .filters{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+  .fchip{border:1px solid var(--line2);background:rgba(255,255,255,.55);border-radius:99px;padding:6px 9px;font:600 8px/1 var(--mono);letter-spacing:.03em;text-transform:uppercase;color:var(--ink2);cursor:pointer;min-height:28px}
+  .fchip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .wave{margin-top:13px;display:flex;align-items:center;gap:8px;font:600 8px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+  .wave:after{content:"";flex:1;height:1px;background:var(--line2)}
+  .wave b{color:var(--ink2);font-weight:700}
+  .task{display:grid;grid-template-columns:30px minmax(0,1fr) 60px 52px;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .task:last-child{border-bottom:0}
+  .task .id{font:700 8.5px/1 var(--mono);color:var(--accent)}
+  .task .tt b{display:block;font:600 11.5px/1.25 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task .tt small{display:block;margin-top:2px;font:500 7.5px/1.3 var(--mono);color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task .tt .bar{display:block;height:4px;border-radius:3px;background:rgba(33,28,51,.08);margin-top:5px;overflow:hidden}
+  .task .tt .bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
+  .task .wm{text-align:right;font:750 13px/.9 var(--disp);color:var(--ink)}
+  .task .wm small{display:block;font:600 7px/1 var(--mono);color:var(--ink3);margin-top:2px}
+  .task .ts{text-align:right;font:600 8px/1.4 var(--mono);color:var(--ink3);white-space:nowrap}
+  .pause{display:inline-block;margin-left:4px;background:var(--peach);border-radius:99px;padding:2px 5px;font:600 7px/1 var(--mono);color:#9a4a20}
+  .side{grid-column:span 4;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .side .card{background:var(--rose)}
+  .gates{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .gate{border:1px solid rgba(33,28,51,.1);background:rgba(255,255,255,.5);border-radius:12px;padding:8px 9px}
+  .gate .gh{display:flex;justify-content:space-between;font:600 7.5px/1 var(--mono);letter-spacing:.04em;color:var(--ink3)}
+  .gate .gh b{color:var(--ok)}
+  .gate .gv{display:block;margin-top:7px;font:750 16px/.9 var(--disp);color:var(--ink)}
+  .gate small{display:block;margin-top:3px;font:500 7.5px/1.3 var(--mono);color:var(--ink3)}
+  .side .spendcard{background:var(--mint)}
+  .tok{font:750 36px/.85 var(--disp);letter-spacing:-.05em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .tok small{display:block;margin-top:4px;font:600 8px/1.4 var(--mono);color:var(--ink2)}
+  .roles{margin-top:10px;border-top:1px solid rgba(33,28,51,.1)}
+  .role{display:grid;grid-template-columns:1fr 45px 34px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(33,28,51,.08);font:600 8.5px/1.3 var(--mono);color:var(--ink2)}
+  .role b{text-align:right;font-weight:700;color:var(--ink)}
+  .role small{text-align:right;font-size:7.5px;color:var(--ink3)}
+  .cachetag{display:inline-flex;margin-top:9px;background:rgba(255,255,255,.55);border-radius:99px;padding:5px 8px;font:600 8px/1 var(--mono);color:var(--ink2)}
+  .reqs{grid-column:span 7}
+  .reqgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .req{text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.55);border-radius:13px;padding:8px 9px;font:inherit;cursor:pointer;transition:.14s;min-width:0}
+  .req:hover{background:#fff;border-color:var(--line2);transform:translateY(-1px)}
+  .req .rt{display:flex;align-items:center;gap:6px}
+  .req .rid{font:700 7.5px/1 var(--mono);color:var(--accent);background:rgba(90,75,219,.09);border-radius:4px;padding:3px 4px}
+  .req .rok{margin-left:auto;font:700 7px/1 var(--mono);color:var(--ok);background:var(--mint);border-radius:99px;padding:3px 5px}
+  .req b{display:block;margin-top:6px;font:600 10px/1.25 var(--sans);color:var(--ink)}
+  .req .full{display:none;margin-top:7px;padding-top:7px;border-top:1px solid var(--line);font:500 9px/1.4 var(--sans);color:var(--ink2)}
+  .req[aria-expanded="true"]{background:var(--lav);border-color:rgba(90,75,219,.2)}
+  .req[aria-expanded="true"] .full{display:block}
+  .reqfoot{display:flex;align-items:center;gap:8px;margin-top:10px;font:600 7.5px/1.3 var(--mono);color:var(--ink3);text-transform:uppercase;letter-spacing:.03em}
+  .reqfoot button{margin-left:auto;background:none;border:0;border-bottom:1px solid var(--line2);padding:2px 0;font:600 7.5px/1.3 var(--mono);color:var(--ink3);text-transform:uppercase;cursor:pointer;min-height:22px}
+  .history{grid-column:span 5}
+  .hlist{display:flex;flex-direction:column}
+  .hrow{display:grid;grid-template-columns:40px 1fr 56px;gap:7px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+  .hrow:last-child{border-bottom:0}
+  .hrow .hd{font:600 7.5px/1.3 var(--mono);color:var(--ink3)}
+  .hrow .ht{font:600 10.5px/1.25 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hrow .ht small{display:block;margin-top:1px;font:500 7px/1.3 var(--mono);color:var(--ink3)}
+  .hrow .hm{text-align:right;font:700 9px/1.2 var(--mono);color:var(--ink);white-space:nowrap}
+  .hrow.cur{background:var(--ink);color:#fff;border-radius:10px;padding:7px;margin:0 -7px}
+  .hrow.cur .hd,.hrow.cur .hm,.hrow.cur .ht small{color:rgba(255,255,255,.6)}
+  .hrow.cur .hm{color:#fff}
+  .notes{grid-column:span 12}
+  .notegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .note{border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.5)}
+  .note[open]{background:var(--butter);border-color:rgba(33,28,51,.14)}
+  .note summary{list-style:none;display:grid;grid-template-columns:22px 1fr;gap:6px;padding:8px 9px;cursor:pointer;font:600 9px/1.35 var(--sans)}
+  .note summary::-webkit-details-marker{display:none}
+  .note .nn{font:700 7px/1.5 var(--mono);color:#9a4a20}
+  .note p{margin:0;padding:0 9px 9px 37px;font:500 8.5px/1.4 var(--sans);color:var(--ink2)}
+  .notefoot{display:flex;align-items:center;gap:8px;margin-top:10px;border-top:1px solid var(--line);padding-top:8px;font:600 7.5px/1.3 var(--mono);color:var(--ink3);text-transform:uppercase;flex-wrap:wrap}
+  .notefoot .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+  .notefoot button{margin-left:auto;background:none;border:0;border-bottom:1px solid var(--line2);padding:2px 0;font:600 7.5px/1.3 var(--mono);color:var(--ink3);text-transform:uppercase;cursor:pointer;min-height:22px}
+  footer{grid-column:span 12;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 4px 0;color:var(--ink3);font:500 8px/1.5 var(--mono)}
+  footer .sp{flex:1}
+  footer a{color:var(--accent);border-bottom:1px solid rgba(90,75,219,.3);padding-bottom:1px}
+  @media(max-width:1120px){
+    .hero{grid-column:span 12}
+    .passport{grid-column:span 12;min-height:0}
+    .kpi{grid-column:span 6}
+    .tasks,.reqs,.history{grid-column:span 12}
+    .side{grid-column:span 12;display:grid;grid-template-columns:1fr 1fr;align-items:start}
+    .side .card{height:100%}
+    .ring{width:150px;height:150px}
+    .notegrid{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:680px){
+    .page{padding:0 12px 24px}
+    .top{padding:14px 0 12px;gap:9px}
+    .buildpill{display:none}
+    .hero{min-height:0;padding:18px}
+    .hero h1{font-size:clamp(48px,15vw,78px)}
+    .ring{position:relative;right:auto;bottom:auto;margin-top:18px;width:132px;height:132px;transform:none}
+    .sticker{position:static;display:inline-block;margin-top:10px;transform:none}
+    .card{padding:16px;border-radius:20px}
+    .steps{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;overflow:visible}
+    .step{flex:none;padding:22px 0 0}
+    .step:before{display:none}
+    .step .dot{top:2px}
+    .kpi{grid-column:span 6;min-height:112px;padding:14px}
+    .kpi b{font-size:27px}
+    .side{grid-template-columns:1fr}
+    .tasks .filters{width:100%;margin-left:0;margin-top:4px}
+    .task{grid-template-columns:26px minmax(0,1fr) 48px}
+    .task .ts{display:none}
+    .reqgrid{grid-template-columns:1fr}
+    .notegrid{grid-template-columns:1fr}
+    .gates{grid-template-columns:1fr 1fr}
+    .hrow{grid-template-columns:36px 1fr 48px}
+    .history{grid-column:span 12}
+    footer{font-size:7.5px}
+  }
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <a class="brand" href="dashboard.html"><span class="mk">A</span><span>Autopilot<small>build 18 · design 06</small></span></a>
+    <span class="buildpill">волны 4–6 · 17.11.2026</span>
+    <span class="sp"></span>
+    <span class="status"><i></i>Сдано · 0 блокеров</span>
+    <a class="ghost" href="dashboard.html">← Design deck</a>
+  </header>
+
+  <main class="bento">
+    <section class="card hero">
+      <div class="k">Сборка №18 · финал 17:42</div>
+      <h1>Сдано<span>.</span></h1>
+      <p id="deck"></p>
+      <div class="tags"><span>11/11 требований</span><span>1 072 теста</span><span>4/4 гейта</span><span>слепая 11/11</span></div>
+      <div class="ring" role="img" aria-label="11 из 11 требований закрыто"><div class="c"><b>11</b><small>из 11</small></div></div>
+      <div class="sticker">✓ 0 блокеров</div>
+    </section>
+
+    <aside class="card passport" aria-label="Паспорт сборки">
+      <div class="who"><span class="ava" aria-hidden="true">↗</span><span><b>Паспорт сборки</b><small>orchestrator-spend-waves-4-6</small></span></div>
+      <div class="rows">
+        <div class="row"><span>Рабочее время</span><b>2 ч 25 мин</b></div>
+        <div class="row"><span>Календарь</span><b>14 ч 39 мин</b></div>
+        <div class="row"><span>Пауза</span><b>12 ч 15 мин</b></div>
+        <div class="row"><span>Тесты</span><b>1 072 · 0 упало</b></div>
+        <div class="row"><span>Токены</span><b>358 201 · 97 % кэш</b></div>
+      </div>
+      <div class="foot">Состояние — снимок <b>state.js</b> 17.11.2026 17:42. Один прогон, шесть волн, ноль хвостов.</div>
+    </aside>
+
+    <article class="card kpi mint"><div class="lab">Работа</div><b>2 ч 25</b><small>14 ч 39 мин на календаре<br>пауза 12 ч 15 мин не в счёт</small></article>
+    <article class="card kpi lav"><div class="lab">Тесты</div><b>1 072</b><small>+30 за сборку · 0 упало<br>5 пропущено</small></article>
+    <article class="card kpi butter"><div class="lab">Токены</div><b>358K</b><small>18 вызовов · Sonnet 5.5<br>97 % из кэша</small></article>
+    <article class="card kpi blue"><div class="lab">Гейты</div><b>4/4</b><small>G1–G4 пройдены<br>слепая сверка 11/11</small></article>
+
+    <section class="card route">
+      <div class="bhead"><h2>Маршрут</h2><span class="hint">8 этапов · рабочее время</span></div>
+      <div class="steps" id="steps"></div>
+    </section>
+
+    <section class="card tasks">
+      <div class="bhead"><h2>Таски и волны</h2>
+        <div class="filters" role="group" aria-label="Фильтр по волнам">
+          <button class="fchip" type="button" data-filter="all" aria-pressed="true">Все</button>
+          <button class="fchip" type="button" data-filter="early" aria-pressed="false">1–3</button>
+          <button class="fchip" type="button" data-filter="late" aria-pressed="false">4–6</button>
+        </div>
+      </div>
+      <div id="taskList"></div>
+    </section>
+
+    <div class="side">
+      <section class="card" aria-labelledby="gateTitle">
+        <div class="bhead"><h2 id="gateTitle">Гейты</h2><span class="hint">все пройдены</span></div>
+        <div class="gates" id="gates"></div>
+      </section>
+      <section class="card spendcard" aria-labelledby="spendTitle">
+        <div class="bhead"><h2 id="spendTitle">Расход</h2><span class="hint">18 вызовов</span></div>
+        <div class="tok">358 201<small>токенов · модель Sonnet 5.5</small></div>
+        <div class="roles" id="roles"></div>
+        <div class="cachetag">кэш 97 % · 57,9 млн чтений</div>
+      </section>
+    </div>
+
+    <section class="card reqs">
+      <div class="bhead"><h2>Требования</h2><span class="hint">11/11 · нажмите для цитаты</span></div>
+      <div class="reqgrid" id="reqGrid"></div>
+      <div class="reqfoot"><span>G1 пройден · открытых нет</span><button type="button" id="reqAll">Раскрыть все</button></div>
+    </section>
+
+    <section class="card history">
+      <div class="bhead"><h2>История</h2><span class="hint">эта + 6</span></div>
+      <div class="hlist" id="hist"></div>
+    </section>
+
+    <section class="card notes">
+      <div class="bhead"><h2>Замечания</h2><span class="hint">7 · не блокируют</span></div>
+      <div class="notegrid" id="notes"></div>
+      <div class="notefoot"><span class="dot"></span>Сборка сдана с оговорками, которые не мешают работе.<button type="button" id="notesAll">Раскрыть все</button></div>
+    </section>
+
+    <footer>
+      <span>Autopilot 2.7.0 · design 06 «Бенто»</span><span>state.js snapshot 17.11.2026 17:42</span><span class="sp"></span><span>no network · system fonts</span><a href="dashboard.html">← design deck</a>
+    </footer>
+  </main>
+</div>
+
+<script>window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};</script>
+<script>
+(function(){
+  const D = window.D;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const esc = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const nf = new Intl.NumberFormat("ru-RU");
+  $("#deck").textContent = D.result;
+
+  $("#steps").innerHTML = D.stages.map(s=>`
+    <div class="step ${s.status==="skipped"?"skip":""}"><span class="dot" aria-hidden="true">${s.status==="skipped"?"":"✓"}</span><b>${esc(s.name)}</b><small>${s.start}–${s.end}</small><span class="du">${s.status==="skipped"?"пропущен":s.min===0?"мгновенно":s.min+" мин"}</span></div>`).join("");
+
+  const range = ts=>{const st=[...ts].map(t=>t.start).sort(), en=[...ts].map(t=>t.end).sort(); return st[0]+"–"+en[en.length-1];};
+  let filter="all";
+  function renderTasks(){
+    const groups = D.waves.filter(w=>filter==="all"||(filter==="early"?w.n<=3:w.n>=4));
+    $("#taskList").innerHTML = groups.map(w=>{
+      const ts = D.tickets.filter(t=>t.wave===w.n);
+      return `<div class="wave"><b>Волна ${w.n}</b><span>${esc(w.name)} · ${ts.length} ${ts.length===1?"таск":"таска"}</span><span style="margin-left:auto;color:var(--ink3)">${range(ts)}</span></div>`+
+        ts.map(t=>`<div class="task"><span class="id">${esc(t.id)}</span><span class="tt"><b>${esc(t.title)}</b><small>${t.reqs.join(" · ")} · ${esc(t.model)} ${esc(t.effort)}${t.pause?`<span class="pause">пауза 12 ч</span>`:""}</small><span class="bar"><i style="width:${Math.max(4,t.active/48*100).toFixed(1)}%"></i></span></span><span class="wm">${t.active}<small>мин</small></span><span class="ts">${nf.format(t.tests)}<br>тестов</span></div>`).join("");
+    }).join("");
+  }
+  renderTasks();
+  document.querySelectorAll(".fchip").forEach(b=>b.addEventListener("click",()=>{
+    filter=b.dataset.filter;
+    document.querySelectorAll(".fchip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    renderTasks();
+  }));
+
+  $("#gates").innerHTML = D.gates.map(g=>`<div class="gate"><div class="gh"><span>${esc(g.id)}</span><b>✓</b></div><span class="gv">${esc(g.value)}</span><small>${esc(g.title)}</small></div>`).join("");
+  $("#roles").innerHTML = D.spend.roles.map(r=>`<div class="role"><span>${esc(r.name)}</span><b>${nf.format(r.tokens)}</b><small>${r.hit}%</small></div>`).join("");
+
+  $("#reqGrid").innerHTML = D.requirements.items.map(r=>`<button class="req" type="button" aria-expanded="false" aria-label="${esc(r.id+": "+r.text)}"><span class="rt"><span class="rid">${r.id}</span><span class="rok">OK</span></span><b>${esc(r.short)}</b><span class="full">${esc(r.text)}</span></button>`).join("");
+  document.querySelectorAll(".req").forEach(b=>b.addEventListener("click",()=>{
+    const open=b.getAttribute("aria-expanded")==="true";
+    document.querySelectorAll(".req").forEach(x=>x.setAttribute("aria-expanded","false"));
+    b.setAttribute("aria-expanded",String(!open));
+  }));
+  let reqOpen=false;
+  $("#reqAll").addEventListener("click",()=>{
+    reqOpen=!reqOpen;
+    document.querySelectorAll(".req").forEach(x=>x.setAttribute("aria-expanded",String(reqOpen)));
+    $("#reqAll").textContent=reqOpen?"Свернуть все":"Раскрыть все";
+  });
+
+  const rows=[{date:"17.11",title:"Волны 4–6 · эта сборка",minutes:145,tokens:D.spend.total,current:true},...D.history];
+  $("#hist").innerHTML = rows.map(r=>`<div class="hrow ${r.current?"cur":""}"><span class="hd">${r.date}</span><span class="ht">${esc(r.title)}<small>${r.current?"эта сборка":"сдана"}</small></span><span class="hm">${r.minutes} мин</span></div>`).join("");
+
+  $("#notes").innerHTML = D.report.map((n,i)=>`<details class="note"><summary><span class="nn">${String(i+1).padStart(2,"0")}</span><span>${esc(n.short)}</span></summary><p>${esc(n.long)}</p></details>`).join("");
+  $("#notesAll").addEventListener("click",(e)=>{
+    const all=document.querySelectorAll("#notes details"), open=[...all].some(d=>!d.open);
+    all.forEach(d=>{d.open=open;});
+    e.currentTarget.textContent=open?"Свернуть все":"Раскрыть все";
+  });
+})();
+</script>
+</body>
+</html>

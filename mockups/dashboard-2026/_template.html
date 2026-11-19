@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Стартовый дизайн — Autopilot</title>
+<!--
+  СТАРТОВЫЙ ДИЗАЙН ДЛЯ НОВОГО КОНЦЕПТА
+  ─────────────────────────────────────
+  1. Скопируйте файл: 07-my-design.html
+  2. Меняйте CSS и разметку. Данные лежат в window.D ниже — это снимок state.js.
+  3. Добавьте объект в designs.js: id, no, name, tagline, file, accent.
+  4. Обновите dashboard.html — карточка и живое превью появятся сами.
+  Контракт: D.tests, D.tickets, D.requirements.items, D.gates, D.report, D.spend.
+  Никаких сборок, внешних шрифтов и сетевых запросов.
+-->
+<style>
+  :root{
+    --bg:#f5f6f2; --panel:#fffef9; --ink:#171b22; --ink2:#4f5662; --ink3:#868b83;
+    --line:#dfe2d9; --line2:#eceee7; --acc:#2c5cff; --ok:#0f7a5c; --warn:#a4570d;
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 28px 44px}
+  .top{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .mark{width:30px;height:30px;display:grid;place-items:center;background:var(--ink);color:var(--panel);font:700 12px/1 var(--disp);border-radius:8px}
+  .top b{font:650 13px/1 var(--disp);letter-spacing:.08em;text-transform:uppercase}
+  .top .back{margin-left:auto;font:600 10px/1 var(--mono);letter-spacing:.04em;color:var(--ink2);border-bottom:1px solid var(--line);padding-bottom:2px}
+  .top .back:hover{color:var(--acc);border-color:var(--acc)}
+  .eyebrow{font:600 9px/1.4 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+  h1{font:650 clamp(38px,6vw,68px)/1.02 var(--disp);letter-spacing:-.045em;margin:18px 0 0;max-width:860px}
+  .deck{max-width:720px;margin:18px 0 0;color:var(--ink2);font-size:16px;line-height:1.6}
+  .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
+  .meta span{font:600 9px/1 var(--mono);letter-spacing:.06em;color:var(--ink2);border:1px solid var(--line);border-radius:99px;padding:6px 9px;background:var(--panel)}
+  .meta b{color:var(--ink)}
+  .hero{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:30px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:28px}
+  .hero .big{text-align:right}
+  .hero .big b{display:block;font:700 64px/.85 var(--disp);letter-spacing:-.06em;color:var(--acc);font-variant-numeric:tabular-nums}
+  .hero .big span{display:block;margin-top:8px;font:600 8.5px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);margin-top:26px}
+  .kpi{padding:18px 18px 20px;border-left:1px solid var(--line)}
+  .kpi:first-child{border-left:0;padding-left:0}
+  .kpi .lab{font:600 8.5px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .kpi b{display:block;margin-top:8px;font:700 32px/.95 var(--disp);letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+  .kpi small{display:block;margin-top:6px;font-size:11px;color:var(--ink3)}
+  .grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:34px;margin-top:30px;align-items:start}
+  h2{font:650 18px/1.1 var(--disp);letter-spacing:-.02em;margin:0 0 12px}
+  .tasks{border-top:1px solid var(--ink)}
+  .task{display:grid;grid-template-columns:34px minmax(0,1fr) 58px 54px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line2)}
+  .task .id{font:600 9px/1 var(--mono);color:var(--acc)}
+  .task .tt{font:600 12.5px/1.3 var(--sans);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task .tt small{display:block;font:500 8px/1.3 var(--mono);color:var(--ink3);margin-top:2px}
+  .task .min{text-align:right;font:600 10px/1 var(--mono);white-space:nowrap}
+  .task .tests{text-align:right;font:500 9px/1 var(--mono);color:var(--ink3);white-space:nowrap}
+  .reqs{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+  .req{font:500 9px/1.2 var(--mono);border:1px solid var(--line);border-radius:4px;padding:5px 6px;background:var(--panel);color:var(--ink2)}
+  .req b{color:var(--ok);font-weight:600;margin-right:4px}
+  .notes{border-top:1px solid var(--ink);margin-top:30px;padding-top:12px}
+  .note{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:1px solid var(--line2);font-size:12px;color:var(--ink2)}
+  .note i{font:600 9px/1.5 var(--mono);font-style:normal;color:var(--warn)}
+  .foot{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font:500 9px/1.5 var(--mono);color:var(--ink3)}
+  .foot a{color:var(--acc);border-bottom:1px solid color-mix(in srgb,var(--acc) 35%,transparent);padding-bottom:1px}
+  @media(max-width:900px){
+    .hero{grid-template-columns:1fr}
+    .hero .big{text-align:left}
+    .hero .big b{font-size:52px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi:nth-child(3){border-left:0;padding-left:0}
+    .kpi:nth-child(1),.kpi:nth-child(2){border-bottom:1px solid var(--line)}
+    .grid{grid-template-columns:1fr;gap:24px}
+  }
+  @media(max-width:560px){
+    .wrap{padding:0 16px 30px}
+    h1{font-size:38px}
+    .deck{font-size:14px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi b{font-size:26px}
+    .task{grid-template-columns:30px minmax(0,1fr) 48px}
+    .task .tests{display:none}
+    .top .back{margin-left:0}
+  }
+  @media print{
+    .top .back{display:none}
+    body{background:#fff}
+    .kpi,.req,.meta span{background:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="mark" aria-hidden="true">A</span>
+    <b>Autopilot · стартовый дизайн</b>
+    <a class="back" href="dashboard.html">← Design deck</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Сборка №18 · 17 ноября 2026 · конец снимка</div>
+        <h1>Ваш дизайн<br>здесь.</h1>
+        <p class="deck">Это рабочий стартовый концепт. Скопируйте файл, поменяйте палитру, типографику и композицию — данные, структура и контракт уже готовы. Все цифры настоящие.</p>
+        <div class="meta">
+          <span><b>11/11</b> требований</span>
+          <span><b>10</b> тасков</span>
+          <span><b>6</b> волн</span>
+          <span><b>1 072</b> теста</span>
+          <span><b>0</b> блокеров</span>
+          <span>state.js · 17.11.2026</span>
+        </div>
+      </div>
+      <div class="big"><b>11<i>/</i>11</b><span>закрыто и принято<br>слепой сверкой</span></div>
+    </section>
+
+    <section class="kpis" aria-label="Ключевые цифры">
+      <div class="kpi"><div class="lab">Рабочее время</div><b>2 ч 25 мин</b><small>14 ч 39 мин на календаре</small></div>
+      <div class="kpi"><div class="lab">Тесты</div><b>1 072</b><small>+30 за сборку · 0 упало</small></div>
+      <div class="kpi"><div class="lab">Токены</div><b>358 201</b><small>97 % из кэша · 18 вызовов</small></div>
+      <div class="kpi"><div class="lab">Гейты</div><b>4 / 4</b><small>слепая сверка 11/11</small></div>
+    </section>
+
+    <div class="grid">
+      <section aria-labelledby="tasksTitle">
+        <h2 id="tasksTitle">Таски и волны</h2>
+        <div class="tasks" id="tasks"></div>
+      </section>
+      <section aria-labelledby="reqTitle">
+        <h2 id="reqTitle">Требования</h2>
+        <div class="reqs" id="reqs"></div>
+        <div style="margin-top:14px;font:600 9px/1.5 var(--mono);color:var(--ink3)">G1 пройден · 11 из 11 · 1 круг приёмки</div>
+      </section>
+    </div>
+
+    <section class="notes" aria-labelledby="notesTitle">
+      <h2 id="notesTitle" style="font-size:14px">Замечания · 7 · не блокируют</h2>
+      <div id="notes"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Стартовый дизайн · данные встроены</span>
+    <span>Скопируйте <b>_template.html</b> и добавьте объект в <b>designs.js</b></span>
+    <a href="dashboard.html">Вернуться в переключатель →</a>
+  </footer>
+</div>
+
+<script>window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};</script>
+<script>
+(function(){
+  const D = window.D;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  $("#tasks").innerHTML = D.tickets.map(t=>`
+    <div class="task"><span class="id">${esc(t.id)}</span><span class="tt">${esc(t.title)}<small>${t.reqs.join(" · ")} · ${esc(t.model)} ${esc(t.effort)}</small></span><span class="min">${t.active} мин</span><span class="tests">${t.tests.toLocaleString("ru-RU")}</span></div>`).join("");
+  $("#reqs").innerHTML = D.requirements.items.map(r=>`<span class="req"><b>✓</b>${esc(r.id)} · ${esc(r.short)}</span>`).join("");
+  $("#notes").innerHTML = D.report.map((n,i)=>`<div class="note"><i>${String(i+1).padStart(2,"0")}</i><span>${esc(n.short)}</span></div>`).join("");
+})();
+</script>
+</body>
+</html>

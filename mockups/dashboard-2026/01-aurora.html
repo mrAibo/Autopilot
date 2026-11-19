@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аврора — дашборд Autopilot</title>
+<style>
+  :root{
+    --bg:#05070d; --bg2:#070b14;
+    --tx:#edf2fc; --tx2:#a9b6cc; --tx3:#7a88a1;
+    --line:rgba(158,190,255,.14); --line-soft:rgba(158,190,255,.075);
+    --mint:#4df0be; --mint2:#19c99a; --sky:#63c7ff; --violet:#b69cff; --amber:#ffc46b; --rose:#ff8d9c; --lime:#c8ff6b;
+    --glass:linear-gradient(165deg,rgba(255,255,255,.062),rgba(255,255,255,.022) 42%,rgba(255,255,255,.012));
+    --r:22px;
+    --sh:0 26px 60px -30px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06);
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+    --body:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scrollbar-color:rgba(120,160,220,.35) transparent}
+  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:var(--disp);margin:0}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit}
+  ::selection{background:rgba(77,240,190,.28)}
+  :focus-visible{outline:2px solid var(--mint);outline-offset:3px;border-radius:6px}
+  .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip{position:fixed;left:16px;top:-60px;z-index:100;background:var(--mint);color:#04120e;padding:10px 16px;border-radius:10px;font-weight:700;transition:top .2s}
+  .skip:focus{top:14px}
+
+  /* ——— aurora backdrop ——— */
+  .aurora{position:fixed;inset:0;z-index:-3;overflow:hidden;background:
+    radial-gradient(1200px 820px at 12% -12%,rgba(77,240,190,.16),transparent 62%),
+    radial-gradient(1000px 760px at 96% 6%,rgba(99,199,255,.15),transparent 63%),
+    radial-gradient(1000px 900px at 52% 112%,rgba(182,156,255,.13),transparent 62%),
+    linear-gradient(180deg,#070b14,#05070d 55%,#060911)}
+  .aurora i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;will-change:transform}
+  .aurora .b1{width:620px;height:620px;left:-8%;top:-14%;background:radial-gradient(circle,rgba(31,224,170,.38),transparent 65%);animation:drift1 26s ease-in-out infinite alternate}
+  .aurora .b2{width:560px;height:560px;right:-9%;top:4%;background:radial-gradient(circle,rgba(64,170,255,.36),transparent 65%);animation:drift2 32s ease-in-out infinite alternate}
+  .aurora .b3{width:720px;height:720px;left:38%;bottom:-42%;background:radial-gradient(circle,rgba(150,120,255,.3),transparent 66%);animation:drift3 38s ease-in-out infinite alternate}
+  @keyframes drift1{to{transform:translate3d(70px,60px,0) scale(1.1)}}
+  @keyframes drift2{to{transform:translate3d(-60px,90px,0) scale(1.08)}}
+  @keyframes drift3{to{transform:translate3d(40px,-70px,0) scale(1.12)}}
+  .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* ——— shell ——— */
+  .app{display:grid;grid-template-columns:84px minmax(0,1fr);min-height:100vh}
+  .app,.main{min-width:0}
+  .rail{position:sticky;top:0;height:100vh;z-index:30;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 0;border-right:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(8,12,22,.72),rgba(6,9,16,.35));backdrop-filter:blur(20px)}
+  .mark{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(77,240,190,.2),rgba(99,199,255,.12));border:1px solid rgba(120,240,210,.4);box-shadow:0 0 30px -8px rgba(77,240,190,.55);color:var(--mint)}
+  .rail .ver{font:9px/1 var(--mono);color:var(--tx3);letter-spacing:.08em;margin:2px 0 14px}
+  .rail nav{display:flex;flex-direction:column;gap:6px;width:100%;align-items:center}
+  .rail a{position:relative;width:46px;height:46px;display:grid;place-items:center;border-radius:13px;color:var(--tx3);transition:.2s}
+  .rail a:hover{color:var(--tx);background:rgba(255,255,255,.055)}
+  .rail a.active{color:var(--mint);background:rgba(77,240,190,.1);box-shadow:inset 0 0 0 1px rgba(77,240,190,.22)}
+  .rail a.active:before{content:"";position:absolute;left:-19px;top:13px;width:3px;height:20px;border-radius:2px;background:var(--mint);box-shadow:0 0 12px var(--mint)}
+  .rail a .tip{position:absolute;left:56px;top:50%;transform:translate(-4px,-50%);opacity:0;pointer-events:none;white-space:nowrap;background:#0b1220;border:1px solid var(--line);padding:7px 11px;border-radius:9px;font-size:12px;color:var(--tx2);transition:.18s;z-index:60;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .rail a:hover .tip,.rail a:focus-visible .tip{opacity:1;transform:translate(0,-50%)}
+  .rail .sp{flex:1}
+  .rail .up{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:var(--tx3);border:1px solid var(--line-soft);background:rgba(255,255,255,.02);transition:.2s}
+  .rail .up:hover{color:var(--tx);border-color:var(--line)}
+  .rail .sig{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);margin:4px 0 2px}
+
+  .main{min-width:0;width:100%;max-width:1540px;margin:0 auto;padding:0 30px 34px}
+  .topbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:14px;padding:16px 0 14px;background:linear-gradient(rgba(5,7,13,.92),rgba(5,7,13,.72) 70%,transparent);backdrop-filter:blur(14px)}
+  .crumbs{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--tx3);min-width:0}
+  .crumbs b{color:var(--tx2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .crumbs .sep{opacity:.45}
+  .concept-tag{font:9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mint);border:1px solid rgba(77,240,190,.3);background:rgba(77,240,190,.07);padding:6px 9px;border-radius:7px;white-space:nowrap}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .live{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--tx3);white-space:nowrap}
+  .live i{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 9px var(--mint);animation:pulse 2.6s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--tx);font-size:13px;font-weight:600;cursor:pointer;transition:.18s;white-space:nowrap}
+  .btn:hover{background:rgba(255,255,255,.085);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:linear-gradient(135deg,var(--mint),#7fe9ff);border-color:transparent;color:#04130f;box-shadow:0 12px 34px -14px rgba(77,240,190,.7)}
+  .btn.primary:hover{box-shadow:0 16px 40px -14px rgba(77,240,190,.9)}
+  .btn svg{flex:none}
+
+  /* ——— cards ——— */
+  .card{position:relative;background:var(--glass);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);backdrop-filter:blur(22px) saturate(140%);overflow:hidden;min-width:0;max-width:100%}
+  .card:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(520px 180px at 0% 0%,rgba(77,240,190,.08),transparent 62%)}
+  .card-head{position:relative;display:flex;align-items:center;gap:12px;padding:20px 24px 0;flex-wrap:wrap}
+  .card-head h2{font-size:16px;letter-spacing:-.01em;font-weight:650}
+  .card-head .hint{font-size:11.5px;color:var(--tx3);margin-left:auto}
+  .card-body{position:relative;padding:16px 24px 22px}
+  .mono{font-family:var(--mono)}
+  .label{font:10px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
+
+  /* ——— hero ——— */
+  .hero{position:relative;margin-top:6px;display:grid;grid-template-columns:minmax(0,1.45fr) 336px;gap:30px;padding:40px 42px 34px;border-radius:28px;border:1px solid rgba(140,215,255,.17);background:
+    radial-gradient(700px 300px at 88% -10%,rgba(77,240,190,.16),transparent 65%),
+    linear-gradient(150deg,rgba(77,240,190,.085),rgba(99,199,255,.05) 44%,rgba(182,156,255,.075));box-shadow:var(--sh);overflow:hidden}
+  .hero:after{content:"";position:absolute;right:-170px;top:-260px;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(77,240,190,.2),transparent 62%);filter:blur(24px);pointer-events:none}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:9px;font:10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mint)}
+  .hero .eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 12px var(--mint)}
+  .hero h1{font-size:clamp(38px,4.1vw,58px);line-height:1.025;letter-spacing:-.05em;font-weight:760;margin:16px 0 14px;max-width:760px}
+  .hero h1 .grad{background:linear-gradient(92deg,var(--mint),var(--sky) 52%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .deck{margin:0 0 20px;max-width:680px;color:var(--tx2);font-size:15px;line-height:1.62}
+  .hero .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:24px}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:11.5px;color:var(--tx2);white-space:nowrap}
+  .chip b{color:var(--tx);font-weight:650}
+  .chip.ok{color:#b6ffe6;border-color:rgba(77,240,190,.3);background:rgba(77,240,190,.08)}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+  .ringcol{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:1}
+  .ring{position:relative;width:248px;height:248px;display:grid;place-items:center}
+  .ring svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .ring .halo{position:absolute;inset:26px;border-radius:50%;background:radial-gradient(circle,rgba(77,240,190,.16),transparent 68%);filter:blur(6px)}
+  .ring-center{position:relative;text-align:center}
+  .ring-center b{display:block;font-family:var(--disp);font-size:50px;font-weight:740;letter-spacing:-.055em;line-height:1}
+  .ring-center b span{font-size:23px;color:var(--tx3);letter-spacing:-.03em}
+  .ring-center small{display:block;margin-top:5px;font:9.5px/1.4 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--tx3)}
+  .ring-foot{display:flex;gap:18px;justify-content:center;margin-top:4px}
+  .ring-foot div{text-align:center}
+  .ring-foot b{display:block;font-size:16px;font-weight:680;font-variant-numeric:tabular-nums}
+  .ring-foot span{font:9px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+  .ring-seg{opacity:0;animation:segIn .5s ease forwards}
+  @keyframes segIn{from{opacity:0}to{opacity:1}}
+
+  /* ——— kpis ——— */
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px}
+  .kpi{padding:19px 20px 16px;display:flex;flex-direction:column;gap:9px;min-height:154px;transition:transform .22s,border-color .22s}
+  .kpi:hover{transform:translateY(-3px);border-color:rgba(150,220,255,.3)}
+  .kpi .top{display:flex;align-items:center;gap:8px}
+  .kpi .top svg{color:var(--tx3);margin-left:auto}
+  .kpi .value{font-family:var(--disp);font-size:clamp(27px,2.5vw,36px);line-height:1;font-weight:720;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .kpi .sub{font-size:11.8px;line-height:1.45;color:var(--tx3);margin-top:auto}
+  .kpi .sub b{color:var(--tx2);font-weight:600}
+  .viz{height:30px;display:flex;align-items:flex-end;margin-top:2px}
+  .viz svg{width:100%;height:30px;overflow:visible}
+  .wbar{position:relative;width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:6px}
+  .wbar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,var(--mint2),var(--mint));box-shadow:0 0 18px rgba(77,240,190,.5)}
+  .wbar em{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.11) 0 5px,transparent 5px 10px)}
+  .stackbar{display:flex;width:100%;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.05);margin-top:6px}
+  .stackbar i{display:block;height:100%}
+  .gate-dots{display:flex;gap:7px;margin-top:7px}
+  .gate-dots span{font:9px/1 var(--mono);letter-spacing:.06em;padding:5px 7px;border-radius:6px;border:1px solid rgba(77,240,190,.3);background:rgba(77,240,190,.08);color:#bfffea}
+
+  /* ——— route ——— */
+  .route-card{margin-top:14px}
+  .route{display:flex;overflow-x:auto;padding:2px 0 4px;scrollbar-width:thin;max-width:100%}
+  .stage{flex:1 0 106px;min-width:106px;position:relative;padding:33px 12px 2px 0}
+  .stage:before{content:"";position:absolute;top:8px;left:0;right:0;height:1px;background:var(--line)}
+  .stage:first-child:before{left:50%}
+  .stage:last-child:before{right:50%}
+  .stage .dot{position:absolute;top:1px;left:0;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--mint),#8af5ff);box-shadow:0 0 0 4px rgba(77,240,190,.1),0 0 18px rgba(77,240,190,.55);display:grid;place-items:center;color:#04130f}
+  .stage.is-skipped .dot{background:transparent;border:1px dashed rgba(160,190,255,.4);box-shadow:none;color:transparent}
+  .stage.is-skipped:before{background:repeating-linear-gradient(90deg,rgba(160,190,255,.3) 0 3px,transparent 3px 7px)}
+  .stage b{display:block;font-size:12.5px;font-weight:620;letter-spacing:-.005em;white-space:nowrap}
+  .stage.is-skipped b{color:var(--tx3)}
+  .stage .time{display:block;margin-top:3px;font:10px/1.4 var(--mono);color:var(--tx3);white-space:nowrap}
+  .stage .dur{display:inline-block;margin-top:6px;font-size:10.5px;color:var(--mint);background:rgba(77,240,190,.08);border:1px solid rgba(77,240,190,.18);padding:2px 6px;border-radius:5px;white-space:nowrap}
+  .stage.is-skipped .dur{color:var(--tx3);background:transparent;border-style:dashed;border-color:var(--line)}
+  .stage .wall{display:block;margin-top:3px;font-size:9.5px;color:var(--tx3);white-space:nowrap}
+
+  /* ——— layout ——— */
+  .grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(350px,.9fr);gap:14px;margin-top:14px;align-items:start}
+  .col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  /* ——— gantt ——— */
+  .gantt-card .card-head{padding-bottom:0}
+  .filters{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+  .filter{border:1px solid var(--line-soft);background:rgba(255,255,255,.02);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--tx3);cursor:pointer;transition:.16s;min-height:30px}
+  .filter:hover{color:var(--tx);border-color:var(--line)}
+  .filter[aria-pressed="true"]{color:#04130f;background:var(--mint);border-color:transparent;font-weight:700}
+  .gantt{padding:18px 24px 20px;overflow-x:auto;scrollbar-width:thin;max-width:100%}
+  .gantt-inner{min-width:560px}
+  .ghead{display:grid;grid-template-columns:196px minmax(0,1fr) 96px;gap:14px;align-items:end;padding-bottom:7px;border-bottom:1px solid var(--line-soft)}
+  .ghead .lbl{font:9px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);white-space:nowrap}
+  .ghead .lbl.r{text-align:right}
+  .ghead .axis{position:relative;height:14px;font:9px/1 var(--mono);color:var(--tx3)}
+  .ghead .axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+  .ghead .axis span:first-child{transform:none}
+  .ghead .axis span:last-child{transform:translateX(-100%)}
+  .wave-row{display:grid;grid-template-columns:196px minmax(0,1fr) 96px;gap:14px;align-items:center;margin:14px 0 4px;font:9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+  .wave-row:first-of-type{margin-top:11px}
+  .wave-row .wl{display:flex;align-items:baseline;gap:7px;min-width:0}
+  .wave-row b{color:var(--tx2);font-weight:600;letter-spacing:.08em;white-space:nowrap}
+  .wave-row .wname{color:var(--tx3);letter-spacing:.02em;text-transform:none;font-family:var(--body);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wave-row .wtime{grid-column:2/4;display:flex;align-items:center;gap:10px;font-size:9px;color:var(--tx3);letter-spacing:.02em;text-transform:none;white-space:nowrap}
+  .wave-row .wtime:after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .wave-row .wtime span{flex:none}
+  .grow{display:grid;grid-template-columns:196px minmax(0,1fr) 96px;gap:14px;align-items:center;min-height:34px}
+  .glabel{min-width:0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+  .glabel b{font:10px/1 var(--mono);color:var(--tx);background:rgba(255,255,255,.055);border:1px solid var(--line-soft);border-radius:5px;padding:3px 5px;flex:none}
+  .glabel span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lane{position:relative;height:22px;border-radius:6px;background:
+      linear-gradient(90deg,rgba(158,190,255,.09) 1px,transparent 1px) 0 0/25% 100%,
+      rgba(255,255,255,.025);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+  .bar{position:absolute;left:0;top:3px;bottom:3px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px -6px rgba(0,0,0,.6);transition:filter .16s,transform .16s;min-width:3px;outline-offset:3px}
+  .bar:hover,.bar:focus-visible{filter:brightness(1.18);transform:translateY(-1px)}
+  .w1{background:linear-gradient(90deg,#17b98d,#4df0be)}
+  .w2{background:linear-gradient(90deg,#2b9fe0,#7fd7ff)}
+  .w3{background:linear-gradient(90deg,#8a6ce0,#c3aaff)}
+  .w4{background:linear-gradient(90deg,#e0a24b,#ffd18a)}
+  .w5{background:linear-gradient(90deg,#e06075,#ffa6b1)}
+  .w6{background:linear-gradient(90deg,#8fce3d,#c8ff6b)}
+  .gwall{text-align:right;font:9px/1.35 var(--mono);color:var(--tx3);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .gwall b{display:block;color:var(--tx2);font-size:10px;font-weight:600}
+  .gnote{display:grid;grid-template-columns:196px minmax(0,1fr);gap:14px;margin:-1px 0 5px}
+  .gnote span{grid-column:2;font-size:9.5px;line-height:1.4;color:var(--tx3);padding:1px 0 1px 9px;border-left:1px solid rgba(255,196,107,.45);white-space:normal;overflow-wrap:anywhere}
+  .gnote b{color:var(--amber);font-weight:600}
+  .glegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:13px;border-top:1px solid var(--line-soft);font-size:10.5px;color:var(--tx3)}
+  .glegend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .glegend .note{margin-left:auto;color:var(--tx3)}
+  .tip{position:fixed;z-index:90;max-width:320px;padding:12px 14px;border-radius:12px;background:rgba(9,15,27,.97);border:1px solid rgba(150,200,255,.28);box-shadow:0 22px 50px rgba(0,0,0,.65);font-size:12px;line-height:1.45;color:var(--tx2);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .15s,transform .15s;backdrop-filter:blur(14px)}
+  .tip.on{opacity:1;transform:translateY(0)}
+  .tip b{display:block;color:var(--tx);font-size:12.5px;margin-bottom:5px}
+  .tip .row{display:flex;justify-content:space-between;gap:14px;padding:2px 0}
+  .tip .row span:last-child{color:var(--tx);font-family:var(--mono);font-size:11px}
+
+  /* ——— gates ——— */
+  .gate{display:grid;grid-template-columns:36px 1fr auto;gap:11px;align-items:center;padding:12px 0;border-top:1px solid var(--line-soft)}
+  .gate:first-of-type{border-top:0;padding-top:4px}
+  .gate .gicon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(77,240,190,.1);border:1px solid rgba(77,240,190,.28);color:var(--mint);flex:none}
+  .gate .gt{min-width:0}
+  .gate .gt b{display:block;font-size:12.5px;font-weight:600;letter-spacing:-.005em}
+  .gate .gt small{display:block;font-size:10.5px;color:var(--tx3);margin-top:2px;line-height:1.35}
+  .gate .gv{font:11.5px/1.2 var(--mono);color:var(--tx);white-space:nowrap;text-align:right}
+  .gate .gv em{display:block;font-style:normal;font-size:9px;color:var(--tx3);margin-top:3px}
+  .gates-foot{margin-top:12px;padding-top:13px;border-top:1px solid var(--line-soft);display:flex;align-items:center;gap:9px;font-size:11px;color:var(--tx3)}
+  .gates-foot b{color:var(--mint);font-weight:650}
+
+  /* ——— spend ——— */
+  .spend-wrap{display:flex;align-items:center;gap:18px;padding-top:6px}
+  .donut{position:relative;width:146px;height:146px;flex:none}
+  .donut svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .donut .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .donut .c b{font-family:var(--disp);font-size:24px;letter-spacing:-.04em;line-height:1;font-weight:720;font-variant-numeric:tabular-nums}
+  .donut .c small{font:8.5px/1.3 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);margin-top:3px}
+  .roles{list-style:none;margin:0;padding:0;flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+  .role{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:7px;align-items:center;font-size:11px;color:var(--tx3)}
+  .role i{width:7px;height:7px;border-radius:2px}
+  .role .rn{display:flex;justify-content:space-between;gap:8px;min-width:0;color:var(--tx2)}
+  .role .rn span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .role .rn b{font:10px/1 var(--mono);color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
+  .role .track{grid-column:2/4;height:3px;border-radius:2px;background:rgba(255,255,255,.055);overflow:hidden;margin-top:-2px}
+  .role .track i{display:block;height:100%;border-radius:2px;width:var(--w)}
+  .spend-foot{display:flex;justify-content:space-between;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:10.5px;color:var(--tx3)}
+  .spend-foot b{color:var(--tx2)}
+
+  /* ——— feed ——— */
+  .feed{list-style:none;margin:0;padding:0;position:relative}
+  .feed:before{content:"";position:absolute;left:5px;top:7px;bottom:10px;width:1px;background:var(--line-soft)}
+  .feed li{position:relative;padding:0 0 13px 23px;font-size:12px;line-height:1.4;color:var(--tx2)}
+  .feed li:last-child{padding-bottom:0}
+  .feed .fd{position:absolute;left:1px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--tx3);box-shadow:0 0 0 3px rgba(5,7,13,.9)}
+  .feed .fd-ok{background:var(--mint);box-shadow:0 0 0 3px rgba(5,7,13,.9),0 0 10px rgba(77,240,190,.6)}
+  .feed .fd-run{background:var(--sky)}
+  .feed .fd-stage{background:var(--violet)}
+  .feed .fd-gate{background:var(--amber)}
+  .feed time{font:9.5px/1 var(--mono);color:var(--tx3);margin-right:7px;letter-spacing:.02em}
+  .more-btn{margin-top:14px;width:100%;min-height:36px;border-radius:9px;border:1px solid var(--line-soft);background:rgba(255,255,255,.02);color:var(--tx3);font-size:11.5px;cursor:pointer;transition:.16s}
+  .more-btn:hover{color:var(--tx);border-color:var(--line);background:rgba(255,255,255,.05)}
+
+  /* ——— requirements ——— */
+  .reqs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+  .req{position:relative;text-align:left;border:1px solid var(--line-soft);border-radius:12px;background:rgba(255,255,255,.022);padding:11px 12px;cursor:pointer;transition:.16s;color:inherit;font:inherit;width:100%}
+  .req:hover{border-color:rgba(77,240,190,.32);background:rgba(77,240,190,.045)}
+  .req .rtop{display:flex;align-items:center;gap:8px}
+  .req .rid{font:9.5px/1 var(--mono);letter-spacing:.06em;color:var(--mint);background:rgba(77,240,190,.08);border:1px solid rgba(77,240,190,.18);padding:3px 5px;border-radius:4px}
+  .req .rcheck{margin-left:auto;color:var(--mint);display:grid;place-items:center}
+  .req .rshort{display:block;font-size:12px;line-height:1.35;color:var(--tx2);margin-top:6px;font-weight:500}
+  .req .rfull{display:none;font-size:11px;line-height:1.45;color:var(--tx3);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-soft)}
+  .req[aria-expanded="true"]{border-color:rgba(77,240,190,.3);background:rgba(77,240,190,.05)}
+  .req[aria-expanded="true"] .rfull{display:block}
+  .reqs-foot{display:flex;align-items:center;gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--tx3)}
+  .reqs-foot b{color:var(--mint)}
+
+  /* ——— history ——— */
+  .hist-card{margin-top:14px}
+  .table-scroll{overflow-x:auto;max-width:100%}
+  table.hist{width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px}
+  table.hist th{font:9px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);text-align:left;font-weight:500;padding:2px 10px 9px 0;border-bottom:1px solid var(--line-soft)}
+  table.hist td{padding:10px 10px 10px 0;border-bottom:1px solid var(--line-soft);color:var(--tx2);vertical-align:middle}
+  table.hist tr:last-child td{border-bottom:0}
+  table.hist tr.cur td{background:linear-gradient(90deg,rgba(77,240,190,.07),transparent 70%)}
+  table.hist tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--mint)}
+  table.hist .hdate{font:10px/1 var(--mono);color:var(--tx3);white-space:nowrap}
+  table.hist .htitle{color:var(--tx);font-weight:550}
+  table.hist .htitle small{display:inline-block;font:8.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mint);border:1px solid rgba(77,240,190,.25);border-radius:4px;padding:2px 4px;margin-left:6px;vertical-align:1px}
+  table.hist .num{font:10.5px/1 var(--mono);color:var(--tx);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .hcell{display:flex;align-items:center;gap:8px;min-width:120px}
+  .htrack{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.055);overflow:hidden}
+  .htrack i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--mint2),var(--mint))}
+  .htrack i.mut{background:linear-gradient(90deg,#4c5a72,#7d8da6)}
+
+  /* ——— report ——— */
+  .report-card{margin-top:14px}
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:9px;min-width:0}
+  details.note{border:1px solid var(--line-soft);border-radius:13px;background:rgba(255,255,255,.02);padding:0;transition:.16s}
+  details.note[open]{border-color:rgba(255,196,107,.3);background:rgba(255,196,107,.035)}
+  details.note summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:9px;align-items:start;padding:13px 14px}
+  details.note summary::-webkit-details-marker{display:none}
+  details.note summary:hover .nshort{color:#fff}
+  .note .nnum{font:9.5px/1.5 var(--mono);color:var(--amber);letter-spacing:.04em}
+  .note .nshort{font-size:12px;line-height:1.4;color:var(--tx2);transition:.15s}
+  .note .nsrc{font:8.5px/1 var(--mono);letter-spacing:.03em;color:var(--tx3);border:1px solid var(--line-soft);padding:4px 6px;border-radius:5px;white-space:nowrap}
+  .note .nfull{margin:0;padding:0 14px 13px 43px;font-size:11.5px;line-height:1.5;color:var(--tx3)}
+  .note .nfull:before{content:"";display:block;height:1px;background:var(--line-soft);margin-bottom:10px}
+  .report-foot{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--tx3);flex-wrap:wrap}
+  .report-foot .dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)}
+  .report-foot button{margin-left:auto}
+  .link-btn{background:none;border:0;color:var(--mint);font-size:11.5px;cursor:pointer;padding:6px 8px;border-radius:7px;min-height:32px}
+  .link-btn:hover{background:rgba(77,240,190,.08)}
+
+  /* ——— footer / toast ——— */
+  footer{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:16px;padding:24px 4px 8px;border-top:1px solid var(--line-soft);color:var(--tx3);font-size:11.5px}
+  footer b{color:var(--tx2);font-weight:600}
+  footer .sp{margin-left:auto}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,18px);background:#0d1728;border:1px solid rgba(77,240,190,.4);color:var(--tx);padding:11px 18px;border-radius:11px;font-size:12.5px;box-shadow:0 18px 50px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.25s;z-index:100}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ——— entrance ——— */
+  .rise{opacity:0;transform:translateY(16px);animation:rise .7s cubic-bezier(.2,.75,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.19s}.d4{animation-delay:.26s}.d5{animation-delay:.33s}
+
+  /* ——— responsive ——— */
+  @media(max-width:1240px){
+    .hero{grid-template-columns:minmax(0,1fr) 300px;gap:20px;padding:34px 32px}
+    .ring{width:224px;height:224px}
+    .stage{flex:1 0 96px;min-width:96px;padding-right:8px}
+    .grid{grid-template-columns:minmax(0,1.5fr) minmax(320px,.9fr)}
+    .role{font-size:10.5px}
+  }
+  @media(max-width:1080px){
+    .grid{grid-template-columns:minmax(0,1fr)}
+    .col.right{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+    .col.right .feed-card{grid-column:1/-1}
+    .hero{grid-template-columns:minmax(0,1fr) 280px}
+    .hero h1{font-size:clamp(38px,5.4vw,58px)}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:860px){
+    .app{grid-template-columns:1fr}
+    .rail{display:none}
+    .main{padding:0 18px 28px}
+    .hero{grid-template-columns:1fr;padding:28px 24px 26px;gap:18px}
+    .ringcol{flex-direction:row;justify-content:flex-start;gap:18px;align-items:center;flex-wrap:wrap}
+    .ring{width:190px;height:190px;flex:none}
+    .ring-center b{font-size:40px}
+    .ring-foot{margin-top:0}
+    .hero .deck{font-size:14px}
+    .col.right{grid-template-columns:1fr}
+    .col.right .feed-card{grid-column:auto}
+    .topbar{flex-wrap:wrap;gap:8px}
+    .crumbs{order:2;width:100%}
+    .concept-tag{order:1}
+    .top-right{order:1;margin-left:auto}
+    .live{display:none}
+    .gantt{padding:16px 18px 18px}
+    .ghead,.wave-row,.grow{grid-template-columns:150px minmax(0,1fr) 90px;gap:10px}
+    .gnote{grid-template-columns:150px minmax(0,1fr);gap:10px}
+    .glabel{font-size:11px}
+    .card-head{padding:18px 18px 0}
+    .card-body{padding:14px 18px 18px}
+    .reqs-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+    .filters{width:100%;margin-left:0;margin-top:8px}
+  }
+  @media(max-width:560px){
+    .main{padding:0 12px 22px;min-width:0}
+    .topbar{padding:12px 0 10px;gap:8px}
+    .concept-tag{display:none}
+    .top-right{gap:6px}
+    .btn{padding:0 11px;font-size:11.5px;min-height:38px}
+    .crumbs{font-size:11.5px}
+    .hero{padding:24px 18px 22px;border-radius:22px}
+    .hero h1{font-size:clamp(31px,9.6vw,42px)}
+    .hero .deck{font-size:13px}
+    .hero-actions .btn{flex:1 1 auto}
+    .kpis{grid-template-columns:1fr 1fr;gap:9px}
+    .kpi{padding:15px 14px 13px;min-height:140px}
+    .kpi .value{font-size:clamp(23px,6.4vw,29px)}
+    .kpi .sub{font-size:10.5px}
+    .ring{width:150px;height:150px}
+    .ring-center b{font-size:31px}
+    .ring-center small{font-size:6.5px;letter-spacing:.07em;max-width:78px;margin:3px auto 0}
+    .ring-foot{gap:12px}
+    .ring-foot b{font-size:14px}
+    .route{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;overflow:visible;padding:0}
+    .stage{flex:none;min-width:0;padding:25px 0 6px;border-top:1px solid var(--line-soft)}
+    .stage:before{display:none}
+    .stage .dot{top:8px;left:0;width:13px;height:13px}
+    .stage b{font-size:12px}
+    .stage .wall{font-size:9px}
+    .ghead,.wave-row,.grow{grid-template-columns:108px minmax(0,1fr);gap:8px}
+    .ghead .lbl.r,.gwall{display:none}
+    .wave-row .wtime{grid-column:2}
+    .gnote{grid-template-columns:108px minmax(0,1fr);gap:8px}
+    .gantt-inner{min-width:0;width:100%}
+    .gantt{padding:14px 14px 16px}
+    .glabel b{padding:2px 4px;font-size:9px}
+    .glabel span{font-size:10.5px}
+    .reqs-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+    table.hist{min-width:0}
+    table.hist th:nth-child(4),table.hist td:nth-child(4){display:none}
+    .hcell{gap:0;min-width:0}
+    .hcell .htrack{display:none}
+    table.hist th,table.hist td{padding-right:6px}
+    .notes{grid-template-columns:1fr}
+    .spend-wrap{gap:14px}
+    .donut{width:124px;height:124px}
+    .notes summary{padding:12px}
+    footer{font-size:10.5px}
+    .report-foot button{margin-left:0}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+    .rise{opacity:1;transform:none}
+    .ring-seg{opacity:1!important}
+    .aurora i{animation:none}
+  }
+  @media print{
+    .aurora,.grain,.rail,.topbar,.hero-actions,.more-btn,.link-btn,.toast{display:none!important}
+    body{background:#fff;color:#111}
+    .card,.hero{border-color:#ccc;background:#fff;box-shadow:none;backdrop-filter:none}
+    .hero h1 .grad{color:#111;-webkit-text-fill-color:#111}
+    .main{max-width:none;padding:0}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">К содержанию</a>
+<div class="aurora" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+  <aside class="rail" aria-label="Боковая навигация">
+    <a href="#top" class="mark" aria-label="Autopilot, наверх">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19 12 4l8 15-8-3.4L4 19Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 8.6v4.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </a>
+    <span class="ver">v2.7.0</span>
+    <nav>
+      <a href="#top" data-nav="top" class="active" aria-label="Обзор"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="1.6"/><path d="m15.4 8.6-2.1 4.7-4.7 2.1 2.1-4.7 4.7-2.1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span class="tip">Обзор</span></a>
+      <a href="#timeline" data-nav="timeline" aria-label="Таски и волны"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5h9M4 12h14M4 17.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 6.5h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="tip">Таски и волны</span></a>
+      <a href="#quality" data-nav="quality" aria-label="Гейты и приёмка"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 19 6v5.2c0 4.2-2.9 7.7-7 9.3-4.1-1.6-7-5.1-7-9.3V6l7-2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m8.6 11.8 2.2 2.2 4.6-4.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tip">Гейты и приёмка</span></a>
+      <a href="#models" data-nav="models" aria-label="Расход и модели"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.4" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="tip">Расход и модели</span></a>
+      <a href="#report" data-nav="report" aria-label="Отчёт и замечания"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3.5h8l4 4v13H6v-17Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="tip">Отчёт и замечания</span></a>
+    </nav>
+    <div class="sp"></div>
+    <span class="sig" title="Сборка завершена"></span>
+    <a href="#top" class="up" aria-label="Наверх"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="concept-tag">Концепт 01 · Аврора</div>
+      <div class="crumbs"><span>Autopilot</span><span class="sep">/</span><span>Сборки</span><span class="sep">/</span><b>Волны 4–6</b></div>
+      <div class="top-right">
+        <span class="live"><i></i>снимок 17.11 · 17:42</span>
+        <button class="btn" type="button" id="printBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="7" y="14" width="10" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.6"/></svg>Печать</button>
+        <button class="btn primary" type="button" id="shareBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>Поделиться</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero rise d1" id="top" aria-labelledby="heroTitle">
+        <div>
+          <span class="eyebrow"><i></i>Сборка завершена · 17 ноября 2026</span>
+          <h1 id="heroTitle">Одиннадцать требований.<br><span class="grad">Ноль хвостов.</span></h1>
+          <p class="deck" id="heroDeck"></p>
+          <div class="chips">
+            <span class="chip ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 6.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>0</b> блокеров</span>
+            <span class="chip">режим <b>semi</b></span>
+            <span class="chip">уровень <b>T2</b></span>
+            <span class="chip">Autopilot <b>2.7.0</b></span>
+          </div>
+          <div class="hero-actions">
+            <a class="btn primary" href="#report">Открыть отчёт сборки <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            <a class="btn" href="#timeline">Смотреть таски <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </div>
+        </div>
+        <div class="ringcol">
+          <div class="ring" id="ring" aria-label="Одиннадцать из одиннадцати требований закрыто">
+            <span class="halo" aria-hidden="true"></span>
+            <svg viewBox="0 0 260 260" role="img" aria-hidden="true" id="ringSvg"></svg>
+            <div class="ring-center"><b><span id="ringDone">11</span><span>/11</span></b><small>требований закрыто</small></div>
+          </div>
+          <div class="ring-foot">
+            <div><b>10</b><span>тасков</span></div>
+            <div><b>6</b><span>волн</span></div>
+            <div><b>4/4</b><span>гейта</span></div>
+            <div><b>1</b><span>круг приёмки</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="kpis rise d2" id="kpis" aria-label="Ключевые показатели"></section>
+
+      <section class="card route-card rise d3" aria-labelledby="routeTitle">
+        <div class="card-head">
+          <h2 id="routeTitle">Маршрут сборки</h2>
+          <span class="hint">8 этапов · рабочее время без пауз</span>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <div class="route" id="route"></div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <div class="col">
+          <section class="card gantt-card rise d3" id="timeline" aria-labelledby="timelineTitle">
+            <div class="card-head">
+              <h2 id="timelineTitle">Таски и волны</h2>
+              <span class="hint" id="ganttHint">10 тасков · 6 волн · цвет = волна</span>
+              <div class="filters" role="group" aria-label="Фильтр по волнам">
+                <button class="filter" type="button" data-filter="all" aria-pressed="true">Все</button>
+                <button class="filter" type="button" data-filter="early" aria-pressed="false">Волны 1–3</button>
+                <button class="filter" type="button" data-filter="late" aria-pressed="false">Волны 4–6</button>
+              </div>
+            </div>
+            <div class="gantt">
+              <div class="gantt-inner" id="gantt"></div>
+            </div>
+          </section>
+
+          <section class="card rise d4" id="mission" aria-labelledby="reqTitle">
+            <div class="card-head">
+              <h2 id="reqTitle">Требования</h2>
+              <span class="hint">11 из 11 · каждое принято слепой сверкой</span>
+            </div>
+            <div class="card-body" style="padding-top:12px">
+              <div class="reqs-grid" id="reqs"></div>
+              <div class="reqs-foot"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)"></span> <b>G1 пройден</b> — открытых требований нет. Нажмите на карточку, чтобы прочитать формулировку.</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col right">
+          <section class="card rise d3" id="quality" aria-labelledby="qualityTitle">
+            <div class="card-head"><h2 id="qualityTitle">Гейты качества</h2><span class="hint">все пройдены</span></div>
+            <div class="card-body" style="padding-top:10px" id="gates"></div>
+          </section>
+
+          <section class="card rise d4" id="models" aria-labelledby="spendTitle">
+            <div class="card-head"><h2 id="spendTitle">Расход и модели</h2><span class="hint">18 вызовов</span></div>
+            <div class="card-body" style="padding-top:8px" id="spend"></div>
+          </section>
+
+          <section class="card feed-card rise d5" id="feedCard" aria-labelledby="feedTitle">
+            <div class="card-head"><h2 id="feedTitle">Лента событий</h2><span class="hint" id="feedHint">последние 7</span></div>
+            <div class="card-body" style="padding-top:12px">
+              <ul class="feed" id="feed"></ul>
+              <button class="more-btn" type="button" id="feedMore">Показать все события</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <section class="card hist-card rise d5" aria-labelledby="histTitle">
+        <div class="card-head">
+          <h2 id="histTitle">История сборок</h2>
+          <span class="hint">эта сборка и пять предыдущих · токены за вычетом кэша</span>
+        </div>
+        <div class="card-body" style="padding-top:10px">
+          <div class="table-scroll">
+            <table class="hist">
+              <thead><tr><th>Дата</th><th>Сборка</th><th>Время</th><th>Таски</th><th>Токены</th></tr></thead>
+              <tbody id="histBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="card report-card rise d5" id="report" aria-labelledby="reportTitle">
+        <div class="card-head">
+          <h2 id="reportTitle">Замечания после сборки</h2>
+          <span class="hint">7 неблокирующих · 0 в работе</span>
+        </div>
+        <div class="card-body" style="padding-top:12px">
+          <div class="notes" id="notes"></div>
+          <div class="report-foot">
+            <span class="dot"></span>Сборка сдана с оговорками, которые не мешают работе. Ни одно замечание не требует остановки.
+            <button class="link-btn" type="button" id="openNotes">Раскрыть все</button>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span><b>Autopilot 2.7.0</b> · снимок state.js от 17.11.2026, 17:42</span>
+        <span>Страница не делает внешних запросов · системные шрифты</span>
+        <span class="sp"><a href="#top" style="color:var(--mint)">Наверх ↑</a></span>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="tooltip" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};
+</script>
+<script>
+(function(){
+  "use strict";
+  const D = window.D;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const nf = new Intl.NumberFormat("ru-RU");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const icon = {
+    check: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 6.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    clock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    flask: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3.5h6M10 3.5v6L5.4 18a2 2 0 0 0 1.8 2.9h9.6a2 2 0 0 0 1.8-2.9L14 9.5v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    coin: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><ellipse cx="12" cy="7" rx="7" ry="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7v10c0 1.8 3.1 3.2 7 3.2s7-1.4 7-3.2V7M5 12c0 1.8 3.1 3.2 7 3.2s7-1.4 7-3.2" stroke="currentColor" stroke-width="1.5"/></svg>',
+    shield: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 19 6v5.3c0 4.2-2.9 7.6-7 9.2-4.1-1.6-7-5-7-9.2V6l7-2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m8.7 11.7 2.1 2.1 4.5-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
+  /* ——— hero deck ——— */
+  $("#heroDeck").textContent = D.result;
+
+  /* ——— ring ——— */
+  (function ring(){
+    const size = 260, c = size / 2, r = 101, C = 2 * Math.PI * r, n = 11, gap = C * 0.013, seg = (C - gap * n) / n;
+    let parts = `<circle cx="${c}" cy="${c}" r="${r + 12}" fill="none" stroke="rgba(160,200,255,.08)" stroke-width="1"/>`;
+    parts += `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(160,200,255,.10)" stroke-width="16"/>`;
+    const colors = ["#4df0be", "#5fe0cf", "#63c7ff", "#78b8ff", "#96a9ff", "#b69cff", "#a5a8ff", "#8ec9ff", "#67e3d0", "#4df0be", "#63c7ff"];
+    for (let i = 0; i < n; i++) {
+      const rot = i * 360 / n;
+      parts += `<circle class="ring-seg" style="animation-delay:${(reduced ? 0 : 120 + i * 55)}ms" cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${colors[i]}" stroke-width="15" stroke-linecap="round" stroke-dasharray="${seg.toFixed(2)} ${C.toFixed(2)}" transform="rotate(${rot} ${c} ${c})" opacity=".95"/>`;
+    }
+    $("#ringSvg").innerHTML = parts;
+    if (!reduced) {
+      let start = null;
+      const el = $("#ringDone");
+      function step(ts){ if(!start) start = ts; const p = Math.min(1, (ts - start) / 700); el.textContent = Math.round(p * 11); if(p < 1) requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+    }
+  })();
+
+  /* ——— kpis ——— */
+  function spark(vals, w = 150, h = 30){
+    const pad = 3, mn = Math.min(...vals), mx = Math.max(...vals), rng = (mx - mn) || 1;
+    const pts = vals.map((v, i) => [pad + i * (w - pad * 2) / (vals.length - 1), h - pad - (v - mn) / rng * (h - pad * 2)]);
+    const d = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4df0be" stop-opacity=".35"/><stop offset="1" stop-color="#4df0be" stop-opacity="0"/></linearGradient></defs><path d="${d} L ${w - pad} ${h - pad} L ${pad} ${h - pad} Z" fill="url(#sg)"/><path d="${d}" fill="none" stroke="#4df0be" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="2.6" fill="#4df0be"/></svg>`;
+  }
+  const totalTok = D.spend.total;
+  const roleColors = { executor:"#4df0be", orchestrator:"#63c7ff", agent:"#b69cff", reviewer:"#ffc46b", acceptance:"#ff8d9c" };
+  const roleStack = D.spend.roles.map(r => `<i style="width:${(r.tokens / totalTok * 100).toFixed(2)}%;background:${roleColors[r.key]}"></i>`).join("");
+  $("#kpis").innerHTML = [
+    `<article class="card kpi">
+      <div class="top"><span class="label">Рабочее время</span>${icon.clock}</div>
+      <div class="value">2 ч 25 мин</div>
+      <div class="viz"><div class="wbar" role="img" aria-label="145 минут работы из 879 минут календаря"><i style="width:${(D.workMin / D.calendarMin * 100).toFixed(1)}%"></i><em style="width:${(100 - D.workMin / D.calendarMin * 100).toFixed(1)}%"></em></div></div>
+      <div class="sub"><b>14 ч 39 мин</b> на календаре · пауза 12 ч 15 мин не в счёт</div>
+    </article>`,
+    `<article class="card kpi">
+      <div class="top"><span class="label">Тесты</span>${icon.flask}</div>
+      <div class="value"><span data-count="1072">1 072</span></div>
+      <div class="viz">${spark(D.tests.growth)}</div>
+      <div class="sub"><b>+30</b> за сборку · 0 упало · 5 пропущено</div>
+    </article>`,
+    `<article class="card kpi">
+      <div class="top"><span class="label">Токены</span>${icon.coin}</div>
+      <div class="value"><span data-count="358201">358 201</span></div>
+      <div class="viz"><div class="stackbar" role="img" aria-label="Расход по ролям: исполнители 163556, оркестратор 78241, агент 48536, ревьюеры 37940, приёмка 29928">${roleStack}</div></div>
+      <div class="sub"><b>97 %</b> из кэша · 57,9 млн чтений</div>
+    </article>`,
+    `<article class="card kpi">
+      <div class="top"><span class="label">Гейты</span>${icon.shield}</div>
+      <div class="value">4 / 4</div>
+      <div class="viz"><div class="gate-dots" aria-label="G1, G2, G3, G4 пройдены"><span>G1</span><span>G2</span><span>G3</span><span>G4</span></div></div>
+      <div class="sub"><b>Слепая сверка 11/11</b> · круг 1 · 14/14 находок закрыто</div>
+    </article>`
+  ].join("");
+
+  /* ——— stage route ——— */
+  const fmtDur = m => m === 0 ? "мгновенно" : m < 60 ? m + " мин" : Math.floor(m / 60) + " ч " + (m % 60) + " мин";
+  $("#route").innerHTML = D.stages.map(s => `
+    <div class="stage ${s.status === "skipped" ? "is-skipped" : ""}">
+      <span class="dot" aria-hidden="true">${s.status === "skipped" ? "" : icon.check}</span>
+      <b>${esc(s.name)}</b>
+      <span class="time">${s.start}–${s.end}</span>
+      <span class="dur">${s.status === "skipped" ? "пропущен" : fmtDur(s.min)}</span>
+      ${s.wall ? `<span class="wall">${esc(s.wall)} стены</span>` : ""}
+    </div>`).join("");
+
+  /* ——— gantt ——— */
+  const MAXMIN = 48;
+  const waveClass = n => "w" + n;
+  const dur = m => m < 60 ? m + " мин" : Math.floor(m / 60) + " ч " + String(m % 60).padStart(2, "0") + " мин";
+  let filter = "all";
+
+  function waveRange(ts){
+    const starts = ts.map(t => t.start).sort(), ends = ts.map(t => t.end).sort();
+    return starts[0] + "–" + ends[ends.length - 1];
+  }
+
+  function tooltipHTML(t){
+    const rows = [
+      ["Требования", t.reqs.join(", ")],
+      ["Работа", t.active + " мин"],
+      ["Стена", dur(t.wall)],
+      ["Тесты", nf.format(t.tests)],
+      ["Маршрут", t.model + " · " + t.effort + (t.score ? " · score " + t.score : "")],
+      ["Коммит", t.commit]
+    ];
+    if (t.pause) rows.splice(3, 0, ["Пауза", dur(t.pause)]);
+    return `<b>${esc(t.id)} · ${esc(t.title)}</b>` + rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${esc(v)}</span></div>`).join("");
+  }
+
+  function renderGantt(){
+    const ticks = [0, 12, 24, 36, 48];
+    const groups = D.waves.filter(w => filter === "all" || (filter === "early" ? w.n <= 3 : w.n >= 4));
+    let html = `<div class="ghead"><span class="lbl">Волна · таск</span><div class="axis">${ticks.map((m, i) => `<span style="left:${i * 25}%">${m}</span>`).join("")}</div><span class="lbl r">Работа · стена</span></div>`;
+    groups.forEach(w => {
+      const ts = D.tickets.filter(t => t.wave === w.n);
+      html += `<div class="wave-row"><span class="wl"><b>Волна ${w.n}</b><span class="wname">${esc(w.name)} · ${ts.length} ${ts.length === 1 ? "таск" : "таска"}</span></span><span class="wtime"><span>${waveRange(ts)}</span></span></div>`;
+      ts.forEach(t => {
+        const short = t.title.length > 35 ? t.title.slice(0, 34) + "…" : t.title;
+        const wid = Math.max(2.4, t.active / MAXMIN * 100);
+        html += `<div class="grow">
+          <div class="glabel"><b>${esc(t.id)}</b><span title="${esc(t.title)}">${esc(short)}</span></div>
+          <div class="lane"><div class="bar ${waveClass(w.n)}" style="width:${wid.toFixed(2)}%" tabindex="0" role="img" aria-label="${esc(t.id + " " + t.title + ", " + t.active + " минут работы, стена " + dur(t.wall))}" data-tip="${esc(t.id)}"></div></div>
+          <div class="gwall"><b>${t.active} мин</b>${t.start}–${t.end}</div>
+        </div>`;
+        if (t.pause) html += `<div class="gnote"><span><b>пауза ${dur(t.pause)}</b> — на календаре ${dur(t.wall)}, в рабочее время не входит</span></div>`;
+      });
+    });
+    html += `<div class="glegend">${D.waves.map(w => `<span><i class="${waveClass(w.n)}"></i>Волна ${w.n}</span>`).join("")}<span class="note">длина полосы — рабочее время · 0–48 мин</span></div>`;
+    $("#gantt").innerHTML = html;
+    $("#ganttHint").textContent = filter === "all" ? "10 тасков · 6 волн · цвет = волна" : (filter === "early" ? "волны 1–3 · 7 тасков" : "волны 4–6 · 3 таска");
+  }
+
+  const tip = $("#tip");
+  function showTip(el){
+    const t = D.tickets.find(x => x.id === el.dataset.tip);
+    if (!t) return;
+    tip.innerHTML = tooltipHTML(t);
+    tip.classList.add("on");
+    tip.setAttribute("aria-hidden", "false");
+    const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect();
+    let x = Math.min(window.innerWidth - tr.width - 12, Math.max(12, r.left + r.width / 2 - tr.width / 2));
+    let y = r.top - tr.height - 10;
+    if (y < 8) y = r.bottom + 10;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip(){ tip.classList.remove("on"); tip.setAttribute("aria-hidden", "true"); }
+  $("#gantt").addEventListener("mouseover", e => { const b = e.target.closest("[data-tip]"); if (b) showTip(b); });
+  $("#gantt").addEventListener("mouseout", e => { const b = e.target.closest("[data-tip]"); if (b && !b.contains(e.relatedTarget)) hideTip(); });
+  $("#gantt").addEventListener("focusin", e => { const b = e.target.closest("[data-tip]"); if (b) showTip(b); });
+  $("#gantt").addEventListener("focusout", hideTip);
+  window.addEventListener("scroll", hideTip, { passive: true });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hideTip(); });
+
+  $$(".filter").forEach(btn => btn.addEventListener("click", () => {
+    filter = btn.dataset.filter;
+    $$(".filter").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    renderGantt();
+  }));
+
+  /* ——— gates ——— */
+  $("#gates").innerHTML = D.gates.map(g => `
+    <div class="gate">
+      <span class="gicon">${icon.check}</span>
+      <span class="gt"><b>${esc(g.title)}</b><small>${esc(g.note)}</small></span>
+      <span class="gv">${esc(g.value)}<em>${esc(g.time)}</em></span>
+    </div>`).join("") + `
+    <div class="gates-foot">${icon.shield}<span><b>Слепая сверка 11/11</b> · один круг, расхождений нет</span></div>`;
+
+  /* ——— spend ——— */
+  (function spend(){
+    const size = 146, c = size / 2, R = 58, C = 2 * Math.PI * R;
+    let off = 0;
+    const segs = D.spend.roles.map(r => {
+      const len = r.tokens / D.spend.total * C;
+      const s = `<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="${roleColors[r.key]}" stroke-width="13" stroke-dasharray="${Math.max(0, len - 2.5).toFixed(2)} ${(C - len + 2.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" stroke-linecap="round" opacity=".95"/>`;
+      off += len; return s;
+    }).join("");
+    const rows = D.spend.roles.map(r => `
+      <li class="role">
+        <i style="background:${roleColors[r.key]}"></i>
+        <span class="rn"><span>${esc(r.name)}</span><b>${nf.format(r.tokens)}</b></span>
+        <span class="track"><i style="width:${(r.tokens / D.spend.total * 100).toFixed(1)}%;background:${roleColors[r.key]}"></i></span>
+      </li>`).join("");
+    $("#spend").innerHTML = `
+      <div class="spend-wrap">
+        <div class="donut"><svg viewBox="0 0 ${size} ${size}" role="img" aria-label="Расход 358 201 токен по ролям">${segs}</svg><div class="c"><b>${Math.round(D.spend.total / 1000)}K</b><small>токенов</small></div></div>
+        <ul class="roles">${rows}</ul>
+      </div>
+      <div class="spend-foot"><span><b>${D.spend.model}</b> · ${D.spend.calls} вызовов</span><span>кэш <b>${D.spend.hit} %</b></span></div>`;
+  })();
+
+  /* ——— feed ——— */
+  let feedOpen = false;
+  function renderFeed(){
+    const fmap = { ok: "fd-ok", run: "fd-run", stage: "fd-stage", gate: "fd-gate" };
+    const list = feedOpen ? D.events : D.events.slice(0, 7);
+    $("#feed").innerHTML = list.map(e => `<li><span class="fd ${fmap[e.kind] || ""}"></span><time>${e.time}</time>${esc(e.text)}</li>`).join("");
+    $("#feedHint").textContent = feedOpen ? "все 12" : "последние 7";
+    $("#feedMore").textContent = feedOpen ? "Свернуть ленту" : "Показать все события";
+    $("#feedMore").setAttribute("aria-expanded", String(feedOpen));
+  }
+  renderFeed();
+  $("#feedMore").addEventListener("click", () => { feedOpen = !feedOpen; renderFeed(); });
+
+  /* ——— requirements ——— */
+  $("#reqs").innerHTML = D.requirements.items.map(r => `
+    <button class="req" type="button" aria-expanded="false" aria-label="${esc(r.id + ": " + r.text)}">
+      <span class="rtop"><span class="rid">${r.id}</span><span class="rcheck">${icon.check}</span></span>
+      <span class="rshort">${esc(r.short)}</span>
+      <span class="rfull">${esc(r.text)}</span>
+    </button>`).join("");
+  $$(".req").forEach(b => b.addEventListener("click", () => {
+    const open = b.getAttribute("aria-expanded") === "true";
+    $$(".req").forEach(x => x.setAttribute("aria-expanded", "false"));
+    b.setAttribute("aria-expanded", String(!open));
+  }));
+
+  /* ——— history ——— */
+  const current = { date: "17.11", title: "Волны 4–6 · эта сборка", minutes: 145, tokens: D.spend.total, tickets: 10, current: true };
+  const rows = [current, ...D.history];
+  const maxTokens = Math.max(...rows.map(r => r.tokens || 0));
+  $("#histBody").innerHTML = rows.map(r => {
+    const tok = r.tokens ? nf.format(r.tokens) : "н/д";
+    const widthPct = r.tokens ? Math.max(4, r.tokens / maxTokens * 100) : 0;
+    const bar = r.tokens ? `<div class="htrack" aria-hidden="true"><i style="width:${widthPct.toFixed(1)}%"></i></div>` : `<div class="htrack" aria-hidden="true"><i class="mut" style="width:8%"></i></div>`;
+    return `<tr class="${r.current ? "cur" : ""}">
+      <td class="hdate">${r.date}</td>
+      <td class="htitle">${esc(r.title)}${r.current ? "<small>эта</small>" : ""}</td>
+      <td class="num">${r.minutes} мин</td>
+      <td class="num">${r.tickets}</td>
+      <td><div class="hcell"><span class="num" style="min-width:58px">${tok}</span>${bar}</div></td>
+    </tr>`;
+  }).join("");
+
+  /* ——— report ——— */
+  $("#notes").innerHTML = D.report.map((n, i) => `
+    <details class="note">
+      <summary><span class="nnum">${String(i + 1).padStart(2, "0")}</span><span class="nshort">${esc(n.short)}</span><span class="nsrc">${esc(n.source)}</span></summary>
+      <p class="nfull">${esc(n.long)}</p>
+    </details>`).join("");
+  $("#openNotes").addEventListener("click", () => {
+    const all = $$("#notes details");
+    const openAll = all.some(d => !d.open);
+    all.forEach(d => { d.open = openAll; });
+    $("#openNotes").textContent = openAll ? "Свернуть все" : "Раскрыть все";
+  });
+
+  /* ——— nav ——— */
+  const links = $$("[data-nav]");
+  const secs = ["top", "timeline", "quality", "models", "report"].map(id => document.getElementById(id)).filter(Boolean);
+  function updateNav(){
+    const y = scrollY + Math.min(innerHeight * 0.28, 420);
+    let cur = secs[0] ? secs[0].id : "top";
+    secs.forEach(s => {
+      const top = s.getBoundingClientRect().top + scrollY;
+      if (top <= y) cur = s.id;
+    });
+    links.forEach(a => a.classList.toggle("active", a.dataset.nav === cur));
+  }
+  addEventListener("scroll", updateNav, { passive: true });
+  updateNav();
+
+  /* ——— count up ——— */
+  if (!reduced) {
+    $$("[data-count]").forEach(el => {
+      const target = +el.dataset.count, dur = 900, start = performance.now();
+      const orig = el.textContent;
+      function frame(now){
+        const p = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = nf.format(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(frame); else el.textContent = nf.format(target);
+      }
+      requestAnimationFrame(frame);
+      el.addEventListener("animationend", () => { el.textContent = orig; }, { once: true });
+    });
+  }
+
+  /* ——— actions ——— */
+  function toast(msg){
+    const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 2400);
+  }
+  $("#printBtn").addEventListener("click", () => window.print());
+  $("#shareBtn").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(location.href); toast("Ссылка скопирована"); }
+    catch (e) { toast("Адрес страницы — в строке браузера"); }
+  });
+
+  /* ——— first render ——— */
+  renderGantt();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Design Deck</title>
+<style>
+  :root{
+    --bg:#07080b; --panel:#0d0f14; --panel2:#11141a; --panel3:#151922;
+    --line:#242832; --line2:#343949;
+    --tx:#f2efe6; --tx2:#aaa69b; --tx3:#76736a;
+    --acc:#4df0be;
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+  button{font:inherit;color:inherit}
+  a{color:inherit;text-decoration:none}
+  svg{display:block}
+  ::selection{background:color-mix(in srgb,var(--acc) 30%,transparent)}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+  .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  .app{display:grid;grid-template-columns:286px minmax(0,1fr);height:100vh;height:100dvh;min-height:0}
+
+  /* ——— rail ——— */
+  .rail{display:flex;flex-direction:column;gap:13px;min-height:0;padding:18px 16px 14px;border-right:1px solid var(--line);background:
+    radial-gradient(420px 240px at 0% 0%,color-mix(in srgb,var(--acc) 7%,transparent),transparent 70%),
+    linear-gradient(180deg,#0d0f14,#090a0e);overflow-y:auto;scrollbar-width:thin}
+  .brand{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);flex:none}
+  .brand .mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line2);background:linear-gradient(150deg,color-mix(in srgb,var(--acc) 18%,transparent),rgba(255,255,255,.02));color:var(--acc);font:700 15px/1 var(--disp);letter-spacing:-.02em;flex:none}
+  .brand .bt{font:700 12px/1.2 var(--disp);letter-spacing:.1em;text-transform:uppercase}
+  .brand .bt small{display:block;margin-top:3px;font:500 8.5px/1.2 var(--mono);letter-spacing:.13em;color:var(--tx3)}
+  .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font:500 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);padding:1px 2px}
+  .rail-head b{font:600 9px/1 var(--mono);color:var(--tx2);border:1px solid var(--line);border-radius:99px;padding:3px 7px}
+  .cards{display:flex;flex-direction:column;gap:8px;flex:none}
+  .dcard{display:flex;flex-direction:column;width:100%;padding:0;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;position:relative}
+  .dcard:hover{transform:translateY(-1px);border-color:var(--line2)}
+  .dcard[aria-current="true"]{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 18px 44px -32px var(--acc)}
+  .thumb{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:#06070a;border-bottom:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;display:block;object-fit:cover;opacity:.82;transition:opacity .18s,transform .35s}
+  .dcard:hover .thumb img,.dcard[aria-current="true"] .thumb img{opacity:1}
+  .dcard:hover .thumb img{transform:scale(1.025)}
+  .thumb-fallback{position:absolute;inset:0;display:grid;place-items:center;font:700 30px/1 var(--disp);letter-spacing:-.04em;color:color-mix(in srgb,var(--a) 80%,#fff);background:
+    radial-gradient(200px 120px at 20% 0%,color-mix(in srgb,var(--a) 32%,transparent),transparent 70%),
+    linear-gradient(145deg,#141822,#0a0c11)}
+  .dno{position:absolute;left:7px;top:7px;font:600 8px/1 var(--mono);letter-spacing:.08em;color:#f2efe6;background:rgba(8,9,12,.72);border:1px solid rgba(255,255,255,.16);padding:4px 5px;border-radius:4px;backdrop-filter:blur(6px)}
+  .dacc{position:absolute;right:8px;top:8px;width:7px;height:7px;border-radius:50%;box-shadow:0 0 10px currentColor}
+  .dmeta{display:block;padding:8px 10px 9px}
+  .dmeta b{display:block;font:650 13px/1.15 var(--disp);letter-spacing:-.01em;color:var(--tx)}
+  .dmeta small{display:block;margin-top:3px;font:500 9px/1.3 var(--mono);color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dtags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .dtags i{font:500 7.5px/1 var(--mono);font-style:normal;letter-spacing:.03em;color:var(--tx3);border:1px solid var(--line);border-radius:3px;padding:3px 4px}
+  .dcard[aria-current="true"] .dmeta b{color:var(--acc)}
+  .add-card{display:flex;align-items:center;gap:9px;width:100%;padding:9px;border:1px dashed var(--line2);border-radius:11px;background:transparent;color:var(--tx2);text-align:left;cursor:pointer;transition:.16s;flex:none}
+  .add-card:hover{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 5%,transparent);color:var(--tx)}
+  .add-card .plus{width:28px;height:28px;border:1px solid var(--line2);border-radius:8px;display:grid;place-items:center;color:var(--acc);font:400 18px/1 var(--sans);flex:none}
+  .add-card .at b{display:block;font:600 10px/1.3 var(--mono);letter-spacing:.04em}
+  .add-card .at small{display:block;font:500 8px/1.3 var(--mono);color:var(--tx3)}
+  .rail-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;font:500 8px/1.4 var(--mono);letter-spacing:.03em;color:var(--tx3);flex:none}
+  .rail-foot a:hover{color:var(--tx2)}
+
+  /* ——— deck ——— */
+  .deck{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;background:
+    radial-gradient(900px 500px at 80% -10%,color-mix(in srgb,var(--acc) 5%,transparent),transparent 65%),
+    var(--bg)}
+  .deck:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.6;background-image:radial-gradient(rgba(160,170,195,.16) .6px,transparent .6px);background-size:22px 22px;mask-image:linear-gradient(180deg,rgba(0,0,0,.7),transparent 75%)}
+  .bar,.stage,.hint{position:relative;z-index:1}
+  .bar{z-index:40}
+  .bar{flex:none;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--line);background:rgba(9,10,14,.72);backdrop-filter:blur(12px)}
+  .combo{position:relative;display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto}
+  .cur-no{flex:none;font:700 10px/1 var(--mono);letter-spacing:.06em;color:#07080b;background:var(--acc);border-radius:6px;padding:6px 8px}
+  .combo-main{position:relative;display:flex;flex-direction:column;justify-content:center;min-width:238px;max-width:380px;flex:1;padding:3px 27px 3px 8px;margin-left:-8px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02);cursor:text;transition:.14s}
+  .combo-main:hover,.combo.open .combo-main{border-color:var(--line2);background:var(--panel2)}
+  .combo-input{width:100%;border:0;outline:0;background:transparent;color:var(--tx);font:650 19px/1.1 var(--disp);letter-spacing:-.02em;padding:0;text-overflow:ellipsis}
+  .combo-input::placeholder{color:var(--tx3)}
+  .combo-input::selection{background:color-mix(in srgb,var(--acc) 34%,transparent)}
+  .combo-sub{display:block;margin-top:2px;font:500 9.5px/1.3 var(--mono);color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .combo-chev{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none;transition:transform .16s,color .16s}
+  .combo.open .combo-chev{transform:translateY(-50%) rotate(180deg);color:var(--tx2)}
+  .combo-pop{position:absolute;left:0;top:calc(100% + 9px);z-index:90;width:min(430px,calc(100vw - 30px));max-height:min(430px,62vh);display:flex;flex-direction:column;padding:6px;background:#12151c;border:1px solid var(--line2);border-radius:12px;box-shadow:0 28px 70px -30px #000}
+  .combo-pop[hidden]{display:none}
+  .combo-list{list-style:none;margin:0;padding:0;overflow-y:auto;scrollbar-width:thin}
+  .combo-opt{display:grid;grid-template-columns:30px minmax(0,1fr) 16px;gap:9px;align-items:center;padding:8px;border:1px solid transparent;border-radius:8px;cursor:pointer;transition:.1s}
+  .combo-opt:hover{background:var(--panel3)}
+  .combo-opt.active{background:var(--panel3);border-color:var(--line2)}
+  .combo-opt[aria-selected="true"]{background:color-mix(in srgb,var(--acc) 9%,transparent);border-color:color-mix(in srgb,var(--acc) 32%,transparent)}
+  .combo-opt .on{font:600 8.5px/1 var(--mono);letter-spacing:.04em;color:var(--tx3);border:1px solid var(--line);border-radius:3px;padding:4px 0;text-align:center}
+  .combo-opt .ot{min-width:0}
+  .combo-opt .ot b{display:block;font:650 12.5px/1.2 var(--disp);letter-spacing:-.01em;color:var(--tx)}
+  .combo-opt .ot small{display:block;margin-top:2px;font:500 8.5px/1.3 var(--mono);color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .combo-opt .os{color:var(--acc);font:700 11px/1 var(--sans);opacity:0;text-align:right}
+  .combo-opt[aria-selected="true"] .os{opacity:1}
+  .combo-empty{padding:13px 10px;color:var(--tx3);font:500 9.5px/1.4 var(--mono)}
+  .combo-foot{border-top:1px solid var(--line);margin-top:4px;padding:7px 8px 2px;font:500 8px/1.3 var(--mono);color:var(--tx3);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tools{margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+  .seg button{border:0;background:transparent;color:var(--tx3);font:600 8.5px/1 var(--mono);letter-spacing:.04em;padding:7px 8px;min-height:30px;cursor:pointer;transition:.14s}
+  .seg button:hover{color:var(--tx2)}
+  .seg button[aria-pressed="true"]{background:var(--acc);color:#07080b}
+  .tool{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--tx2);font:600 9px/1 var(--mono);letter-spacing:.04em;cursor:pointer;transition:.14s}
+  .tool:hover{color:var(--tx);border-color:var(--line2);background:var(--panel2)}
+  .tool.icon{width:32px;padding:0;justify-content:center}
+  .tool.accent{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
+
+  .stage{flex:1;min-height:0;display:flex;justify-content:center;padding:16px 20px}
+  .frame{position:relative;display:flex;flex-direction:column;width:100%;max-width:100%;height:100%;min-height:0;border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:#0a0b0f;box-shadow:0 34px 90px -46px #000,0 0 0 1px rgba(255,255,255,.03) inset;transition:width .28s cubic-bezier(.2,.7,.2,1)}
+  .chrome{flex:none;height:34px;display:flex;align-items:center;gap:10px;padding:0 11px;border-bottom:1px solid var(--line);background:#0e1016}
+  .dots{display:flex;gap:5px;flex:none}
+  .dots i{width:7px;height:7px;border-radius:50%;background:#2a2e38}
+  .url{flex:1;max-width:62%;margin:0 auto;text-align:center;font:500 8.5px/1 var(--mono);color:var(--tx3);background:#151922;border:1px solid var(--line);border-radius:5px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .local{flex:none;display:inline-flex;align-items:center;gap:5px;font:500 8px/1 var(--mono);color:var(--tx3);letter-spacing:.08em;text-transform:uppercase}
+  .local i{width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 7px var(--acc)}
+  .frame iframe{flex:1;width:100%;min-height:0;border:0;background:#fff;display:block}
+  .frame.loading:after{content:"";position:absolute;left:0;right:0;top:34px;height:2px;z-index:5;background:linear-gradient(90deg,transparent,var(--acc),transparent);animation:sweep 1s linear infinite}
+  @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  .frame:fullscreen{width:100%!important;max-width:none;height:100%;border:0;border-radius:0}
+  .frame:fullscreen .chrome{display:none}
+  .frame:fullscreen iframe{background:#fff}
+
+  .hint{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 20px;border-top:1px solid var(--line);font:500 8.5px/1.4 var(--mono);color:var(--tx3);background:rgba(9,10,14,.5)}
+  .hint .keys{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+  .hint kbd{font:500 8px/1 var(--mono);color:var(--tx2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;padding:3px 4px;background:var(--panel2)}
+  .hint .wlabel{margin-left:auto;color:var(--tx2);font-variant-numeric:tabular-nums}
+  .hint a{color:var(--acc)}
+
+  /* ——— add dialog ——— */
+  dialog{border:1px solid var(--line2);background:var(--panel);color:var(--tx);border-radius:16px;padding:0;width:min(700px,calc(100vw - 24px));max-height:calc(100vh - 36px);overflow:auto;box-shadow:0 40px 120px -40px #000}
+  dialog::backdrop{background:rgba(3,4,7,.74);backdrop-filter:blur(9px)}
+  .modal{padding:22px 24px 20px}
+  .mhead{display:flex;align-items:flex-start;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .mhead .eyebrow{font:500 8.5px/1.4 var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--acc)}
+  .mhead h2{font:650 27px/1.05 var(--disp);letter-spacing:-.03em;margin-top:5px}
+  .mhead .x{margin-left:auto;width:32px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--tx2);font:400 20px/1 var(--sans);cursor:pointer}
+  .mhead .x:hover{color:var(--tx);border-color:var(--line2)}
+  .lead{margin:16px 0 0;color:var(--tx2);font-size:13px;line-height:1.55;max-width:600px}
+  .lead code,.steps code,.fine code,.code code{font:500 10px/1.3 var(--mono);color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent);border:1px solid color-mix(in srgb,var(--acc) 22%,transparent);border-radius:4px;padding:2px 4px}
+  .steps{margin:16px 0 0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:11px}
+  .steps li{counter-increment:st;display:grid;grid-template-columns:24px 1fr;gap:10px;font-size:12px;line-height:1.55;color:var(--tx2)}
+  .steps li:before{content:counter(st);width:22px;height:22px;display:grid;place-items:center;border:1px solid var(--line2);border-radius:5px;color:var(--acc);font:600 9px/1 var(--mono)}
+  .steps b{color:var(--tx);font-weight:600}
+  .steps a{border-bottom:1px solid var(--line2);color:var(--tx)}
+  .steps a:hover{border-color:var(--acc);color:var(--acc)}
+  .code{position:relative;margin-top:16px;border:1px solid var(--line);border-radius:10px;background:#090b10;overflow:hidden}
+  .code pre{margin:0;padding:14px 14px 12px;overflow-x:auto;font:500 10.5px/1.6 var(--mono);color:#c9c5ba;white-space:pre}
+  .code .copy{position:absolute;right:8px;top:8px;border:1px solid var(--line2);border-radius:5px;background:#12151c;color:var(--tx2);font:600 8px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:5px 7px;cursor:pointer}
+  .code .copy:hover{color:var(--acc);border-color:var(--acc)}
+  .fine{margin:12px 0 0;color:var(--tx3);font-size:11px;line-height:1.55}
+  .mact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .mact .sp{flex:1}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:0 12px;border:1px solid var(--line2);border-radius:8px;background:var(--panel2);color:var(--tx2);font:600 9px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:.14s}
+  .btn:hover{color:var(--tx);border-color:var(--tx3)}
+  .btn.primary{background:var(--acc);border-color:var(--acc);color:#07080b}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:#12151c;border:1px solid var(--line2);color:var(--tx);padding:10px 15px;border-radius:9px;font:500 10.5px/1.3 var(--mono);box-shadow:0 20px 50px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.22s;z-index:100;white-space:nowrap}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media(max-width:1100px){
+    .app{grid-template-columns:248px minmax(0,1fr)}
+    .rail{padding:14px 12px 12px}
+    .thumb{aspect-ratio:16/9}
+    .dmeta b{font-size:12px}
+  }
+  @media(max-width:900px){
+    body{overflow:auto;height:auto}
+    .app{display:flex;flex-direction:column;height:auto;min-height:100dvh}
+    .rail{position:sticky;top:0;z-index:40;flex-direction:row;align-items:center;gap:8px;height:62px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;flex:none;background:#0b0d12}
+    .brand{padding:0;border:0;gap:8px;flex:none}
+    .brand .mark{width:32px;height:32px;border-radius:8px;font-size:13px}
+    .brand .bt{font-size:9px;letter-spacing:.08em}
+    .brand .bt small{display:none}
+    .rail-head,.rail-foot{display:none}
+    .cards{flex-direction:row;gap:6px;flex:none}
+    .dcard{flex-direction:row;align-items:center;width:auto;min-height:38px;border-radius:8px;padding:0 10px;gap:7px}
+    .dcard .thumb{display:none}
+    .dmeta{padding:0;display:flex;align-items:center;gap:6px}
+    .dmeta b{font-size:11px;white-space:nowrap}
+    .dmeta small,.dtags{display:none}
+    .add-card{width:auto;min-height:38px;padding:5px 9px;border-radius:8px;flex:none}
+    .add-card .plus{width:22px;height:22px;font-size:14px}
+    .add-card .at small{display:none}
+    .add-card .at b{font-size:9px;white-space:nowrap}
+    .rail-foot{display:none}
+    .deck{height:calc(100vh - 62px);height:calc(100dvh - 62px);min-height:520px}
+    .bar{padding:10px 14px;gap:9px;flex-wrap:nowrap}
+    .combo{flex:1;min-width:0}
+    .combo-main{width:100%;max-width:none;min-width:0}
+    .combo-input{font-size:17px}
+    .combo-sub{display:none}
+    .cur-no{padding:5px 6px;font-size:9px}
+    .tools{gap:5px}
+    .seg button{padding:6px 7px;font-size:8px;min-height:28px}
+    .tool{min-height:30px;padding:0 8px}
+    .tool span{display:none}
+    .tool.icon{width:30px}
+    .stage{padding:10px}
+    .hint{padding:7px 14px;gap:8px;flex-wrap:wrap}
+    .hint .keys{display:none}
+    .hint a{margin-left:auto}
+  }
+  @media(max-width:600px){
+    .bar{flex-wrap:wrap}
+    .tools{margin-left:0;width:100%;justify-content:flex-end}
+    .deck{height:calc(100dvh - 62px);min-height:480px}
+    .brand .bt{display:none}
+    .combo{flex:1}
+    .combo-main{padding-top:5px;padding-bottom:5px}
+    .combo-input{font-size:15px}
+    .combo-pop{width:calc(100vw - 28px);left:-30px}
+    .stage{padding:8px}
+    .frame{border-radius:9px}
+    .chrome{height:30px;padding:0 8px}
+    .url{max-width:58%}
+    .mact .sp{display:none}
+    .mact .btn{flex:1}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*:before,*:after{transition-duration:.001ms!important;animation-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Дизайны">
+    <a class="brand" href="index.html" title="В галерею">
+      <span class="mark" aria-hidden="true">A</span>
+      <span class="bt">Autopilot<small>design deck</small></span>
+    </a>
+    <div class="rail-head"><span>Дизайны</span><b id="count">3</b></div>
+    <nav class="cards" id="cards" aria-label="Список дизайнов"></nav>
+    <button class="add-card" type="button" id="addBtn">
+      <span class="plus" aria-hidden="true">+</span>
+      <span class="at"><b>Свой дизайн</b><small>файл + designs.js</small></span>
+    </button>
+    <div class="rail-foot"><span>state.js · 17.11.2026</span><a href="index.html">Галерея →</a></div>
+  </aside>
+
+  <main class="deck">
+    <header class="bar">
+      <div class="combo" id="combo">
+        <span class="cur-no" id="curNo">01</span>
+        <div class="combo-main" id="comboMain">
+          <input id="comboInput" class="combo-input" type="text" role="combobox" aria-expanded="false" aria-controls="comboList" aria-autocomplete="list" aria-activedescendant="" autocomplete="off" spellcheck="false" value="Аврора" aria-label="Выбрать дизайн">
+          <span class="combo-sub" id="curTag">тёмный glass mission control</span>
+          <svg class="combo-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="combo-pop" id="comboPop" hidden>
+          <ul class="combo-list" id="comboList" role="listbox" aria-label="Дизайны"></ul>
+          <div class="combo-foot">Введите название · ↑↓ · Enter выбрать · Esc закрыть</div>
+        </div>
+      </div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Ширина превью">
+          <button type="button" data-w="fluid" aria-pressed="true">Fluid</button>
+          <button type="button" data-w="panel" aria-pressed="false">900</button>
+          <button type="button" data-w="phone" aria-pressed="false">430</button>
+        </div>
+        <a class="tool" id="openLink" href="01-aurora.html" target="_blank" rel="noopener" title="Открыть в новой вкладке">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 4h6v6M20 4 11 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span>Открыть</span>
+        </a>
+        <button class="tool icon" type="button" id="fsBtn" title="На весь экран (F)" aria-label="На весь экран">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tool icon accent" type="button" id="addBtn2" title="Добавить дизайн" aria-label="Добавить дизайн">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Живой предпросмотр дизайна">
+      <div class="frame" id="frame">
+        <div class="chrome">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="url" id="url">01-aurora.html</span>
+          <span class="local"><i></i>local</span>
+        </div>
+        <iframe id="view" title="Предпросмотр выбранного дизайна"></iframe>
+      </div>
+    </section>
+
+    <footer class="hint">
+      <span class="keys"><kbd>1</kbd>–<kbd id="keyMax">3</kbd> выбрать · <kbd>←</kbd><kbd>→</kbd> рядом · <kbd>F</kbd> на весь экран</span>
+      <span class="wlabel" id="wLabel">— px</span>
+      <a href="index.html">Сравнить в галерее →</a>
+    </footer>
+  </main>
+</div>
+
+<dialog id="addDialog" aria-labelledby="addTitle">
+  <div class="modal">
+    <header class="mhead">
+      <div><span class="eyebrow">Расширение</span><h2 id="addTitle">Добавить дизайн</h2></div>
+      <button class="x" type="button" id="closeAdd" aria-label="Закрыть">×</button>
+    </header>
+    <p class="lead">Переключатель читает <code>designs.js</code>. Новый концепт — это HTML-файл и один объект в реестре. Сборка не нужна, стили изолированы iframe.</p>
+    <ol class="steps">
+      <li><span><b>Скопируйте шаблон.</b> <a href="_template.html" target="_blank" rel="noopener">_template.html</a> → <code>07-my-design.html</code>. Внутри уже есть снимок <code>window.D</code> и базовые блоки — меняйте CSS и разметку.</span></li>
+      <li><span><b>Допишите объект в <a href="designs.js" target="_blank" rel="noopener">designs.js</a>.</b> Обязательные поля: <code>id</code>, <code>no</code>, <code>name</code>, <code>tagline</code>, <code>file</code>. <code>thumb</code> можно не указывать.</span></li>
+      <li><span><b>Обновите dashboard.html.</b> Карточка появится слева, превью подхватит файл. Никаких сборок и установок.</span></li>
+    </ol>
+    <div class="code"><button class="copy" type="button" id="copyCode">Копировать</button><pre id="snippet"></pre></div>
+    <p class="fine">Работает по <code>file://</code>: реестр — обычный JS, файлы — обычные HTML. Если дизайн использует общий снимок, скопируйте блок <code>window.D</code> из любого концепта или из шаблона.</p>
+    <div class="mact">
+      <a class="btn ghost" href="_template.html" target="_blank" rel="noopener">Открыть шаблон</a>
+      <a class="btn ghost" href="README.md" target="_blank" rel="noopener">Инструкция</a>
+      <span class="sp"></span>
+      <button class="btn primary" type="button" id="doneAdd">Понятно</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="designs.js"></script>
+<script>
+(function(){
+  "use strict";
+  const D = Array.isArray(window.DESIGNS) ? window.DESIGNS.slice() : [];
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const params = new URLSearchParams(location.search);
+  const WIDTHS = {
+    fluid: { px: null, label: "Fluid" },
+    panel: { px: 900, label: "900" },
+    phone: { px: 430, label: "430" }
+  };
+  const cardsEl = $("#cards");
+  const frame = $("#frame");
+  const view = $("#view");
+  const urlEl = $("#url");
+  const openLink = $("#openLink");
+  const wLabel = $("#wLabel");
+  const dlg = $("#addDialog");
+  const toastEl = $("#toast");
+  const combo = $("#combo");
+  const comboMain = $("#comboMain");
+  const comboInput = $("#comboInput");
+  const comboPop = $("#comboPop");
+  const comboList = $("#comboList");
+  const curNoEl = $("#curNo");
+  const curTagEl = $("#curTag");
+  let current = null;
+  let widthKey = "fluid";
+  let toastTimer = 0;
+  let comboOpen = false;
+  let comboItems = [];
+  let comboActive = 0;
+
+  function saved(key){
+    try { return localStorage.getItem(key) || ""; } catch(e){ return ""; }
+  }
+  function save(key, val){
+    try { localStorage.setItem(key, val); } catch(e){}
+  }
+  function findDesign(key){
+    if (!key) return null;
+    const k = String(key).toLowerCase();
+    return D.find(d => String(d.id).toLowerCase() === k)
+        || D.find(d => String(d.no).toLowerCase() === k)
+        || D.find(d => String(d.file).toLowerCase().split("/").pop().replace(/\.html$/, "") === k)
+        || null;
+  }
+  function normWidth(v){
+    if (v === "panel" || v === "900") return "panel";
+    if (v === "phone" || v === "430") return "phone";
+    return "fluid";
+  }
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("on"), 2200);
+  }
+
+  /* ——— combobox ——— */
+  function comboFilter(q){
+    const s = String(q || "").trim().toLowerCase();
+    if (!s) return D.slice();
+    return D.filter(d => [d.name, d.tagline, d.no, d.id, d.file].concat(d.tags || []).join(" ").toLowerCase().includes(s));
+  }
+  function comboSetActive(i, scroll){
+    if (!comboItems.length){
+      comboInput.removeAttribute("aria-activedescendant");
+      return;
+    }
+    comboActive = (i + comboItems.length) % comboItems.length;
+    $$(".combo-opt", comboList).forEach((li, idx) => li.classList.toggle("active", idx === comboActive));
+    const id = "combo-opt-" + comboActive;
+    comboInput.setAttribute("aria-activedescendant", id);
+    if (scroll !== false){
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ block: "nearest" });
+    }
+  }
+  function comboTouchTag(){
+    if (!current) return;
+    curTagEl.textContent = comboInput.value === current.name ? (current.tagline || "") : "поиск по дизайнам";
+  }
+  function comboRender(q, activeId){
+    comboItems = comboFilter(q);
+    if (!comboItems.length){
+      comboList.innerHTML = '<li class="combo-empty" role="presentation">Ничего не найдено. Проверьте название.</li>';
+      comboInput.removeAttribute("aria-activedescendant");
+      return;
+    }
+    comboList.innerHTML = comboItems.map((d, i) => `
+      <li class="combo-opt" id="combo-opt-${i}" role="option" data-id="${esc(d.id)}" aria-selected="${d.id === (current && current.id)}">
+        <span class="on">${esc(d.no || "")}</span>
+        <span class="ot"><b>${esc(d.name)}</b><small>${esc(d.tagline || "")}</small></span>
+        <span class="os" aria-hidden="true">✓</span>
+      </li>`).join("");
+    const wanted = activeId ? comboItems.findIndex(d => d.id === activeId) : (current ? comboItems.findIndex(d => d.id === current.id) : 0);
+    comboActive = wanted >= 0 ? wanted : 0;
+    $$(".combo-opt", comboList).forEach((li, i) => {
+      li.addEventListener("mouseenter", () => comboSetActive(i, false));
+      li.addEventListener("mousedown", e => e.preventDefault());
+      li.addEventListener("click", () => comboChoose(li.dataset.id));
+    });
+    comboSetActive(comboActive, false);
+  }
+  function comboOpenPanel(){
+    if (!D.length) return;
+    comboOpen = true;
+    combo.classList.add("open");
+    comboPop.hidden = false;
+    comboInput.setAttribute("aria-expanded", "true");
+    const q = comboInput.value === (current ? current.name : "") ? "" : comboInput.value;
+    comboTouchTag();
+    comboRender(q, current ? current.id : null);
+    if (document.activeElement !== comboInput) comboInput.focus();
+  }
+  function comboClose(restore){
+    comboOpen = false;
+    combo.classList.remove("open");
+    comboPop.hidden = true;
+    comboInput.setAttribute("aria-expanded", "false");
+    comboInput.removeAttribute("aria-activedescendant");
+    if (restore && current){
+      comboInput.value = current.name || "";
+      comboTouchTag();
+    }
+  }
+  function comboChoose(id){
+    const d = findDesign(id);
+    if (!d) return;
+    comboClose(false);
+    select(d.id);
+    comboInput.value = d.name || "";
+    comboInput.blur();
+  }
+
+  comboMain.addEventListener("click", e => {
+    if (e.target !== comboInput) comboInput.focus();
+    if (!comboOpen) comboOpenPanel();
+  });
+  comboInput.addEventListener("focus", () => {
+    if (!comboOpen) comboOpenPanel();
+    requestAnimationFrame(() => {
+      if (comboInput.value === (current ? current.name : "")) comboInput.select();
+    });
+  });
+  comboInput.addEventListener("input", () => {
+    if (!comboOpen) comboOpenPanel();
+    comboRender(comboInput.value, null);
+    if (comboItems.length) comboSetActive(0, false);
+    comboTouchTag();
+  });
+  comboInput.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown"){
+      e.preventDefault();
+      if (!comboOpen) comboOpenPanel(); else comboSetActive(comboActive + 1, true);
+    } else if (e.key === "ArrowUp"){
+      e.preventDefault();
+      if (!comboOpen) comboOpenPanel(); else comboSetActive(comboActive - 1, true);
+    } else if (e.key === "Enter"){
+      e.preventDefault();
+      if (!comboOpen) comboOpenPanel();
+      else if (comboItems[comboActive]) comboChoose(comboItems[comboActive].id);
+    } else if (e.key === "Escape"){
+      e.preventDefault();
+      comboClose(true);
+    } else if (e.key === "Tab"){
+      comboClose(true);
+    } else if (e.key === "Home" && comboOpen){
+      e.preventDefault(); comboSetActive(0, true);
+    } else if (e.key === "End" && comboOpen){
+      e.preventDefault(); comboSetActive(comboItems.length - 1, true);
+    }
+  });
+  document.addEventListener("pointerdown", e => {
+    if (comboOpen && !combo.contains(e.target)) comboClose(true);
+  });
+
+  /* ——— sidebar ——— */
+  function renderCards(){
+    $("#count").textContent = String(D.length);
+    const km = $("#keyMax");
+    if (km) km.textContent = String(Math.min(D.length, 9));
+    cardsEl.innerHTML = D.map(d => {
+      const tags = (d.tags || []).map(t => `<i>${esc(t)}</i>`).join("");
+      const thumb = d.thumb
+        ? `<img src="${esc(d.thumb)}" alt="" loading="lazy">`
+        : `<span class="thumb-fallback" style="--a:${esc(d.accent || "#4df0be")}">${esc(d.no || "")}</span>`;
+      return `<button class="dcard" type="button" data-id="${esc(d.id)}" aria-current="false" title="${esc(d.name)} — ${esc(d.tagline || "")}">
+        <span class="thumb">${thumb}<span class="dno">${esc(d.no || "")}</span><i class="dacc" style="background:${esc(d.accent || "#4df0be")};color:${esc(d.accent || "#4df0be")}"></i></span>
+        <span class="dmeta"><b>${esc(d.name)}</b><small>${esc(d.tagline || "")}</small><span class="dtags">${tags}</span></span>
+      </button>`;
+    }).join("");
+    $$(".dcard", cardsEl).forEach(btn => btn.addEventListener("click", () => select(btn.dataset.id)));
+  }
+
+  /* ——— selection ——— */
+  function select(id, opts){
+    opts = opts || {};
+    const d = findDesign(id) || D[0];
+    if (!d) return;
+    if (comboOpen) comboClose(false);
+    current = d;
+    document.documentElement.style.setProperty("--acc", d.accent || "#4df0be");
+    curNoEl.textContent = d.no || "";
+    curTagEl.textContent = d.tagline || "";
+    comboInput.value = d.name || "";
+    urlEl.textContent = d.file;
+    openLink.href = d.file;
+    view.title = "Предпросмотр: " + (d.name || d.file);
+    document.title = (d.name || "Design") + " — Autopilot Design Deck";
+    $$(".dcard", cardsEl).forEach(b => b.setAttribute("aria-current", String(b.dataset.id === d.id)));
+    if (opts.scroll !== false){
+      const btn = Array.from(cardsEl.querySelectorAll(".dcard")).find(x => x.dataset.id === d.id);
+      if (btn) btn.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+    if (view.getAttribute("src") !== d.file){
+      frame.classList.add("loading");
+      view.src = d.file;
+    }
+    save("ap-deck-design", d.id);
+    if (!opts.initial) writeURL();
+  }
+
+  /* ——— width ——— */
+  function measure(){
+    const w = frame.getBoundingClientRect().width;
+    if (w > 0) wLabel.textContent = Math.round(w) + " px";
+  }
+  function applyWidth(key, opts){
+    opts = opts || {};
+    widthKey = normWidth(key);
+    const w = WIDTHS[widthKey];
+    frame.style.width = w.px ? "min(" + w.px + "px, 100%)" : "100%";
+    $$(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.w === widthKey)));
+    save("ap-deck-width", widthKey);
+    requestAnimationFrame(measure);
+    if (!opts.initial) writeURL();
+  }
+  function writeURL(){
+    if (!current) return;
+    const q = new URLSearchParams();
+    q.set("d", current.id);
+    if (widthKey !== "fluid") q.set("w", widthKey);
+    try { history.replaceState(null, "", location.pathname + "?" + q.toString()); } catch(e){}
+  }
+
+  /* ——— iframe ——— */
+  view.addEventListener("load", () => {
+    frame.classList.remove("loading");
+    measure();
+  });
+  if ("ResizeObserver" in window) new ResizeObserver(measure).observe(frame);
+  else addEventListener("resize", measure);
+
+  /* ——— controls ——— */
+  $$(".seg button").forEach(b => b.addEventListener("click", () => applyWidth(b.dataset.w)));
+  const addBtns = [$("#addBtn"), $("#addBtn2")];
+  const snippet = () => {
+    const no = String(D.length + 1).padStart(2, "0");
+    return `{
+  id: "my-design",
+  no: "${no}",
+  name: "Мой дизайн",
+  tagline: "одна строка о характере",
+  file: "${no}-my-design.html",
+  accent: "#5cc8ff",
+  tags: ["custom"]
+},`;
+  };
+  function openAdd(){
+    $("#snippet").textContent = snippet();
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+    setTimeout(() => $("#closeAdd").focus(), 30);
+  }
+  function closeAdd(){
+    if (typeof dlg.close === "function") dlg.close();
+    else dlg.removeAttribute("open");
+  }
+  addBtns.forEach(b => b.addEventListener("click", openAdd));
+  $("#closeAdd").addEventListener("click", closeAdd);
+  $("#doneAdd").addEventListener("click", closeAdd);
+  dlg.addEventListener("click", e => { if (e.target === dlg) closeAdd(); });
+  $("#copyCode").addEventListener("click", async () => {
+    const code = snippet();
+    try { await navigator.clipboard.writeText(code); toast("Пример скопирован"); }
+    catch(e) {
+      const pre = $("#snippet"), range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      toast("Выделите и скопируйте пример");
+    }
+  });
+
+  const fs = $("#fsBtn");
+  function toggleFs(){
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (frame.requestFullscreen) {
+      frame.requestFullscreen().catch(() => toast("Браузер не дал полноэкранный режим"));
+    }
+  }
+  fs.addEventListener("click", toggleFs);
+  document.addEventListener("fullscreenchange", () => {
+    fs.setAttribute("aria-label", document.fullscreenElement ? "Выйти из полноэкранного режима" : "На весь экран");
+  });
+
+  /* ——— keyboard ——— */
+  document.addEventListener("keydown", e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+    if (/^[1-9]$/.test(e.key)){
+      const d = D[Number(e.key) - 1];
+      if (d){ select(d.id); e.preventDefault(); }
+      return;
+    }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft"){
+      const i = D.findIndex(x => x.id === (current && current.id));
+      const next = e.key === "ArrowRight" ? (i + 1 + D.length) % D.length : (i - 1 + D.length) % D.length;
+      select(D[next].id); e.preventDefault();
+      return;
+    }
+    if (e.key.toLowerCase() === "f"){ toggleFs(); e.preventDefault(); }
+  });
+
+  /* ——— init ——— */
+  renderCards();
+  const initialDesign = findDesign(params.get("d")) || findDesign(saved("ap-deck-design")) || D[0];
+  applyWidth(normWidth(params.get("w") || saved("ap-deck-width") || "fluid"), { initial: true });
+  if (initialDesign) select(initialDesign.id, { initial: true });
+  writeURL();
+  if (params.get("add") === "1") setTimeout(openAdd, 250);
+  if (params.get("combo") === "1") setTimeout(() => { comboInput.focus(); comboOpenPanel(); }, 250);
+  if (params.get("q")) setTimeout(() => {
+    comboInput.value = params.get("q");
+    curTagEl.textContent = "поиск по дизайнам";
+    comboInput.focus();
+    comboOpenPanel();
+    if (comboItems.length) comboSetActive(0, false);
+  }, 250);
+  if (!D.length){
+    frame.innerHTML = '<div style="padding:40px;color:#aaa;font:14px Segoe UI">В designs.js пока нет ни одного дизайна. Добавьте объект — и он появится здесь.</div>';
+  }
+})();
+</script>
+</body>
+</html>
+

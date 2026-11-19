@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Отчёт № 18 — Autopilot</title>
+<style>
+  :root{
+    --paper:#f4efe4; --paper2:#faf6ed; --ink:#191510; --ink2:#5f5648; --ink3:#8b8071;
+    --rule:#d5c9b4; --rule-soft:#e7ddcb; --red:#bf3a1e; --red-soft:#f1ded5;
+    --green:#1e5743; --gold:#9b7424;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --disp:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:70px}
+  body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.62 var(--serif);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;background:
+    radial-gradient(900px 500px at 12% 0%,rgba(255,255,255,.65),transparent 62%),
+    radial-gradient(700px 500px at 100% 10%,rgba(191,58,30,.045),transparent 60%),
+    linear-gradient(180deg,#f6f1e6,#f2ecdf)}
+  body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E")}
+  h1,h2,h3{margin:0;font-weight:400}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit}
+  ::selection{background:rgba(191,58,30,.18)}
+  :focus-visible{outline:2px solid var(--red);outline-offset:3px}
+  .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip{position:fixed;left:16px;top:-60px;z-index:100;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:2px;font:600 12px var(--sans);transition:top .2s}
+  .skip:focus{top:14px}
+  .progress{position:fixed;left:0;top:0;height:2px;width:0;background:var(--red);z-index:70}
+
+  /* ——— masthead ——— */
+  .wrap{width:100%;max-width:1280px;margin:0 auto;padding:0 38px}
+  .masthead{border-bottom:1.5px solid var(--ink);position:relative;z-index:20}
+  .masthead .wrap{display:flex;align-items:center;gap:20px;padding-top:20px;padding-bottom:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font:700 17px/1 var(--disp);letter-spacing:-.03em;text-transform:uppercase}
+  .brand .glyph{width:26px;height:26px;border:1.5px solid var(--ink);display:grid;place-items:center;font:700 13px/1 var(--disp);color:var(--red)}
+  .brand .reg{font:400 9px/1 var(--sans);letter-spacing:.1em;color:var(--ink3);align-self:flex-start;margin-top:2px}
+  .issue{font:500 9.5px/1.5 var(--sans);letter-spacing:.17em;text-transform:uppercase;color:var(--ink2);border-left:1px solid var(--rule);padding-left:20px}
+  .issue b{color:var(--red);font-weight:700}
+  .mast-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .mast-date{font:italic 13px/1.3 var(--serif);color:var(--ink2);text-align:right}
+  .mast-date span{display:block;font:9px/1.4 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3)}
+  .print{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border:1px solid var(--ink);background:transparent;font:600 10.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.18s}
+  .print:hover{background:var(--ink);color:var(--paper)}
+
+  /* ——— toc ——— */
+  .toc{position:sticky;top:0;z-index:30;background:rgba(244,239,228,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+  .toc .wrap{display:flex;align-items:center;gap:22px;height:46px;overflow-x:auto;scrollbar-width:none}
+  .toc .wrap::-webkit-scrollbar{display:none}
+  .toc-label{font:600 8.5px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);white-space:nowrap;border-right:1px solid var(--rule);padding-right:20px}
+  .toc a{display:inline-flex;align-items:baseline;gap:6px;font:500 10px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);white-space:nowrap;padding:15px 0 13px;border-bottom:2px solid transparent;transition:.15s}
+  .toc a b{font:600 9px/1 var(--mono);color:var(--red);font-weight:600}
+  .toc a:hover{color:var(--ink)}
+  .toc a.active{color:var(--ink);border-color:var(--red)}
+  .toc-meta{margin-left:auto;font:9px/1 var(--mono);letter-spacing:.05em;color:var(--ink3);white-space:nowrap}
+
+  /* ——— hero ——— */
+  .hero{position:relative;padding-top:54px}
+  .hero .wrap{position:relative;padding-bottom:30px}
+  .kicker{display:inline-flex;align-items:center;gap:10px;font:600 9.5px/1 var(--sans);letter-spacing:.19em;text-transform:uppercase;color:var(--red)}
+  .kicker:before{content:"";width:26px;height:1px;background:var(--red)}
+  h1{font-size:clamp(58px,8.5vw,116px);line-height:.94;letter-spacing:-.045em;margin:20px 0 0;max-width:1020px}
+  h1 em{font-style:italic;color:var(--red)}
+  h1 span.line{display:block}
+  .standfirst{max-width:700px;margin:26px 0 0;font:italic 20.5px/1.55 var(--serif);color:var(--ink2)}
+  .byline{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:24px;font:500 9.5px/1.5 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3)}
+  .byline b{color:var(--ink);font-weight:600}
+  .byline .sep{width:1px;height:10px;background:var(--rule);align-self:center}
+  .stamp{position:absolute;right:38px;top:70px;transform:rotate(-7deg);border:2.5px double var(--red);color:var(--red);padding:13px 20px 11px;text-align:center;opacity:.82;filter:saturate(.9)}
+  .stamp b{display:block;font:700 19px/1 var(--disp);letter-spacing:.18em;text-transform:uppercase}
+  .stamp small{display:block;margin-top:4px;font:9px/1.4 var(--mono);letter-spacing:.1em}
+  .stamp i{display:block;margin-top:3px;font:italic 10px/1.3 var(--serif);letter-spacing:.02em;text-transform:none}
+  .figures{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--rule);margin-top:42px}
+  .figure{padding:20px 24px 24px;border-left:1px solid var(--rule)}
+  .figure:first-child{border-left:0;padding-left:0}
+  .figure b{display:block;font:700 clamp(42px,4.6vw,62px)/.95 var(--disp);letter-spacing:-.055em;font-variant-numeric:tabular-nums}
+  .figure b i{font-style:normal;color:var(--red)}
+  .figure span{display:block;margin-top:9px;font:600 9px/1.45 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink3)}
+  .figure .note{display:block;margin-top:5px;font:italic 12px/1.45 var(--serif);letter-spacing:0;text-transform:none;color:var(--ink3)}
+
+  /* ——— sections ——— */
+  .section{padding-top:64px;position:relative}
+  .section .wrap{position:relative}
+  .sec-head{display:flex;align-items:flex-end;gap:18px;border-top:1.5px solid var(--ink);padding-top:13px}
+  .sec-num{font:600 10px/1 var(--mono);letter-spacing:.08em;color:var(--red);padding-bottom:5px}
+  .sec-head h2{font-size:clamp(31px,3.3vw,44px);line-height:1.04;letter-spacing:-.025em}
+  .sec-aside{margin-left:auto;text-align:right;font:italic 13px/1.4 var(--serif);color:var(--ink3);max-width:280px}
+  .ghost{position:absolute;right:24px;top:-32px;font:700 132px/1 var(--serif);color:rgba(25,21,16,.045);pointer-events:none;user-select:none}
+  .lede{max-width:760px;margin:22px 0 0;font-size:18px;line-height:1.62;color:var(--ink2)}
+  .lede b{color:var(--ink);font-weight:700}
+  .lede em{font-style:italic}
+
+  /* ——— chronicle ——— */
+  .stage-ledger{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:0;margin-top:34px;border-top:1px solid var(--rule)}
+  .stage{padding:12px 14px 12px 0;border-bottom:1px solid var(--rule-soft);min-width:0}
+  .stage .sn{display:block;font:600 8.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+  .stage .sname{display:block;margin-top:6px;font:600 12.5px/1.25 var(--sans);color:var(--ink)}
+  .stage .stime{display:block;margin-top:3px;font:9px/1.4 var(--mono);color:var(--ink3);white-space:nowrap}
+  .stage .sdur{display:inline-block;margin-top:6px;font:italic 11px/1.3 var(--serif);color:var(--red);border-bottom:1px solid var(--red-soft)}
+  .stage.is-skipped .sname{color:var(--ink3)}
+  .stage.is-skipped .sdur{color:var(--ink3);border-color:var(--rule)}
+  .stage-wall{margin:10px 0 0;font:italic 12px/1.5 var(--serif);color:var(--ink3)}
+
+  .ribbon-wrap{margin-top:30px;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);padding:16px 0 18px}
+  .ribbon{display:grid;grid-template-columns:86px minmax(0,1fr);column-gap:18px;row-gap:2px}
+  .ribbon .axis{position:relative;height:17px;font:9px/1 var(--mono);color:var(--ink3)}
+  .ribbon .axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+  .ribbon .axis span:first-child{transform:none}
+  .ribbon .axis span:last-child{transform:translateX(-100%)}
+  .ribbon .rl{font:600 8.5px/1.4 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3);padding-top:5px;text-align:right;white-space:nowrap}
+  .ribbon .track{position:relative;height:38px;margin:8px 0 12px;border-bottom:1px solid var(--rule-soft)}
+  .band{position:absolute;top:9px;bottom:9px;background:var(--ink);opacity:.82;min-width:2px;cursor:default}
+  .band.b1{background:#2c261e}.band.b2{background:#4b4133}.band.b3{background:#6c5e49}.band.b5{background:#3b5a4d}.band.b6{background:#7c5c22}
+  .band.pause{background:repeating-linear-gradient(135deg,rgba(191,58,30,.3) 0 5px,transparent 5px 10px);border:1px dashed rgba(191,58,30,.8);opacity:1;top:9px;bottom:9px}
+  .band.pause:after{content:"пауза 12 ч 15 мин · работа не идёт";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--paper);padding:2px 9px;font:600 8px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--red);white-space:nowrap}
+  .band.lbl:after{content:attr(data-l);position:absolute;left:50%;top:-20px;transform:translateX(-50%);font:600 8px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
+  .mark{position:absolute;top:-3px;bottom:0;width:1px;background:var(--red);opacity:.75}
+  .mark:after{content:attr(data-l);position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:2px;font:8px/1 var(--mono);color:var(--red);white-space:nowrap}
+  .waves-list{display:none}
+  .ribbon-note{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:6px;font:italic 12px/1.5 var(--serif);color:var(--ink3)}
+  .ribbon-note b{font-style:normal;font:600 9px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .ribbon-note .k{display:inline-flex;align-items:center;gap:6px}
+  .ribbon-note .k i{width:9px;height:9px;background:var(--ink);display:inline-block}
+  .ribbon-note .k.pause i{background:repeating-linear-gradient(135deg,rgba(191,58,30,.5) 0 2px,transparent 2px 4px);border:1px dashed var(--red)}
+
+  .tbl-scroll{overflow-x:auto;margin-top:34px;max-width:100%}
+  table.tbl{width:100%;border-collapse:collapse;min-width:680px}
+  table.tbl thead th{font:600 8.5px/1.4 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:0 12px 9px 0;border-bottom:1.5px solid var(--ink);white-space:nowrap}
+  table.tbl tbody td{padding:13px 12px 13px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top;font-size:14px;color:var(--ink2)}
+  table.tbl tbody tr{transition:background .15s}
+  table.tbl tbody tr:hover{background:rgba(191,58,30,.035)}
+  table.tbl .tid{width:36px;font:600 10px/1.6 var(--mono);color:var(--red);white-space:nowrap}
+  table.tbl .tt{width:44%;font:600 14.5px/1.35 var(--sans);color:var(--ink)}
+  table.tbl .tt small{display:block;margin-top:3px;font:400 10px/1.45 var(--mono);color:var(--ink3)}
+  table.tbl .treq{font:9.5px/1.6 var(--mono);color:var(--ink3);white-space:nowrap}
+  table.tbl .twork{text-align:right;white-space:nowrap;font:600 12px/1.4 var(--mono);color:var(--ink)}
+  table.tbl .twork .mini{display:block;width:76px;height:3px;margin:5px 0 0 auto;background:var(--rule-soft);position:relative}
+  table.tbl .twork .mini i{position:absolute;left:0;top:0;bottom:0;background:var(--red)}
+  table.tbl .twork em{display:block;margin-top:4px;font:400 9px/1 var(--mono);color:var(--ink3);font-style:normal}
+  table.tbl .ttest{text-align:right;white-space:nowrap;font:10px/1.5 var(--mono);color:var(--ink2)}
+  .pull{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;margin:38px 0 0;padding:24px 0 4px;border-top:1px solid var(--rule)}
+  .pull .big{font:700 78px/0.82 var(--disp);letter-spacing:-.06em;color:var(--red);font-variant-numeric:tabular-nums}
+  .pull .big small{display:block;font:600 9px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-top:6px}
+  .pull p{margin:0;max-width:720px;font:italic 21px/1.5 var(--serif);color:var(--ink2)}
+  .pull p b{font-style:normal;color:var(--ink)}
+
+  /* ——— requirements ——— */
+  .req-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:44px;margin-top:30px;align-items:start}
+  .req-list{border-top:1px solid var(--ink)}
+  details.req{border-bottom:1px solid var(--rule-soft)}
+  details.req summary{list-style:none;display:grid;grid-template-columns:40px minmax(0,1fr) 46px;gap:12px;align-items:center;padding:13px 0;cursor:pointer;transition:.15s}
+  details.req summary::-webkit-details-marker{display:none}
+  details.req summary:hover{padding-left:5px}
+  .req .rid{font:600 9.5px/1 var(--mono);letter-spacing:.05em;color:var(--red)}
+  .req .rname{font:600 14.5px/1.35 var(--sans);color:var(--ink)}
+  .req .rname small{display:block;margin-top:2px;font:italic 11.5px/1.4 var(--serif);color:var(--ink3)}
+  .req .rstat{justify-self:end;font:600 8.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--green);border:1px solid rgba(30,87,67,.35);padding:4px 6px;white-space:nowrap}
+  .req .rfull{padding:0 0 16px 52px;max-width:820px;font:italic 14.5px/1.55 var(--serif);color:var(--ink2)}
+  .req .rfull:before{content:"«";color:var(--red)}
+  .req .rfull:after{content:"»";color:var(--red)}
+  .req-aside{border-top:1.5px solid var(--ink);padding-top:14px;position:sticky;top:70px}
+  .req-aside .huge{font:700 76px/.9 var(--disp);letter-spacing:-.06em;line-height:.85}
+  .req-aside .huge i{font-style:normal;color:var(--red)}
+  .req-aside p{margin:10px 0 0;font:italic 13px/1.5 var(--serif);color:var(--ink3)}
+  .req-stats{margin-top:18px;border-top:1px solid var(--rule)}
+  .req-stat{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule-soft);font:10px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .req-stat b{font:600 12px/1 var(--mono);color:var(--ink);letter-spacing:0}
+  .req-actions{margin-top:18px}
+  .text-btn{background:none;border:0;padding:0;font:600 10px/1.4 var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--red);cursor:pointer;border-bottom:1px solid var(--red-soft);min-height:28px}
+  .text-btn:hover{border-color:var(--red)}
+
+  /* ——— checks ——— */
+  .gates{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--rule);margin-top:30px}
+  .gate{padding:18px 20px 20px;border-left:1px solid var(--rule)}
+  .gate:first-child{border-left:0;padding-left:0}
+  .gate .gmark{display:flex;align-items:center;gap:8px;font:600 8.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+  .gate .gmark i{width:16px;height:16px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font:700 9px/1 var(--sans)}
+  .gate b{display:block;margin-top:12px;font:700 clamp(28px,2.6vw,38px)/1 var(--disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+  .gate .gname{display:block;margin-top:6px;font:600 12px/1.35 var(--sans)}
+  .gate .gnote{display:block;margin-top:4px;font:italic 11.5px/1.4 var(--serif);color:var(--ink3)}
+  .checks-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:44px;margin-top:34px;align-items:start}
+  .checks-block h3{font:600 9px/1.4 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);padding-bottom:8px;border-bottom:1px solid var(--ink)}
+  .test-top{display:flex;align-items:flex-end;gap:16px;margin-top:14px}
+  .test-top b{font:700 clamp(52px,5.6vw,74px)/.9 var(--disp);letter-spacing:-.06em;font-variant-numeric:tabular-nums}
+  .test-top .delta{font:italic 14px/1.4 var(--serif);color:var(--green);padding-bottom:7px}
+  .test-top .delta small{display:block;font:400 10px/1.3 var(--sans);color:var(--ink3);font-style:normal;letter-spacing:.06em}
+  .test-chart{margin-top:14px}
+  .test-chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .test-axis{display:flex;justify-content:space-between;margin-top:5px;font:8.5px/1 var(--mono);color:var(--ink3)}
+  .blind-box{border-top:1px solid var(--ink);padding-top:14px}
+  .blind-box .brow{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--rule-soft);font:11px/1.4 var(--sans);color:var(--ink3)}
+  .blind-box .brow b{font:600 13px/1 var(--mono);color:var(--ink)}
+  .blind-box .brow span{letter-spacing:.06em;text-transform:uppercase;font-size:9px}
+  .notes{display:grid;grid-template-columns:1fr 1fr;gap:0 34px;margin-top:30px;border-top:1px solid var(--ink)}
+  details.note{border-bottom:1px solid var(--rule-soft);padding:0}
+  details.note summary{list-style:none;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:baseline;padding:12px 0;cursor:pointer;transition:.15s}
+  details.note summary::-webkit-details-marker{display:none}
+  details.note summary:hover{padding-left:4px}
+  .note .nn{font:600 9.5px/1.4 var(--mono);color:var(--red)}
+  .note .nshort{font:600 12px/1.4 var(--sans);color:var(--ink2)}
+  .note .nsrc{font:8.5px/1.3 var(--mono);color:var(--ink3);white-space:nowrap}
+  .note .nfull{padding:0 0 13px 37px;font:italic 12.5px/1.5 var(--serif);color:var(--ink3)}
+  .notes-foot{display:flex;align-items:center;gap:12px;margin-top:14px;font:italic 12px/1.5 var(--serif);color:var(--ink3);flex-wrap:wrap}
+  .notes-foot .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+  /* ——— spend ——— */
+  .spend-grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:46px;margin-top:32px;align-items:start}
+  .spend-total .big{font:700 clamp(54px,6vw,78px)/.88 var(--disp);letter-spacing:-.06em;font-variant-numeric:tabular-nums}
+  .spend-total p{margin:12px 0 0;font:italic 13.5px/1.5 var(--serif);color:var(--ink3)}
+  .spend-total .cache{margin-top:20px;border-top:1px solid var(--ink);padding-top:12px;display:flex;justify-content:space-between;gap:10px;font:10px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .spend-total .cache b{font:600 18px/1 var(--disp);color:var(--green);letter-spacing:-.02em}
+  .roles{width:100%;border-collapse:collapse}
+  .roles th{font:600 8.5px/1.4 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:0 10px 8px 0;border-bottom:1px solid var(--ink)}
+  .roles td{padding:12px 10px 12px 0;border-bottom:1px solid var(--rule-soft);font:12.5px/1.3 var(--sans);color:var(--ink2);vertical-align:middle}
+  .roles .rname{width:112px;color:var(--ink);font-weight:600;white-space:nowrap}
+  .roles .rbar{width:44%}
+  .rbar .track{height:9px;background:var(--rule-soft);position:relative}
+  .rbar .track i{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+  .roles .rval{text-align:right;white-space:nowrap;font:600 11.5px/1 var(--mono);color:var(--ink)}
+  .roles .rhit{text-align:right;white-space:nowrap;font:10px/1 var(--mono);color:var(--ink3);width:52px}
+  .spend-note{margin-top:16px;padding-top:12px;border-top:1px solid var(--rule);font:italic 12.5px/1.5 var(--serif);color:var(--ink3)}
+
+  /* ——— history ——— */
+  table.hist{width:100%;border-collapse:collapse;margin-top:28px}
+  table.hist th{font:600 8.5px/1.4 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:0 10px 9px 0;border-bottom:1.5px solid var(--ink);white-space:nowrap}
+  table.hist td{padding:13px 10px 13px 0;border-bottom:1px solid var(--rule-soft);font-size:13.5px;color:var(--ink2);vertical-align:middle}
+  table.hist tr.cur td{background:rgba(191,58,30,.045)}
+  table.hist tr.cur td:first-child{box-shadow:inset 2px 0 0 var(--red)}
+  table.hist .hdate{font:9.5px/1 var(--mono);color:var(--ink3);white-space:nowrap}
+  table.hist .ht{font:600 13px/1.35 var(--sans);color:var(--ink)}
+  table.hist .ht small{display:inline-block;margin-left:7px;font:italic 10px/1 var(--serif);color:var(--red)}
+  table.hist .hn{text-align:right;font:10.5px/1 var(--mono);color:var(--ink);white-space:nowrap}
+  table.hist .hbar{width:30%}
+  .hbar .track{height:5px;background:var(--rule-soft);position:relative;min-width:60px}
+  .hbar .track i{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+
+  /* ——— footer ——— */
+  footer{margin-top:76px;border-top:1.5px solid var(--ink);padding:26px 0 34px}
+  footer .wrap{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  .foot-brand{font:700 34px/1 var(--disp);letter-spacing:-.045em}
+  .foot-brand i{font:italic 14px/1 var(--serif);letter-spacing:0;color:var(--red)}
+  .foot-note{font:italic 12px/1.5 var(--serif);color:var(--ink3);max-width:560px}
+  .foot-up{margin-left:auto;font:600 9.5px/1 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--ink);padding-bottom:3px;min-height:24px}
+  .foot-up:hover{color:var(--red);border-color:var(--red)}
+
+  /* ——— reveal ——— */
+  .reveal{opacity:0;transform:translateY(10px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    *,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+    .reveal{opacity:1;transform:none}
+  }
+
+  /* ——— responsive ——— */
+  @media(max-width:1100px){
+    .stamp{right:24px;top:56px;transform:rotate(-6deg) scale(.86)}
+    .req-layout{grid-template-columns:minmax(0,1fr) 270px;gap:30px}
+    .spend-grid{grid-template-columns:280px minmax(0,1fr);gap:30px}
+  }
+  @media(max-width:900px){
+    .wrap{padding:0 24px}
+    .stamp{display:none}
+    h1{font-size:clamp(50px,9.4vw,82px)}
+    .figures{grid-template-columns:1fr 1fr}
+    .figure:nth-child(3){border-left:0;padding-left:0}
+    .figure:nth-child(1),.figure:nth-child(2){border-bottom:1px solid var(--rule)}
+    .section{padding-top:48px}
+    .req-layout{grid-template-columns:1fr}
+    .req-aside{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0 30px;border-top:1.5px solid var(--ink)}
+    .req-aside .huge{grid-row:span 2;align-self:center}
+    .req-stats{margin-top:10px;border-top:0}
+    .req-actions{grid-column:2;margin-top:0}
+    .checks-grid{grid-template-columns:1fr;gap:30px}
+    .spend-grid{grid-template-columns:1fr;gap:26px}
+    .notes{grid-template-columns:1fr}
+    .gates{grid-template-columns:1fr 1fr}
+    .gate:nth-child(3){border-left:0;padding-left:0}
+    .gate:nth-child(1),.gate:nth-child(2){border-bottom:1px solid var(--rule)}
+    .ghost{font-size:100px;top:-22px}
+    .masthead .wrap{padding-top:16px;padding-bottom:13px}
+    .mast-date{display:none}
+    .toc-meta{display:none}
+  }
+  @media(max-width:700px){
+    .issue{display:none}
+    .ribbon{display:none}
+    .waves-list{display:block;margin-top:10px;border-top:1px solid var(--rule)}
+    .wave-item{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--rule-soft)}
+    .wave-item .wname{font:600 12px/1.3 var(--sans);color:var(--ink)}
+    .wave-item .wname small{display:block;font:italic 11px/1.35 var(--serif);color:var(--ink3)}
+    .wave-item .wtime{font:9px/1.4 var(--mono);color:var(--ink3);text-align:right;white-space:nowrap}
+    .wave-item .wmin{font:600 10px/1 var(--mono);color:var(--red);text-align:right;white-space:nowrap}
+    .ribbon-note{display:none}
+    .axis{display:none}
+    .stage-ledger{grid-template-columns:1fr 1fr}
+    .section{padding-top:40px}
+    .sec-aside{display:none}
+    .ghost{display:none}
+    .pull{grid-template-columns:1fr;gap:8px}
+    .pull .big{font-size:58px}
+    .pull p{font-size:18px}
+    table.tbl{min-width:0}
+    table.tbl .treq,table.tbl .ttest{display:none}
+    table.tbl thead th:nth-child(3),table.tbl thead th:nth-child(5){display:none}
+    table.tbl .tt{width:auto}
+    table.hist{min-width:0}
+    table.hist th:nth-child(4),table.hist td:nth-child(4){display:none}
+    table.hist .hbar{display:none}
+    .toc-label{display:none}
+    .toc .wrap{height:auto;flex-wrap:wrap;overflow:visible;padding:6px 0;gap:3px 10px}
+    .toc a{padding:4px 0 2px;font-size:8px;letter-spacing:.05em}
+    .toc a b{font-size:7px}
+    .masthead .wrap{gap:12px}
+    .brand{font-size:15px}
+    .print{padding:0 9px;font-size:9px}
+    .mast-right{margin-left:auto}
+  }
+  @media(max-width:480px){
+    .wrap{padding:0 16px}
+    h1{font-size:clamp(43px,13.4vw,62px)}
+    .standfirst{font-size:17px}
+    .figures{grid-template-columns:1fr 1fr}
+    .figure{padding:15px 14px 17px}
+    .figure b{font-size:40px}
+    .figure span{font-size:8px}
+    .byline{font-size:8.5px;gap:6px 10px}
+    .stage-ledger{grid-template-columns:1fr}
+    .req-aside{grid-template-columns:1fr}
+    .req-aside .huge{grid-row:auto}
+    .req-actions{grid-column:auto}
+    .gates{grid-template-columns:1fr}
+    .gate{border-left:0;padding-left:0;border-bottom:1px solid var(--rule)}
+    .notes{grid-template-columns:1fr}
+    details.note summary{grid-template-columns:24px minmax(0,1fr);}
+    .note .nsrc{display:none}
+    .toc .wrap{gap:16px}
+    .toc a{font-size:9px}
+    .masthead .wrap{padding-top:13px;padding-bottom:11px}
+    .brand .glyph{width:22px;height:22px}
+    .issue{font-size:8px;letter-spacing:.1em}
+    .mast-right{gap:8px}
+    .print span{display:none}
+    .print{width:36px;height:36px;min-height:36px;padding:0;justify-content:center}
+    table.hist th:nth-child(4),table.hist td:nth-child(4){display:none}
+    table.hist .hbar{display:none}
+    table.hist{min-width:0}
+    footer .foot-brand{font-size:26px}
+  }
+  @media print{
+    .toc,.progress,.stamp,.print,.ghost,.reveal{display:none!important}
+    body{background:#fff;color:#000}
+    body:before,body:after{display:none}
+    .masthead{border-color:#000}
+    .section{padding-top:28px;break-inside:avoid}
+    .hero{padding-top:20px}
+    h1{font-size:64px}
+    a{text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">К содержанию</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="glyph">A</span>Autopilot <span class="reg">®</span></a>
+    <div class="issue">Отчёт о сборке <b>№ 18</b> · волны 4–6</div>
+    <div class="mast-right">
+      <div class="mast-date">17 ноября 2026<span>снимок 17:42</span></div>
+      <button class="print" type="button" id="printBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.7"/><rect x="7" y="14" width="10" height="6.5" rx="1" stroke="currentColor" stroke-width="1.7"/></svg><span>Печать</span></button>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Содержание отчёта">
+  <div class="wrap">
+    <span class="toc-label">Содержание</span>
+    <a href="#s01" data-nav="s01"><b>01</b>Хроника</a>
+    <a href="#s02" data-nav="s02"><b>02</b>Требования</a>
+    <a href="#s03" data-nav="s03"><b>03</b>Проверки</a>
+    <a href="#s04" data-nav="s04"><b>04</b>Расход</a>
+    <a href="#s05" data-nav="s05"><b>05</b>Контекст</a>
+    <span class="toc-meta">2.7.0 · T2 · semi · 0 блокеров</span>
+  </div>
+</nav>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div class="wrap">
+      <div class="kicker">Сборка завершена · 17 ноября 2026</div>
+      <h1><span class="line">Одиннадцать</span><span class="line"><em>из</em> одиннадцати.</span></h1>
+      <p class="standfirst" id="standfirst"></p>
+      <div class="byline">
+        <span>Работа <b>2 ч 25 мин</b></span><span class="sep"></span>
+        <span>Календарь <b>14 ч 39 мин</b></span><span class="sep"></span>
+        <span>Вызовов <b>18</b></span><span class="sep"></span>
+        <span>Модель <b>Sonnet 5.5</b></span>
+      </div>
+      <div class="stamp" aria-label="Сдано, 17 ноября 2026, гейты G1–G4 пройдены"><b>Сдано</b><small>17.11.2026 / 17:42</small><i>G1–G4 · без блокеров</i></div>
+      <div class="figures">
+        <div class="figure"><b>11<i>/11</i></b><span>требований закрыто</span><span class="note">слепая сверка, один круг</span></div>
+        <div class="figure"><b><span data-count="1072">1 072</span></b><span>теста прошло</span><span class="note">+30 за сборку · 0 упало</span></div>
+        <div class="figure"><b>2 ч <i>25</i> мин</b><span>рабочего времени</span><span class="note">без паузы 12 ч 15 мин</span></div>
+        <div class="figure"><b><i>0</i></b><span>блокирующих замечаний</span><span class="note">7 неблокирующих — в отчёте</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="s01">
+    <div class="wrap reveal">
+      <div class="ghost" aria-hidden="true">01</div>
+      <div class="sec-head"><span class="sec-num">01</span><h2>Хроника дня</h2><span class="sec-aside">03:03 → 17:42<br>14 часов 39 минут на календаре</span></div>
+      <p class="lede">Сборка началась в <b>03:03</b> и закрылась в <b>17:42</b>. По календарю прошло четырнадцать с половиной часов, но работа заняла <b>2 часа 25 минут</b>: пауза в двенадцать часов пятнадцать минут не входит в счёт — часы Autopilot считают работу, а не присутствие.</p>
+      <div class="stage-ledger" id="stageLedger"></div>
+      <div class="ribbon-wrap">
+        <div class="ribbon" aria-label="Лента дня: волны и пауза">
+          <div></div>
+          <div class="axis" id="ribbonAxis"></div>
+          <div class="rl">Волны</div>
+          <div class="track" id="ribbonTrack"></div>
+        </div>
+        <div class="waves-list" id="wavesList"></div>
+        <div class="ribbon-note">
+          <span class="k"><i></i><b>волна</b> — задача или группа задач</span>
+          <span class="k pause"><i></i><b>пауза</b> — календарь идёт, работа нет</span>
+          <span><b>17:16</b> началось ревью · <b>17:42</b> сборка сдана</span>
+        </div>
+      </div>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>№</th><th>Таск</th><th>Треб.</th><th style="text-align:right">Работа</th><th style="text-align:right">Тесты</th></tr></thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+      </div>
+      <div class="pull">
+        <div class="big">46<small>минут работы</small></div>
+        <p>Столько занял свод «класс × модель × усилие» — при <b>тринадцати часах</b> на календаре. Долгая пауза не делает таск дороже: в счёт идут только рабочие минуты.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="s02">
+    <div class="wrap reveal">
+      <div class="ghost" aria-hidden="true">02</div>
+      <div class="sec-head"><span class="sec-num">02</span><h2>Требования</h2><span class="sec-aside">одиннадцать дословных цитат<br>из брифа — и ни одной открытой</span></div>
+      <p class="lede">Каждое требование записано словами пользователя, закрыто кодом и принято слепой сверкой: приёмка не видела ни манифеста, ни спецификации. <em>Нажмите на строку, чтобы прочитать цитату.</em></p>
+      <div class="req-layout">
+        <div class="req-list" id="reqList"></div>
+        <aside class="req-aside">
+          <div class="huge">11<i>/11</i></div>
+          <p>закрыто и принято. Открытых требований нет.</p>
+          <div class="req-stats">
+            <div class="req-stat"><span>Слепая приёмка</span><b>11 / 11</b></div>
+            <div class="req-stat"><span>Расхождений</span><b>0</b></div>
+            <div class="req-stat"><span>Кругов приёмки</span><b>1</b></div>
+            <div class="req-stat"><span>Находок аудита</span><b>14 / 14</b></div>
+            <div class="req-stat"><span>Гейт G1</span><b>03:13</b></div>
+          </div>
+          <div class="req-actions"><button class="text-btn" type="button" id="toggleReq">Раскрыть все цитаты</button></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="s03">
+    <div class="wrap reveal">
+      <div class="ghost" aria-hidden="true">03</div>
+      <div class="sec-head"><span class="sec-num">03</span><h2>Проверки</h2><span class="sec-aside">четыре гейта · 1 072 теста<br>ноль блокирующих замечаний</span></div>
+      <p class="lede">Сборка закрыта не потому, что закончились таски, а потому что сошлись четыре независимые проверки. Слепая приёмка подтвердила все одиннадцать пунктов с первого круга.</p>
+      <div class="gates" id="gates"></div>
+      <div class="checks-grid">
+        <div class="checks-block">
+          <h3>Рост тестов</h3>
+          <div class="test-top"><b><span data-count="1072">1 072</span></b><div class="delta">+30 за сборку<small>0 упало · 5 пропущено</small></div></div>
+          <div class="test-chart" id="testChart"></div>
+          <div class="test-axis"><span>01 · 1 042</span><span>финал · 1 072</span></div>
+        </div>
+        <div class="checks-block">
+          <h3>Слепая приёмка и аудит</h3>
+          <div class="blind-box">
+            <div class="brow"><span>Сверено требований</span><b>11 / 11</b></div>
+            <div class="brow"><span>Расхождений</span><b>0</b></div>
+            <div class="brow"><span>Кругов приёмки</span><b>1</b></div>
+            <div class="brow"><span>Находок аудита</span><b>14 / 14</b></div>
+            <div class="brow"><span>Отложено</span><b>0</b></div>
+            <div class="brow"><span>Блокирующих</span><b>0</b></div>
+          </div>
+        </div>
+      </div>
+      <h3 style="margin-top:40px;font:600 9px/1.4 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);padding-bottom:8px;border-bottom:1px solid var(--ink)">Замечания после сборки · 7 · не блокируют</h3>
+      <div class="notes" id="notes"></div>
+      <div class="notes-foot"><span class="dot"></span>Сборка сдана с оговорками, которые не мешают работе.<button class="text-btn" type="button" id="toggleNotes">Раскрыть все</button></div>
+    </div>
+  </section>
+
+  <section class="section" id="s04">
+    <div class="wrap reveal">
+      <div class="ghost" aria-hidden="true">04</div>
+      <div class="sec-head"><span class="sec-num">04</span><h2>Расход</h2><span class="sec-aside">18 вызовов · 97 % из кэша<br>одна модель — Claude Sonnet 5.5</span></div>
+      <p class="lede">Восемнадцать вызовов и <b>358 201</b> токен. Почти весь объём пришёл из кэша: <b>57,9 млн</b> токенов прочитано, 1,78 млн записано. Это делает повторные проверки дешевле свежего контекста.</p>
+      <div class="spend-grid">
+        <div class="spend-total">
+          <div class="big"><span data-count="358201">358 201</span></div>
+          <p>токенов на всю сборку<br>18 вызовов · 0 эскалаций модели</p>
+          <div class="cache"><span>Кэш-попадание</span><b>97 %</b></div>
+          <div class="cache" style="border-top:0;padding-top:6px"><span>Прочитано из кэша</span><b style="font-size:13px">57,9 млн</b></div>
+        </div>
+        <div>
+          <table class="roles">
+            <thead><tr><th>Роль</th><th>Доля</th><th style="text-align:right">Токены</th><th style="text-align:right">Кэш</th></tr></thead>
+            <tbody id="roleBody"></tbody>
+          </table>
+          <p class="spend-note">Все вызовы — Claude Sonnet 5.5. Эскалаций на старшую модель не было; исполнители работали на пяти разных уровнях усилия, от medium до xhigh.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="s05">
+    <div class="wrap reveal">
+      <div class="ghost" aria-hidden="true">05</div>
+      <div class="sec-head"><span class="sec-num">05</span><h2>Контекст</h2><span class="sec-aside">эта сборка и пять предыдущих<br>по логу проекта</span></div>
+      <p class="lede">Волны 4–6 — восемнадцатая сборка Autopilot. Для сравнения: предыдущая закрылась за 139 минут и 396 276 токенов. Дальше — короткая история.</p>
+      <div class="tbl-scroll">
+        <table class="hist">
+          <thead><tr><th>Дата</th><th>Сборка</th><th style="text-align:right">Время</th><th aria-label="Доля токенов"></th><th style="text-align:right">Токены</th></tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-brand">Autopilot <i>2.7.0</i></div>
+    <p class="foot-note">Отчёт собран из снимка <span class="mono">state.js</span> от 17 ноября 2026, 17:42. Страница не делает внешних запросов и не загружает шрифтов. Дизайн-концепт 02 — «Отчёт».</p>
+    <a class="foot-up" href="#top">Наверх ↑</a>
+  </div>
+</footer>
+
+<script>
+window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};
+</script>
+<script>
+(function(){
+  "use strict";
+  const D = window.D;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const nf = new Intl.NumberFormat("ru-RU");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const dur = m => m === 0 ? "мгновенно" : m < 60 ? m + " мин" : Math.floor(m/60) + " ч " + String(m%60).padStart(2,"0") + " мин";
+  const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+  const T0 = 180, T1 = 1080;
+  const pct = t => (toMin(t)-T0)/(T1-T0)*100;
+  const clampPct = v => Math.max(0, Math.min(100, v));
+
+  $("#standfirst").textContent = D.result;
+
+  /* ——— stage ledger ——— */
+  const stages = D.stages;
+  $("#stageLedger").innerHTML = stages.map(s => `
+    <div class="stage ${s.status === "skipped" ? "is-skipped" : ""}">
+      <span class="sn">${s.start}–${s.end}</span>
+      <span class="sname">${esc(s.name)}</span>
+      <span class="stime">${esc(s.status === "skipped" ? "пропущен" : dur(s.min))}</span>
+      ${s.wall ? `<span class="sdur">${esc(s.wall)} стены</span>` : ""}
+    </div>`).join("");
+
+  /* ——— day ribbon ——— */
+  const ticks = ["03:00","06:00","09:00","12:00","15:00","18:00"];
+  $("#ribbonAxis").innerHTML = ticks.map((t,i)=>`<span style="left:${i*20}%">${t}</span>`).join("");
+
+  const waves = [
+    { n:1, from:"03:15", to:"03:54", cls:"b1", label:"Волна 1", name:"Фундамент", min:118, tasks:4 },
+    { n:2, from:"03:55", to:"04:01", cls:"b2", label:"2", name:"Кэш и шкала", min:11, tasks:2 },
+    { n:3, from:"04:01", to:"04:07", cls:"b3", label:"3", name:"Уборка", min:8, tasks:1 },
+    { n:4, from:"04:09", to:"04:55", cls:"", label:"Волна 4", name:"Свод", min:46, tasks:1 },
+    { n:5, from:"17:10", to:"17:16", cls:"b5", label:"5", name:"Прогноз", min:6, tasks:1 },
+    { n:6, from:"17:20", to:"17:26", cls:"b6", label:"6", name:"Ревью-фикс", min:6, tasks:1 }
+  ];
+  let track = "";
+  waves.forEach(w => {
+    const left = clampPct(pct(w.from)), right = clampPct(pct(w.to)), width = Math.max(0.5, right-left);
+    const show = width > 4;
+    track += `<div class="band ${w.cls} ${show?"lbl":""}" data-l="${esc(w.label)}" style="left:${left.toFixed(3)}%;width:${width.toFixed(3)}%" title="${esc(w.label + ": " + w.name + ", " + w.from + "–" + w.to)}"></div>`;
+  });
+  const pauseL = clampPct(pct("04:55")), pauseR = clampPct(pct("17:10"));
+  track += `<div class="band pause" style="left:${pauseL.toFixed(3)}%;width:${(pauseR-pauseL).toFixed(3)}%" title="Пауза 12 ч 15 мин: 04:55–17:10"></div>`;
+  track += `<div class="mark" data-l="ревью" style="left:${clampPct(pct("17:16")).toFixed(3)}%"></div>`;
+  track += `<div class="mark" data-l="сдача" style="left:${clampPct(pct("17:42")).toFixed(3)}%"></div>`;
+  $("#ribbonTrack").innerHTML = track;
+
+  $("#wavesList").innerHTML = waves.map(w => `
+    <div class="wave-item"><span class="wmin">Волна ${w.n}</span><span class="wname">${esc(w.name)}<small>${w.from}–${w.to} · ${w.tasks} ${w.tasks===1?"таск":"таска"}</small></span><span class="wtime">${w.min} мин</span></div>`).join("");
+
+  /* ——— tasks table ——— */
+  $("#taskBody").innerHTML = D.tickets.map(t => `
+    <tr>
+      <td class="tid">${esc(t.id)}</td>
+      <td class="tt">${esc(t.title)}<small>${esc(t.model)} · ${esc(t.effort)}${t.commit ? " · " + esc(t.commit) : ""}</small></td>
+      <td class="treq">${t.reqs.join(" · ")}</td>
+      <td class="twork">${t.active} мин<span class="mini"><i style="width:${Math.max(3,(t.active/48*100)).toFixed(1)}%"></i></span><em>${t.start}–${t.end}</em></td>
+      <td class="ttest">${nf.format(t.tests)}</td>
+    </tr>`).join("");
+
+  /* ——— requirements ——— */
+  $("#reqList").innerHTML = D.requirements.items.map(r => `
+    <details class="req"><summary><span class="rid">${r.id}</span><span class="rname">${esc(r.short)}</span><span class="rstat">принято</span></summary><div class="rfull">${esc(r.text)}</div></details>`).join("");
+  let reqOpen = false;
+  $("#toggleReq").addEventListener("click", () => {
+    reqOpen = !reqOpen;
+    $$("#reqList details").forEach(d => { d.open = reqOpen; });
+    $("#toggleReq").textContent = reqOpen ? "Свернуть все цитаты" : "Раскрыть все цитаты";
+  });
+
+  /* ——— gates ——— */
+  $("#gates").innerHTML = D.gates.map(g => `
+    <div class="gate">
+      <div class="gmark"><i>✓</i>${esc(g.id)} · пройден</div>
+      <b>${esc(g.value)}</b>
+      <span class="gname">${esc(g.title)}</span>
+      <span class="gnote">${esc(g.note)} · ${esc(g.time)}</span>
+    </div>`).join("");
+
+  /* ——— test step chart ——— */
+  (function testChart(){
+    const vals = D.tests.growth, w = 560, h = 132, padL = 6, padR = 8, padT = 10, padB = 20;
+    const mn = Math.min(...vals) - 4, mx = Math.max(...vals) + 4;
+    const x = i => padL + i * (w - padL - padR) / (vals.length - 1);
+    const y = v => padT + (mx - v) / (mx - mn) * (h - padT - padB);
+    let d = `M ${x(0)} ${y(vals[0])}`;
+    for (let i = 1; i < vals.length; i++) d += ` L ${x(i)} ${y(vals[i-1])} L ${x(i)} ${y(vals[i])}`;
+    const dots = vals.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i===vals.length-1?4:2.2}" fill="${i===vals.length-1?"#bf3a1e":"#191510"}"/>`).join("");
+    const grid = [0,1,2,3].map(i => {
+      const yy = padT + (h-padT-padB) * i/3;
+      return `<line x1="${padL}" x2="${w-padR}" y1="${yy}" y2="${yy}" stroke="#e7ddcb" stroke-width="1" stroke-dasharray="2 4"/>`;
+    }).join("");
+    $("#testChart").innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Рост тестов: 1042, 1046, 1052, 1057, 1061, 1067, 1072"><g>${grid}</g><path d="${d}" fill="none" stroke="#191510" stroke-width="1.6"/>${dots}<text x="${x(0)}" y="${h-4}" font-family="Cascadia Mono,monospace" font-size="9" fill="#8b8071">старт</text><text x="${x(vals.length-1)}" y="${h-4}" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="9" fill="#bf3a1e">финал</text></svg>`;
+  })();
+
+  /* ——— notes ——— */
+  $("#notes").innerHTML = D.report.map((n,i)=>`
+    <details class="note"><summary><span class="nn">${String(i+1).padStart(2,"0")}</span><span class="nshort">${esc(n.short)}</span><span class="nsrc">${esc(n.source)}</span></summary><div class="nfull">${esc(n.long)}</div></details>`).join("");
+  $("#toggleNotes").addEventListener("click", (e) => {
+    const all = $$("#notes details"), open = all.some(d=>!d.open);
+    all.forEach(d => { d.open = open; });
+    e.currentTarget.textContent = open ? "Свернуть все" : "Раскрыть все";
+  });
+
+  /* ——— spend roles ——— */
+  const maxRole = Math.max(...D.spend.roles.map(r=>r.tokens));
+  $("#roleBody").innerHTML = D.spend.roles.map(r=>`
+    <tr><td class="rname">${esc(r.name)}</td><td class="rbar"><div class="track"><i style="width:${(r.tokens/maxRole*100).toFixed(1)}%"></i></div></td><td class="rval">${nf.format(r.tokens)}</td><td class="rhit">${r.hit}%</td></tr>`).join("");
+
+  /* ——— history ——— */
+  const rows = [{date:"17.11", title:"Волны 4–6 · эта сборка", minutes:145, tokens:D.spend.total, current:true}, ...D.history];
+  const maxTok = Math.max(...rows.map(r=>r.tokens||0));
+  $("#histBody").innerHTML = rows.map(r=>`
+    <tr class="${r.current?"cur":""}">
+      <td class="hdate">${r.date}</td>
+      <td class="ht">${esc(r.title)}${r.current?'<small>эта</small>':""}</td>
+      <td class="hn">${r.minutes} мин</td>
+      <td class="hbar"><div class="track">${r.tokens?`<i style="width:${Math.max(3,r.tokens/maxTok*100).toFixed(1)}%"></i>`:""}</div></td>
+      <td class="hn">${r.tokens?nf.format(r.tokens):"н/д"}</td>
+    </tr>`).join("");
+
+  /* ——— nav + progress + reveal ——— */
+  const navLinks = $$("[data-nav]");
+  const secs = ["s01","s02","s03","s04","s05"].map(id=>document.getElementById(id));
+  const io = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ navLinks.forEach(a=>a.classList.toggle("active", a.dataset.nav===e.target.id)); } });
+  }, {rootMargin:"-20% 0px -70% 0px"});
+  secs.forEach(s=>io.observe(s));
+
+  const revIO = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); revIO.unobserve(e.target); } });
+  }, {threshold:0.06});
+  $$(".reveal").forEach(el=>revIO.observe(el));
+  if (reduced) $$(".reveal").forEach(el=>el.classList.add("in"));
+
+  const progress = $("#progress");
+  function onScroll(){
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    progress.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
+  }
+  addEventListener("scroll", onScroll, {passive:true});
+  onScroll();
+
+  /* ——— count up ——— */
+  if (!reduced){
+    $$("[data-count]").forEach(el=>{
+      const target = +el.dataset.count, dur = 900, start = performance.now();
+      function frame(now){
+        const p = Math.min(1,(now-start)/dur), eased = 1-Math.pow(1-p,3);
+        el.textContent = nf.format(Math.round(target*eased));
+        if(p<1) requestAnimationFrame(frame); else el.textContent = nf.format(target);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  $("#printBtn").addEventListener("click", ()=>window.print());
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт — Autopilot</title>
+<style>
+  :root{
+    --paper:#f0ecdf; --paper2:#faf7ee; --ink:#11100d; --ink2:#4c473d; --ink3:#77705f;
+    --lime:#d8ff3e; --blue:#2b4bff; --orange:#ff5a24; --line:#11100d;
+    --shadow:5px 5px 0 var(--ink); --shadow-sm:3px 3px 0 var(--ink);
+    --disp:"Bahnschrift","Arial Black","Segoe UI Black",Impact,sans-serif;
+    --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"Cascadia Mono","Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:76px}
+  body{margin:0;background:
+      radial-gradient(rgba(17,16,13,.11) .7px,transparent .7px) 0 0/18px 18px,
+      var(--paper);
+    color:var(--ink);font:14.5px/1.5 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3{margin:0}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit}
+  ::selection{background:var(--lime)}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .skip{position:fixed;left:14px;top:-60px;z-index:100;background:var(--lime);color:var(--ink);border:2px solid var(--ink);padding:9px 14px;font:700 12px var(--mono);transition:top .2s}
+  .skip:focus{top:12px}
+  .wrap{width:100%;max-width:1480px;margin:0 auto;padding:0 22px}
+
+  /* ——— ticker ——— */
+  .ticker{background:var(--ink);color:var(--lime);height:32px;display:flex;align-items:center;overflow:hidden;border-bottom:2px solid var(--ink)}
+  .ticker-track{display:flex;white-space:nowrap;animation:marq 46s linear infinite;will-change:transform}
+  .ticker:hover .ticker-track,.ticker:focus-within .ticker-track{animation-play-state:paused}
+  .ticker-track span{padding:0 18px;font:700 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;border-right:1px solid rgba(216,255,62,.35)}
+  .ticker-track span:nth-child(3n){color:var(--orange)}
+  @keyframes marq{to{transform:translateX(-50%)}}
+  @media(prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+
+  /* ——— top bar ——— */
+  .top{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:2px solid var(--ink)}
+  .top .wrap{display:flex;align-items:center;gap:16px;padding:10px 22px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;min-height:44px}
+  .logo .mark{width:42px;height:42px;background:var(--ink);color:var(--lime);display:grid;place-items:center;font:700 17px/1 var(--disp);letter-spacing:-.04em;border:2px solid var(--ink);box-shadow:var(--shadow-sm);transform:rotate(-2deg)}
+  .logo .lt{font:700 11px/1.15 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+  .logo .lt small{display:block;font:600 8px/1.3 var(--mono);letter-spacing:.14em;color:var(--ink3);margin-top:2px}
+  .build{font:700 9.5px/1.35 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);border-left:2px solid var(--ink);padding-left:16px}
+  .build b{color:var(--ink);background:var(--lime);padding:1px 4px;border:1px solid var(--ink)}
+  .topnav{display:flex;gap:14px;margin-left:6px;flex-wrap:wrap}
+  .topnav a{font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:8px 0 6px;border-bottom:2px solid transparent}
+  .topnav a:hover{border-color:var(--ink)}
+  .topnav a.active{border-color:var(--orange)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .status{display:inline-flex;align-items:center;gap:7px;background:var(--lime);border:2px solid var(--ink);box-shadow:var(--shadow-sm);padding:8px 11px;font:700 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+  .status i{width:7px;height:7px;background:var(--ink);border-radius:50%}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:0 13px;border:2px solid var(--ink);background:var(--paper2);box-shadow:var(--shadow-sm);font:700 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;cursor:pointer;transition:.14s;white-space:nowrap}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .btn.dark{background:var(--ink);color:var(--lime)}
+  .btn.lime{background:var(--lime)}
+
+  /* ——— mosaic ——— */
+  main{padding-top:18px;padding-bottom:46px}
+  .mosaic{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+  .block{position:relative;background:var(--paper2);border:2px solid var(--ink);box-shadow:var(--shadow);padding:22px;min-width:0}
+  .block.ink{background:var(--ink);color:var(--paper)}
+  .block.lime{background:var(--lime)}
+  .block.blue{background:var(--blue);color:#fff}
+  .block.orange{background:var(--orange)}
+  .bhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+  .bhead h2{font:700 18px/1 var(--disp);text-transform:uppercase;letter-spacing:-.01em}
+  .bhead .num{display:inline-grid;place-items:center;width:24px;height:24px;background:var(--ink);color:var(--lime);font:700 9px/1 var(--mono);flex:none}
+  .block.ink .bhead .num{background:var(--lime);color:var(--ink)}
+  .bhead .hint{margin-left:auto;font:600 8.5px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .block.ink .bhead .hint{color:rgba(240,236,223,.6)}
+
+  /* ——— hero ——— */
+  .hero{grid-column:span 8;overflow:hidden;padding:28px 30px 26px;min-height:330px}
+  .hero .k{font:700 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px}
+  .hero .k:before{content:"";width:24px;height:2px;background:var(--ink)}
+  .hero h1{font:700 clamp(64px,8.4vw,128px)/.8 var(--disp);text-transform:uppercase;letter-spacing:-.045em;margin:14px 0 0;max-width:900px}
+  .hero .sub{margin-top:14px;font:700 15px/1.35 var(--sans);max-width:620px}
+  .hero .sub b{background:var(--ink);color:var(--lime);padding:0 5px}
+  .hero .res{max-width:640px;margin-top:12px;font-size:13px;line-height:1.55;color:rgba(17,16,13,.78)}
+  .hero .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .sticker{position:absolute;right:20px;top:20px;background:var(--orange);border:2px solid var(--ink);box-shadow:var(--shadow-sm);padding:8px 11px;transform:rotate(5deg);font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;text-align:center}
+  .sticker small{display:block;font:700 8px/1.3 var(--mono);color:rgba(17,16,13,.65);margin-top:2px}
+  .hero .stamp{position:absolute;right:26px;bottom:24px;width:104px;height:104px;border:3px solid var(--ink);border-radius:50%;display:grid;place-content:center;text-align:center;transform:rotate(-9deg);font:700 10px/1.2 var(--mono);letter-spacing:.05em;background:rgba(216,255,62,.5)}
+  .hero .stamp b{display:block;font:700 28px/.9 var(--disp);letter-spacing:-.04em}
+  .hero-side{grid-column:span 4;display:flex;flex-direction:column;padding:24px 24px 20px}
+  .hero-side .big{font:700 clamp(70px,7vw,112px)/.78 var(--disp);letter-spacing:-.06em;color:var(--lime)}
+  .hero-side .big span{font-size:.34em;letter-spacing:-.03em;color:var(--paper)}
+  .hero-side .cap{font:700 10px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:rgba(240,236,223,.7);margin-top:6px}
+  .hero-side ul{list-style:none;margin:auto 0 0;padding:16px 0 0;border-top:2px solid rgba(240,236,223,.25);display:grid;gap:8px}
+  .hero-side li{display:flex;justify-content:space-between;gap:10px;font:700 10px/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:rgba(240,236,223,.72)}
+  .hero-side li b{color:var(--lime);font-size:12px}
+  .hero-side .bar-lime{height:8px;background:var(--lime);margin-top:16px}
+
+  /* ——— kpis ——— */
+  .kpis{grid-column:span 12;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .kpi{border:2px solid var(--ink);box-shadow:var(--shadow);padding:15px 17px 14px;min-height:128px;display:flex;flex-direction:column;background:var(--paper2)}
+  .kpi .lab{font:700 8.5px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+  .kpi b{display:block;font:700 clamp(30px,3.1vw,44px)/.85 var(--disp);letter-spacing:-.04em;margin-top:10px;font-variant-numeric:tabular-nums}
+  .kpi b small{font:700 13px/1 var(--disp);letter-spacing:0;margin-left:3px}
+  .kpi .sub{margin-top:auto;padding-top:10px;font:600 9px/1.4 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+  .kpi .sub b{display:inline;font:700 10px/1 var(--mono);background:var(--ink);color:var(--lime);padding:2px 4px;margin:0;letter-spacing:.04em}
+  .kpi.blue{background:var(--blue);color:#fff}
+  .kpi.blue .lab,.kpi.blue .sub{color:rgba(255,255,255,.75)}
+  .kpi.blue .sub b{background:var(--lime);color:var(--ink)}
+  .kpi.orange{background:var(--orange)}
+  .kpi.orange .sub b{background:var(--ink);color:var(--orange)}
+  .kpi.ink{background:var(--ink);color:var(--paper)}
+  .kpi.ink .lab,.kpi.ink .sub{color:rgba(240,236,223,.7)}
+  .kpi.ink b{color:var(--lime)}
+  .kpi.ink .sub b{background:var(--lime);color:var(--ink)}
+
+  /* ——— route ——— */
+  .route-block{grid-column:span 12;padding:20px 22px 22px}
+  .stages{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
+  .b-stage{border:2px solid var(--ink);background:var(--paper2);padding:9px 9px 8px;min-width:0;position:relative}
+  .b-stage .sn{font:700 8px/1 var(--mono);color:#b93a0e;letter-spacing:.06em}
+  .b-stage .nm{display:block;margin-top:6px;font:700 11.5px/1.1 var(--disp);text-transform:uppercase;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b-stage .tm{display:block;margin-top:3px;font:600 8px/1.3 var(--mono);color:var(--ink3);white-space:nowrap}
+  .b-stage .du{display:inline-block;margin-top:6px;background:var(--ink);color:var(--lime);padding:2px 5px;font:700 8px/1 var(--mono);letter-spacing:.03em;white-space:nowrap}
+  .b-stage.is-skipped{border-style:dashed;background:transparent;opacity:.62}
+  .b-stage.is-skipped .du{background:transparent;color:var(--ink3);border:1px solid var(--ink3)}
+
+  /* ——— tasks ——— */
+  .tasks{grid-column:span 8;padding:22px}
+  .filters{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+  .fchip{border:2px solid var(--ink);background:var(--paper2);padding:5px 8px;font:700 8.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;min-height:28px}
+  .fchip[aria-pressed="true"]{background:var(--ink);color:var(--lime)}
+  .wave-strip{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--paper);padding:5px 9px;margin-top:12px;font:700 8.5px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .wave-strip b{color:var(--lime);font-weight:700}
+  .wave-strip .wtime{margin-left:auto;color:rgba(240,236,223,.65);font-size:8px}
+  .b-task{display:grid;grid-template-columns:38px minmax(0,1fr) 64px 56px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(17,16,13,.28)}
+  .b-task:last-child{border-bottom:0}
+  .b-task .tid{font:700 10px/1 var(--mono);border:2px solid var(--ink);background:var(--lime);text-align:center;padding:4px 0}
+  .b-task .tt b{display:block;font:700 12.5px/1.2 var(--disp);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b-task .tt small{display:block;margin-top:3px;font:600 8px/1.3 var(--mono);color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b-task .tt .bbar{height:5px;border:1px solid var(--ink);background:rgba(17,16,13,.12);margin-top:5px;position:relative}
+  .b-task .tt .bbar i{position:absolute;left:0;top:0;bottom:0;background:var(--orange)}
+  .b-task .tw{text-align:right;font:700 17px/.9 var(--disp);letter-spacing:-.03em}
+  .b-task .tw small{display:block;font:700 7.5px/1.3 var(--mono);letter-spacing:.06em;color:var(--ink3);margin-top:2px}
+  .b-task .tst{text-align:right;font:700 9px/1.4 var(--mono);color:var(--ink2)}
+  .b-task .tst small{display:block;font:600 7.5px/1.2 var(--mono);color:var(--ink3);margin-top:2px}
+  .pause-tag{display:inline-block;margin-top:3px;background:var(--orange);border:1px solid var(--ink);padding:1px 4px;font:700 7.5px/1.1 var(--mono);letter-spacing:.03em;text-transform:uppercase}
+  .tasks-note{margin-top:12px;padding-top:9px;border-top:2px solid var(--ink);font:700 8.5px/1.5 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+
+  /* ——— aside ——— */
+  .aside{grid-column:span 4;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .gates{padding:18px}
+  .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .b-gate{border:2px solid var(--ink);background:var(--paper2);padding:9px}
+  .b-gate .gh{display:flex;justify-content:space-between;align-items:center;gap:6px;font:700 8px/1 var(--mono);letter-spacing:.06em;color:var(--ink3)}
+  .b-gate .gh i{width:16px;height:16px;background:var(--lime);border:1.5px solid var(--ink);display:grid;place-items:center;font:700 9px/1 var(--sans);font-style:normal}
+  .b-gate b{display:block;margin-top:7px;font:700 20px/.9 var(--disp);letter-spacing:-.03em}
+  .b-gate span{display:block;margin-top:4px;font:600 8px/1.25 var(--mono);letter-spacing:.02em;color:var(--ink2)}
+  .gates-foot{margin-top:9px;background:var(--lime);border:2px solid var(--ink);padding:6px 8px;font:700 8px/1.4 var(--mono);letter-spacing:.05em;text-transform:uppercase;display:flex;justify-content:space-between;gap:6px}
+  .gates-foot b{color:var(--ink)}
+
+  .feed-block{padding:18px}
+  .b-feed{list-style:none;margin:0;padding:0}
+  .b-feed li{display:grid;grid-template-columns:40px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid rgba(240,236,223,.16);font:600 10px/1.35 var(--sans);color:rgba(240,236,223,.82)}
+  .b-feed li:last-child{border-bottom:0}
+  .b-feed time{font:700 8px/1.5 var(--mono);color:var(--lime)}
+  .b-feed .k{display:inline-block;width:6px;height:6px;margin-right:5px;background:var(--orange);vertical-align:1px}
+  .b-feed .k.ok{background:var(--lime)}
+  .b-feed .k.stage{background:var(--blue)}
+  .feed-more{margin-top:10px;width:100%;min-height:30px;background:transparent;border:2px solid rgba(240,236,223,.5);color:var(--paper);font:700 8.5px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;cursor:pointer}
+  .feed-more:hover{border-color:var(--lime);color:var(--lime)}
+
+  /* ——— spend ——— */
+  .spend{grid-column:span 12;padding:24px 26px;overflow:hidden}
+  .spend-top{display:grid;grid-template-columns:330px minmax(0,1fr);gap:34px;align-items:start}
+  .spend-total .big{font:700 clamp(56px,6vw,84px)/.82 var(--disp);color:var(--lime);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+  .spend-total .cap{font:700 9px/1.45 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:rgba(240,236,223,.65);margin-top:7px}
+  .spend-total .cache{display:flex;justify-content:space-between;gap:10px;margin-top:18px;border-top:2px solid rgba(216,255,62,.5);padding-top:9px;font:700 9px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:rgba(240,236,223,.7)}
+  .spend-total .cache b{color:var(--lime);font-size:17px}
+  .stack{display:flex;height:38px;border:2px solid var(--paper);overflow:hidden;margin-top:4px}
+  .stack i{display:block;height:100%}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-top:16px}
+  .lrow{display:grid;grid-template-columns:10px 1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed rgba(240,236,223,.25);font:600 10.5px/1.4 var(--sans);color:rgba(240,236,223,.82)}
+  .lrow .sq{width:9px;height:9px}
+  .lrow b{color:var(--lime);font:700 10px/1 var(--mono)}
+  .lrow small{color:rgba(240,236,223,.5);font:600 8.5px/1 var(--mono)}
+  .spend-note{margin-top:14px;border-top:2px solid rgba(240,236,223,.25);padding-top:10px;font:700 8.5px/1.5 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:rgba(240,236,223,.55)}
+
+  /* ——— requirements ——— */
+  .reqs{grid-column:span 7;padding:22px}
+  .req-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .b-req{border:2px solid var(--ink);background:var(--paper2);padding:9px;text-align:left;font:inherit;cursor:pointer;transition:.12s;min-width:0}
+  .b-req:hover{transform:translate(-1px,-1px);box-shadow:var(--shadow-sm)}
+  .b-req .rt{display:flex;justify-content:space-between;gap:6px;align-items:center}
+  .b-req .rid{font:700 8.5px/1 var(--mono);background:var(--orange);border:1.5px solid var(--ink);padding:2px 4px}
+  .b-req .rok{font:700 7.5px/1 var(--mono);background:var(--lime);border:1.5px solid var(--ink);padding:2px 4px;letter-spacing:.05em}
+  .b-req b{display:block;margin-top:7px;font:700 10.5px/1.25 var(--disp);letter-spacing:-.005em}
+  .b-req .rfull{display:none;margin-top:7px;padding-top:7px;border-top:1.5px solid var(--ink);font:600 9.5px/1.4 var(--sans);color:var(--ink2)}
+  .b-req[aria-expanded="true"]{background:var(--lime)}
+  .b-req[aria-expanded="true"] .rfull{display:block}
+  .req-foot{margin-top:10px;display:flex;align-items:center;gap:8px;font:700 8px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+  .req-foot button{margin-left:auto;background:none;border:0;border-bottom:1.5px solid var(--ink);font:700 8px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 0;cursor:pointer;min-height:24px}
+
+  /* ——— history ——— */
+  .history{grid-column:span 5;padding:22px}
+  .hlist{display:flex;flex-direction:column}
+  .hrow{display:grid;grid-template-columns:42px minmax(0,1fr) 58px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(17,16,13,.3)}
+  .hrow:last-child{border-bottom:0}
+  .hrow .hd{font:700 8px/1.3 var(--mono);color:var(--ink3)}
+  .hrow .ht{font:700 11px/1.25 var(--disp);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hrow .ht small{display:block;font:600 7.5px/1.3 var(--mono);color:var(--ink3);margin-top:2px}
+  .hrow .hm{text-align:right;font:700 10px/1 var(--mono)}
+  .hrow .hm small{display:block;font:600 7.5px/1.2 var(--mono);color:var(--ink3);margin-top:2px}
+  .hrow.cur{background:var(--ink);color:var(--paper);padding:8px;margin:0 -8px}
+  .hrow.cur .hd,.hrow.cur .hm small,.hrow.cur .ht small{color:rgba(240,236,223,.6)}
+  .hrow.cur .hm{color:var(--lime)}
+  .hist-foot{margin-top:10px;border-top:2px solid var(--ink);padding-top:8px;font:700 8px/1.4 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+
+  /* ——— notes ——— */
+  .notes{grid-column:span 12;padding:22px}
+  .notes-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .b-note{border:2px solid var(--ink);background:var(--paper2)}
+  .b-note[open]{background:var(--lime)}
+  .b-note summary{list-style:none;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:7px;align-items:start;padding:9px;cursor:pointer}
+  .b-note summary::-webkit-details-marker{display:none}
+  .b-note .nnum{font:700 9px/1.4 var(--mono);color:#b93a0e;background:var(--paper2);border:1.5px solid var(--ink);text-align:center;padding:1px 0}
+  .b-note[open] .nnum{background:var(--ink);color:var(--lime)}
+  .b-note .nshort{font:700 10px/1.3 var(--disp);letter-spacing:-.005em}
+  .b-note .nsrc{font:600 7px/1.3 var(--mono);color:var(--ink3);white-space:nowrap;margin-top:1px}
+  .b-note p{margin:0;padding:0 9px 9px 40px;font:600 9.5px/1.4 var(--sans);color:var(--ink2)}
+  .notes-foot{display:flex;align-items:center;gap:10px;margin-top:12px;border-top:2px solid var(--ink);padding-top:9px;font:700 8.5px/1.4 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);flex-wrap:wrap}
+  .notes-foot .dot{width:8px;height:8px;background:var(--lime);border:1.5px solid var(--ink)}
+  .notes-foot button{margin-left:auto;background:none;border:0;border-bottom:1.5px solid var(--ink);font:700 8px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:2px 0;min-height:24px}
+
+  /* ——— footer ——— */
+  footer{background:var(--ink);color:var(--paper);margin-top:18px;border-top:2px solid var(--ink)}
+  footer .wrap{display:flex;align-items:center;gap:16px;padding:20px 22px;flex-wrap:wrap}
+  .fmark{font:700 22px/1 var(--disp);letter-spacing:-.04em;text-transform:uppercase;color:var(--lime)}
+  .fmark small{font:600 8px/1.3 var(--mono);letter-spacing:.1em;color:rgba(240,236,223,.55);display:block;margin-top:3px}
+  footer p{margin:0;font:600 9px/1.5 var(--mono);letter-spacing:.04em;color:rgba(240,236,223,.6);max-width:640px}
+  .fup{margin-left:auto;color:var(--lime);font:700 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid var(--lime);padding-bottom:3px;min-height:24px}
+
+  /* ——— responsive ——— */
+  @media(max-width:1160px){
+    .hero{grid-column:span 12}
+    .hero-side{grid-column:span 12;display:grid;grid-template-columns:auto 1fr;gap:0 30px;align-items:center}
+    .hero-side .big{grid-row:span 2}
+    .hero-side ul{margin-top:14px}
+    .hero-side .bar-lime{display:none}
+    .tasks{grid-column:span 12}
+    .aside{grid-column:span 12;display:grid;grid-template-columns:1fr 1fr;align-items:start}
+    .spend-top{grid-template-columns:280px minmax(0,1fr);gap:24px}
+    .reqs{grid-column:span 12}
+    .history{grid-column:span 12}
+    .notes-grid{grid-template-columns:1fr 1fr}
+    .stages{grid-template-columns:repeat(4,1fr)}
+    .hero .stamp{width:88px;height:88px}
+  }
+  @media(max-width:900px){
+    .wrap{padding:0 16px}
+    .top .wrap{padding:9px 16px;gap:10px}
+    .build{display:none}
+    .topnav{order:3;width:100%;gap:16px;padding-top:2px}
+    .status{order:1}
+    .top-right{order:2;margin-left:auto}
+    .kpis{grid-template-columns:1fr 1fr}
+    .hero{padding:22px 20px 20px;min-height:auto}
+    .hero h1{font-size:clamp(54px,12vw,96px)}
+    .hero .stamp{position:static;margin-top:18px;transform:rotate(-4deg);width:84px;height:84px}
+    .hero .sticker{position:static;display:inline-block;transform:rotate(-2deg);margin-top:12px}
+    .hero-side{grid-template-columns:1fr;gap:0}
+    .hero-side .big{grid-row:auto}
+    .hero-side ul{grid-template-columns:1fr 1fr}
+    .aside{grid-template-columns:1fr}
+    .spend-top{grid-template-columns:1fr}
+    .notes-grid{grid-template-columns:1fr}
+    .block{padding:17px}
+    .route-block{padding:16px}
+    .stages{grid-template-columns:repeat(4,1fr)}
+    .req-grid{grid-template-columns:1fr 1fr}
+    .mosaic{gap:11px}
+    main{padding-top:12px}
+  }
+  @media(max-width:620px){
+    .top .wrap{gap:8px}
+    .logo .mark{width:36px;height:36px;font-size:14px}
+    .logo .lt{font-size:9.5px}
+    .status{padding:7px 9px;font-size:8.5px}
+    .btn{padding:0 9px;min-height:34px;font-size:8.5px}
+    .topnav{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+    .topnav a{white-space:nowrap;font-size:8.5px}
+    .hero h1{font-size:clamp(46px,15vw,74px)}
+    .hero .res{font-size:11.5px}
+    .hero .sub{font-size:13px}
+    .kpis{grid-template-columns:1fr 1fr;gap:9px}
+    .kpi{min-height:112px;padding:12px 12px 11px}
+    .kpi b{font-size:clamp(26px,7vw,34px)}
+    .kpi .sub{font-size:7.5px}
+    .stages{grid-template-columns:1fr 1fr}
+    .b-task{grid-template-columns:32px minmax(0,1fr) 50px;gap:8px}
+    .b-task .tst{display:none}
+    .b-task .tt b{font-size:11.5px}
+    .b-task .tw{font-size:14px}
+    .wave-strip{font-size:7.5px}
+    .ggrid{grid-template-columns:1fr 1fr}
+    .req-grid{grid-template-columns:1fr}
+    .reqs{grid-column:span 12}
+    .notes-grid{grid-template-columns:1fr}
+    .spend-total .big{font-size:clamp(50px,14vw,68px)}
+    .legend{grid-template-columns:1fr}
+    .hero-side ul{grid-template-columns:1fr}
+    .sticker{font-size:9px;padding:6px 8px}
+    .block{box-shadow:4px 4px 0 var(--ink)}
+    .bhead h2{font-size:16px}
+    .bhead .hint{display:none}
+    .filters{width:100%;margin-left:0;margin-top:6px}
+    .fchip{flex:1}
+    footer .wrap{padding:16px}
+    .fup{margin-left:0}
+  }
+  @media(max-width:400px){
+    .kpis{grid-template-columns:1fr}
+    .topnav{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+  @media print{
+    .ticker,.top,.hero .sticker,.hero .acts,.stamp,.btn,.filters,.feed-more,.notes-foot button,.fup{display:none!important}
+    body{background:#fff}
+    .block,.kpi,.hero,.b-task,.reqs,.history,.spend,.notes{box-shadow:none}
+    .mosaic{display:block}
+    .block{margin-bottom:12px;break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">К содержанию</a>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Сборка №18 сдана</span><span>11/11 требований</span><span>0 блокеров</span><span>1 072 теста</span><span>G4: 11/11</span><span>Работа 2 ч 25 мин</span><span>358 201 токен</span><span>Кэш 97 %</span><span>17:42 финал</span><span>6 волн</span>
+    <span>Сборка №18 сдана</span><span>11/11 требований</span><span>0 блокеров</span><span>1 072 теста</span><span>G4: 11/11</span><span>Работа 2 ч 25 мин</span><span>358 201 токен</span><span>Кэш 97 %</span><span>17:42 финал</span><span>6 волн</span>
+  </div>
+</div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Autopilot, наверх"><span class="mark">A/P</span><span class="lt">Autopilot<small>build report</small></span></a>
+    <div class="build">Сборка <b>№18</b> · волны 4–6 · 17.11.2026</div>
+    <nav class="topnav" aria-label="Разделы"><a href="#tasks">Таски</a><a href="#quality">Проверки</a><a href="#money">Расход</a><a href="#reqs">Требования</a><a href="#notes">Замечания</a></nav>
+    <div class="top-right">
+      <span class="status"><i></i>Сдано</span>
+      <button class="btn" type="button" id="printBtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2"/><rect x="7" y="14" width="10" height="6.5" rx="1" stroke="currentColor" stroke-width="2"/></svg>Печать</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="mosaic">
+    <section class="block lime hero" id="top" aria-labelledby="heroTitle">
+      <span class="k">Сборка завершена · 0 блокеров</span>
+      <h1 id="heroTitle">Сдано.</h1>
+      <p class="sub"><b>11/11</b> требований · <b>1 072</b> теста · <b>4/4</b> гейта · <b>0</b> хвостов</p>
+      <p class="res" id="heroRes"></p>
+      <div class="acts">
+        <a class="btn dark" href="#tasks">Смотреть таски ↓</a>
+        <a class="btn" href="#money">Цифры сборки</a>
+      </div>
+      <div class="sticker">0 блокеров<small>проверено G1–G4</small></div>
+      <div class="stamp" aria-hidden="true"><b>11/11</b>принято<br>17.11</div>
+    </section>
+
+    <aside class="block ink hero-side" aria-label="Итог приёмки">
+      <div class="big">11<span>/11</span></div>
+      <div class="cap">требований закрыто и принято слепой сверкой</div>
+      <ul>
+        <li><span>Тасков</span><b>10</b></li>
+        <li><span>Волн</span><b>6</b></li>
+        <li><span>Гейтов</span><b>4/4</b></li>
+        <li><span>Кругов приёмки</span><b>1</b></li>
+      </ul>
+      <div class="bar-lime" aria-hidden="true"></div>
+    </aside>
+
+    <div class="kpis" aria-label="Ключевые цифры">
+      <article class="kpi"><span class="lab">Тесты</span><b><span data-count="1072">1 072</span></b><div class="sub"><b>+30</b> за сборку · 0 упало</div></article>
+      <article class="kpi blue"><span class="lab">Рабочее время</span><b>2 ч 25 мин</b><div class="sub"><b>14 ч 39 мин</b> на календаре</div></article>
+      <article class="kpi ink"><span class="lab">Токены</span><b><span data-count="358201">358 201</span></b><div class="sub"><b>97 %</b> из кэша · 18 вызовов</div></article>
+      <article class="kpi orange"><span class="lab">Гейты</span><b>4 / 4</b><div class="sub"><b>11/11</b> слепая сверка · 1 круг</div></article>
+    </div>
+
+    <section class="block route-block" aria-labelledby="routeTitle">
+      <div class="bhead"><span class="num">01</span><h2 id="routeTitle">Маршрут</h2><span class="hint">8 этапов · время без пауз</span></div>
+      <div class="stages" id="stages"></div>
+    </section>
+
+    <section class="block tasks" id="tasks" aria-labelledby="tasksTitle">
+      <div class="bhead"><span class="num">02</span><h2 id="tasksTitle">Таски и волны</h2>
+        <div class="filters" role="group" aria-label="Фильтр по волнам">
+          <button class="fchip" type="button" data-filter="all" aria-pressed="true">Все</button>
+          <button class="fchip" type="button" data-filter="early" aria-pressed="false">1–3</button>
+          <button class="fchip" type="button" data-filter="late" aria-pressed="false">4–6</button>
+        </div>
+      </div>
+      <div id="taskList"></div>
+      <div class="tasks-note">Длина полосы — рабочее время, не календарь. Пауза в таске 08 скрыта из масштаба.</div>
+    </section>
+
+    <aside class="aside">
+      <section class="block gates" id="quality" aria-labelledby="qualityTitle">
+        <div class="bhead"><span class="num">03</span><h2 id="qualityTitle">Гейты</h2></div>
+        <div class="ggrid" id="gates"></div>
+        <div class="gates-foot"><span>Слепая сверка 11/11</span><b>1 круг</b></div>
+      </section>
+      <section class="block ink feed-block" aria-labelledby="feedTitle">
+        <div class="bhead"><span class="num">04</span><h2 id="feedTitle">Лента</h2><span class="hint">последние 7</span></div>
+        <ul class="b-feed" id="feed"></ul>
+        <button class="feed-more" type="button" id="feedMore">Показать все</button>
+      </section>
+    </aside>
+
+    <section class="block ink spend" id="money" aria-labelledby="spendTitle">
+      <div class="bhead"><span class="num">05</span><h2 id="spendTitle">Расход</h2><span class="hint">Claude Sonnet 5.5 · 18 вызовов</span></div>
+      <div class="spend-top">
+        <div class="spend-total">
+          <div class="big"><span data-count="358201">358 201</span></div>
+          <div class="cap">токенов на сборку · эскалаций не было</div>
+          <div class="cache"><span>Кэш-попадание</span><b>97 %</b></div>
+          <div class="cache" style="border-top:0;padding-top:2px"><span>Прочитано из кэша</span><b style="font-size:12px">57,9 млн</b></div>
+        </div>
+        <div>
+          <div class="stack" id="stack" role="img" aria-label="Доли ролей в расходе"></div>
+          <div class="legend" id="legend"></div>
+          <div class="spend-note">Все 18 вызовов — одна модель. Исполнители: 11 вызовов, оркестратор: 2, ревью: 3, приёмка: 1, агент: 1.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block reqs" id="reqs" aria-labelledby="reqTitle">
+      <div class="bhead"><span class="num">06</span><h2 id="reqTitle">Требования</h2><span class="hint">11/11 · клик — цитата</span></div>
+      <div class="req-grid" id="reqGrid"></div>
+      <div class="req-foot"><span>G1 пройден · открытых нет</span><button type="button" id="reqAll">Раскрыть все</button></div>
+    </section>
+
+    <section class="block history" aria-labelledby="histTitle">
+      <div class="bhead"><span class="num">07</span><h2 id="histTitle">История</h2></div>
+      <div class="hlist" id="hist"></div>
+      <div class="hist-foot">Эта сборка + 5 предыдущих · токены за вычетом кэша</div>
+    </section>
+
+    <section class="block notes" id="notes" aria-labelledby="notesTitle">
+      <div class="bhead"><span class="num">08</span><h2 id="notesTitle">Замечания</h2><span class="hint">7 · не блокируют</span></div>
+      <div class="notes-grid" id="noteGrid"></div>
+      <div class="notes-foot"><span class="dot"></span>Сборка сдана с оговорками — ни одна не мешает работе.<button type="button" id="notesAll">Раскрыть все</button></div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fmark">Autopilot 2.7.0<small>дизайн-концепт 03 · «Пульт»</small></div>
+    <p>Снимок state.js: 17.11.2026, 17:42. Страница не делает внешних запросов и не грузит шрифты. Жирный шрифт, липкая лента, 4 цвета.</p>
+    <a class="fup" href="#top">Наверх ↑</a>
+  </div>
+</footer>
+
+<script>
+window.D = {
+  project: "Autopilot",
+  title: "Autopilot: волны 4–6",
+  build: "Волны 4–6",
+  descriptor: "R11–R21 · свод, роутер, сервер, история, профили",
+  slug: "orchestrator-spend-waves-4-6",
+  version: "2.7.0",
+  date: "17 ноября 2026",
+  dateShort: "17.11.2026",
+  weekday: "понедельник",
+  start: "03:03",
+  end: "17:42",
+  workMin: 145,
+  calendarMin: 879,
+  idleMin: 734,
+  result: "Свод «класс × модель × усилие», честная шкала роутера, алиас -latest, сервер без PowerShell, кэш истории, уборка аттестаций и профилей на finish, параллельные тесты, понятные ошибки дашборда и быстрый старт README.",
+  requirements: {
+    done: 11,
+    total: 11,
+    items: [
+      { id: "R11", short: "Свод «класс × модель × усилие»", text: "report-run печатает свод по сочетанию класса, модели и усилия; plan-models печатает строку совета из истории", status: "done" },
+      { id: "R12", short: "Шкала роутера — как есть", text: "Таблица в model-routing.md и трёх README; карточка таска показывает класс, риск и причину", status: "done" },
+      { id: "R13", short: "Имена семейства 5 и -latest", text: "Тесты на написания claude-*-5; алиас -latest у Haiku и Sonnet разрешён", status: "done" },
+      { id: "R14", short: "Сервер без PowerShell", text: "ap.py на Windows не зовёт PowerShell на каждую команду", status: "done" },
+      { id: "R15", short: "Кэш истории сборок", text: "История прошлых сборок не перечитывается каждой командой", status: "done" },
+      { id: "R16", short: "Аттестации не растут бесконечно", text: "Аттестации не накапливаются без конца", status: "done" },
+      { id: "R17", short: "Параллельные тесты", text: "Тесты самого Autopilot идут параллельно", status: "done" },
+      { id: "R18", short: "Профили на finish", text: "Профили агентов сданной сборки удаляются", status: "done" },
+      { id: "R19", short: "Прогноз и бюджет", text: "Прогноз после плана и расход в отчёте", status: "done" },
+      { id: "R20", short: "Понятные ошибки дашборда", text: "Ошибки дашборда объясняют, что случилось и что сделать", status: "done" },
+      { id: "R21", short: "Быстрый старт в README", text: "Быстрый старт в начале README", status: "done" }
+    ]
+  },
+  tests: { passed: 1072, failed: 0, skipped: 5, growth: [1042, 1046, 1052, 1057, 1061, 1067, 1072] },
+  gates: [
+    { id: "G1", title: "Требования закрыты", value: "11 из 11", time: "03:13", note: "ни одного открытого требования" },
+    { id: "G2", title: "Находки аудита", value: "14 из 14", time: "03:15", note: "блокирующих не осталось" },
+    { id: "G3", title: "План без проблем", value: "0 проблем", time: "03:15", note: "контракт и зоны сходятся" },
+    { id: "G4", title: "Слепая сверка", value: "11 из 11", time: "17:40", note: "приёмка не видела манифест" }
+  ],
+  blind: { checked: 11, matched: 11, rounds: 1 },
+  coverage: { found: 14, fixed: 14, deferred: 0 },
+  spend: {
+    total: 358201,
+    calls: 18,
+    hit: 97,
+    cacheRead: 57858926,
+    cacheWrite: 1776066,
+    model: "Claude Sonnet 5.5",
+    roles: [
+      { key: "executor", name: "Исполнители", calls: 11, tokens: 163556, hit: 95 },
+      { key: "orchestrator", name: "Оркестратор", calls: 2, tokens: 78241, hit: 98 },
+      { key: "agent", name: "Агент", calls: 1, tokens: 48536, hit: 98 },
+      { key: "reviewer", name: "Ревьюеры", calls: 3, tokens: 37940, hit: 93 },
+      { key: "acceptance", name: "Приёмка", calls: 1, tokens: 29928, hit: 98 }
+    ]
+  },
+  stages: [
+    { name: "Предполёт", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Манифест", status: "done", start: "03:03", end: "03:03", min: 0 },
+    { name: "Бриф", status: "skipped", start: "03:03", end: "03:03", min: 0, note: "бриф однозначен" },
+    { name: "Спецификация", status: "done", start: "03:03", end: "03:15", min: 11 },
+    { name: "План", status: "done", start: "03:15", end: "03:15", min: 0 },
+    { name: "Сборка", status: "done", start: "03:15", end: "17:16", min: 106, wall: "13 ч 57 мин" },
+    { name: "Ревью", status: "done", start: "17:16", end: "17:27", min: 11 },
+    { name: "Финал", status: "done", start: "17:27", end: "17:42", min: 15 }
+  ],
+  waves: [
+    { n: 1, name: "Фундамент", tickets: 4 },
+    { n: 2, name: "Кэш и шкала", tickets: 2 },
+    { n: 3, name: "Уборка", tickets: 1 },
+    { n: 4, name: "Свод", tickets: 1 },
+    { n: 5, name: "Прогноз", tickets: 1 },
+    { n: 6, name: "Ревью-фикс", tickets: 1 }
+  ],
+  tickets: [
+    { id: "01", title: "Имена моделей и алиас -latest", reqs: ["R13"], wave: 1, start: "03:16", end: "03:43", active: 26, wall: 27, tests: 1042, commit: "1bac10c", model: "Sonnet 5.5", effort: "high", score: 61, risk: "высокий" },
+    { id: "02", title: "Параллельные тесты", reqs: ["R17"], wave: 1, start: "03:17", end: "03:54", active: 37, wall: 37, tests: 1042, commit: "b262050", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "03", title: "Быстрый старт в README", reqs: ["R21"], wave: 1, start: "03:15", end: "03:53", active: 38, wall: 38, tests: 1042, commit: "ed212b6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "04", title: "Сервер без PowerShell", reqs: ["R14", "R20"], wave: 1, start: "03:15", end: "03:32", active: 17, wall: 17, tests: 1042, commit: "b682840", model: "Sonnet 5.5", effort: "xhigh", score: 65, risk: "высокий" },
+    { id: "05", title: "Кэш истории сборок", reqs: ["R15"], wave: 2, start: "03:55", end: "04:00", active: 5, wall: 5, tests: 1046, commit: "4fe8e08", model: "Sonnet 5.5", effort: "medium", score: 41, risk: "обычный" },
+    { id: "06", title: "Шкала роутера", reqs: ["R12"], wave: 2, start: "03:55", end: "04:01", active: 6, wall: 6, tests: 1046, commit: "0e7afc6", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "07", title: "Аттестации и профили", reqs: ["R16", "R18"], wave: 3, start: "04:01", end: "04:07", active: 8, wall: 8, tests: 1052, commit: "60699b1", model: "Sonnet 5.5", effort: "high", score: 66, risk: "высокий" },
+    { id: "08", title: "Свод «класс × модель × усилие»", reqs: ["R11"], wave: 4, start: "04:09", end: "17:10", active: 46, wall: 781, pause: 735, pauseFrom: "04:55", pauseTo: "17:10", tests: 1057, commit: "1a72cd7", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "09", title: "Прогноз и бюджет", reqs: ["R19"], wave: 5, start: "17:10", end: "17:16", active: 6, wall: 6, tests: 1061, commit: "ceb5920", model: "Sonnet 5.5", effort: "medium", score: 51, risk: "обычный" },
+    { id: "F1", title: "Правки по код-ревью ветки", reqs: ["R11", "R14", "R15", "R17", "R18", "R20"], wave: 6, start: "17:20", end: "17:26", active: 6, wall: 6, tests: 1067, commit: "00c0314", model: "Sonnet 5.5", effort: "сильный", score: null, risk: "ревью" }
+  ],
+  history: [
+    { date: "16.11", title: "Дешевле, быстрее, удобнее", minutes: 139, tokens: 396276, tickets: 4, tag: "волны 1–3" },
+    { date: "16.11", title: "Расход субагентов в обычном режиме", minutes: 37, tokens: 73515, tickets: 1, tag: "" },
+    { date: "16.11", title: "Оптимизация расхода", minutes: 44, tokens: 45662, tickets: 3, tag: "" },
+    { date: "15.11", title: "Токен дашборда и ключ подписи", minutes: 143, tokens: null, tickets: 4, tag: "" },
+    { date: "15.11", title: "Аудит: дашборд, маршрутизация, Haiku", minutes: 325, tokens: 1163950, tickets: 7, tag: "" },
+    { date: "08.11", title: "Opus и гейты без вмешательства", minutes: 164, tokens: 148373, tickets: 4, tag: "" }
+  ],
+  events: [
+    { time: "17:42", kind: "ok", text: "Сборка сдана, проблем 0" },
+    { time: "17:42", kind: "ok", text: "Тесты: 1072 прошли, 0 упали" },
+    { time: "17:40", kind: "gate", text: "Гейт G4: 11 из 11 совпали" },
+    { time: "17:27", kind: "stage", text: "Этап «Финал» начат" },
+    { time: "17:25", kind: "ok", text: "Таск F1 сдан, тесты 1067" },
+    { time: "17:20", kind: "run", text: "Таск F1 начат, сильный маршрут" },
+    { time: "17:16", kind: "stage", text: "Этап «Ревью» начат" },
+    { time: "17:14", kind: "ok", text: "Таск 09 сдан, тесты 1061" },
+    { time: "17:10", kind: "run", text: "Таск 09 начат" },
+    { time: "17:08", kind: "ok", text: "Таск 08 сдан, тесты 1057" },
+    { time: "04:09", kind: "run", text: "Таск 08 начат" },
+    { time: "04:07", kind: "ok", text: "Таск 07 сдан, тесты 1052" }
+  ],
+  report: [
+    { short: "plan-models --apply после reopen упирается в проверку «все таски pending»", long: "После reopen совет «plan-models --apply вернёт профили» упирается в проверку «все таски pending» у сданных тасков — ap.py:2163", source: "ap.py:2163" },
+    { short: "Ответ /.ap-ping не меняется между запросами", long: "Ответ /.ap-ping не меняется между запросами (нет nonce): токен из secrets не перебрать, но короткий токен, вписанный вручную, подбирается офлайн", source: "serve" },
+    { short: "archive_attestations теряет строки хука в узком окне", long: "archive_attestations: строки, дописанные хуком между чтением и обнулением, теряются; окно крошечное, finish не срывается", source: "finish" },
+    { short: "Временный файл кэша истории без pid", long: "Временный файл кэша истории с фиксированным именем без pid: при двух процессах возможен лишний os.replace", source: "history" },
+    { short: "compute_class_report затирает сочетание таска", long: "compute_class_report: повторный start после ticket reset без class= затирает сочетание таска на «не указан»", source: "spend" },
+    { short: "«expected failures=1» разбирается как failures=1", long: "tools/run-tests.py:99: «OK (expected failures=1)» разбирается как failures=1 — для набора с @expectedFailure запускатель покажет FAILED", source: "run-tests" },
+    { short: "Строка кэша без title/tokens/minutes принимается", long: "ap.py:4164: строка кэша истории с верными dir и startedAt, но без title/tokens/minutes принимается, и сборка тихо выпадает из истории", source: "ap.py:4164" }
+  ]
+};
+</script>
+<script>
+(function(){
+  "use strict";
+  const D = window.D;
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const nf = new Intl.NumberFormat("ru-RU");
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const dur = m=>m===0?"0 мин":m<60?m+" мин":Math.floor(m/60)+" ч "+(m%60)+" мин";
+  $("#heroRes").textContent = D.result;
+
+  /* ——— stages ——— */
+  $("#stages").innerHTML = D.stages.map(s=>`
+    <div class="b-stage ${s.status==="skipped"?"is-skipped":""}">
+      <span class="sn">${s.start}–${s.end}</span>
+      <span class="nm">${esc(s.name)}</span>
+      <span class="tm">${s.status==="skipped"?"пропущен":(s.wall?s.wall+" стены":"завершён")}</span>
+      <span class="du">${s.status==="skipped"?"—":dur(s.min)}</span>
+    </div>`).join("");
+
+  /* ——— tasks ——— */
+  const waveRange = ts => {
+    const st=[...ts].map(t=>t.start).sort(), en=[...ts].map(t=>t.end).sort();
+    return st[0]+"–"+en[en.length-1];
+  };
+  let filter="all";
+  function renderTasks(){
+    const groups = D.waves.filter(w=>filter==="all"||(filter==="early"?w.n<=3:w.n>=4));
+    $("#taskList").innerHTML = groups.map(w=>{
+      const ts = D.tickets.filter(t=>t.wave===w.n);
+      return `<div class="wave-strip"><b>Волна ${w.n}</b><span>${esc(w.name)} · ${ts.length} ${ts.length===1?"таск":"таска"}</span><span class="wtime">${waveRange(ts)}</span></div>`+
+        ts.map(t=>`
+          <div class="b-task">
+            <span class="tid">${esc(t.id)}</span>
+            <div class="tt"><b title="${esc(t.title)}">${esc(t.title)}</b><small>${t.reqs.join(" · ")} · ${esc(t.model)} ${esc(t.effort)}</small>${t.pause?`<span class="pause-tag">пауза ${dur(t.pause)}</span>`:""}<div class="bbar"><i style="width:${Math.max(4,t.active/48*100)}%"></i></div></div>
+            <div class="tw">${t.active}<small>мин</small></div>
+            <div class="tst">${nf.format(t.tests)}<small>тесты</small></div>
+          </div>`).join("");
+    }).join("");
+  }
+  renderTasks();
+  $$(".fchip").forEach(b=>b.addEventListener("click",()=>{
+    filter=b.dataset.filter;
+    $$(".fchip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    renderTasks();
+  }));
+
+  /* ——— gates ——— */
+  $("#gates").innerHTML = D.gates.map(g=>`
+    <div class="b-gate"><div class="gh"><span>${esc(g.id)}</span><i>✓</i></div><b>${esc(g.value)}</b><span>${esc(g.title)}</span></div>`).join("");
+
+  /* ——— feed ——— */
+  let feedOpen=false;
+  function renderFeed(){
+    const list = feedOpen?D.events:D.events.slice(0,7);
+    const kmap={ok:"ok",run:"",stage:"stage",gate:""};
+    $("#feed").innerHTML = list.map(e=>`<li><time>${e.time}</time><span><i class="k ${kmap[e.kind]||""}"></i>${esc(e.text)}</span></li>`).join("");
+    $("#feedMore").textContent = feedOpen?"Свернуть":"Показать все";
+    $("#feedMore").setAttribute("aria-expanded",String(feedOpen));
+  }
+  renderFeed();
+  $("#feedMore").addEventListener("click",()=>{feedOpen=!feedOpen;renderFeed();});
+
+  /* ——— spend ——— */
+  const colors={executor:"var(--lime)",orchestrator:"var(--blue)",agent:"var(--orange)",reviewer:"#ffd8a8",acceptance:"#b9b2a1"};
+  $("#stack").innerHTML = D.spend.roles.map(r=>`<i style="width:${(r.tokens/D.spend.total*100).toFixed(2)}%;background:${colors[r.key]}"></i>`).join("");
+  $("#legend").innerHTML = D.spend.roles.map(r=>`
+    <div class="lrow"><span class="sq" style="background:${colors[r.key]}"></span><span>${esc(r.name)}</span><b>${nf.format(r.tokens)}</b><small>${r.hit}%</small></div>`).join("");
+
+  /* ——— requirements ——— */
+  $("#reqGrid").innerHTML = D.requirements.items.map(r=>`
+    <button class="b-req" type="button" aria-expanded="false" aria-label="${esc(r.id+": "+r.text)}"><span class="rt"><span class="rid">${r.id}</span><span class="rok">OK</span></span><b>${esc(r.short)}</b><span class="rfull">${esc(r.text)}</span></button>`).join("");
+  $$(".b-req").forEach(b=>b.addEventListener("click",()=>{
+    const open=b.getAttribute("aria-expanded")==="true";
+    $$(".b-req").forEach(x=>x.setAttribute("aria-expanded","false"));
+    b.setAttribute("aria-expanded",String(!open));
+  }));
+  let reqOpen=false;
+  $("#reqAll").addEventListener("click",()=>{
+    reqOpen=!reqOpen;
+    $$(".b-req").forEach(x=>x.setAttribute("aria-expanded",String(reqOpen)));
+    $("#reqAll").textContent = reqOpen?"Свернуть все":"Раскрыть все";
+  });
+
+  /* ——— history ——— */
+  const rows=[{date:"17.11",title:"Волны 4–6 · эта сборка",minutes:145,tokens:D.spend.total,current:true},...D.history];
+  $("#hist").innerHTML = rows.map(r=>`
+    <div class="hrow ${r.current?"cur":""}"><span class="hd">${r.date}</span><span class="ht">${esc(r.title)}<small>${r.current?"эта сборка":"сдана"}</small></span><span class="hm">${r.minutes} мин<small>${r.tokens?nf.format(r.tokens):"н/д"}</small></span></div>`).join("");
+
+  /* ——— notes ——— */
+  $("#noteGrid").innerHTML = D.report.map((n,i)=>`
+    <details class="b-note"><summary><span class="nnum">${String(i+1).padStart(2,"0")}</span><span class="nshort">${esc(n.short)}</span><span class="nsrc">${esc(n.source)}</span></summary><p>${esc(n.long)}</p></details>`).join("");
+  $("#notesAll").addEventListener("click",(e)=>{
+    const all=$$("#noteGrid details"), open=all.some(d=>!d.open);
+    all.forEach(d=>{d.open=open;});
+    e.currentTarget.textContent=open?"Свернуть все":"Раскрыть все";
+  });
+
+  /* ——— nav ——— */
+  const links=$$(".topnav a");
+  const obs=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting) links.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+e.target.id));});
+  },{rootMargin:"-20% 0px -65% 0px"});
+  ["tasks","quality","money","reqs","notes"].forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
+
+  /* ——— count up ——— */
+  if(!reduced){
+    $$("[data-count]").forEach(el=>{
+      const target=+el.dataset.count, dur=650, start=performance.now();
+      function frame(now){
+        const p=Math.min(1,(now-start)/dur), e=1-Math.pow(1-p,3);
+        el.textContent=nf.format(Math.round(target*e));
+        if(p<1)requestAnimationFrame(frame);else el.textContent=nf.format(target);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  $("#printBtn").addEventListener("click",()=>window.print());
+})();
+</script>
+</body>
+</html>
