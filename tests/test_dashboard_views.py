@@ -11,8 +11,9 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "skills/autopilot/phases/dashboard-template.html"
 LOGO = ROOT / "assets/autopilot-logo-light.svg"
-# Temporary: one design ("Aurora"). The design-registry ticket replaces this with the registry read from the template.
-DESIGN_IDS = ["aurora"]
+# The design ids come from the registry in the template itself, in its order.
+_TPL = TEMPLATE.read_text(encoding="utf-8").replace("\r\n", "\n")
+DESIGN_IDS = re.findall(r"\{id:'(\w+)', no:", re.search(r"const DESIGNS = \[(.*?)\n\];", _TPL, re.S).group(1))
 # The sections of the page, top to bottom: each one is a <details class="sec"> and its id is the anchor.
 SECTIONS = ["mission", "reqs", "tasks", "quality", "models", "gates", "feed"]
 NODE = shutil.which("node")
@@ -66,7 +67,7 @@ for (const [name, state] of Object.entries(input.fixtures)) {
   for (const id of ids) for (const lang of ['ru', 'en']) {
     const key = name + '/' + id + '/' + lang;
     try {
-      run(e, 'render(' + JSON.stringify(lang) + ');');  // the design id is not applied yet: there is one design
+      run(e, 'applyDesign(' + JSON.stringify(id) + '); render(' + JSON.stringify(lang) + ');');
       out.renders[key] = {html: e.app.innerHTML};
     } catch (err) { out.renders[key] = {error: String(err && err.stack || err)}; }
   }
@@ -706,10 +707,11 @@ class TemplateStrings(unittest.TestCase):
         self.assertIn(".cockpit-content{max-width:none}", narrow)
         self.assertNotIn("data-view", narrow)
 
-    def test_template_carries_the_aurora_skin_and_the_scoped_palette(self):
-        self.assertIn('<html lang="ru" data-skin="aurora">', self.html)
-        self.assertRegex(self.html, r'html\[data-skin="aurora"\]:not\(\[hidden\]\):not\(\[data-theme="light"\]\)')
-        self.assertRegex(self.html, r'html\[data-skin="aurora"\]\[data-theme="light"\]\[lang\]:not\(\[hidden\]\)')
+    def test_template_carries_the_aurora_design_and_the_scoped_palette(self):
+        self.assertIn('<html lang="ru" data-design="aurora">', self.html)
+        self.assertNotIn("data-skin", self.html)
+        self.assertRegex(self.html, r'html:is\([^)]*\[data-design="aurora"\][^)]*\):not\(\[hidden\]\):not\(\[data-theme="light"\]\)')
+        self.assertRegex(self.html, r'html:is\([^)]*\[data-design="aurora"\][^)]*\)\[data-theme="light"\]\[lang\]:not\(\[hidden\]\)')
         for token in ("--aurora-mint", "--aurora-sky", "--aurora-violet", "--aurora-sheen"):
             self.assertIn(token, self.html)
 
@@ -735,18 +737,6 @@ class TemplateStrings(unittest.TestCase):
         self.assertIn("${BRAND_SVG}", rail)
         self.assertNotIn(">A</span>", rail)
         self.assertNotIn(".png", self.html)
-
-    PALETTE = {  # role: (light, dark) from section 4 of the handoff
-        "bg": ("#EDF4F0", "#0B1220"), "card": ("#FFFFFF", "#121B2E"), "line": ("#D6E4DC", "#22304D"),
-        "tx": ("#0F2A22", "#E8EEF8"), "tx2": ("#3F5A50", "#C5D2E8"), "mut": ("#5A7268", "#9FB0CC"),
-        "done": ("#0A7D5A", "#34D399"), "done-soft": ("#DDF3EA", "#0F3D31"), "done-tx": ("#075E44", "#6EE7B7"),
-        "now": ("#E8742A", "#FB923C"), "now-soft": ("#FDEBDD", "#4A2508"), "now-tx": ("#A8470F", "#FDBA74"),
-        "rev": ("#1B6FB8", "#60A5FA"), "rev-soft": ("#E1EFFB", "#12294A"), "rev-tx": ("#145A96", "#93C5FD"),
-        "warn-bg": ("#FDF1E6", "#2A1A0B"), "warn-bd": ("#F0C9A6", "#6B4A12"), "warn-tx": ("#7A3A0C", "#FCD34D"),
-        "bad-tx": ("#B42318", "#F97066"), "bad-soft": ("#FDECEA", "#3A1512")}
-    SCOPE = ':root[data-view]:not([data-view="classic"])'
-    DARK_ATTR = ':root[data-theme="dark"][data-view]:not([data-view="classic"])'
-    DARK_AUTO = ':root:not([data-theme])[data-view]:not([data-view="classic"])'
 
     PALETTE = {  # role: (light, dark) from section 4 of the handoff
         "bg": ("#EDF4F0", "#0B1220"), "card": ("#FFFFFF", "#121B2E"), "line": ("#D6E4DC", "#22304D"),

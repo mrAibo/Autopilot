@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-skin="aurora">
+<html lang="ru" data-design="aurora">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -653,24 +653,27 @@
   html:not([hidden]) .hero .live{outline-color:var(--card)}
   .p-rev{background:var(--rev-soft);color:var(--rev-tx)}
 
+  /* ——— Дизайны: токены лежат под html[data-design="<id>"] ———
+     Пока у пяти дизайнов нет своей палитры (таски 03 и 04), они берут токены «Авроры» через :is(); готовый дизайн
+     убирают из этого списка и пишет свой блок. Акцент берётся из реестра DESIGNS, вес селектора выше блоков токенов. */
   /* ——— Скин «Аврора» (концепт 01) ———
      Ночной фон с полярным сиянием, стеклянные карточки, mint/sky/violet.
      Токены перекрывают палитру макетов только у не-«Классики»: у неё свои цвета.
      Тёмная половина — базовая (так выглядит концепт), светлая — производная по кнопке. */
-  html[data-skin="aurora"]{--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
+  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"]){--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
     --aurora-g1:rgba(77,240,190,.20);--aurora-g2:rgba(99,199,255,.18);--aurora-g3:rgba(182,156,255,.16);
     --aurora-bg2:#070B14;--aurora-bg3:#060911;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.055),rgba(255,255,255,.018) 44%,rgba(99,199,255,.02));
     --aurora-rail1:#0A1424;--aurora-rail2:#050A14;--aurora-rail3:#0B1A24;--aurora-ink:#04130F;
     scrollbar-color:rgba(120,160,220,.35) transparent}
-  html[data-skin="aurora"][data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
+  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"])[data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
     --aurora-g1:rgba(10,125,90,.10);--aurora-g2:rgba(27,111,184,.09);--aurora-g3:rgba(124,58,237,.08);
     --aurora-bg2:#F7FAFF;--aurora-bg3:#E9F0F9;
     --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.45) 44%,rgba(99,199,255,.07));
     --aurora-ink:#FFFFFF;scrollbar-color:rgba(60,100,150,.35) transparent}
   /* Тёмные токены работают и до первой отрисовки (атрибутов темы ещё нет): экран
      «дашборд ещё не прочитал состояние» тоже остаётся ночным, а не белой карточкой. */
-  html[data-skin="aurora"]:not([hidden]):not([data-theme="light"]){
+  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"]):not([hidden]):not([data-theme="light"]){
     color-scheme:dark;
     --bg:#05070D;--card:#0B1322;--inset:#0F1A2E;--soft:#15223A;
     --line:rgba(158,190,255,.14);--line2:rgba(158,190,255,.24);
@@ -685,7 +688,7 @@
     --hero:#0C1424;--hero-shadow:rgba(0,0,0,.75);
     --sh:0 26px 60px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.05);
     --sh-raised:0 18px 44px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06)}
-  html[data-skin="aurora"][data-theme="light"][lang]:not([hidden]){
+  html:is([data-design="aurora"],[data-design="editorial"],[data-design="brutal"],[data-design="terminal"],[data-design="blueprint"],[data-design="bento"])[data-theme="light"][lang]:not([hidden]){
     color-scheme:light;
     --bg:#EEF3FA;--card:#FFFFFF;--inset:#F2F6FC;--soft:#E6EEF8;
     --line:#D3DFEE;--line2:#BFD0E4;
@@ -700,37 +703,76 @@
     --hero:#254991;--hero-shadow:rgba(25,63,128,.3);
     --sh:0 20px 44px -32px rgba(16,42,66,.38),0 1px 2px rgba(16,42,66,.06);
     --sh-raised:0 14px 32px -22px rgba(16,42,66,.32)}
-  html[data-skin="aurora"]:not([hidden]) body{
+  html[data-design="editorial"][lang]:not([hidden]):not([data-theme="none"]){--accent:#bf3a1e}
+  html[data-design="brutal"][lang]:not([hidden]):not([data-theme="none"]){--accent:#d8ff3e}
+  html[data-design="terminal"][lang]:not([hidden]):not([data-theme="none"]){--accent:#70ff9a}
+  html[data-design="blueprint"][lang]:not([hidden]):not([data-theme="none"]){--accent:#1849a9}
+  html[data-design="bento"][lang]:not([hidden]):not([data-theme="none"]){--accent:#5a4bdb}
+  html[data-design="aurora"]:not([hidden]) body{
     background:
       radial-gradient(1200px 820px at 12% -12%,var(--aurora-g1),transparent 62%),
       radial-gradient(1000px 760px at 96% 6%,var(--aurora-g2),transparent 63%),
       radial-gradient(1000px 900px at 52% 112%,var(--aurora-g3),transparent 62%),
       linear-gradient(180deg,var(--aurora-bg2),var(--bg) 55%,var(--aurora-bg3));
     background-attachment:fixed}
-  html[data-skin="aurora"]:not([hidden]) .card{
+  html[data-design="aurora"]:not([hidden]) .card{
     border-radius:24px;background-image:var(--aurora-sheen);box-shadow:var(--sh);
     -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%)}
   /* Сияние в шапке состояния: цвет состояния остаётся за фоном, сияние только сверху. */
-  html[data-skin="aurora"]:not([hidden]) .hero:before{
+  html[data-design="aurora"]:not([hidden]) .hero:before{
     display:block;content:"";position:absolute;right:-120px;top:-180px;width:460px;height:460px;border-radius:50%;
     background:radial-gradient(circle,var(--aurora-g1),transparent 62%);filter:blur(14px);pointer-events:none}
-  html[data-skin="aurora"]:not([hidden]) .tile:before{height:3px;
+  html[data-design="aurora"]:not([hidden]) .tile:before{height:3px;
     background:linear-gradient(90deg,var(--aurora-mint),var(--aurora-sky))}
-  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(2):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-violet))}
-  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(3):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-sky))}
-  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(4):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-mint))}
-  html[data-skin="aurora"]:not([hidden]) .tile:nth-child(5):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-mint))}
-  html[data-skin="aurora"][lang]:not([hidden]) :is(.tabs button[aria-pressed="true"],.chip[aria-pressed="true"]){
+  html[data-design="aurora"]:not([hidden]) .tile:nth-child(2):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-violet))}
+  html[data-design="aurora"]:not([hidden]) .tile:nth-child(3):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-sky))}
+  html[data-design="aurora"]:not([hidden]) .tile:nth-child(4):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-mint))}
+  html[data-design="aurora"]:not([hidden]) .tile:nth-child(5):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-mint))}
+  html[data-design="aurora"][lang]:not([hidden]) :is(.tabs button[aria-pressed="true"],.chip[aria-pressed="true"]){
     background:linear-gradient(135deg,var(--aurora-mint),var(--aurora-sky));color:var(--aurora-ink);
     border-color:transparent;box-shadow:0 10px 28px -18px var(--aurora-g1)}
-  html[data-skin="aurora"] .cockpit-rail{
+  html[data-design="aurora"] .cockpit-rail{
     background:linear-gradient(155deg,var(--aurora-rail1),var(--aurora-rail2) 62%,var(--aurora-rail3));
     border-right-color:rgba(158,190,255,.14)}
-  html[data-skin="aurora"] .rail-nav a[aria-current]{background:rgba(77,240,190,.12);color:#B6FFE6;
+  html[data-design="aurora"] .rail-nav a[aria-current]{background:rgba(77,240,190,.12);color:#B6FFE6;
     border:1px solid rgba(77,240,190,.22)}
-  html[data-skin="aurora"][lang]:not([hidden]) :focus-visible{outline-color:var(--aurora-sky)}
-  html[data-skin="aurora"] .skip-link{border-color:var(--aurora-mint);background:var(--aurora-rail1);color:#F8FAFF}
-  html[data-skin="aurora"] ::selection{background:rgba(77,240,190,.28)}
+  html[data-design="aurora"][lang]:not([hidden]) :focus-visible{outline-color:var(--aurora-sky)}
+  html[data-design="aurora"] .skip-link{border-color:var(--aurora-mint);background:var(--aurora-rail1);color:#F8FAFF}
+  html[data-design="aurora"] ::selection{background:rgba(77,240,190,.28)}
+  /* Дизайн в шапке — поисковый список (combobox): имя на двух языках, номер, id, теги; стрелки, Enter, Esc. */
+  .dcombo{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:0;
+    padding:0 6px 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--card);
+    box-shadow:var(--sh-raised);flex:0 1 250px}
+  .dcombo[data-open="true"]{border-color:var(--line2);box-shadow:0 0 0 3px var(--soft),var(--sh-raised)}
+  .dcombo-ic{color:var(--mut);flex:none;display:inline-flex}
+  .dcombo-inp{appearance:none;border:0;background:none;font:inherit;font-size:13.5px;font-weight:650;color:var(--tx);
+    min-width:0;width:100%;height:42px;padding:0;outline:none;text-overflow:ellipsis}
+  .dcombo-inp::placeholder{color:var(--mut);font-weight:500}
+  .dcombo-btn{appearance:none;border:0;background:none;color:var(--mut);width:44px;height:44px;border-radius:9px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:transform .18s}
+  .dcombo-btn:hover{color:var(--tx);background:var(--inset)}
+  .dcombo[data-open="true"] .dcombo-btn{transform:rotate(180deg)}
+  .dlistbox{position:absolute;z-index:45;top:calc(100% + 8px);left:0;min-width:100%;width:max-content;
+    max-width:min(340px,90vw);max-height:min(60vh,400px);overflow:auto;padding:6px;
+    background:var(--card);border:1px solid var(--line2);border-radius:16px;box-shadow:var(--sh-raised)}
+  .dlistbox[hidden]{display:none}
+  .dopt{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 12px;border:0;border-radius:11px;
+    background:none;color:var(--tx);font:inherit;font-size:13.5px;font-weight:600;text-align:left;cursor:pointer}
+  .dopt:hover,.dopt.act{background:var(--inset)}
+  .dopt.act{box-shadow:inset 0 0 0 1px var(--line2)}
+  .dopt[aria-selected="true"]{color:var(--accent)}
+  .dopt-dot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid var(--line2)}
+  .dopt-no{font-size:12px;font-weight:500;color:var(--mut);flex:none}
+  .dopt-name{min-width:0;overflow-wrap:anywhere}
+  .dopt-alt{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut);white-space:nowrap}
+  .dopt-check{margin-left:4px;font-weight:800;flex:none}
+  .dlistbox-none{margin:0;padding:10px 12px;font-size:13px;color:var(--mut)}
+  @media(max-width:700px){
+    .dcombo{flex:1 1 100%;padding-right:4px}
+    .dcombo-inp{font-size:13px}
+    .dlistbox{width:100%;max-width:none}
+  }
+
   /* «Обзор» */
   .ovh{display:flex;flex-wrap:wrap;align-items:center;gap:28px 36px;padding:32px 34px;border-radius:28px}
   .ring{--rs:210px;width:var(--rs);height:var(--rs);border-radius:50%;flex:none;display:grid;place-items:center}
@@ -1146,17 +1188,45 @@ const IC = {
 };
 const ic = (n, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
 
+// Реестр дизайнов (образец — mockups/dashboard-2026/designs.js). scheme: какие темы у дизайна есть (both — кнопки светлая/тёмная).
+const DESIGNS = [
+  {id:'aurora', no:'01', name:{ru:'Аврора', en:'Aurora'}, tagline:{ru:'тёмный glass mission control', en:'dark glass mission control'},
+    accent:'#4df0be', scheme:'both', tags:['dark','glass']},
+  {id:'editorial', no:'02', name:{ru:'Отчёт', en:'Report'}, tagline:{ru:'светлый печатный annual report', en:'light printed annual report'},
+    accent:'#bf3a1e', scheme:'light', tags:['light','serif']},
+  {id:'brutal', no:'03', name:{ru:'Пульт', en:'Pulse'}, tagline:{ru:'нео-брутализм и тикер', en:'neo-brutalism and a ticker'},
+    accent:'#d8ff3e', scheme:'light', tags:['lime','brutal']},
+  {id:'terminal', no:'04', name:{ru:'Терминал', en:'Terminal'}, tagline:{ru:'CRT-консоль и фосфор', en:'CRT console and phosphor'},
+    accent:'#70ff9a', scheme:'dark', tags:['dark','mono']},
+  {id:'blueprint', no:'05', name:{ru:'Чертёж', en:'Blueprint'}, tagline:{ru:'blueprint и размерные линии', en:'blueprint and dimension lines'},
+    accent:'#1849a9', scheme:'light', tags:['light','technical']},
+  {id:'bento', no:'06', name:{ru:'Бенто', en:'Bento'}, tagline:{ru:'пастель и мягкие карточки', en:'pastel and soft cards'},
+    accent:'#5a4bdb', scheme:'light', tags:['light','soft']}
+];
+const DESIGN_IDS = DESIGNS.map(d => d.id), DESIGN_KEY = 'autopilot-design', DEFAULT_DESIGN = 'aurora';
+const designOf = id => DESIGNS.find(d => d.id === id) || DESIGNS[0];
+// Неизвестное значение и сбой хранилища — «Аврора».
+function storedDesign(){
+  try { const v = localStorage.getItem(DESIGN_KEY); return DESIGN_IDS.includes(v) ? v : DEFAULT_DESIGN; } catch(e) { return DEFAULT_DESIGN; }
+}
+let DESIGN = storedDesign();
+
 const storedTheme = () => {
   try { return localStorage.getItem('autopilot-theme'); } catch(e) { return null; }
 };
-// «Аврора» — ночной скин: пока тему не выбрали, страница открывается тёмной,
-// как в концепте. Светлая — производная, её включает кнопка, и выбор запоминается.
+// Тема: у дизайна с одной схемой она задана им; у «Авроры» страница открывается тёмной, светлую включает кнопка (выбор запоминается).
 function effectiveTheme(){
-  return storedTheme() || 'dark';
+  const sc = designOf(DESIGN).scheme;
+  return sc === 'both' ? storedTheme() || 'dark' : sc;
 }
 function applyTheme(t){
   if (t) document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
+}
+function applyDesign(id){
+  DESIGN = designOf(id).id;
+  document.documentElement.setAttribute('data-design', DESIGN);
+  applyTheme(designOf(DESIGN).scheme === 'both' ? storedTheme() : designOf(DESIGN).scheme);
 }
 
 // Вида дашборда больше нет: раскладка одна. Старые `autopilot-view` и `autopilot-boardmode` в хранилище не читаются.
@@ -1180,7 +1250,7 @@ const I18N = {
     modes:{full:"Полный автомат",semi:"Полуавтомат",interview:"Интервью",manual:"Ручной режим"},
     depths:{strict:"Строго по брифу",normal:"Обычная глубина",deep:"Максимальная глубина"},
     started:t=>`начата ${t}`,startedRange:(a,b)=>`${a} — ${b}`,today:"сегодня в",
-    refresh:"Обновить сейчас",langLabel:"Язык",themeLabel:"Тема",themeLight:"Светлая тема",themeDark:"Тёмная тема",
+    refresh:"Обновить сейчас",langLabel:"Язык",themeLabel:"Тема",designLabel:"Дизайн",designSearch:"Поиск дизайна",designNone:"ничего не найдено",themeLight:"Светлая тема",themeDark:"Тёмная тема",
     lost:"Связь с дашбордом пропала — на экране последнее, что он успел получить. Так бывает, когда компьютер засыпает. Скажи агенту «подними дашборд»: страница подхватит его сама, перезагружать не нужно.",
     stateRun:{preflight:"Идёт подготовка",manifest:"Разбор требований",briefing:"Идёт брифинг",spec:"Пишется спецификация",
       plan:"Составляется план",build:"Идёт разработка",review:"Идёт код-ревью",final:"Идёт приёмка"},
@@ -1336,7 +1406,7 @@ const I18N = {
     modes:{full:"Fully automatic",semi:"Semi-automatic",interview:"Interview",manual:"Manual"},
     depths:{strict:"Strictly as written",normal:"Normal depth",deep:"Maximum depth"},
     started:t=>`started ${t}`,startedRange:(a,b)=>`${a} — ${b}`,today:"today at",
-    refresh:"Refresh now",langLabel:"Language",themeLabel:"Theme",themeLight:"Light theme",themeDark:"Dark theme",
+    refresh:"Refresh now",langLabel:"Language",themeLabel:"Theme",designLabel:"Design",designSearch:"Find a design",designNone:"nothing found",themeLight:"Light theme",themeDark:"Dark theme",
     lost:"The dashboard lost its connection — the screen shows the last state it received. This happens when the computer sleeps. Ask the agent to bring the dashboard back up: the page will pick it up by itself, no reload needed.",
     stateRun:{preflight:"Preflight",manifest:"Reading the brief",briefing:"Briefing",spec:"Writing the spec",
       plan:"Planning",build:"Development",review:"Code review",final:"Acceptance"},
@@ -1495,7 +1565,85 @@ let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
 // sec — какие секции <details> пользователь раскрыл или свернул (id → bool; нет записи — как по умолчанию в page());
 // panel — id таска в боковой панели; focus — куда вернуть фокус после перерисовки (кнопка закрытия панели или карточка таска).
-const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus: null};
+const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus: null, combo: {open: false, q: '', i: 0}};
+
+// ——— дизайн в шапке: поисковый список (combobox) ———
+// Поиск — по имени на двух языках, номеру («05» и «5»), id и тегам; пустой запрос — все шесть по порядку.
+// Состояние списка живёт в UI: перерисовка на каждом событии сборки не закрывает его и не теряет запрос.
+function comboList(q){
+  const needle = String(q == null ? '' : q).trim().toLowerCase();
+  if (!needle) return DESIGN_IDS.slice();
+  return DESIGNS.filter(d => d.id.includes(needle) || d.no === needle || String(+d.no) === needle
+    || d.name.ru.toLowerCase().includes(needle) || d.name.en.toLowerCase().includes(needle)
+    || d.tags.some(t => t.includes(needle))).map(d => d.id);
+}
+function selectDesign(id){
+  if (!DESIGN_IDS.includes(id)) return;
+  UI.combo.open = false; UI.combo.q = '';
+  try { localStorage.setItem(DESIGN_KEY, id); } catch(err) {}
+  applyDesign(id);
+  render(CUR.lang);
+}
+function comboOpen(open){
+  UI.combo.open = !!open;
+  if (UI.combo.open) {
+    UI.combo.q = '';
+    UI.combo.i = Math.max(0, DESIGN_IDS.indexOf(DESIGN));
+  }
+  comboSync();
+  const app = document.getElementById('app');
+  if (!UI.combo.open || !app || typeof app.querySelector !== 'function') return;
+  const inp = app.querySelector('[data-dcombo-input]');
+  if (inp && typeof inp.focus === 'function') inp.focus({preventScroll: true});
+}
+// Стрелки ведут по отфильтрованному списку, Enter выбирает, Esc закрывает без выбора.
+function comboKey(e){
+  if (!UI.combo.open) return false;
+  const ids = comboList(UI.combo.q), n = ids.length;
+  if (e.key === 'ArrowDown') { UI.combo.i = n ? (UI.combo.i + 1) % n : 0; comboSync(); return true; }
+  if (e.key === 'ArrowUp') { UI.combo.i = n ? (UI.combo.i - 1 + n) % n : 0; comboSync(); return true; }
+  if (e.key === 'Enter') { if (ids[UI.combo.i]) { selectDesign(ids[UI.combo.i]); return true; } return false; }
+  if (e.key === 'Escape') { comboOpen(false); return true; }
+  return false;
+}
+// Перерисовка не нужна: открытие, фильтр и подсветка — три атрибута и два класса.
+function comboSync(){
+  const app = document.getElementById('app');
+  if (!app || typeof app.querySelector !== 'function') return;
+  const wrap = app.querySelector('[data-dcombo]'), inp = app.querySelector('[data-dcombo-input]'),
+        box = app.querySelector('.dlistbox');
+  if (!inp || !box) return;
+  const L = CUR || I18N.ru, ids = comboList(UI.combo.q);
+  if (UI.combo.i >= ids.length) UI.combo.i = 0;
+  const opts = [...box.querySelectorAll('[data-dopt]')];
+  opts.forEach(o => { o.hidden = ids.indexOf(o.dataset.dopt) < 0; o.classList.remove('act'); });
+  const active = opts.find(o => o.dataset.dopt === ids[UI.combo.i]);
+  if (active && UI.combo.open) { active.classList.add('act'); inp.setAttribute('aria-activedescendant', active.id); }
+  else inp.removeAttribute('aria-activedescendant');
+  const none = box.querySelector('.dlistbox-none');
+  if (none) none.hidden = ids.length > 0;
+  box.hidden = !UI.combo.open;
+  if (wrap) wrap.setAttribute('data-open', String(UI.combo.open));
+  inp.setAttribute('aria-expanded', String(UI.combo.open));
+  const toggle = app.querySelector('[data-dcombo-toggle]');
+  if (toggle) toggle.setAttribute('aria-expanded', String(UI.combo.open));
+  inp.value = UI.combo.open ? UI.combo.q : designOf(DESIGN).name[L.lang];
+}
+
+// ——— рейка: пункт текущей секции ———
+// Текущая — последняя из секций с пунктом рейки, чей верх уже поднялся до границы (edge, px); таких нет — первая.
+const railPick = (tops, edge) => tops.reduce((k, t, i) => t <= edge ? i : k, 0);
+function railSync(){
+  const app = document.getElementById('app');
+  if (!app || typeof app.querySelectorAll !== 'function') return;
+  const links = [...app.querySelectorAll('.rail-nav a')];
+  const secs = [...app.querySelectorAll('details.sec')].filter(d => links.some(a => a.getAttribute('href') === '#' + d.id));
+  if (!secs.length) return;
+  const cur = secs[railPick(secs.map(d => d.getBoundingClientRect().top), 120)].id;
+  links.forEach(a => { if (a.getAttribute('href') === '#' + cur) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+window.addEventListener('scroll', railSync, {passive: true});
+window.addEventListener('hashchange', railSync);
 
 // ——— «нужен твой ответ»: значок вкладки и уведомление ———
 // Значок — всегда (data:-картинка, без запросов); уведомление — только с явного разрешения, которое просит кнопка по клику.
@@ -2581,8 +2729,29 @@ function render(lang){
   const doneStamp = doneAtMs == null ? '' : new Date(doneAtMs).toDateString() === new Date().toDateString() ? hhmm(new Date(doneAtMs))
     : new Date(doneAtMs).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   document.documentElement.lang = L.lang;
+  document.documentElement.setAttribute('data-design', DESIGN);
   if (NARROW_MQ && NARROW_MQ.matches) document.documentElement.setAttribute('data-narrow', '1');
   else document.documentElement.removeAttribute('data-narrow');
+  const comboIds = comboList(UI.combo.q);
+  if (UI.combo.i >= comboIds.length || UI.combo.i < 0) UI.combo.i = 0;
+  const comboActive = UI.combo.open && comboIds.length ? 'dopt-' + comboIds[UI.combo.i] : '';
+  const comboOpt = id => {
+    const d = designOf(id), alt = d.name[L.lang === 'ru' ? 'en' : 'ru'], on = UI.combo.open && comboIds[UI.combo.i] === id;
+    return `<button type="button" role="option" id="dopt-${id}" class="dopt${on ? ' act' : ''}" data-dopt="${id}" aria-selected="${DESIGN === id}" tabindex="-1">`
+      + `<span class="dopt-dot" style="background:${d.accent}" aria-hidden="true"></span><span class="dopt-no">${d.no}</span>`
+      + `<span class="dopt-name">${esc(d.name[L.lang])}</span><span class="dopt-alt">${esc(alt)}</span>${DESIGN === id ? '<span class="dopt-check" aria-hidden="true">✓</span>' : ''}</button>`;
+  };
+  const designCombo = `<div class="dcombo" data-dcombo data-open="${UI.combo.open}">
+      <span class="dcombo-ic" aria-hidden="true">${ic('search')}</span>
+      <input id="design-combo" class="dcombo-inp" type="text" role="combobox" autocomplete="off" spellcheck="false" aria-haspopup="listbox"
+        aria-label="${esc(L.designLabel)}" aria-expanded="${UI.combo.open}" aria-controls="design-listbox" aria-autocomplete="list"${
+        comboActive ? ` aria-activedescendant="${comboActive}"` : ''} placeholder="${esc(L.designSearch)}"
+        value="${esc(UI.combo.open ? UI.combo.q : designOf(DESIGN).name[L.lang])}" data-dcombo-input>
+      <button type="button" class="dcombo-btn" data-dcombo-toggle aria-label="${esc(L.designLabel)}" aria-expanded="${UI.combo.open}">${ic('chev')}</button>
+      <div class="dlistbox" id="design-listbox" role="listbox" aria-label="${esc(L.designLabel)}"${UI.combo.open ? '' : ' hidden'}>
+        ${comboIds.map(comboOpt).join('')}<p class="dlistbox-none"${comboIds.length ? ' hidden' : ''}>${esc(L.designNone)}</p>
+      </div>
+    </div>`;
   const app = document.getElementById('app');
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
@@ -2638,10 +2807,11 @@ function render(lang){
     ${toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${fin ? esc(L.doneAt(doneStamp)) : `${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span>`}</span>` : ''}
     <div class="tools">
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
-      <div class="tabs" role="group" aria-label="${L.themeLabel}">
+      ${designCombo}
+      ${designOf(DESIGN).scheme === 'both' ? `<div class="tabs" role="group" aria-label="${L.themeLabel}">
         <button type="button" data-theme="light" title="${L.themeLight}" aria-label="${L.themeLight}" aria-pressed="${effectiveTheme()==='light'}">${ic('sun')}</button>
         <button type="button" data-theme="dark" title="${L.themeDark}" aria-label="${L.themeDark}" aria-pressed="${effectiveTheme()==='dark'}">${ic('moon')}</button>
-      </div>
+      </div>` : ''}
       <div class="tabs" role="group" aria-label="${L.langLabel}">
         <button type="button" data-lang="ru" aria-pressed="${L.lang==='ru'}">RU</button>
         <button type="button" data-lang="en" aria-pressed="${L.lang==='en'}">EN</button>
@@ -2661,6 +2831,7 @@ function render(lang){
   </footer>
   ${panel}</main>`;
   gxFit(app);
+  railSync();
   const bv = document.getElementById('brand-version'); // textContent only: state is untrusted
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
@@ -2735,6 +2906,10 @@ document.getElementById('app').addEventListener('click', e => {
     try { localStorage.setItem('autopilot-theme', t); } catch(err) {}
     applyTheme(t);
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
+  } else if (b.dataset.dopt) {
+    selectDesign(b.dataset.dopt);
+  } else if (b.hasAttribute('data-dcombo-toggle')) {
+    comboOpen(!UI.combo.open);
   } else if (b.dataset.card) {
     UI.panel = b.dataset.card; UI.focus = {}; render(CUR.lang);
   } else if (b.hasAttribute('data-pclose')) {
@@ -2751,6 +2926,36 @@ document.getElementById('app').addEventListener('click', e => {
   } else if (b.dataset.more) {
     UI.open[b.dataset.more] = !UI.open[b.dataset.more]; render(CUR.lang);
   }
+});
+
+// Дизайн в шапке: ввод фильтрует список, стрелки/Enter/Esc — пока фокус в комбобоксе (#app перерисовывается целиком, события всплывают к нему).
+document.getElementById('app').addEventListener('input', e => {
+  const inp = e.target && e.target.closest ? e.target.closest('[data-dcombo-input]') : null;
+  if (!inp) return;
+  UI.combo.q = inp.value || '';
+  UI.combo.i = 0;
+  comboSync();
+});
+document.getElementById('app').addEventListener('keydown', e => {
+  const inCombo = e.target && e.target.closest ? e.target.closest('[data-dcombo]') : null;
+  if (!inCombo) return;
+  if (!UI.combo.open) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); comboOpen(true); }
+    return;
+  }
+  if (e.key === 'Tab') { comboOpen(false); return; }
+  if (comboKey(e)) { e.preventDefault(); e.stopPropagation(); }
+});
+// Клик по полю открывает список, клик мимо — закрывает; выбор пункта ловит общий обработчик.
+document.addEventListener('click', e => {
+  const t = e.target;
+  const inCombo = t && t.closest ? t.closest('[data-dcombo]') : null;
+  if (inCombo) {
+    const inp = t.closest('[data-dcombo-input]');
+    if (inp && !UI.combo.open) comboOpen(true);
+    return;
+  }
+  if (UI.combo.open) comboOpen(false);
 });
 
 // Секции <details>: toggle не всплывает, поэтому слушаем в фазе перехвата. Что раскрыто, переживает перерисовку (UI.sec).
@@ -2772,7 +2977,7 @@ let savedLang = 'ru';
 try { savedLang = localStorage.getItem('autopilot-lang')
   || ((navigator.language || '').startsWith('ru') ? 'ru' : 'en'); } catch(e) {}
 
-applyTheme(storedTheme());
+applyDesign(DESIGN);
 
 // Пустой экран не говорит, что сломалось, поэтому страница объясняет — и не
 // сдаётся: опрос продолжается, и когда файл появится, дашборд оживёт сам.
