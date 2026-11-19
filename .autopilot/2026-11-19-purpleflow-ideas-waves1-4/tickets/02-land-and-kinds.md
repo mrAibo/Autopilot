@@ -47,6 +47,7 @@
 - [ ] `kind=refactor`: `land` отказывает, если среди изменённых файлов есть существующий (отслеживаемый) тест, а в файле таска нет строки `**Правка тестов:**`
 - [ ] `kind=refactor`: `ticket NN baseline --command` с кодом ≠ 0 отказывает, с кодом 0 пишет `tk["baseline"]`; `land` без `baseline` отказывает; `phases/kind-refactor.md` велит ревью ветки подтверждать каждое исключение `**Правка тестов:**`
 - [ ] `phases/kind-auto.md` описывает выбор вида по брифу: вопрос-подтверждение в `semi`, молча в `full` со строкой в отчёте
+- [ ] `ticket NN land` печатает сигналы `review_checks.bypass_lines` по дифу таска (без отказа) — остаток таска 01
 - [ ] `kind=quick`: `check-plan` отказывает при втором таске или при более чем `QUICK_MAX_REQUIREMENTS` строках манифеста; числа записаны константами и в `phases/kind-quick.md`
 - [ ] Тест: `model_router.assess_ticket` даёт одинаковый результат при любом `kind`; Opus и Fable не появляются
 - [ ] Новые файлы `phases/kind-bug.md`, `kind-refactor.md`, `kind-quick.md`, `kind-auto.md` перечислены в `SKILL.md`; `tests/test_text_split.py` зелёный без повышения порога

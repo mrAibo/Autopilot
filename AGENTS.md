@@ -23,7 +23,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1216<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1225<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI остаётся на `unittest discover`. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (голый `ap.py` и остальные команды печатают адрес без `?t=`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
@@ -53,5 +53,14 @@
 - `ticket F<n> route --model --effort --reason` в обычном прогоне пишет `tk["routing"]` без профиля; строгая ветка прежняя.
 - `blind` второго круга сводит круги в `state.blind.rounds`, верхние поля — итог; `checked` круга 2 — от числа расхождений круга 1 до него же плюс один (`docs/adr/0012`).
 - Тексты чужих режимов лежат в `phases/4-plan-strict.md`, `4-plan-opus.md`, `5-strict.md`, `5-sequential-host.md`; `tests/test_text_split.py` держит размер обычного пути и дословность переноса.
+- `plan-fact record --verdict "T02.1 | сделано | файл:строка" …` заменяет все вердикты целиком — передавать все сразу; пункты с id — `plan-fact list` (`plan_items.py`, `phases/8-plan-fact.md`).
+- `check-review-report --file ФАЙЛ` — код 1, если пункт чек-листа без ответа (`review_checks.py`); `check-bypass [A..B]` только печатает сигналы.
+- `blocker confirm --id B01 --verdict confirmed|not-confirmed --quote "…"` — `not-confirmed` ставит `downgraded`.
+- `ticket NN redproof|baseline --command "…"` — проверка до правки для `bug`/`refactor`; `ticket NN bundle` — сводка для исполнителя.
+- `ticket NN land --include a,b` коммитит файлы вне зоны; `--allow` не коммитит (`land_check.py`, `docs/adr/0025`, `0026`).
+- `init --kind …`: справка пишет `feature`, код знает `quick|bug|task|refactor` (`kinds.KINDS`); сценарии — `phases/kind-*.md`, `docs/adr/0020`.
+- `silence [--limit СЕК]` — код 3, если есть тихие агенты; останавливает их оркестратор (TaskStop), не `ap.py` (`silence.py`, `docs/adr/0022`).
+- `lessons candidates|add|show|drop N|check` и `profile refresh` — уроки в `.autopilot/lessons.md`, профиль в `.autopilot/profile.md` (`lessons.py`, `docs/adr/0024`).
+- После правки `ap.py` или модуля из `skills/autopilot/tools/` — `ap.py upgrade-tools` обновляет копии в `.autopilot/`.
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->

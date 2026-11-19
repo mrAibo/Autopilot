@@ -78,3 +78,12 @@
 ## Что построили закрытые таски
 
 —
+
+### Построено таском 01
+`plan_items.parse_items/parse_verdict/build_plan_fact`; `review_checks.CHECKLIST/missing_checklist/bypass_lines`; команды `plan-fact list|record|show`, `check-review-report --file`, `check-bypass [A..B]`, `blocker confirm --id --verdict --quote` (статус блокера `downgraded`); тексты `prompts/review-checklist.md`, `prompts/confirm.md`, `phases/8-plan-fact.md`. Не сделано: `ticket NN land` не печатает сигналы обхода — переносится в таск 02.
+
+### Построено таском 02
+`land_check.preflight/problems/head/tracked_files/diff_text`; `kinds.normalize/of_state/is_test_path/plan_problems/land_problems`; `worktrees.land(..., start_head, active_zones)`; `ap`: `init --kind`, `set kind=`, `ticket NN redproof|baseline --command`, `land --include`; поля тасков `startHead`, `redproof`, `baseline`, `repro`, `testsEdit`; тексты `phases/kind-{bug,refactor,quick,auto}.md`; `docs/adr/0020-work-kinds.md`.
+
+### Построено таском 03
+`silence.silent_agents/limit_from_env/long_stages`; `worktrees.link_deps`; `lessons.check_text/add/render/drop/candidates/profile_text/refresh_profile`; команды `ticket NN bundle`, `silence`, `lessons candidates|add|show|drop|check`, `profile refresh`; тексты `phases/5-parallel.md`, `phases/9-lessons.md`. Удалённый вручную урок не возвращается за счёт `.autopilot/lessons.md.seen` (хеши).
