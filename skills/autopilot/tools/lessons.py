@@ -2,6 +2,7 @@
 Пишет только в `.autopilot/`; урок без секретов, абсолютных путей и переводов строки."""
 import datetime as dt
 import hashlib
+import json
 import os
 import re
 
@@ -127,6 +128,14 @@ def profile_text(root, check=None):
     if check:
         rows.append("- полная проверка: `%s`" % check)
     rows += [x for x in _section(agents, "команды", 15) if x.startswith("|") and not x.startswith("|--")]
+    try:
+        with open(os.path.join(root, "package.json"), encoding="utf-8") as f:
+            scripts = json.load(f).get("scripts") or {}
+    except (OSError, ValueError, AttributeError):
+        scripts = {}
+    for name, cmd in (("build", "npm run build"), ("test", "npm test")):
+        if isinstance(scripts.get(name), str):
+            rows.append("- `%s` (%s)" % (cmd, scripts[name]))
     stack = [n for n in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml") if os.path.isfile(os.path.join(root, n))]
     rows += ["", "## Стек", ", ".join(stack) or "не определён", "", "## Подводные камни"]
     rows += _section(agents, "подводные", 15) or ["—"]

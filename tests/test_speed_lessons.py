@@ -4,6 +4,7 @@
 """
 import datetime as dt
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from test_ap import MANIFEST, ticket
 from test_one_command import GENERATORS, TOOLS, Project, SKILL
 
 sys.path.insert(0, TOOLS)
+import kinds  # noqa: E402
 import lessons  # noqa: E402
 import silence  # noqa: E402
 import state_io  # noqa: E402
@@ -187,6 +189,23 @@ class LessonsUnit(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.dir, ".autopilot", "profile.md")))
         self.assertFalse(lessons.refresh_profile(self.dir, check="make all"))
         self.assertTrue(lessons.refresh_profile(self.dir, check="make other"))
+
+    def test_profile_commands_get_build_and_test_scripts_from_package_json(self):
+        with open(os.path.join(self.dir, "package.json"), "w", encoding="utf-8") as f:
+            f.write('{"scripts": {"build": "vite build", "test": "vitest run", "lint": "eslint ."}}')
+        text = lessons.profile_text(self.dir)
+        self.assertIn("`npm run build` (vite build)", text)
+        self.assertIn("`npm test` (vitest run)", text)
+        self.assertNotIn("eslint", text)
+        self.assertTrue(lessons.refresh_profile(self.dir))
+        self.assertFalse(lessons.refresh_profile(self.dir))
+        os.remove(os.path.join(self.dir, "package.json"))
+        self.assertNotIn("npm", lessons.profile_text(self.dir))
+
+    def test_ap_help_kind_line_matches_kinds(self):
+        with open(os.path.join(TOOLS, "ap.py"), encoding="utf-8") as f:
+            m = re.search(r"init --kind ([\w|]+)", f.read())
+        self.assertEqual(tuple(m.group(1).split("|")), kinds.KINDS)
 
 
 class Cli(Project):

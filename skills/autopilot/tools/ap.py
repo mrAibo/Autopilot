@@ -40,7 +40,7 @@
     python3 .autopilot/ap.py silence [--limit СЕК] [--transcript ПУТЬ]   # тихие агенты (код 3); нет журнала — код 1
     python3 .autopilot/ap.py lessons candidates | add … | show | drop N | check   # уроки сборок в .autopilot/lessons.md
     python3 .autopilot/ap.py profile refresh            # .autopilot/profile.md: команды проекта
-    python3 .autopilot/ap.py init --kind feature|bug|refactor …   # вид работы (init --kind)
+    python3 .autopilot/ap.py init --kind quick|bug|task|refactor …   # вид работы (init --kind)
     python3 "<skillDir>/tools/ap.py" bootstrap --project .   # поставить инструменты и дашборд в .autopilot/ (из папки навыка); печатает skillDir
     python3 "<skillDir>/tools/ap.py" doctor             # git-check, версия Claude Code, advisorModel, repo_doctor — строка на проверку
     python3 .autopilot/ap.py url                        # адрес дашборда с токеном — только эта команда (в чат не вставлять)
