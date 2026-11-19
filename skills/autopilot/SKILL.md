@@ -54,6 +54,10 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 | — | `phases/5-sequential-host.md` — a run with `--sequential-host` |  |
 | — | `phases/5-repair.md` — when a ticket comes back anything but a clean `DONE` | |
 | — | `prompts/review-checklist.md`, `prompts/confirm.md` — the whole-branch review: plan items, six risk points, second pass on each blocker | `planFact`, `blocker confirm` |
+| — | `phases/kind-auto.md` — the word «авто» for the kind of work (`ap.py set kind=…`) | `kind` in `state.js` |
+| — | `phases/kind-bug.md` — `kind=bug`: a red reproduction ticket first | `redproof` |
+| — | `phases/kind-refactor.md` — `kind=refactor`: green before and after, no edits to old tests | `baseline` |
+| — | `phases/kind-quick.md` — `kind=quick`: one ticket, short spec | |
 | — | `phases/8-plan-fact.md` — before the report: the line «план: N из M» | |
 | — | `phases/9-memory.md` — also in Phase 5, when a ticket discovered something worth keeping | |
 | — | `phases/rationalizations.md` — on a failed gate, on catching yourself excusing something, once before the report | |

@@ -24,3 +24,7 @@ Rules:
 - `blockingFindings[].status` may be `downgraded`: the second pass (`ap.py blocker confirm
   --verdict not-confirmed`) did not confirm the finding; it no longer blocks, the condition is
   copied to `concerns` as «не подтверждено вторым проходом: …». `confirmQuote` keeps the quote.
+- `state.kind` (optional, additive; absent = `task`): `quick | bug | task | refactor`, set by
+  `ap.py init --kind` / `set kind=`. Ticket fields: `startHead` (HEAD at `ticket NN start`, used by
+  the pre-landing check), `redproof` (`{command, exit, at}`, `bug`: written only on a non-zero
+  exit), `baseline` (`{command, exit, at}`, `refactor`: written only on exit 0). See `docs/adr/0020-work-kinds.md`.

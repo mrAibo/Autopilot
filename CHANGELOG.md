@@ -8,6 +8,11 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Pre-landing check and kinds of work (R24, R25, G01).
+
+- **Before landing:** `ap.py ticket NN land` and `worktrees.py land` count how far the target moved, files of the zone changed by foreign commits after `startHead`, and in-progress tickets with overlapping zones; a conflict is a refusal with a command. `--include` lands foreign new files; bypass signals (`skip`, removed asserts) are printed, not refused. Nothing is merged or changed by the check; a project in a repo subfolder gets a warning.
+- **Kinds:** `kind` = `quick | bug | task | refactor` (`init --kind`, `set kind=`, texts `phases/kind-*.md`, `docs/adr/0020-work-kinds.md`): `bug` needs a red reproduction (`ticket NN redproof`), `refactor` a green `baseline` and no edits to old tests, `quick` one ticket. Router classes and Opus do not depend on it.
+
 Review accuracy (R22, R23, G02).
 
 - **Plan vs fact:** `ap.py plan-fact list|record|show` takes the criteria from ticket files, stores `planFact` and shows «план: N из M» in the report and on the dashboard; partial and undone items go to `concerns`. The blind checker never sees the plan.

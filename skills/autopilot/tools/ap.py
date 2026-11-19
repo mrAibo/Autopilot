@@ -362,6 +362,7 @@ def fresh_state(a):
         "slug": a["slug"], "dir": "%s-%s--wip" % (t[:10], a["slug"]),
         "title": a.get("title") or a["slug"],
         "mode": a.get("mode") or "semi", "depth": a.get("depth") or "normal",
+        "kind": a.get("kind") or "task",
         "tier": None, "strictRouting": bool(a.get("strict-routing")),
         "gateSigned": bool(a.get("strict-routing")),
         "sequentialHost": bool(a.get("sequential-host")),
@@ -554,6 +555,8 @@ def parse_ticket(path):
         "zone": re.findall(r"`([^`]+)`", get("зона", "zone")),
         "review": get("ревью", "review") or None,
         "model": get("модель", "model") or None,
+        "repro": get("вид", "kind").strip().lower() == "воспроизведение",
+        "testsEdit": get("правка тестов", "tests edit") or None,
     }
 
 
@@ -626,7 +629,7 @@ def publish_tickets(state):
             prev = {k: v for k, v in prev.items() if k != "acceptedFingerprint"}
         for k in ("status", "startedAt", "finishedAt", "retries", "repairs", "repairFindings",
                   "tests", "commit", "concerns", "placeholders", "routing", "plannedRouting",
-                  "worktree", "retryAdvice", "attestation", "attestFrom"):
+                  "worktree", "retryAdvice", "attestation", "attestFrom", "startHead", "redproof", "baseline"):
             if k in prev:
                 t[k] = prev[k]
         t.setdefault("status", "pending")
@@ -699,6 +702,13 @@ def check_plan(state):
         with open(files[0], encoding="utf-8") as stream:
             for why in router.plan_problems(stream.read()):
                 problems.append("таск %s: %s" % (t["id"], why))
+    try:
+        import kinds
+    except ImportError:
+        kinds = None
+    if kinds:
+        problems += kinds.plan_problems(kinds.of_state(state), [t for t in tickets if not t["id"].startswith("F")],
+                                        len(rows))
     wave_of = {t["id"]: t["wave"] for t in tickets}
     for t in tickets:
         need = 1 + max([wave_of.get(b) or 0 for b in t["blockedBy"]] or [0])
@@ -1550,6 +1560,12 @@ def cmd_init(opt):
             "нет подтверждения нативного субагента")
     if not opt.get("slug"):
         die("init требует --slug")
+    if "kind" in opt:
+        import kinds
+        try:
+            kinds.normalize(opt["kind"])
+        except ValueError as exc:
+            die("init: --kind: %s" % exc)
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(opt["slug"])):
         die("slug: разрешены только a-z, 0-9 и одиночные дефисы")
     old = read_state()
@@ -2461,6 +2477,8 @@ def cmd_ticket(state, pos, opt):
         return cmd_accept_edit(state, [p for p in pos if p != "accept-edit"], opt)
     if "land" in pos:
         return cmd_land(state, [p for p in pos if p != "land"], opt)
+    if "redproof" in pos or "baseline" in pos:
+        return cmd_proof(state, pos, opt)
     acts =[p for p in pos if p in TICKET_STATUSES]
     ids = [p for p in pos if p not in TICKET_STATUSES]
     if len(acts) != 1 or not ids:
@@ -2565,7 +2583,8 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: не закрыты блокирующие замечания %s" %
                     (i, ", ".join(pending_blockers)))
             validation = tests_pair(opt["tests"]) if opt.get("tests") else tk.get("tests")
-            if not validation or validation["passed"] < 1 or validation["failed"] != 0:
+            repro_done = kinds_of(state) == "bug" and tk.get("repro") and tk.get("redproof")   # красный тест — цель
+            if not repro_done and (not validation or validation["passed"] < 1 or validation["failed"] != 0):
                 die("таск %s: нельзя принять без успешных тестов" % i)
             rev = opt.get("commit") or tk.get("commit")
             if not rev:
@@ -2726,6 +2745,11 @@ def cmd_ticket(state, pos, opt):
         if act == "start":
             tk.setdefault("startedAt", t)
             tk.pop("finishedAt", None)
+            try:
+                import land_check
+                tk["startHead"] = land_check.head(ROOT)
+            except ImportError:
+                pass
         elif act == "retry":
             tk["retries"] = tk.get("retries", 0) + 1
             tk["startedAt"] = tk.get("startedAt") or t
@@ -2924,8 +2948,45 @@ def cmd_chore(state, pos):
     return 0
 
 
+def kinds_of(state):
+    import kinds
+    return kinds.of_state(state)
+
+
+def cmd_proof(state, pos, opt):
+    """`ticket NN redproof --command "…"` (bug: код ≠ 0) и `ticket NN baseline --command "…"` (refactor: код 0)."""
+    act = "redproof" if "redproof" in pos else "baseline"
+    ids = [p for p in pos if p != act]
+    command = opt.get("command")
+    if len(ids) != 1 or not isinstance(command, str) or not command.strip():
+        die('ticket NN %s --command "<команда тестов>"' % act)
+    tk = next((x for x in state.get("tickets") or [] if x["id"] == ids[0]), None)
+    if tk is None:
+        die("таска %s нет — сначала `ap.py tickets`" % ids[0])
+    kind = kinds_of(state)
+    if kind != ("bug" if act == "redproof" else "refactor"):
+        die("%s работает только в сборке вида %s (сейчас %s)" % (act, "bug" if act == "redproof" else "refactor", kind))
+    code, out = run_shell(command, 1800)
+    if code is None:
+        die("%s: таймаут 1800 с" % act)
+    if (act == "redproof") == (code == 0):
+        die("redproof: тест не красный (код 0)" if act == "redproof" else
+            "baseline: тесты красные до правок (код %d): %s" % (code, last_line(out)))
+    tk[act] = {"command": command.strip(), "exit": code, "at": now()}
+    log(state, "ticket-" + act, id=ids[0], code=code)
+    return "таск %s: %s записан (код %d)" % (ids[0], act, code)
+
+
 def split_paths(value):
     return [x.strip().replace("\\", "/") for x in re.split(r"[,;]", value) if x.strip()] if isinstance(value, str) else []
+
+
+def review_signals(files, status):
+    """Сигналы обхода (skip, xfail, --no-verify, удалённые assert) по диффу таска; только печать."""
+    import review_checks
+    import land_check
+    untracked = [f for f in files if status.get(f, ("", ""))[0].strip() == "??"]
+    return review_checks.bypass_lines(land_check.diff_text(ROOT, files, untracked))
 
 
 def cmd_land(state, pos, opt):
@@ -2958,40 +3019,62 @@ def cmd_land(state, pos, opt):
     if not zone:
         red("зона", "у таска нет зоны", "дай --zone путь1,путь2")
     reqs = ", ".join(re.findall(r"[RGD]\d+[a-z]?(?:\.\d+)?", str(opt.get("requirements") or "")) or tk.get("requirements") or [])
+    import kinds
+    import land_check
+    kind = kinds.of_state(state)
+    repro = kind == "bug" and bool(tk.get("repro"))            # красный тест вливается без полной проверки
     check = full_check_command(state)
-    if not check:
+    if not check and not repro:
         red("проверка", "в interfaces.md нет строки «Полная проверка: `команда`»", "впиши её и повтори")
+    include = split_paths(opt.get("include"))
     flying = [z for x in state.get("tickets") or [] if x["id"] != i and x.get("status") in ACTIVE_EXECUTOR
               for z in x.get("zone") or []]
-    allowed = [".autopilot", ".env.example"] + flying + split_paths(opt.get("allow"))
+    allowed = [".autopilot", ".env.example"] + flying + split_paths(opt.get("allow")) + include
     status = porcelain()
     if status is None:
         red("вне зоны", "git не отвечает")
     outside = [p for p in status if not covers(zone, p) and not covers(allowed, p)]
     if outside:
         red("вне зоны", "изменено %s%s" % (", ".join(outside[:3]), " и ещё %d" % (len(outside) - 3) if len(outside) > 3 else ""),
-            "верни файл или назови причину (--allow путь — если он не от таска)")
-    code, out = run_shell(check, 1800)
+            "верни файл или назови причину (--allow путь — если он не от таска; --include путь — влить в коммит)")
+    active = {x["id"]: x.get("zone") or [] for x in state.get("tickets") or [] if x["id"] != i and x.get("status") in ACTIVE_EXECUTOR}
+    report = land_check.preflight(ROOT, tk.get("startHead"), state.get("baseCommit") or tk.get("startHead"), zone, i, active)
+    if report["unsupported"]:
+        print("land %s: предупреждение — %s" % (i, report["unsupported"]))
+    bad = land_check.problems(report, i)
+    if bad:
+        red("пересечения", bad[0], bad[1] if len(bad) > 1 else None)
+    files = sorted(p for p in status if covers(zone, p) or p == ".env.example" or covers(include, p))
+    tests = {f for f in land_check.tracked_files(ROOT) if kinds.is_test_path(f)} if kind == "refactor" else set()
+    kind_bad = kinds.land_problems(kind, tk, files, tests, tk.get("redproof"), state.get("tickets") or [])
+    quote = clean_quote(opt.get("by-user")) if kind == "bug" else None
+    if kind_bad and not quote:
+        red("вид «%s»" % kind, kind_bad[0], kind_bad[1] if len(kind_bad) > 1 else None)
+    if kind_bad:
+        tk.setdefault("concerns", []).append("land по слову пользователя вопреки виду bug: " + quote)
+        log(state, "land-by-user", id=i, quote=quote)
+    code, out = (0, "") if repro else run_shell(check, 1800)
     if code is None:
         red("проверка", "таймаут 1800 с")
-    counts = count_tests(out)
+    counts = (0, 0) if repro else count_tests(out)
     if code:
         red("проверка", "красная: код %d%s" % (code, ", упало %d" % counts[1] if counts else ""), last_line(out))
     if counts is None:
         red("проверка", "не смог посчитать тесты: вывод не unittest, pytest или cargo", "отдельно: ticket %s done --tests N/0 --commit SHA" % i)
     passed, failed = counts
-    if passed < 1 or failed:
+    if not repro and (passed < 1 or failed):
         red("проверка", "ноль тестов" if passed < 1 else "упало %d" % failed)
-    files = sorted(p for p in status if covers(zone, p) or p == ".env.example")
     if not files:
         red("коммит", "в зоне нечего коммитить")
+    for line in review_signals(files, status)[:3]:
+        print("land %s: сигнал обхода — %s" % (i, line))
     try:
         sha = commit_paths(files, message.strip(), ["Autopilot-Run: " + run_key(state.get("dir")), "Requirements: " + reqs])
     except OSError as exc:
         red("коммит", "git отказал (%s)" % exc, "сбой машины, не кода: ticket %s fail --note \"git отказал\" и вопрос пользователю" % i)
     if sha is None:
         red("коммит", "в зоне нечего коммитить")
-    done = {"tests": "%d/%d" % (passed, failed), "commit": sha}
+    done = {"commit": sha} if repro else {"tests": "%d/%d" % (passed, failed), "commit": sha}
     if isinstance(opt.get("placeholder"), str):
         done["placeholder"] = opt["placeholder"]
     try:
@@ -3000,7 +3083,10 @@ def cmd_land(state, pos, opt):
         print("land %s: коммит %s сделан, но `ticket done` отказал — после исправления: ticket %s done --tests %s --commit %s"
               % (i, sha, i, done["tests"], sha))
         raise
-    return "таск %s посажен: коммит %s, тестов %d/0, файлов %d" % (i, sha, passed, len(files))
+    if repro:
+        return "таск %s посажен: коммит %s (красный тест, полная проверка не гонялась), файлов %d" % (i, sha, len(files))
+    ahead = " · цель ушла на %d коммит." % report["ahead"] if report["ahead"] else ""
+    return "таск %s посажен: коммит %s, тестов %d/0, файлов %d%s" % (i, sha, passed, len(files), ahead)
 
 
 def cmd_worktree(state, pos, opt):
@@ -3186,7 +3272,9 @@ def cmd_worktree(state, pos, opt):
             source = "host" if observed == check else "claimed"
         if check["passed"] < 1 or check["failed"] != 0:
             die("worktree: для интеграции нужны пройденные тесты N/0")
-        result = worktrees.land(ROOT, ident, record["baseCommit"], tk.get("zone") or [])
+        result = worktrees.land(ROOT, ident, record["baseCommit"], tk.get("zone") or [],
+                                active_zones={x["id"]: x.get("zone") or [] for x in known.values()
+                                              if x["id"] != ident and x.get("status") in ACTIVE_EXECUTOR})
         tk["testsSource"] = source
         if source == "claimed":
             note = "тесты тикета %s не перепроверены хостом" % ident
@@ -3262,9 +3350,15 @@ def cmd_set(state, pos):
     for p in pos:
         k, _, v = p.partition("=")
         allowed = {"tier", "baseCommit", "briefFile", "memoryFile",
-                   "memoryOwner", "skillDir", "mode", "depth"}
+                   "memoryOwner", "skillDir", "mode", "depth", "kind"}
         if not _ or k not in allowed:
             die("set: разрешены только " + ", ".join(sorted(allowed)))
+        if k == "kind":
+            import kinds
+            try:
+                v = kinds.normalize(v if v != "null" else None)
+            except ValueError as exc:
+                die("set: kind: %s" % exc)
         state[k] = None if v in ("", "null") else v
 
 

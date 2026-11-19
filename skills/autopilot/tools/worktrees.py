@@ -234,7 +234,7 @@ def finalize(root, ticket, base, zones, passed, failed):
             "files": paths, "tests": {"passed": passed, "failed": failed}}
 
 
-def land(root, ticket, base, zones):
+def land(root, ticket, base, zones, start_head=None, active_zones=None):
     """Cherry-pick exactly one clean, detached commit; leave main unchanged on conflict.
 
     The commit may touch only the ticket zones, never .git/.autopilot/.claude.
@@ -252,6 +252,14 @@ def land(root, ticket, base, zones):
     names = git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "--no-renames",
                 "-z", source).stdout.split("\0")
     check_paths_in_zones([n for n in names if n], zones)
+    try:
+        import land_check
+    except ImportError:
+        land_check = None
+    if land_check:                                    # та же проверка, что у `ap.py ticket NN land`, до cherry-pick
+        report = land_check.preflight(str(root), start_head or base, base, list(zones), ticket, active_zones or {})
+        if land_check.problems(report, ticket):
+            raise WorktreeError("; ".join(land_check.problems(report, ticket)))
     commit = git(root, "cherry-pick", "-x", source, check=False)
     if commit.returncode:
         git(root, "cherry-pick", "--abort", check=False)

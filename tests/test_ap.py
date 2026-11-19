@@ -75,7 +75,7 @@ class Run(unittest.TestCase):
         shutil.copy(CONTROLLER, os.path.join(self.a, "controller.py"))
         shutil.copy(TEST_EVIDENCE, os.path.join(self.a, "test_evidence.py"))
         for name in ("state_io.py", "process_containment.py", "gate_sign.py", "run_log.py", "dashboard_upgrade.py",
-                     "plan_items.py", "review_checks.py"):
+                     "plan_items.py", "review_checks.py", "kinds.py", "land_check.py"):
             shutil.copy(os.path.join(SKILL, "tools", name), os.path.join(self.a, name))
 
     def tearDown(self):
