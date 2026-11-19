@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-skin="aurora">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -660,6 +660,122 @@
   .views button{min-height:44px;height:44px}
   .views button[aria-pressed="true"]::before{content:"✓";margin-right:6px}
 
+  /* ——— Скин «Аврора» (концепт 01) ———
+     Ночной фон с полярным сиянием, стеклянные карточки, mint/sky/violet.
+     Токены перекрывают палитру макетов только у не-«Классики»: у неё свои цвета.
+     Тёмная половина — базовая (так выглядит концепт), светлая — производная по кнопке. */
+  html[data-skin="aurora"]{--aurora-mint:#4DF0BE;--aurora-sky:#63C7FF;--aurora-violet:#B69CFF;
+    --aurora-g1:rgba(77,240,190,.20);--aurora-g2:rgba(99,199,255,.18);--aurora-g3:rgba(182,156,255,.16);
+    --aurora-bg2:#070B14;--aurora-bg3:#060911;
+    --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.055),rgba(255,255,255,.018) 44%,rgba(99,199,255,.02));
+    --aurora-rail1:#0A1424;--aurora-rail2:#050A14;--aurora-rail3:#0B1A24;--aurora-ink:#04130F;
+    scrollbar-color:rgba(120,160,220,.35) transparent}
+  html[data-skin="aurora"][data-theme="light"]{--aurora-mint:#0A7D5A;--aurora-sky:#1B6FB8;--aurora-violet:#7C3AED;
+    --aurora-g1:rgba(10,125,90,.10);--aurora-g2:rgba(27,111,184,.09);--aurora-g3:rgba(124,58,237,.08);
+    --aurora-bg2:#F7FAFF;--aurora-bg3:#E9F0F9;
+    --aurora-sheen:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.45) 44%,rgba(99,199,255,.07));
+    --aurora-ink:#FFFFFF;scrollbar-color:rgba(60,100,150,.35) transparent}
+  /* Тёмные токены работают и до первой отрисовки (в шапке нет data-view): экран
+     «дашборд ещё не прочитал состояние» тоже остаётся ночным, а не белой карточкой. */
+  html[data-skin="aurora"]:not([data-view="classic"]):not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#05070D;--card:#0B1322;--inset:#0F1A2E;--soft:#15223A;
+    --line:rgba(158,190,255,.14);--line2:rgba(158,190,255,.24);
+    --tx:#EDF2FC;--tx2:#C3D1E8;--mut:#A3B3CC;--quiet:#8D9DB8;
+    --done:#4DF0BE;--done-soft:#0B3A30;--done-tx:#8CFFDF;--on-done:#04130F;
+    --now:#FFC46B;--now-soft:#3A2A10;--now-tx:#FFD9A0;--now-on:#1E1204;--hatch:#E0A24E;
+    --rev:#63C7FF;--rev-soft:#0E2C40;--rev-tx:#BDE8FF;--on-rev:#04131F;
+    --fix:#B69CFF;--fix-soft:#241C3D;--fix-tx:#DDD0FF;--on-fix:#160B2E;
+    --warn-bg:#33260F;--warn-bd:#6B5320;--warn-tx:#FFD9A0;
+    --bad:#FF8D9C;--bad-soft:#3A141C;--bad-tx:#FFB3BD;--on-bad:#2A070C;
+    --idle:#39465C;--accent:#4DF0BE;
+    --hero:#0C1424;--hero-shadow:rgba(0,0,0,.75);
+    --sh:0 26px 60px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.05);
+    --sh-raised:0 18px 44px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06)}
+  html[data-skin="aurora"][data-theme="light"][data-view]:not([data-view="classic"]){
+    color-scheme:light;
+    --bg:#EEF3FA;--card:#FFFFFF;--inset:#F2F6FC;--soft:#E6EEF8;
+    --line:#D3DFEE;--line2:#BFD0E4;
+    --tx:#0C1A2B;--tx2:#33475F;--mut:#52667F;--quiet:#566A80;
+    --done:#0A7D5A;--done-soft:#DCF3EA;--done-tx:#075E44;--on-done:#FFFFFF;
+    --now:#E8742A;--now-soft:#FDEBDD;--now-tx:#A8470F;--now-on:#2A1405;--hatch:#F6A56B;
+    --rev:#1B6FB8;--rev-soft:#E1EFFB;--rev-tx:#145A96;--on-rev:#FFFFFF;
+    --fix:#7C3AED;--fix-soft:#EFE7FE;--fix-tx:#6427D0;--on-fix:#FFFFFF;
+    --warn-bg:#FDF1E6;--warn-bd:#F0C9A6;--warn-tx:#7A3A0C;
+    --bad:#B42318;--bad-soft:#FDECEA;--bad-tx:#B42318;--on-bad:#FFFFFF;
+    --idle:#8FA89C;--accent:#0A7D5A;
+    --hero:#254991;--hero-shadow:rgba(25,63,128,.3);
+    --sh:0 20px 44px -32px rgba(16,42,66,.38),0 1px 2px rgba(16,42,66,.06);
+    --sh-raised:0 14px 32px -22px rgba(16,42,66,.32)}
+  html[data-skin="aurora"]:not([data-view="classic"]) body{
+    background:
+      radial-gradient(1200px 820px at 12% -12%,var(--aurora-g1),transparent 62%),
+      radial-gradient(1000px 760px at 96% 6%,var(--aurora-g2),transparent 63%),
+      radial-gradient(1000px 900px at 52% 112%,var(--aurora-g3),transparent 62%),
+      linear-gradient(180deg,var(--aurora-bg2),var(--bg) 55%,var(--aurora-bg3));
+    background-attachment:fixed}
+  html[data-skin="aurora"]:not([data-view="classic"]) .card{
+    border-radius:24px;background-image:var(--aurora-sheen);box-shadow:var(--sh);
+    -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%)}
+  /* Сияние в шапке состояния: цвет состояния остаётся за фоном, сияние только сверху. */
+  html[data-skin="aurora"]:not([data-view="classic"]) .hero:before{
+    display:block;content:"";position:absolute;right:-120px;top:-180px;width:460px;height:460px;border-radius:50%;
+    background:radial-gradient(circle,var(--aurora-g1),transparent 62%);filter:blur(14px);pointer-events:none}
+  html[data-skin="aurora"]:not([data-view="classic"]) .tile:before{height:3px;
+    background:linear-gradient(90deg,var(--aurora-mint),var(--aurora-sky))}
+  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(2):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-violet))}
+  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(3):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-sky))}
+  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(4):before{background:linear-gradient(90deg,var(--aurora-violet),var(--aurora-mint))}
+  html[data-skin="aurora"]:not([data-view="classic"]) .tile:nth-child(5):before{background:linear-gradient(90deg,var(--aurora-sky),var(--aurora-mint))}
+  html[data-skin="aurora"][data-view]:not([data-view="classic"]) :is(.tabs button[aria-pressed="true"],.ntabs button[aria-selected="true"],.chip[aria-pressed="true"],.rbmode button[aria-pressed="true"]){
+    background:linear-gradient(135deg,var(--aurora-mint),var(--aurora-sky));color:var(--aurora-ink);
+    border-color:transparent;box-shadow:0 10px 28px -18px var(--aurora-g1)}
+  html[data-skin="aurora"] .cockpit-rail{
+    background:linear-gradient(155deg,var(--aurora-rail1),var(--aurora-rail2) 62%,var(--aurora-rail3));
+    border-right-color:rgba(158,190,255,.14)}
+  html[data-skin="aurora"] .rail-nav a[aria-current]{background:rgba(77,240,190,.12);color:#B6FFE6;
+    border:1px solid rgba(77,240,190,.22)}
+  html[data-skin="aurora"][data-view]:not([data-view="classic"]) :focus-visible{outline-color:var(--aurora-sky)}
+  html[data-skin="aurora"] .skip-link{border-color:var(--aurora-mint);background:var(--aurora-rail1);color:#F8FAFF}
+  html[data-skin="aurora"] ::selection{background:rgba(77,240,190,.28)}
+  html[data-skin="aurora"]:not([data-view="classic"]) .vcombo{background-image:var(--aurora-sheen)}
+
+  /* Вид в шапке — поисковый список (combobox): имя вида на двух языках, стрелки, Enter, Esc.
+     Прежняя лента кнопок осталась в разметке скрытым запасным путём: на её data-view
+     держатся переключение вида и тесты. */
+  .vcombo{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:0;
+    padding:0 6px 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--card);
+    box-shadow:var(--sh-raised);flex:0 1 250px}
+  .vcombo[data-open="true"]{border-color:var(--line2);box-shadow:0 0 0 3px var(--soft),var(--sh-raised)}
+  .vcombo-ic{color:var(--mut);flex:none;display:inline-flex}
+  .vcombo-inp{appearance:none;border:0;background:none;font:inherit;font-size:13.5px;font-weight:650;color:var(--tx);
+    min-width:0;width:100%;height:42px;padding:0;outline:none;text-overflow:ellipsis}
+  .vcombo-inp::placeholder{color:var(--mut);font-weight:500}
+  .vcombo-inp::-webkit-search-cancel-button{display:none}
+  .vcombo-btn{appearance:none;border:0;background:none;color:var(--mut);width:32px;height:32px;border-radius:9px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:transform .18s}
+  .vcombo-btn:hover{color:var(--tx);background:var(--inset)}
+  .vcombo[data-open="true"] .vcombo-btn{transform:rotate(180deg)}
+  .vlistbox{position:absolute;z-index:45;top:calc(100% + 8px);left:0;min-width:100%;width:max-content;
+    max-width:min(340px,90vw);max-height:min(60vh,400px);overflow:auto;padding:6px;
+    background:var(--card);border:1px solid var(--line2);border-radius:16px;box-shadow:var(--sh-raised)}
+  .vlistbox[hidden]{display:none}
+  .vopt{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 12px;border:0;border-radius:11px;
+    background:none;color:var(--tx);font:inherit;font-size:13.5px;font-weight:600;text-align:left;cursor:pointer}
+  .vopt:hover,.vopt.act{background:var(--inset)}
+  .vopt.act{box-shadow:inset 0 0 0 1px var(--line2)}
+  .vopt[aria-selected="true"]{color:var(--accent)}
+  .vopt-name{min-width:0;overflow-wrap:anywhere}
+  .vopt-alt{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut);white-space:nowrap}
+  .vopt[aria-selected="true"] .vopt-alt{color:var(--accent);opacity:.8}
+  .vopt-check{margin-left:4px;font-weight:800;flex:none}
+  .vlistbox-none{margin:0;padding:10px 12px;font-size:13px;color:var(--mut)}
+  @media(max-width:700px){
+    .vcombo{flex:1 1 100%;padding-right:4px}
+    .vcombo-inp{font-size:13px}
+    .vlistbox{width:100%;max-width:none}
+  }
+
   /* «Обзор» */
   .ovh{display:flex;flex-wrap:wrap;align-items:center;gap:28px 36px;padding:32px 34px;border-radius:28px}
   .ring{--rs:210px;width:var(--rs);height:var(--rs);border-radius:50%;flex:none;display:grid;place-items:center}
@@ -1080,19 +1196,18 @@ const IC = {
   hourglass: 'M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2',
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
   moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+  search: 'M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
   sync: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5'
 };
 const ic = (n, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
 
-const systemDark = () => {
-  try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch(e) { return false; }
-};
 const storedTheme = () => {
   try { return localStorage.getItem('autopilot-theme'); } catch(e) { return null; }
 };
-// Явный выбор пользователя перевешивает системную тему; до первого клика — системная.
+// «Аврора» — ночной скин: пока тему не выбрали, страница открывается тёмной,
+// как в концепте. Светлая — производная, её включает кнопка, и выбор запоминается.
 function effectiveTheme(){
-  return storedTheme() || (systemDark() ? 'dark' : 'light');
+  return storedTheme() || 'dark';
 }
 function applyTheme(t){
   if (t) document.documentElement.setAttribute('data-theme', t);
@@ -1234,7 +1349,7 @@ const I18N = {
     needToken:"Данные прогона открываются по адресу с токеном: возьми его командой ap.py url.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
-    viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",
+    viewLabel:"Вид",moreViews:"Ещё",ntabsLabel:"Разделы страницы",viewSearch:"Поиск вида",viewNone:"ничего не найдено",
     ntabs:{now:"Сейчас",req:"Требования",sum:"Итог",det:"Подробности"},
     askBar:"Нужен твой ответ",gReset:"сброшена: план изменился",doneAt:t=>`сдано ${t}`,
     notify:"Включить уведомления",notifyBody:"Сборка стоит и ждёт тебя",
@@ -1386,7 +1501,7 @@ const I18N = {
     needToken:"Run data opens at the address with the token: get it with the ap.py url command.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
-    viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",
+    viewLabel:"View",moreViews:"More",ntabsLabel:"Page sections",viewSearch:"Find a view",viewNone:"no matches",
     ntabs:{now:"Now",req:"Requirements",sum:"Summary",det:"Details"},
     askBar:"Your answer is needed",gReset:"reset: the plan changed",doneAt:t=>`done ${t}`,
     notify:"Turn on notifications",notifyBody:"The build is stopped and waits for you",
@@ -1459,7 +1574,71 @@ const RB_KEY = 'autopilot-boardmode';
 function storedRb(){
   try { return localStorage.getItem(RB_KEY) === 'tk' ? 'tk' : 'req'; } catch(e) { return 'req'; }  // нет хранилища — по требованиям
 }
-const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), rbOkAll: false, panel: null, focus: null};
+const UI = {filter: 'all', open: {}, tab: 'now', more: false, rb: storedRb(), rbOkAll: false, panel: null, focus: null,
+  combo: {open: false, q: '', i: 0}};
+
+// ——— вид в шапке: поисковый список (combobox) ———
+// Поиск идёт по имени вида на двух языках и по id; переключение остаётся прежним —
+// та же переменная VIEW, то же хранилище, тот же render(). Состояние списка живёт в UI,
+// поэтому перерисовка на каждом событии сборки не закрывает его и не теряет запрос.
+const COMBO_LANGS = ['ru', 'en'];
+function comboList(q){
+  const needle = String(q == null ? '' : q).trim().toLowerCase();
+  if (!needle) return VIEW_IDS.slice();
+  return VIEW_IDS.filter(id => id.includes(needle)
+    || COMBO_LANGS.some(l => String((I18N[l].views || {})[id] || '').toLowerCase().includes(needle)));
+}
+function selectView(id){
+  VIEW = id;
+  UI.more = false; UI.combo.open = false; UI.combo.q = '';
+  try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
+  render(CUR.lang);
+}
+function comboOpen(open){
+  UI.combo.open = !!open;
+  if (UI.combo.open) {
+    UI.combo.q = '';
+    UI.combo.i = Math.max(0, comboList('').indexOf(VIEW));
+  }
+  comboSync();
+  const app = document.getElementById('app');
+  if (!UI.combo.open || !app || typeof app.querySelector !== 'function') return;
+  const inp = app.querySelector('[data-vcombo-input]');
+  if (inp && typeof inp.focus === 'function') inp.focus({preventScroll: true});
+}
+// Стрелки ведут по отфильтрованному списку, Enter выбирает, Esc закрывает без выбора.
+function comboKey(e){
+  if (!UI.combo.open) return false;
+  const ids = comboList(UI.combo.q), n = ids.length;
+  if (e.key === 'ArrowDown') { UI.combo.i = n ? (UI.combo.i + 1) % n : 0; comboSync(); return true; }
+  if (e.key === 'ArrowUp') { UI.combo.i = n ? (UI.combo.i - 1 + n) % n : 0; comboSync(); return true; }
+  if (e.key === 'Enter') { if (ids[UI.combo.i]) { selectView(ids[UI.combo.i]); return true; } return false; }
+  if (e.key === 'Escape') { comboOpen(false); return true; }
+  return false;
+}
+// Перерисовка не нужна: открытие, фильтр и подсветка — три атрибута и два класса.
+function comboSync(){
+  const app = document.getElementById('app');
+  if (!app || typeof app.querySelector !== 'function') return;
+  const wrap = app.querySelector('[data-vcombo]'), inp = app.querySelector('[data-vcombo-input]'),
+        box = app.querySelector('.vlistbox');
+  if (!inp || !box) return;
+  const L = CUR || I18N.ru, ids = comboList(UI.combo.q);
+  if (UI.combo.i >= ids.length) UI.combo.i = 0;
+  const opts = [...box.querySelectorAll('[data-vopt]')];
+  opts.forEach(o => { o.hidden = ids.indexOf(o.dataset.vopt) < 0; o.classList.remove('act'); });
+  const active = opts.find(o => o.dataset.vopt === ids[UI.combo.i]);
+  if (active && UI.combo.open) { active.classList.add('act'); inp.setAttribute('aria-activedescendant', active.id); }
+  else inp.removeAttribute('aria-activedescendant');
+  const none = box.querySelector('.vlistbox-none');
+  if (none) none.hidden = ids.length > 0;
+  box.hidden = !UI.combo.open;
+  if (wrap) wrap.setAttribute('data-open', String(UI.combo.open));
+  inp.setAttribute('aria-expanded', String(UI.combo.open));
+  const toggle = app.querySelector('[data-vcombo-toggle]');
+  if (toggle) toggle.setAttribute('aria-expanded', String(UI.combo.open));
+  inp.value = UI.combo.open ? UI.combo.q : ((L.views || {})[VIEW] || '');
+}
 
 // ——— «нужен твой ответ»: значок вкладки и уведомление ———
 // Значок — всегда (data:-картинка, без запросов); уведомление — только с явного разрешения, которое просит кнопка по клику.
@@ -2822,6 +3001,29 @@ function render(lang){
   // Первая тема — страница «Сейчас»; остальные под «Ещё» (раскрыты, пока выбрана одна из них).
   const viewBtn = id => `<button type="button" data-view="${id}" aria-pressed="${VIEW === id}">${esc(L.views[id])}</button>`;
   const moreOpen = UI.more || VIEW !== VIEW_IDS[0];
+  // Вид в шапке — поисковый combobox: имя вида на двух языках, стрелки, Enter, Esc.
+  // Прежняя лента кнопок (data-view) остаётся в разметке скрытой: на ней держатся
+  // data-view, «Ещё» и тесты, а выбирает вид тот же selectView().
+  const comboIds = comboList(UI.combo.q);
+  if (UI.combo.i >= comboIds.length || UI.combo.i < 0) UI.combo.i = 0;
+  const comboActive = UI.combo.open && comboIds.length ? 'vopt-' + comboIds[UI.combo.i] : '';
+  const comboOpt = id => {
+    const alt = L.lang === 'ru' ? I18N.en.views[id] : I18N.ru.views[id];
+    const on = UI.combo.open && comboIds[UI.combo.i] === id;
+    return `<button type="button" role="option" id="vopt-${id}" class="vopt${on ? ' act' : ''}" data-vopt="${id}" aria-selected="${VIEW === id}" tabindex="-1">`
+      + `<span class="vopt-name">${esc(L.views[id])}</span><span class="vopt-alt">${esc(alt)}</span>${VIEW === id ? '<span class="vopt-check" aria-hidden="true">✓</span>' : ''}</button>`;
+  };
+  const viewCombo = `<div class="vcombo" data-vcombo data-open="${UI.combo.open}">
+      <span class="vcombo-ic" aria-hidden="true">${ic('search')}</span>
+      <input id="view-combo" class="vcombo-inp" type="text" role="combobox" autocomplete="off" spellcheck="false" aria-haspopup="listbox"
+        aria-label="${esc(L.viewLabel)}" aria-expanded="${UI.combo.open}" aria-controls="view-listbox" aria-autocomplete="list"${
+        comboActive ? ` aria-activedescendant="${comboActive}"` : ''} placeholder="${esc(L.viewSearch)}"
+        value="${esc(UI.combo.open ? UI.combo.q : L.views[VIEW])}" data-vcombo-input>
+      <button type="button" class="vcombo-btn" data-vcombo-toggle aria-label="${esc(L.viewLabel)}" aria-expanded="${UI.combo.open}">${ic('chev')}</button>
+      <div class="vlistbox" id="view-listbox" role="listbox" aria-label="${esc(L.viewLabel)}"${UI.combo.open ? '' : ' hidden'}>
+        ${comboIds.map(comboOpt).join('')}<p class="vlistbox-none"${comboIds.length ? ' hidden' : ''}>${esc(L.viewNone)}</p>
+      </div>
+    </div>`;
   // «Сдано <время>» вместо «обновлено N назад»: у сданной сборки обновлений больше нет. Другой день — с датой.
   const doneAtMs = toMs(S.finishedAt) ?? toMs(S.updatedAt);
   const doneStamp = doneAtMs == null ? '' : new Date(doneAtMs).toDateString() === new Date().toDateString() ? hhmm(new Date(doneAtMs))
@@ -2834,7 +3036,7 @@ function render(lang){
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-rbok','data-notify'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-view','data-filter','data-more','data-refresh','data-ntab','data-views-more','data-card','data-pclose','data-rbmode','data-rbok','data-notify','data-vcombo-input'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -2881,8 +3083,9 @@ function render(lang){
     <div class="brand">${BRAND_MARK}<span class="brand-version" id="brand-version"></span></div>
     ${VIEW !== 'classic' && toMs(S.updatedAt) != null ? `<span class="upd"><i aria-hidden="true"></i>${fin ? esc(L.doneAt(doneStamp)) : `${W.upd} <span data-ago="${esc(S.updatedAt)}">${agoText(S.updatedAt)}</span>`}</span>` : ''}
     <div class="tools">
+      ${viewCombo}
       ${fin ? '' : `<button type="button" class="iconbtn" data-refresh title="${L.refresh}" aria-label="${L.refresh}">${ic('sync')}</button>`}
-      <div class="tabs views" role="group" aria-label="${L.viewLabel}">
+      <div class="tabs views" role="group" aria-label="${L.viewLabel}" hidden>
         ${viewBtn(VIEW_IDS[0])}
         <button type="button" class="vmore" data-views-more aria-expanded="${moreOpen}">${esc(L.moreViews)}</button>
         <span class="vlist"${moreOpen ? '' : ' hidden'}>${VIEW_IDS.slice(1).map(viewBtn).join('')}</span>
@@ -2914,7 +3117,7 @@ function render(lang){
   if (bv) { const v = S.skillVersion; bv.textContent = typeof v === 'string' ? v.slice(0, 16) : ''; bv.hidden = !bv.textContent; }
   if (focusAttr || focusId) {
     const replacement = focusAttr
-      ? [...app.querySelectorAll('button, a[href]')].find(node =>
+      ? [...app.querySelectorAll('button, a[href], input')].find(node =>
           node.tagName === focusTag && node.getAttribute(focusAttr) === focusValue)
       : document.getElementById(focusId);
     if (replacement) replacement.focus({preventScroll:true});
@@ -2984,11 +3187,12 @@ document.getElementById('app').addEventListener('click', e => {
     try { localStorage.setItem('autopilot-theme', t); } catch(err) {}
     applyTheme(t);
     document.querySelectorAll('button[data-theme]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.theme === t)));
+  } else if (b.dataset.vopt) {
+    selectView(b.dataset.vopt);
+  } else if (b.hasAttribute('data-vcombo-toggle')) {
+    comboOpen(!UI.combo.open);
   } else if (VIEW_IDS.includes(b.dataset.view)) {
-    VIEW = b.dataset.view;
-    UI.more = false;
-    try { localStorage.setItem(VIEW_KEY, VIEW); } catch(err) {}
-    render(CUR.lang);
+    selectView(b.dataset.view);
   } else if (b.dataset.ntab) {
     UI.tab = b.dataset.ntab; render(CUR.lang);
   } else if (b.dataset.card) {
@@ -3013,6 +3217,37 @@ document.getElementById('app').addEventListener('click', e => {
   } else if (b.dataset.more) {
     UI.open[b.dataset.more] = !UI.open[b.dataset.more]; render(CUR.lang);
   }
+});
+
+// Вид в шапке: ввод фильтрует список, стрелки/Enter/Esc — пока фокус в комбобоксе.
+// Слушаем #app: он перерисовывается целиком, а события всплывают от полей к нему.
+document.getElementById('app').addEventListener('input', e => {
+  const inp = e.target && e.target.closest ? e.target.closest('[data-vcombo-input]') : null;
+  if (!inp) return;
+  UI.combo.q = inp.value || '';
+  UI.combo.i = 0;
+  comboSync();
+});
+document.getElementById('app').addEventListener('keydown', e => {
+  const inCombo = e.target && e.target.closest ? e.target.closest('[data-vcombo]') : null;
+  if (!inCombo) return;
+  if (!UI.combo.open) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); comboOpen(true); }
+    return;
+  }
+  if (e.key === 'Tab') { comboOpen(false); return; }
+  if (comboKey(e)) { e.preventDefault(); e.stopPropagation(); }
+});
+// Клик по полю открывает список, клик мимо — закрывает; выбор пункта ловит общий обработчик.
+document.addEventListener('click', e => {
+  const t = e.target;
+  const inCombo = t && t.closest ? t.closest('[data-vcombo]') : null;
+  if (inCombo) {
+    const inp = t.closest('[data-vcombo-input]');
+    if (inp && !UI.combo.open) comboOpen(true);
+    return;
+  }
+  if (UI.combo.open) comboOpen(false);
 });
 
 // Esc закрывает панель таска; фокус возвращается на карточку.
@@ -3072,15 +3307,6 @@ setInterval(tick, 1000);
 // После сна компьютера — тоже: таймеры страницы стояли вместе с ним.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); refreshNow(); } });
 window.addEventListener('pageshow', e => { if (e.persisted) { tick(); refreshNow(); } });
-
-// Пока пользователь не выбрал тему явно, дашборд следует за системной.
-try {
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (storedTheme()) return;
-    document.querySelectorAll('button[data-theme]').forEach(x =>
-      x.setAttribute('aria-pressed', String(x.dataset.theme === effectiveTheme())));
-  });
-} catch(e) {}
 </script>
 </body>
 </html>

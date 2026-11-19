@@ -1,6 +1,6 @@
 # Dashboard views (themes)
 
-One dashboard page that picks what to show by itself (`now`), plus eight older views of the same `window.STATE` under "More" in the header. The page opens on `now`; a view chosen under "More" is stored in the browser, not in the project, and wins on the next open.
+One dashboard page that picks what to show by itself (`now`), plus eight older views of the same `window.STATE` under "More" in the header. The page opens on `now`; a view chosen under "More" is stored in the browser, not in the project, and wins on the next open. The production skin is «Aurora»: it only repaints the existing blocks, so every id, text, block and the `state.js` contract stay as they were.
 
 | id | What it shows |
 |----|---------------|
@@ -14,9 +14,17 @@ One dashboard page that picks what to show by itself (`now`), plus eight older v
 | `compact` | One column for a narrow panel beside the chat: ring and forecast, tiles, stage strip, mini Gantt, "needed from you" (keys and stubs only), gates, feed; no models, isolation or decided-for-you list, and at 520 px or less a shorter header and title. Chosen by default when the window is 520 px wide or less and nothing is saved; a saved choice wins; the old saved value `focus` is read as `compact` |
 | `quality` | Can it be accepted: gates, blind acceptance, review and report notes, requirements with statuses, leftovers |
 
+## Skin «Aurora»
+
+The selected design (concept 01) is a layer of tokens and a few decorative rules, not a rewrite of the nine views: `<html data-skin="aurora">`, then `html[data-skin="aurora"]:not([data-view="classic"]):not([data-theme="light"])` for the dark base and `html[data-skin="aurora"][data-theme="light"][data-view]:not([data-view="classic"])` for the light derivative override the palette of the design handoff. The dark half is the base (it opens dark, like the concept): near-black `#05070D`, radial mint/sky/violet glows behind the page, glass cards (a soft top-surface sheen, 24 px corners, layered shadows), mint/sky/violet accent gradients on active tabs and tile edges, and the same status colours as before — state stays a word and a colour. The light half is a derivative (`[data-theme="light"]`, white cards on a cool pale ground) and is one click away; both satisfy 4.5:1 for text. Classic keeps its own colours: the skin rules are scoped away from it. No iframe, no fonts, no requests: it is still one static self-contained template.
+
+## The view switcher
+
+All nine views are in a searchable combobox in the header (`data-vcombo`): type part of a name in Russian or English (or the id), the list filters; `ArrowDown`/`ArrowUp` move the active option (`ArrowDown` also opens the closed list), `Enter` picks it, `Esc` closes without a choice, and `aria-activedescendant` points at the active option while `role="combobox"`/`role="listbox"` describe the widget. Picking a view goes through the same path as the old buttons: `VIEW`, `localStorage[VIEW_KEY]`, `render()`. The old button strip is still in the markup but folded away (`class="tabs views" hidden`) — it keeps the per-view `data-view` buttons and the "More" button (`data-views-more`) that the tests read. In the narrow panel (700 px and less, the 380–900 px case included) the combobox takes the whole row of the tools and its list opens to the panel width; wider, it sits beside them.
+
 ## More
 
-The eight older views stay in the switcher, folded under the "More" button (`data-views-more`); the list opens by itself while one of them is chosen. Below 700 px (`matchMedia`) `render()` sets `data-narrow` on the root and the layout folds into one column; at 520 px or less with nothing saved the page still opens on `compact`.
+The eight older views stay in the hidden button strip, folded under the "More" button (`data-views-more`); the list opens by itself while one of them is chosen. Below 700 px (`matchMedia`) `render()` sets `data-narrow` on the root and the layout folds into one column; at 520 px or less with nothing saved the page still opens on `compact`.
 
 ## Header
 
@@ -36,7 +44,7 @@ Overview, Timeline and Compact put a note under a ticket's Gantt row, built by t
 
 ## Palette
 
-Every view except `classic` uses the palette of the design handoff (`:root[data-view]:not([data-view="classic"])`, light and dark, text at least 4.5:1); `render()` sets `data-view` on the root. The page loads no fonts and makes no requests: system font stacks only. State is always a word or an icon as well as a colour, and the view buttons are 44 px high.
+Every view except `classic` uses the palette of the design handoff (`:root[data-view]:not([data-view="classic"])`, light and dark, text at least 4.5:1); `render()` sets `data-view` on the root. The Aurora skin (`html[data-skin="aurora"]`, see above) overrides those tokens and decorative rules for the same views; without a saved choice the page is dark, and the light theme button switches it to the light derivative. The page loads no fonts and makes no requests: system font stacks only. State is always a word or an icon as well as a colour; the combobox and its options are 44 px high.
 
 ## What a block needs
 
@@ -46,10 +54,12 @@ A block is drawn only when `state.js` has its data; there are no error boxes for
 
 Everything is in `skills/autopilot/phases/dashboard-template.html`:
 
-- `VIEW_IDS` — ordered list of ids (first, `now`, is the default; the rest sit under "More");
+- `VIEW_IDS` — ordered list of ids (first, `now`, is the default; the rest sit under "More" / in the combobox);
 - `VIEWS` — registry `id → function` that only joins the blocks `render()` already built (it does not read `STATE` or touch the DOM);
-- `I18N.ru.views` and `I18N.en.views` — the button labels;
-- `VIEW_KEY = 'autopilot-view'` — the `localStorage` key. An unknown or missing value falls back to the first id.
+- `I18N.ru.views` and `I18N.en.views` — the labels: the combobox shows the current language and searches both;
+- `VIEW_KEY = 'autopilot-view'` — the `localStorage` key. An unknown or missing value falls back to the first id;
+- `comboList()`, `comboKey()`, `comboOpen()`, `comboSync()` and `selectView()` — the header combobox: search, arrows/Enter/Esc, aria state, and the one path to `VIEW` + `VIEW_KEY` + `render()`;
+- `html[data-skin="aurora"]` in the `<style>` block — the skin's tokens and decorative rules (the handoff palette stays underneath for the light theme and for tests).
 
 ## Side rail
 

@@ -375,7 +375,8 @@ class SpendHistory(unittest.TestCase):
     def test_history_cache_row_without_dir_or_startedat_is_recomputed_not_a_keyerror(self):
         self.archive("2026-10-05-a", title="Первая", startedAt="2026-10-05T10:00:00+01:00")
         st = os.stat(os.path.join(self.h.a, "2026-10-05-a", "state.js"))
-        for row in ({}, {"dir": "2026-10-05-a"}, {"dir": "чужая", "startedAt": "x"}):
+        for row in ({}, {"dir": "2026-10-05-a"}, {"dir": "2026-10-05-a", "startedAt": "2026-10-05T10:00:00+01:00"},
+                    {"dir": "чужая", "startedAt": "x"}):
             with open(os.path.join(self.h.a, "history-cache.json"), "w", encoding="utf-8") as f:
                 json.dump({"v": 1, "items": {"2026-10-05-a": {"key": [st.st_mtime_ns, st.st_size], "row": row}}}, f)
             got = self.m.compute_history([], WIP)
@@ -393,6 +394,7 @@ class SpendHistory(unittest.TestCase):
         st = self.h.state()
         self.assertEqual([x["dir"] for x in st["history"]], ["2026-10-05-past"])
         self.assertEqual(st["spend"]["byModel"]["не указана"]["tokens"], 10)
+        self.assertEqual([(e["role"], e["tokens"]) for e in st["spendLedger"]], [("executor", 10)])
         self.assertEqual(st["logFailures"], 0)
         for text, want in (("3\n", 3), ("мусор", 0)):
             with open(os.path.join(self.h.a, "run-log.fail"), "w", encoding="utf-8") as f:

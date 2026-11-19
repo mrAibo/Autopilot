@@ -6,6 +6,10 @@ outside the project, so editing project files cannot forge a signature. On Windo
 the key is wrapped with DPAPI (`dpapi:` + base64), so the file alone is useless to
 another user; elsewhere it is a 0600 file. Neither protects against a process that
 runs as the same user and can read the home directory.
+
+A `dpapi:` block is never treated as the key bytes themselves: a block that cannot
+be unwrapped here (another account or machine, another OS) and a plain file that is
+not a 32-byte key are reported as an unreadable key and never silently trusted.
 """
 import base64
 import hashlib
@@ -29,14 +33,20 @@ def key_path():
 
 
 DPAPI_PREFIX = b"dpapi:"
-_warned = False
+KEY_UNREADABLE_MESSAGE = (
+    "ключ подписи не читается: нет доступа, файл повреждён, защищён DPAPI другого пользователя "
+    "или компьютера (блок dpapi: — не сам ключ), либо это не 32-байтный ключ; восстанови прежний "
+    "~/.autopilot/gate.key, либо удали файл и запусти init заново "
+    "(старые подписи этим ключом проверяться не будут)")
+IS_WINDOWS = os.name == "nt"
+_KEY_SIZE = 32
+_warned = set()
 
 
 def _warn(text):
-    """One warning line per process: the key stays a plain file, signing keeps working."""
-    global _warned
-    if not _warned:
-        _warned = True
+    """One warning line per distinct problem per process: a plain key keeps signing working."""
+    if text not in _warned:
+        _warned.add(text)
         print("gate_sign: " + text, file=sys.stderr)
 
 
@@ -65,11 +75,12 @@ def _dpapi(data, protect):
 
 
 def _write_key_file(path, data):
-    """Temp file + replace_with_retry: a crash never leaves a half-written key."""
+    """Temp file + replace_with_retry: a crash never leaves a half-written key; a unique temp
+    name keeps two concurrent inits from writing over each other's temporary file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(path.name + ".tmp")
+    temp = path.with_name("%s.%d.%s.tmp" % (path.name, os.getpid(), secrets.token_hex(4)))
     try:
-        fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        fd = os.open(str(temp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as stream:
             stream.write(data)
         state_io.replace_with_retry(temp, path)
@@ -78,10 +89,17 @@ def _write_key_file(path, data):
 
 
 def _protected(key):
-    """Key as stored on this OS: DPAPI block on Windows (plain bytes if DPAPI fails), else as is."""
-    if os.name == "nt":
+    """Key as stored on this OS: a DPAPI block that reads back as `key`, else the plain bytes.
+
+    The round-trip check matters for the old-plain-key rewrite: a block that cannot be
+    unwrapped here must not replace a key that still works.
+    """
+    if IS_WINDOWS:
         try:
-            return DPAPI_PREFIX + base64.b64encode(_dpapi(key, True))
+            wrapped = DPAPI_PREFIX + base64.b64encode(_dpapi(key, True))
+            if _dpapi(base64.b64decode(wrapped[len(DPAPI_PREFIX):]), False) != key:
+                raise OSError("DPAPI: защищённый блок не читается обратно")
+            return wrapped
         except Exception as exc:
             _warn("DPAPI недоступен (%s), ключ хранится обычным файлом" % type(exc).__name__)
     return key
@@ -141,67 +159,101 @@ def _claim_empty(path):
 
 
 def _wait_for_key(path):
-    """A loser of the race returns only once the winner's key is in place (it is whole by construction)."""
+    """A loser of the race returns only once the winner's key is whole (32 bytes is the plain minimum)."""
     for _ in range(250):
         try:
-            if path.stat().st_size:
-                return
+            if path.stat().st_size >= _KEY_SIZE:
+                return True
         except OSError:
             pass
         time.sleep(0.02)
+    return False
 
 
 def ensure_key():
-    """Create the key (0600, DPAPI-wrapped on Windows) if absent. Only `init --strict-routing` calls this."""
+    """Create the key (0600, DPAPI-wrapped on Windows) if absent; never replace a damaged one.
+
+    Only `init --strict-routing` calls this. An old empty file is claimed by exactly one
+    racer (see _claim_empty); a winner that dies before writing is retried. An existing
+    key that does not read back (a foreign DPAPI block, a truncated plain file) is a
+    clear OSError instead of a silent rewrite: rewriting would invalidate every signature.
+    """
     path = key_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        size = path.stat().st_size
-    except FileNotFoundError:
-        size = None
-    if size == 0 and not _claim_empty(path):  # an empty key would sign nothing; one racer swaps it
-        _wait_for_key(path)
-    elif size is None or size == 0:
-        _create_key_atomically(path, _protected(secrets.token_bytes(32)))
-        _wait_for_key(path)
-    elif os.name == "nt":
+    for _ in range(3):
         try:
-            plain = path.read_bytes()
-        except FileNotFoundError:  # a racer briefly holds the key aside (see _claim_empty)
-            _wait_for_key(path)
-            return path
-        if plain.startswith(DPAPI_PREFIX):
-            return path
-        # an old plain key: same bytes, now under DPAPI (this is the only place that rewrites it;
-        # tools copies from before this change cannot read the block, so upgrade them together)
-        wrapped = _protected(plain)
-        if wrapped != plain:
-            try:
-                _write_key_file(path, wrapped)
-            except OSError as exc:
-                _warn("ключ не переписан под DPAPI (%s)" % type(exc).__name__)
-    return path
+            size = path.stat().st_size
+        except FileNotFoundError:
+            size = None
+        if size == 0:  # an empty key would sign nothing; one racer swaps it
+            if _claim_empty(path):
+                size = None
+            elif not _wait_for_key(path):
+                continue  # the winner died between the claim and the write: retry
+        if size is None:
+            _create_key_atomically(path, _protected(secrets.token_bytes(_KEY_SIZE)))
+            if not _wait_for_key(path):
+                continue
+        stored, key, problem = _stored_key()
+        if problem == "missing":  # a racer removed the file: retry instead of returning no key
+            continue
+        if problem is not None:
+            _warn(KEY_UNREADABLE_MESSAGE)
+            raise OSError(KEY_UNREADABLE_MESSAGE)
+        if IS_WINDOWS and not stored.startswith(DPAPI_PREFIX):
+            # an old plain key: same bytes, now under DPAPI (this is the only place that rewrites
+            # it; an unreadable block is never written over a working key, see _protected)
+            wrapped = _protected(stored)
+            if wrapped != stored:
+                try:
+                    _write_key_file(path, wrapped)
+                except OSError as exc:
+                    _warn("ключ не переписан под DPAPI (%s)" % type(exc).__name__)
+        return path
+    raise OSError("не удалось создать ключ подписи %s: файл остался пустым или занят" % path)
+
+
+def _stored_key():
+    """(stored bytes, raw key bytes or None, problem): problem is None, "missing" or "unreadable".
+
+    A `dpapi:` block is never returned as the key, and a plain file must be exactly 32 bytes.
+    """
+    try:
+        stored = key_path().read_bytes()
+    except FileNotFoundError:
+        return b"", None, "missing"
+    except OSError:
+        return b"", None, "unreadable"
+    if not stored:
+        return stored, None, "missing"
+    if stored.startswith(DPAPI_PREFIX):
+        if not IS_WINDOWS:
+            return stored, None, "unreadable"
+        try:
+            raw = _dpapi(base64.b64decode(stored[len(DPAPI_PREFIX):]), False)
+        except Exception:
+            return stored, None, "unreadable"
+        if len(raw) != _KEY_SIZE:
+            return stored, None, "unreadable"
+        return stored, raw, None
+    if len(stored) != _KEY_SIZE:
+        return stored, None, "unreadable"
+    return stored, stored, None
 
 
 def load_key():
-    """The raw key bytes (plain or DPAPI block), or None. Read-only: only ensure_key rewrites the file."""
-    try:
-        stored = key_path().read_bytes()
-    except OSError:
-        return None
-    if stored.startswith(DPAPI_PREFIX):
-        try:
-            return _dpapi(base64.b64decode(stored[len(DPAPI_PREFIX):]), False) or None
-        except Exception:
-            return None
-    return stored or None
+    """The raw 32-byte key, or None. Read-only: only ensure_key rewrites the file."""
+    _, key, problem = _stored_key()
+    if problem == "unreadable":
+        _warn(KEY_UNREADABLE_MESSAGE)
+    return key
 
 
 def sign(payload):
     """Hex HMAC-SHA256 over canonical JSON; a `sig` field is never part of the payload."""
-    key = load_key()
+    _, key, problem = _stored_key()
     if key is None:
-        raise ValueError(MISSING_KEY_MESSAGE)
+        raise ValueError(KEY_UNREADABLE_MESSAGE if problem == "unreadable" else MISSING_KEY_MESSAGE)
     body = {k: v for k, v in payload.items() if k != "sig"}
     data = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hmac.new(key, data, hashlib.sha256).hexdigest()

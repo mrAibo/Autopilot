@@ -52,6 +52,7 @@ marker line, so keep `http/json`.
 
 - **Cache read / cache write** per role, model and ticket, and the **hit share**: `cache_read / (input + cache_read + cache_write)`, whole percent, `—` when there is nothing to divide. `report-run` also prints the same by agent profile (not with `--share`), which shows whether the shared cache holds across executors of different tickets.
 - **The `orchestrator` row**: tokens of the main session since the run started. `ap.py spend-orchestrator [--transcript PATH]` writes it (and `finish` calls it), one row per model, numbers and model name only, never message text. Calling it again replaces the earlier numbers, it does not add to them.
+- **One ledger:** `state.spendLedger` is the last 200 normalized spend rows for the dashboard, built from the same `run-log.jsonl` lines that feed `compute_spend`; it is a snapshot, not a second source. `executor` and `spend` rows are read as one schema (`docs/autopilot/run-log.md`).
 
 Limits, so the numbers are not over-read:
 
@@ -66,11 +67,11 @@ Limits, so the numbers are not over-read:
 
 ## Subagent spend in a normal run
 
-Without `--strict-routing` there are no hooks, but Claude Code keeps a log per subagent: `<session log without .jsonl>/subagents/agent-<id>.jsonl` plus `agent-<id>.meta.json`. `ap.py spend-subagents [--transcript PATH]` (and `finish`) writes one `executor` row per agent: token sums, model, `agent_type`, agent id, role and ticket. Message text, prompts and `description` are never read or saved.
+Without `--strict-routing` there are no hooks, but Claude Code keeps a log per subagent: `<session log without .jsonl>/subagents/agent-<id>.jsonl` plus `agent-<id>.meta.json`. `ap.py spend-subagents [--transcript PATH]` (and `finish`) writes one spend row per agent (`k=executor` is the historical name; `k=spend` is accepted too): token sums, model, `agent_type`, agent id, role, ticket, `source=subagent`, `origin=claude-subagents`. Message text, prompts and `description` are never read or saved.
 
 - Only messages since the run's `startedAt` count; a repeated `message.id` counts once (the last). An agent still running is counted by what is written so far.
 - Calling it again does not double the numbers: readers keep the last row per agent. In a strict run, hook rows win: the log rows of an `autopilot-…` agent are dropped only when the hooks also wrote a row for that same `agent_type`, so an agent the hooks missed keeps its spend.
-- The ticket is the single ticket whose `startedAt…finishedAt` window holds the agent's first message; in a parallel wave (several fit) or with none, the row has no ticket. A broken or missing `.meta.json` gives role `agent`; a BOM at its start is fine (`utf-8-sig`). The permanent profiles `autopilot-executor`, `autopilot-reviewer`, `autopilot-acceptance` and `autopilot-explorer` give their roles too.
+- The ticket comes from the agent profile name (`autopilot-executor-01-…` → `01`). Only an executor or a general-purpose agent without a profile number falls back to the single `startedAt…finishedAt` window; a reviewer is never given somebody else's ticket by time. In a parallel wave (several fit) or with none, the row has no ticket. A broken or missing `.meta.json` gives role `agent`; a BOM at its start is fine (`utf-8-sig`). The permanent profiles `autopilot-executor`, `autopilot-reviewer`, `autopilot-acceptance` and `autopilot-explorer` give their roles too.
 - No `subagents/` folder prints "субагентов нет" and `finish` goes on.
 
 ## Measured: main-session model and ticket routing (2026-10-29)

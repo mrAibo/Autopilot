@@ -220,7 +220,9 @@ def read_state():
     if not os.path.exists(STATE):
         return None
     try:
-        return state_io.read_state_file(STATE)
+        state = state_io.read_state_file(STATE)
+        state_io.ensure_schema_version(state)
+        return state
     except state_io.StateError as e:
         die("%s — перезапиши его командой init или поправь строку" % e)
 
@@ -229,6 +231,7 @@ def save(state):
     refresh_g1(state)                                  # G1 идёт за манифестом при каждой записи
     state["rev"] = (state.get("rev") or 0) + 1        # дашборд перерисовывается по нему
     try:
+        state_io.ensure_schema_version(state)
         state_io.write_state_file(STATE, state, prefix="window.STATE =\n")
     except state_io.StateError as e:
         die(str(e))
@@ -350,6 +353,7 @@ def artifact_present(state, art):
 def fresh_state(a):
     t = now()
     return {
+        "schemaVersion": state_io.SCHEMA_VERSION,
         "version": 2,
         "slug": a["slug"], "dir": "%s-%s--wip" % (t[:10], a["slug"]),
         "title": a.get("title") or a["slug"],
@@ -357,6 +361,7 @@ def fresh_state(a):
         "tier": None, "strictRouting": bool(a.get("strict-routing")),
         "gateSigned": bool(a.get("strict-routing")),
         "sequentialHost": bool(a.get("sequential-host")),
+        "spendLedger": [],
         "isolateTickets": bool(a.get("isolated-tickets") or a.get("sequential-host")),
         "briefFile": a.get("brief-file"),
         "memoryFile": a.get("memory-file") or "AGENTS.md",
@@ -1450,7 +1455,7 @@ def refresh_dashboard(state):
             dashboard_upgrade = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(dashboard_upgrade)
         done = dashboard_upgrade.upgrade(ROOT, template)
-    except (OSError, ImportError, ValueError) as exc:         # UpgradeError — это ValueError
+    except (OSError, ImportError, ValueError, SyntaxError) as exc:         # UpgradeError — это ValueError
         return "! дашборд не обновлён из шаблона (%s)" % type(exc).__name__
     return "дашборд обновлён из шаблона навыка" if done.get("status") == "upgraded" else ""
 
@@ -2854,13 +2859,13 @@ def commit_paths(paths, message, trailers):
     """Единственное место, где ap.py коммитит: `git commit --only -- <пути>` с трейлерами → короткий SHA.
     Без `git add -A` и `git stash`; сбой git — OSError с его последней строкой; нечего коммитить — None."""
     def git(*args):
-        r = subprocess.run(["git", "-C", ROOT] + list(args), capture_output=True, text=True,
+        r = subprocess.run(["git", "--literal-pathspecs", "-C", ROOT] + list(args), capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=120)
         if r.returncode:
             raise OSError(last_line(r.stderr or r.stdout) or "git вернул код %d" % r.returncode)
         return r.stdout.strip()
     git("add", "--", *paths)
-    if subprocess.run(["git", "-C", ROOT, "diff", "--cached", "--quiet", "--"] + list(paths)).returncode == 0:
+    if subprocess.run(["git", "--literal-pathspecs", "-C", ROOT, "diff", "--cached", "--quiet", "--"] + list(paths)).returncode == 0:
         return None                                   # после нормализации концов строк менять нечего
     git("commit", "-q", "--only", "-m", message, *["--trailer=" + t for t in trailers], "--", *paths)
     return git("rev-parse", "--short", "HEAD")
@@ -3961,10 +3966,12 @@ def row_ticket(r):
 
 
 def executor_rows(records, run):
-    """Строки расхода одного прогона; без повторов по `agent` (см. run_log.collapse_agents)."""
-    rows = [r for r in records if isinstance(r, dict) and r.get("k") == "executor"
+    """Строки единого журнала расхода одного прогона; без повторов по `agent`."""
+    if run_log:
+        return run_log.spend_rows(records, run)
+    rows = [r for r in records if isinstance(r, dict) and r.get("k") in ("executor", "spend")
             and run_key(r.get("run")) == run_key(run)]
-    return run_log.collapse_agents(rows) if run_log else rows
+    return rows
 
 
 def compute_spend(records, run):
@@ -4061,7 +4068,7 @@ def context_hint():
     """Одна строка `↑`, если контекст главной сессии выше порога (`AUTOPILOT_CONTEXT_HINT`, по умолчанию
     150000, 0 выключает); иначе пустая строка. Подсказка, не вопрос: журнала нет — строки нет."""
     raw = os.environ.get("AUTOPILOT_CONTEXT_HINT", "").strip()
-    limit = int(raw) if raw.isdigit() else CONTEXT_HINT
+    limit = int(raw) if re.fullmatch(r"[0-9]+", raw) else CONTEXT_HINT
     n = last_context_tokens() if limit > 0 else None
     if n is None or n <= limit:
         return ""
@@ -4084,7 +4091,8 @@ def spend_orchestrator(state, transcript=None):
             return miss("журнал сессии не читается")
         if not by_model:
             return miss("в журнале сессии нет ответов за время прогона")
-        saved = [run_log.append(A, "executor", run=state.get("dir"), role="orchestrator", model=model, **u)
+        saved = [run_log.append(A, "executor", run=state.get("dir"), role="orchestrator",
+                                source="orchestrator", origin="claude-transcript", model=model, **u)
                  for model, u in sorted(by_model.items())]
         if not all(saved):
             return "расход оркестратора не записан: журнал прогона недоступен для записи"
@@ -4106,9 +4114,10 @@ def _ticket_at(state, first_at):
 
 
 def spend_subagents(state, transcript=None):
-    """Расход субагентов за время прогона из `<журнал сессии без .jsonl>/subagents/` → строки `executor`
-    по агентам (числа, модель, agent_type, id агента, таск; без текста). Повторный вызов не удваивает
-    расход: читатели берут последнюю строку на `agent`. Одна печатная строка; не бросает исключений."""
+    """Расход субагентов за время прогона из `<журнал сессии без .jsonl>/subagents/` → строки расхода
+    по агентам (числа, модель, agent_type, id агента, таск; без текста). Таск берётся из имени профиля,
+    а по времени — только для исполнителей и general-purpose: ревьюеру чужой таск не приписывается.
+    Повторный вызов не удваивает расход: читатели берут последнюю строку на `agent`."""
     miss = lambda why: "расход субагентов не найден: " + why
     try:
         if run_log is None:
@@ -4120,8 +4129,15 @@ def spend_subagents(state, transcript=None):
                                         state.get("startedAt"), dt.datetime.now(dt.timezone.utc))
         if not agents:
             return "расход субагентов: субагентов нет"
+        def ticket_of(agent):
+            role = run_log.role_of(agent.get("agent_type"))
+            from_profile = executor_ticket(agent.get("agent_type"))
+            if from_profile:
+                return from_profile
+            return _ticket_at(state, agent["first_at"]) if role in ("executor", "agent") else None
         saved = [run_log.append(A, "executor", run=state.get("dir"), role=run_log.role_of(a["agent_type"]),
-                                ticket=_ticket_at(state, a["first_at"]),
+                                source="subagent", origin="claude-subagents",
+                                ticket=ticket_of(a),
                                 **{k: v for k, v in a.items() if k != "first_at"}) for a in agents]
         if not all(saved):
             return "расход субагентов не записан: журнал прогона недоступен для записи"
@@ -4162,7 +4178,12 @@ def compute_history(records, current):
             key = [st.st_mtime_ns, st.st_size]
             hit = cached.get(name)
             if (isinstance(hit, dict) and hit.get("key") == key and isinstance(hit.get("row"), dict)
-                    and hit["row"].get("dir") == name and "startedAt" in hit["row"]):   # чужая строка кэша — пересчёт
+                    and hit["row"].get("dir") == name
+                    and all(k in hit["row"] for k in ("title", "startedAt", "finishedAt", "minutes", "tickets",
+                                                      "repairs", "result"))
+                    and isinstance(hit["row"].get("title"), str)
+                    and isinstance(hit["row"].get("tickets"), int)
+                    and isinstance(hit["row"].get("repairs"), int)):   # неполная строка кэша — пересчёт
                 row = hit["row"]
             else:
                 old = state_io.read_state_file(os.path.join(A, name, "state.js"))
@@ -4180,13 +4201,16 @@ def compute_history(records, current):
         except (state_io.StateError, OSError, TypeError, ValueError, AttributeError, KeyError):
             continue                                   # битый архив не мешает остальным
     if items != cached:
+        tmp = "%s.%d.tmp" % (cache_path, os.getpid())
         try:
-            tmp = cache_path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({"v": 1, "items": items}, f)
             os.replace(tmp, cache_path)
         except OSError:
-            pass                                       # кэш — удобство, не обязанность
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
     found.sort(key=lambda h: (str(h["startedAt"] or ""), h["dir"]), reverse=True)
     return found[:HISTORY_KEPT]
 
@@ -4206,8 +4230,9 @@ def refresh_audit(state):
     try:
         state["spend"] = compute_spend(records, state.get("dir"))
         state["history"] = compute_history(records, state.get("dir"))
+        state["spendLedger"] = run_log.spend_snapshot(records, state.get("dir")) if run_log else []
     except Exception:                                  # расход не должен ронять команду
-        state["spend"], state["history"] = {"byRole": {}, "byModel": {}, "byTicket": {}}, []
+        state["spend"], state["history"], state["spendLedger"] = {"byRole": {}, "byModel": {}, "byTicket": {}}, [], []
     state["logFailures"] = log_failures()
 
 

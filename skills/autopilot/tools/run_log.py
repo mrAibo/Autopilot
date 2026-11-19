@@ -14,6 +14,9 @@ import re
 NAME, ROTATED, FAIL = "run-log.jsonl", "run-log.1.jsonl", "run-log.fail"
 ROTATE_BYTES = 1024 * 1024
 VALUE_MAX = 120
+SPEND_FIELDS = ("source", "origin", "role", "ticket", "agent", "agent_type", "model", "effort",
+                "turns", "input", "output", "cache_read", "cache_write")
+SPEND_KINDS = ("executor", "spend")
 KINDS = {
     "phase": ("id", "act"),
     "ticket": ("id", "act", "cause", "class", "model", "effort"),
@@ -21,11 +24,14 @@ KINDS = {
     "tests": ("passed", "failed", "seconds", "source"),
     "reset": ("what", "id", "reason"),
     "wait": ("kind", "act"),
-    "executor": ("agent", "ticket", "agent_type", "role", "model", "effort", "turns", "input", "output", "cache_read", "cache_write"),
+    # executor — историческое имя строки расхода; spend — то же для новых источников.
+    "executor": SPEND_FIELDS,
+    "spend": SPEND_FIELDS,
 }
 MACHINE_PATH = re.compile(r"[A-Za-z]:[\\/]|/(?:home|Users|root)/", re.I)
 ROLE = re.compile(r"autopilot-(executor|reviewer|explorer|acceptance)(?:-|$)")
-TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role", "source", "agent", "ticket", "class")
+TEXT_FIELDS = ("t", "run", "id", "act", "cause", "g", "reason", "what", "kind", "agent_type", "role",
+               "source", "origin", "agent", "ticket", "class")
 
 
 def role_of(agent_type):
@@ -254,6 +260,44 @@ def collapse_agents(rows):
     return rest + list(last.values())
 
 
+def run_key(name):
+    """Имя прогона без `--wip`: журнал мог писаться до переименования папки."""
+    return str(name or "").removesuffix("--wip")
+
+
+def is_spend(row):
+    """Строка единого журнала расхода: старый `executor` или новый `spend`."""
+    return isinstance(row, dict) and row.get("k") in SPEND_KINDS
+
+
+def normalize_spend(row):
+    """Приводит строку журнала к одному набору полей; мусорные числа — 0, не падает."""
+    fields = KINDS.get(row.get("k"), SPEND_FIELDS)
+    out = {key: row.get(key) for key in ("t", "run") + tuple(fields)}
+    out["source"] = row.get("source") or "claude"
+    out["role"] = row.get("role") or role_of(row.get("agent_type"))
+    for key in ("turns", "input", "output", "cache_read", "cache_write"):
+        v = row.get(key)
+        out[key] = v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else 0
+    out["tokens"] = out["input"] + out["output"]
+    den = out["input"] + out["cache_read"] + out["cache_write"]
+    out["hit"] = round(100 * out["cache_read"] / den) if den else None
+    return out
+
+
+def spend_rows(records, run, collapse=True):
+    """Единый журнал расхода одного прогона: нормализованные строки, без повторов агентов."""
+    rows = [normalize_spend(r) for r in records
+            if is_spend(r) and run_key(r.get("run")) == run_key(run)]
+    return collapse_agents(rows) if collapse else rows
+
+
+def spend_snapshot(records, run, limit=200):
+    """Последние строки журнала для state.spendLedger: стабильный хронологический срез."""
+    rows = sorted(spend_rows(records, run), key=lambda r: str(r.get("t") or ""))
+    return rows[-max(0, int(limit)):]
+
+
 def _seconds(a, b):
     try:
         return max(0, int((dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)).total_seconds()))
@@ -331,8 +375,8 @@ def _fold(r, out, phases, tickets, open_waits):
         elif r.get("kind") in open_waits:
             out["waits"]["count"] += 1
             out["waits"]["seconds"] += _seconds(open_waits.pop(r["kind"]), t) or 0
-    elif k == "executor":
-        out["tokens"].append({key: r.get(key) for key in KINDS["executor"]})
+    elif k in SPEND_KINDS:
+        out["tokens"].append({key: r.get(key) for key in KINDS[k]})
         out["tokens"][-1]["role"] = r.get("role") or role_of(r.get("agent_type"))
 
 

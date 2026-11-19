@@ -637,7 +637,7 @@ The agent reads the `phases/` files one at a time, only when the matching phase 
 
 It's all plain markdown. You can open it and read it: [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md).
 
-The test suite has <!-- tests:count -->1072<!-- /tests:count --> `unittest` tests (`python3 -m unittest discover -s tests`); the number is filled in by `skills/autopilot/tools/test_count.py --write`.
+The test suite has <!-- tests:count -->1100<!-- /tests:count --> `unittest` tests (`python3 -m unittest discover -s tests`); the number is filled in by `skills/autopilot/tools/test_count.py --write`.
 
 ---
 

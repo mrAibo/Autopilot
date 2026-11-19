@@ -33,11 +33,14 @@ Every line has `t` (local time, ISO with offset), `run` (run folder name) and `k
 | `tests` | `passed`, `failed`, `seconds`, `source` = ticket / host / manual | `tests N/M [--seconds S]`, `ticket ... --tests`, `worktree NN verify` (measured) |
 | `reset` | `what` = ticket / gate, `id`, `reason` | edited unfinished ticket (`ticket-edited`), `ticket NN reset` (`manual`), gate reset (`plan-changed`) |
 | `wait` | `kind`, `act` = start / end | `ask` and `answered` |
-| `executor` | `agent_type`, `role`, `model`, `effort`, `turns`, `input`, `output`, `cache_read`, `cache_write` | `SubagentStop`: summed from the subagent transcript by `claude_attest.py` (reads at most 5 MB) |
+| `executor` | `agent_type`, `role`, `ticket`, `agent`, `model`, `effort`, `turns`, `input`, `output`, `cache_read`, `cache_write`, `source` = subagent / orchestrator / hook / manual, `origin` = claude-subagents / claude-transcript | `SubagentStop`: summed from the subagent transcript by `claude_attest.py` (reads at most 5 MB); `ap.py spend-subagents` and `spend-orchestrator` write the same kind |
+| `spend` | the same fields as `executor` | accepted alias for a new spend source; readers treat both kinds as one ledger |
 
 `role` is `executor`, `reviewer`, `explorer` or `acceptance` by the profile name
-(`autopilot-<role>-...`; the repair executor is `executor`), otherwise `agent`. The line kind stays
-`executor`; older lines without `role` get it from `agent_type` in the report. `model` and `effort` come from the subagent's profile `.claude/agents/<agent_type>.md`, else from the attested `resolvedModel`, else stay empty; the report shows such lines as «не указана». `report-run` also groups by model: tickets, share done at the first attempt, repairs, tokens per ticket. A second block, «Класс × модель × усилие», groups tickets by class, model family (`sonnet` = `claude-sonnet-5-5`) and effort over the **whole** journal (current and past runs): tickets, done at the first attempt, retries, Haiku -> Sonnet escalations, tokens per ticket; lines without the new fields count as «не указан». `plan-models` adds one `advice` line to its JSON from the same history (e.g. how many mechanical Haiku tickets were escalated); it never changes the route, and no history means no key.
+(`autopilot-<role>-...`; the repair executor is `executor`), otherwise `agent`. `executor` is the
+historical line kind; `spend` is the same schema for future sources. Both are one ledger: readers
+normalize them, keep the last row per agent and compute the same role/model/ticket totals. Older
+lines without `role` get it from `agent_type` in the report. `model` and `effort` come from the subagent's profile `.claude/agents/<agent_type>.md`, else from the attested `resolvedModel`, else stay empty; the report shows such lines as «не указана». `report-run` also groups by model: tickets, share done at the first attempt, repairs, tokens per ticket. A second block, «Класс × модель × усилие», groups tickets by class, model family (`sonnet` = `claude-sonnet-5-5`) and effort over the **whole** journal (current and past runs): tickets, done at the first attempt, retries, Haiku -> Sonnet escalations, tokens per ticket; lines without the new fields count as «не указан». `plan-models` adds one `advice` line to its JSON from the same history (e.g. how many mechanical Haiku tickets were escalated); it never changes the route, and no history means no key.
 
 **Limit:** the journal keeps one rotation (`run-log.1.jsonl`), so the history is the last two files, not all builds.
 

@@ -148,10 +148,11 @@ class SpendSubagentsCommand(unittest.TestCase):
 
 
 class TicketByWindow(unittest.TestCase):
-    def tickets_for(self, tickets, first_at=T % 30):
+    def tickets_for(self, tickets, first_at=T % 30, agent_type=None):
         hx = Harness(self)
         tp, folder = session(hx)
-        put_agent(folder, "aaa", [msg("m", first_at, input_tokens=1)])
+        put_agent(folder, "aaa", [msg("m", first_at, input_tokens=1)],
+                  {"agentType": agent_type} if agent_type else None)
         ap = load_ap()
         calls = []
         with mock.patch.object(ap.run_log, "append", side_effect=lambda *a, **k: calls.append(k) or True):
@@ -163,6 +164,18 @@ class TicketByWindow(unittest.TestCase):
             {"id": "01", "startedAt": "2026-06-01T11:00:00+00:00", "finishedAt": "2026-06-01T11:20:00+00:00"},
             {"id": "02", "startedAt": "2026-06-01T11:20:00+00:00", "finishedAt": "2026-06-01T12:00:00+00:00"}])
         self.assertEqual(got, ["02"])
+
+    def test_profile_ticket_wins_over_the_time_window(self):
+        got = self.tickets_for([
+            {"id": "02", "startedAt": "2026-06-01T11:00:00+00:00", "finishedAt": "2026-06-01T12:00:00+00:00"}],
+            agent_type="autopilot-executor-01-x")
+        self.assertEqual(got, ["01"])
+
+    def test_reviewer_is_not_given_somebody_elses_ticket(self):
+        got = self.tickets_for([
+            {"id": "02", "startedAt": "2026-06-01T11:00:00+00:00", "finishedAt": "2026-06-01T12:00:00+00:00"}],
+            agent_type="autopilot-reviewer-x")
+        self.assertEqual(got, [None])
 
     def test_open_window_runs_until_now(self):
         self.assertEqual(self.tickets_for([{"id": "03", "startedAt": "2026-06-01T11:00:00+00:00"}]), ["03"])

@@ -1,0 +1,19 @@
+# State schema (`state.js`)
+
+`state.js` carries `schemaVersion` next to the older `version` field. `version` remains the
+run-format number; `schemaVersion` says which additive contract the dashboard and tools may rely on.
+
+| `schemaVersion` | Meaning |
+|---|---|
+| `1` | `spendLedger` (last 200 normalized spend rows), ticket/plan fields and the existing dashboard contract |
+
+Rules:
+
+- A legacy `state.js` without `schemaVersion` is read as v1; the next `save` writes the field.
+- A missing/`null` version is upgraded in memory; a non-integer, boolean, `< 1` or newer version is
+  a clear `StateError` instead of a silent wrong render.
+- New fields are additive; a new version is needed only when an existing field changes meaning or is
+  removed. There is deliberately no JSON Schema dependency: the validator lives in
+  `state_io.ensure_schema_version` and grows with the first breaking change.
+- `state.spendLedger` is a bounded snapshot of `run-log.jsonl`, not a second spend source; see
+  `docs/autopilot/measuring-cost.md`.

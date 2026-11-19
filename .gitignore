@@ -28,3 +28,5 @@ state.lock
 .autopilot/serve.token
 .autopilot/state.lock
 .autopilot/history-cache.json
+
+.playwright-mcp/

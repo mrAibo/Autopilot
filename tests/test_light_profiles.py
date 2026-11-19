@@ -270,6 +270,14 @@ class ContextHintLine(Project):
                 code, out = self.h.ap("stage", "build")
             self.assertEqual((code, len(self.arrows(out))), (0, expected), (value, out))
 
+    def test_non_ascii_digit_threshold_is_ignored_not_a_crash(self):
+        self.journal(200_000)
+        self.h.init()
+        with mock.patch.dict(os.environ, {"AUTOPILOT_CONTEXT_HINT": "²"}):
+            code, out = self.h.ap("stage", "build")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(len(self.arrows(out)), 1, out)
+
     def test_no_journal_means_no_line_and_no_failure(self):
         out = self.h.init()
         self.assertEqual(self.arrows(out), [])

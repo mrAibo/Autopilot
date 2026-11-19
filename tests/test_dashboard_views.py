@@ -144,6 +144,16 @@ out.hr = {
 const L = run(c, 'I18N'), keys = o => Object.keys(o).sort();
 out.i18n = {top: [keys(L.ru), keys(L.en)], vw: [keys(L.ru.vw), keys(L.en.vw)],
   views: [keys(L.ru.views), keys(L.en.views)], label: [L.ru.viewLabel, L.en.viewLabel]};
+// The view combobox: the pure filter over both languages, Enter picking through the existing render().
+const cb = env(input.fixtures.running, {}, false);
+out.combo = {all: run(cb, 'comboList("")'), ru: run(cb, 'comboList("тайм")'), en: run(cb, 'comboList("time")'),
+  id: run(cb, 'comboList("compact")'), none: run(cb, 'comboList("zzz")')};
+run(cb, 'UI.combo.open = true; UI.combo.q = ""; UI.combo.i = 2; comboKey({key:"Enter"});');
+out.combo.picked = [run(cb, 'VIEW'), cb.store['autopilot-view']];
+run(cb, 'UI.combo.open = true; UI.combo.q = ""; UI.combo.i = 0; render("en");');
+out.combo.open = cb.app.innerHTML;
+run(cb, 'UI.combo.open = false; UI.combo.q = ""; render("en");');
+out.combo.closed = cb.app.innerHTML;
 console.log(JSON.stringify(out));
 """
 
@@ -408,6 +418,40 @@ class TemplateRuns(unittest.TestCase):
         self.assertEqual(click["unknown"], "summary")
         self.assertEqual(click["reload"], "summary")
 
+    def test_view_combobox_filters_by_both_languages_and_picks_through_render(self):
+        combo = self.out["combo"]
+        self.assertEqual(combo["all"], VIEW_IDS)  # empty query: every view, in registry order
+        for key, expected in (("ru", ["timeline"]), ("en", ["timeline"]), ("id", ["compact"]), ("none", [])):
+            with self.subTest(query=key):
+                self.assertEqual(combo[key], expected)
+        # Enter on the third option goes through the same route as a view button: VIEW + storage + render()
+        self.assertEqual(combo["picked"], ["timeline", "timeline"])
+
+    def test_view_combobox_is_a_listbox_with_activedescendant_only_while_open(self):
+        opened, closed = self.out["combo"]["open"], self.out["combo"]["closed"]
+        for html in (opened, closed):
+            self.assertRegex(html, r'role="combobox"[^>]*aria-controls="view-listbox"')
+            self.assertIn('<div class="vlistbox" id="view-listbox" role="listbox"', html)
+            self.assertEqual(html.count('data-vopt="'), len(VIEW_IDS))
+            self.assertEqual(html.count('data-view="'), len(VIEW_IDS))  # the old buttons stay for the fallback path
+        self.assertIn('aria-expanded="true"', opened)
+        self.assertIn('aria-activedescendant="vopt-now"', opened)
+        self.assertNotRegex(opened, r'<div class="vlistbox"[^>]* hidden>')
+        self.assertIn("Таймлайн", opened)  # each option keeps both names, so searching works in either language
+        self.assertIn("Timeline", opened)
+        self.assertIn('aria-expanded="false"', closed)
+        self.assertRegex(closed, r'<div class="vlistbox"[^>]* hidden>')
+        self.assertNotIn("aria-activedescendant", closed)
+
+    def test_every_view_renders_one_view_combobox_and_keeps_the_old_switcher_markup(self):
+        for key, res in self.out["renders"].items():
+            page = res["html"]
+            with self.subTest(key=key):
+                self.assertEqual(page.count('role="combobox"'), 1)
+                self.assertEqual(page.count('data-vopt="'), len(VIEW_IDS))
+                self.assertEqual(page.count('data-view="'), len(VIEW_IDS))
+                self.assertIn('class="tabs views"', page)
+
     def test_skip_link_and_rail_links_lead_to_existing_blocks_in_every_theme(self):
         for key, res in self.out["renders"].items():
             page = res["html"]
@@ -621,9 +665,12 @@ class TemplateRuns(unittest.TestCase):
                     with self.subTest(fixture=name, lang=lang, word=word):
                         self.assertNotIn(word, page)
         run = self.out["renders"]["running/compact/en"]["html"]
+        # The header (brand, the view combobox, theme and language) is identical in every view:
+        # counting it into the ratio says nothing about the layout, so both sides drop it.
+        body = lambda html: re.sub(r'<header class="top">.*?</header>', "", html, flags=re.S)
         # one column, no models, no tables (the task notes sit in both Gantt charts and weigh the same in each)
         # (measured against Classic, the one full layout: the overview lost its models blocks in F8 and is no longer the yardstick)
-        self.assertLess(len(run), 0.6 * len(self.out["renders"]["running/classic/en"]["html"]))
+        self.assertLess(len(body(run)), 0.6 * len(body(self.out["renders"]["running/classic/en"]["html"])))
         self.assertIn("API_KEY", run)  # the keys the user must give stay
         self.assertNotIn("Decisions made for you", run)  # the long assumptions list goes to Summary and Overview
 
@@ -811,6 +858,22 @@ class TemplateStrings(unittest.TestCase):
         self.assertRegex(self.html, r'data-view="\$\{[^}]+\}"[^>]*aria-pressed=')
         self.assertIn("b.dataset.view", self.html)
         self.assertRegex(self.html, r"localStorage\.setItem\(VIEW_KEY, VIEW\)[\s\S]{0,60}render\(CUR\.lang\)")
+
+    def test_template_carries_the_aurora_skin_and_the_searchable_view_combobox(self):
+        self.assertIn('<html lang="ru" data-skin="aurora">', self.html)
+        self.assertRegex(self.html, r'html\[data-skin="aurora"\]:not\(\[data-view="classic"\]\):not\(\[data-theme="light"\]\)')
+        self.assertRegex(self.html, r'html\[data-skin="aurora"\]\[data-theme="light"\]\[data-view\]:not\(\[data-view="classic"\]\)')
+        for token in ("--aurora-mint", "--aurora-sky", "--aurora-violet", "--aurora-sheen"):
+            self.assertIn(token, self.html)
+        for needle in ('role="combobox"', 'role="listbox"', 'aria-autocomplete="list"', "aria-controls=",
+                       "aria-activedescendant", "data-vcombo-input", "data-vcombo-toggle", 'data-vopt="',
+                       "function comboList(", "function comboKey(", "function selectView("):
+            self.assertIn(needle, self.html)
+        # arrows move over the filtered list, Enter picks, Esc closes — one function, both languages in the filter
+        self.assertRegex(self.html, r"function comboKey[\s\S]*?ArrowDown[\s\S]*?ArrowUp[\s\S]*?Enter[\s\S]*?Escape")
+        self.assertRegex(self.html, r"COMBO_LANGS = \['ru', 'en'\]")
+        # the old button strip stays in the markup but folded away: data-view and the tests keep their path
+        self.assertRegex(self.html, r'class="tabs views"[^>]* hidden>')
 
     def test_locale_blocks_have_view_names_and_group_label(self):
         ru, en = self.html.split("\n  en:{lang:")

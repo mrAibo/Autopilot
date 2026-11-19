@@ -15,10 +15,32 @@ import time
 from pathlib import Path
 
 WINDOWS = os.name == "nt"
+SCHEMA_VERSION = 1
+SCHEMA_FIELD = "schemaVersion"
 
 
 class StateError(Exception):
     pass
+
+
+def ensure_schema_version(state):
+    """Добавляет schemaVersion старому state.js; отказывает только на чужой/будущей схеме.
+
+    Возвращает True, если поле добавлено. Не трогает остальные поля: полная миграция
+    появится вместе с первой несовместимой версией, а не заранее.
+    """
+    if not isinstance(state, dict):
+        raise StateError("state.js: ожидался объект")
+    value = state.get(SCHEMA_FIELD)
+    if value is None:
+        state[SCHEMA_FIELD] = SCHEMA_VERSION
+        return True
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise StateError("state.js: schemaVersion должен быть целым числом ≥ 1")
+    if value > SCHEMA_VERSION:
+        raise StateError("state.js: schemaVersion %d новее поддерживаемого %d — обнови инструменты навыка"
+                         % (value, SCHEMA_VERSION))
+    return False
 
 
 def parse_state_text(text):

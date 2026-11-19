@@ -94,7 +94,9 @@ def parse_summary(text):
         return None
     res = {"ran": int(ran.group(1)), "failures": 0, "errors": 0, "skipped": 0, "unexpected": 0}
     m = _FAILED.search(text) or _OK.search(text)
-    for k, v in re.findall(r"(unexpected successes|\w+)=(\d+)", m.group(1) or "" if m else ""):
+    for k, v in re.findall(r"(unexpected successes|expected failures|failures|errors|skipped)=(\d+)", m.group(1) or "" if m else ""):
+        if k == "expected failures":
+            continue
         k = "unexpected" if k == "unexpected successes" else k
         if k in res:
             res[k] = int(v)

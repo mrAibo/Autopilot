@@ -53,6 +53,10 @@ class Summary(unittest.TestCase):
                          {"ran": 1, "failures": 1, "errors": 2, "skipped": 0, "unexpected": 0})
         self.assertIsNone(rt.parse_summary("Traceback..."))
 
+    def test_expected_failures_are_not_counted_as_failures(self):
+        self.assertEqual(rt.parse_summary("Ran 3 tests in 0.2s\n\nOK (expected failures=1, skipped=1)\n"),
+                         {"ran": 3, "failures": 0, "errors": 0, "skipped": 1, "unexpected": 0})
+
     def test_combine_sums_and_counts_a_crashed_process_as_error(self):
         a = {"ran": 5, "failures": 1, "errors": 0, "skipped": 2, "unexpected": 0}
         b = {"ran": 3, "failures": 0, "errors": 1, "skipped": 1, "unexpected": 1}
