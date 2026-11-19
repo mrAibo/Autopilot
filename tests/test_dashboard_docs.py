@@ -10,10 +10,10 @@ DOC = ROOT / "docs/autopilot/dashboard-views.md"
 README = ROOT / "mockups/dashboard-2026/README.md"
 
 
-def _design_ids():
-    src = TEMPLATE.read_text(encoding="utf-8")
-    block = src.split("const DESIGNS = [", 1)[1].split("];", 1)[0]
-    return re.findall(r"\{id:'([a-z]+)', no:", block)
+def _designs():
+    """[(id, no, accent, scheme)] as the template declares them, whatever their number."""
+    block = TEMPLATE.read_text(encoding="utf-8").split("const DESIGNS = [", 1)[1].split("\n];", 1)[0]
+    return re.findall(r"\{id:'(\w+)', no:'(\d+)'.*?accent:'(#\w+)', scheme:'(\w+)'", block, re.S)
 
 
 class DashboardDocs(unittest.TestCase):
@@ -21,15 +21,23 @@ class DashboardDocs(unittest.TestCase):
         self.doc = DOC.read_text(encoding="utf-8")
 
     def test_every_design_has_a_table_row(self):
-        ids = _design_ids()
-        self.assertEqual(len(ids), 6)
-        for i in ids:
-            self.assertIn("| `%s` |" % i, self.doc)
+        designs = _designs()
+        self.assertGreaterEqual(len(designs), 6)
+        for i, no, accent, scheme in designs:
+            self.assertRegex(self.doc, r"\| `%s` \| %s \| `%s` \|[^\n]*\| `%s` \|" % (i, no, scheme, accent))
 
     def test_sections_present(self):
         for h in ("Registry", "Theme scheme", "Slots", "Single page",
                   "Add a seventh design", "Deviations from the mockups"):
             self.assertRegex(self.doc, r"(?m)^## " + h + r"\s*$")
+
+    def test_seventh_design_step_names_the_selectors_the_tests_look_for(self):
+        step = self.doc.split("## Add a seventh design", 1)[1].split("\n## ", 1)[0]
+        for selector in ('html[data-design="<id>"][data-theme="<scheme>"][lang]:not([hidden])',
+                         'html[data-design="<id>"][lang]:not([hidden]):not([data-theme="none"]){--accent:#rrggbb}'):
+            self.assertIn(selector, step)
+        self.assertIn("The tests read the registry from the template", step)   # as test_dashboard_designs.registry() does
+        self.assertNotIn("`html[data-design=\"<id>\"][lang]:not([hidden])` (and", step)  # the old selector without the scheme
 
     def test_no_data_view_mechanism(self):
         self.assertNotIn("data-view", self.doc)

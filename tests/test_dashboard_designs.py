@@ -88,10 +88,30 @@ for (const name of ['empty', 'running', 'finished', 'gated']) for (const lang of
   const x = env(input.fixtures[name], {}, false); run(x, `applyDesign('editorial'); render('${lang}')`);
   out.dx[name + '/' + lang] = x.app.innerHTML;
 }
+// the old requirements ring and the new one, per design, on an empty build and on one with tickets
+out.ring = {};
+for (const id of input.ids) for (const name of ['empty', 'running']) {
+  const x = env(input.fixtures[name], {}, false); run(x, `applyDesign(${JSON.stringify(id)}); render('en')`);
+  const h = x.app.innerHTML;
+  out.ring[id + '/' + name] = {oldInHero: (h.match(/<section class="card ovh[^>]*>\s*<div class="ring"/g) || []).length,
+    old: (h.match(/class="ring"/g) || []).length, dx: (h.match(/class="dx-ring"/g) || []).length};
+}
 console.log(JSON.stringify(out));
 """
 
-EXPECTED = [  # id, no, accent, scheme, tags: the registry of mockups/dashboard-2026/designs.js plus the schemes of the spec
+
+def registry():
+    """The designs as the template declares them: [{id, no, accent, scheme, tags}] in registry order (a seventh design appears here by itself)."""
+    block = TEMPLATE.read_text(encoding="utf-8").split("const DESIGNS = [", 1)[1].split("\n];", 1)[0]
+    return [{"id": m[0], "no": m[1], "accent": m[2], "scheme": m[3], "tags": re.findall(r"'([^']+)'", m[4])}
+            for m in re.findall(r"\{id:'(\w+)', no:'(\d+)'.*?accent:'(#\w+)', scheme:'(\w+)', tags:\[([^\]]*)\]", block, re.S)]
+
+
+REG = registry()
+SCHEME = {d["id"]: d["scheme"] for d in REG}
+LIGHT = tuple(d["id"] for d in REG if d["scheme"] == "light")
+HALF = {"both": None, "light": "light", "dark": "dark"}   # what applyDesign puts in data-theme: both leaves the choice to the user
+GOLDEN = [  # id, no, accent, scheme, tags: the registry of mockups/dashboard-2026/designs.js plus the schemes of the spec; the template may only grow after these six
     ("aurora", "01", "#4df0be", "both", ["dark", "glass"]),
     ("editorial", "02", "#bf3a1e", "light", ["light", "serif"]),
     ("brutal", "03", "#d8ff3e", "light", ["lime", "brutal"]),
@@ -170,26 +190,28 @@ class DesignRuns(_Slots, unittest.TestCase):
             raise AssertionError("node harness failed: " + done.stderr[-800:])
         cls.out = json.loads(done.stdout)
 
-    def test_registry_has_six_designs_in_order_with_every_field(self):
+    def test_registry_keeps_the_golden_six_first_and_every_entry_has_every_field(self):
         reg = self.out["registry"]
-        self.assertEqual([(d["id"], d["no"], d["accent"], d["scheme"], d["tags"]) for d in reg], EXPECTED)
+        got = [(d["id"], d["no"], d["accent"], d["scheme"], d["tags"]) for d in reg]
+        self.assertEqual(got[:len(GOLDEN)], GOLDEN)               # a seventh design may follow, the six do not move
+        self.assertEqual(got, [(d["id"], d["no"], d["accent"], d["scheme"], d["tags"]) for d in REG])  # the page and the test parser agree
         for d in reg:
             for field in ("name", "tagline"):
                 self.assertEqual(sorted(d[field]), ["en", "ru"])
                 self.assertTrue(all(d[field].values()), d["id"])
-        self.assertEqual(self.out["consts"], [[e[0] for e in EXPECTED], "autopilot-design", "aurora"])
-        self.assertEqual(DESIGN_IDS, [e[0] for e in EXPECTED])  # the test module reads the ids from the template
+        self.assertEqual(self.out["consts"], [[d["id"] for d in REG], "autopilot-design", "aurora"])
+        self.assertEqual(DESIGN_IDS, [d["id"] for d in REG])  # the test module reads the ids from the template
 
     def test_stored_design_is_aurora_unless_the_storage_holds_a_known_id(self):
         # empty, known, unknown, storage throws (even with a known id inside)
         self.assertEqual(self.out["stored"], ["aurora", "editorial", "aurora", "aurora"])
 
     def test_first_draw_puts_the_stored_design_and_its_scheme_on_html(self):
-        self.assertEqual(self.out["first"], [["terminal", "dark"], ["blueprint", "light"], ["aurora", None], ["aurora", None]])
+        self.assertEqual(self.out["first"], [["terminal", HALF[SCHEME["terminal"]]], ["blueprint", HALF[SCHEME["blueprint"]]], ["aurora", None], ["aurora", None]])
 
     def test_select_design_stores_applies_and_redraws(self):
         s = self.out["select"]
-        self.assertEqual((s["store"], s["attr"], s["theme"]), ("blueprint", "blueprint", "light"))
+        self.assertEqual((s["store"], s["attr"], s["theme"]), ("blueprint", "blueprint", HALF[SCHEME["blueprint"]]))
         self.assertNotEqual(s["html"], s["before"])
         self.assertRegex(s["html"], r'data-dopt="blueprint"[^>]*aria-selected="true"')
         self.assertRegex(s["html"], r'value="Blueprint"')
@@ -202,9 +224,8 @@ class DesignRuns(_Slots, unittest.TestCase):
         self.assertEqual(q["  "], DESIGN_IDS)
         for query in ("чертёж", "Чертёж", "blueprint", "05", "5"):
             self.assertEqual(q[query], ["blueprint"], query)
-        self.assertEqual(q["mono"], ["terminal"])
-        self.assertEqual(q["light"], ["editorial", "blueprint", "bento"])
-        self.assertEqual(q["dark"], ["aurora", "terminal"])
+        for tag in ("mono", "light", "dark"):                      # by tag: the designs of the registry that carry it
+            self.assertEqual(q[tag], [d["id"] for d in REG if tag in d["tags"]], tag)
         self.assertEqual((q["aurora"], q["АВРОРА"], q["report"]), (["aurora"], ["aurora"], ["editorial"]))
         self.assertEqual(q["zzz"], [])
 
@@ -212,8 +233,8 @@ class DesignRuns(_Slots, unittest.TestCase):
         k = self.out["keys"]
         self.assertFalse(k["closedDown"])               # the list is closed: the handler on #app opens it instead of comboKey
         self.assertTrue(k["openedByDown"])
-        self.assertEqual((k["start"], k["down"], k["upWraps"]), (0, 1, 5))  # aurora is the current one; two Up from 1 wrap to the last
-        self.assertEqual(k["active"], "dopt-bento")
+        self.assertEqual((k["start"], k["down"], k["upWraps"]), (0, 1, len(REG) - 1))  # aurora is the current one; two Up from 1 wrap to the last
+        self.assertEqual(k["active"], "dopt-" + REG[-1]["id"])
         self.assertTrue(k["role"])
         self.assertEqual(k["escape"], [False, "aurora"])                     # Esc closes without choosing
         self.assertEqual(k["enter"], [False, "terminal", "terminal"])        # the filtered list "mono": Enter picks its first
@@ -221,10 +242,10 @@ class DesignRuns(_Slots, unittest.TestCase):
         self.assertTrue(k["noneEn"])
 
     def test_theme_buttons_exist_only_for_the_design_with_both_schemes(self):
-        for design, (_, _, _, scheme, _) in zip(DESIGN_IDS, EXPECTED):
+        for design, scheme in SCHEME.items():
             with self.subTest(design=design):
                 self.assertEqual(self.out["pages"][design]["themeButtons"], 2 if scheme == "both" else 0)
-                self.assertEqual(self.out["pages"][design]["theme"], {"both": None}.get(scheme, scheme))
+                self.assertEqual(self.out["pages"][design]["theme"], HALF[scheme])
 
     def test_every_design_draws_the_same_sections_and_anchors(self):
         base = self.out["pages"]["aurora"]["ids"]
@@ -233,6 +254,15 @@ class DesignRuns(_Slots, unittest.TestCase):
         for design in DESIGN_IDS:
             with self.subTest(design=design):
                 self.assertEqual(self.out["pages"][design]["ids"], base)
+
+    def test_old_ring_sits_where_the_hide_rule_reaches_it_and_never_next_to_the_new_one(self):
+        # the CSS side (.ovh>.ring{display:none} for every design) is held by AllDesignLimits; here: the markup the rule meets
+        for design in DESIGN_IDS:
+            for name in ("empty", "running"):
+                got = self.out["ring"][design + "/" + name]
+                with self.subTest(design=design, build=name):
+                    self.assertEqual((got["old"], got["oldInHero"]), (1, 1))          # one old ring, a direct child of the hero: hidden
+                    self.assertLessEqual(got["dx"], 0 if name == "empty" else 1)      # no tickets: no new ring, so no empty frame; else at most one
 
     def test_rail_marks_the_link_of_the_section_nearest_the_top(self):
         self.assertEqual(self.out["rail0"], ["page", None, None])      # first section at the top
@@ -261,7 +291,6 @@ def contrast(a, b):
     return (hi + 0.05) / (lo + 0.05)
 
 
-LIGHT = ("editorial", "blueprint", "bento")
 TOKENS = ("bg card inset soft line line2 tx tx2 mut quiet hero hero-shadow sh sh-raised done done-soft done-tx on-done now now-soft now-tx now-on hatch "
           "rev rev-soft rev-tx on-rev fix fix-soft fix-tx on-fix bad bad-soft bad-tx on-bad idle accent warn-bg warn-bd warn-tx").split()
 
@@ -310,8 +339,7 @@ class DesignPalettes(unittest.TestCase):
         for design, slot in (("editorial", "dx-stamp"), ("blueprint", "dx-dim"), ("bento", "dx-ring")):
             self.assertRegex(self.css, r'\[data-design="%s"\][^{]*\.%s\{[^}]*display:' % (design, slot))
 
-    def test_targets_are_44px_and_motion_respects_the_reduced_motion_query(self):
-        self.assertRegex(self.css, r'html:is\(\[data-design="editorial"\],\[data-design="blueprint"\],\[data-design="bento"\]\) :is\([^)]*summary[^)]*\.vopt[^)]*button[^)]*\)\{[^}]*min-height:44px')
+    def test_motion_respects_the_reduced_motion_query(self):
         blocks = self.css.split("prefers-reduced-motion: reduce")[1:]
         self.assertTrue(any(".dx-stamp" in b and "animation:none" in b for b in blocks), "no reduced-motion rule for the new elements")
 
@@ -332,9 +360,9 @@ class DesignStrings(unittest.TestCase):
         self.assertIn(":root[lang]:not([hidden]){", self.css)
 
     def test_each_design_sets_its_accent_from_the_registry_over_the_shared_tokens(self):
-        for design, _, accent, _, _ in EXPECTED[1:]:
-            with self.subTest(design=design):
-                self.assertIn('html[data-design="%s"][lang]:not([hidden]):not([data-theme="none"]){--accent:%s}' % (design, accent), self.css)
+        for d in REG[1:]:  # the first design (the default) sets its accent inside its own token halves
+            with self.subTest(design=d["id"]):
+                self.assertIn('html[data-design="%s"][lang]:not([hidden]):not([data-theme="none"]){--accent:%s}' % (d["id"], d["accent"]), self.css)
 
     def test_combobox_and_options_are_44px_targets(self):
         for rule in (r"\.dcombo\{[^}]*min-height:44px", r"\.dopt\{[^}]*min-height:44px", r"\.dcombo-btn\{[^}]*width:44px;height:44px"):
@@ -348,7 +376,6 @@ class DesignStrings(unittest.TestCase):
 
 # The ceiling of the whole template (bytes): if a design does not fit, the design is cut, the ceiling stays.
 TEMPLATE_CEILING = 450 * 1024
-SCHEME = {e[0]: e[3] for e in EXPECTED}
 
 
 class AllDesignLimits(unittest.TestCase):
@@ -362,7 +389,8 @@ class AllDesignLimits(unittest.TestCase):
     def halves(self, design):
         sel = {"aurora": ['html:is([data-design="aurora"]):not([hidden]):not([data-theme="light"])',
                           'html:is([data-design="aurora"])[data-theme="light"][lang]:not([hidden])']}.get(design) or [
-            'html[data-design="%s"][data-theme="%s"][lang]:not([hidden])' % (design, SCHEME[design])]
+            'html[data-design="%s"][data-theme="%s"][lang]:not([hidden])' % (design, half)
+            for half in (("dark", "light") if SCHEME[design] == "both" else (SCHEME[design],))]  # a new design: one block per scheme half
         out = []
         for s in sel:
             m = re.search(re.escape(s) + r"\{([^}]*)\}", self.css)
@@ -406,8 +434,54 @@ class AllDesignLimits(unittest.TestCase):
         reduced = self.css.split("prefers-reduced-motion")
         self.assertTrue(any(".dx-ticker-track{animation:none" in b for b in reduced), "the ticker still runs under reduced motion")
 
-    def test_brutal_and_terminal_are_44px_targets_and_terminal_alone_has_the_crt_layers(self):
-        self.assertRegex(self.css, r'html:is\(\[data-design="brutal"\],\[data-design="terminal"\]\) :is\([^)]*summary[^)]*button[^)]*\)\{[^}]*min-height:44px')
+    def rule(self, selector_part, body_part):
+        """The selectors (split by comma) of every rule whose body holds body_part and one selector holds selector_part."""
+        return [sel.strip() for m in re.finditer(r"([^{}]+)\{([^}]*)\}", re.sub(r"/\*.*?\*/", "", self.css, flags=re.S)) if body_part in m.group(2)
+                for sel in re.split(r",(?![^()]*\))", m.group(1)) if selector_part in sel]
+
+    def test_targets_are_44px_in_every_design_aurora_included(self):
+        general = self.rule(":is(summary,.vopt,button)", "min-height:44px")
+        self.assertEqual(general, ["html:not([hidden]) :is(summary,.vopt,button)"])   # one rule, no design in it
+        for design in DESIGN_IDS:                                                     # so it reaches the chips (36 px) and soft buttons (38 px) of each
+            with self.subTest(design=design):
+                self.assertNotIn("data-design", general[0])
+        self.assertNotRegex(self.css, r"html:is\(\[data-design[^{]*:is\(summary")   # the old per-design lists (aurora was missing) are gone
+
+    def test_the_old_requirements_ring_is_never_drawn_visible(self):
+        hide = self.rule(".ring", "display:none")
+        self.assertIn(".ovh>.ring", hide)
+        self.assertTrue(all("data-design" not in h for h in hide), hide)               # not bound to a design: Aurora included
+        shown = [sel for sel in self.rule(".ring", "display:") if not re.search(r"\.ring-|\.dx-ring|\.ovh>\.ring$", sel)]
+        self.assertEqual(shown, [".ring"])                                             # the only other display rule is the base one (weaker than .ovh>.ring)
+
+    def test_accent_as_text_has_4_5_to_1_on_the_ground_and_the_card_or_falls_back_to_the_text_colour(self):
+        for design in DESIGN_IDS:
+            for tok in self.halves(design):
+                for ground in ("bg", "card"):
+                    if contrast(tok["accent"], tok[ground]) >= 4.5:
+                        continue
+                    for el in (".wordmark b", '.dopt[aria-selected="true"]'):         # the accent as text colour: header mark and the chosen option
+                        with self.subTest(design=design, ground=ground, el=el):
+                            own = [x for x in self.rule(el, "color:var(--tx)") if 'data-design="%s"' % design in x and ".rail-brand" not in x]
+                            self.assertTrue(own, "the accent is too pale on the %s and %s has no own colour" % (ground, el))
+                            self.assertGreaterEqual(contrast(tok["tx"], tok[ground]), 4.5)
+
+    def test_the_rail_takes_the_hero_colour_in_every_design_but_aurora_and_its_text_stays_readable(self):
+        self.assertIn('html[data-design]:not([data-design="aurora"]) .cockpit-rail{background:var(--hero);border-right-color:var(--line2)}', self.css)
+        light_on_dark = set(re.findall(r"--rail-(?:tx|accent):(#\w+)", self.css))
+        for m in re.finditer(r"([^{}]+)\{([^}]*)\}", self.css):
+            sel = m.group(1).strip()
+            if (sel.startswith(".rail-") or sel.startswith(".cockpit-rail")) and not sel.startswith(".rail-symbol"):
+                light_on_dark.update(re.findall(r"(?<![-\w])color:(#\w+)", m.group(2)))
+        self.assertGreaterEqual(len(light_on_dark), 6)
+        for design in DESIGN_IDS:
+            if design == "aurora":
+                continue
+            hero = self.halves(design)[0]["hero"]
+            for colour in sorted(light_on_dark):
+                with self.subTest(design=design, colour=colour):
+                    self.assertGreaterEqual(contrast(colour, hero), 4.5)
+
         for pseudo in ("before", "after"):
             self.assertRegex(self.css, r'html\[data-design="terminal"\][^{]*body:%s\{' % pseudo)
             self.assertNotRegex(self.css, r'html\[data-design="(?!terminal)\w+"\][^{]*body:%s\{' % pseudo)
@@ -429,6 +503,9 @@ class AllDesignLimits(unittest.TestCase):
         self.assertRegex(css, r"--bg:#fff!important")
         self.assertRegex(css, r"--tx:#000!important")
         self.assertRegex(css, r"body:before,body:after\{display:none")          # no CRT layers on paper
+        self.assertRegex(css, r"\.dx-row code\{[^}]*color:#000!important")      # the accent code of the ASCII bars is black on paper
+        for part in (r"\.dx-ring", r"\.seg i"):                                  # the ring and the progress segments keep their fills
+            self.assertRegex(css, part + r"[^{]*\{[^}]*-webkit-print-color-adjust:exact")
         self.assertGreaterEqual(contrast("#000", "#fff"), 4.5)
 
 

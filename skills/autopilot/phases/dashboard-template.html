@@ -466,7 +466,7 @@
     box-shadow:0 8px 25px -14px #8AFCE8;font-size:22px}
   .rail-brand small{display:block;font-size:10px;letter-spacing:.15em;
     color:#80E9D2;font-weight:750;margin-top:-4px}
-  .rail-label{font-size:10px;letter-spacing:.15em;color:#8296B5;
+  .rail-label{font-size:10px;letter-spacing:.15em;color:#A9BAD3;
     font-weight:800;text-transform:uppercase;padding-left:10px;margin-bottom:14px}
   .rail-nav{display:flex;flex-direction:column;gap:6px}
   .rail-nav a{display:flex;align-items:center;gap:12px;color:#B6C6DD;
@@ -483,7 +483,7 @@
     border-top:1px solid rgba(233,243,255,.12);padding-top:13px}
   .rail-metrics strong{display:block;font-size:21px;color:#fff}
   .rail-metrics small{color:#9AABC5;font-size:11px}
-  .rail-foot{margin-top:16px;font-size:10px;letter-spacing:.1em;color:#7F93B3}
+  .rail-foot{margin-top:16px;font-size:10px;letter-spacing:.1em;color:#A9BAD3}
   .top{padding:10px 0 14px;border-bottom:1px solid var(--line)}
   .brand-name{font-size:19px}.brand-version{color:#138F70;background:#E4FAF0;
     border-color:transparent;border-radius:7px}
@@ -778,8 +778,9 @@
   html[data-design="bento"]:not([hidden]) .tile:nth-child(3){background:#ffe3d2}
   html[data-design="bento"]:not([hidden]) .tile:nth-child(4){background:#fff0bd}
   html[data-design="bento"]:not([hidden]) .tile:nth-child(5){background:#dfe9ff}
-  html:is([data-design="editorial"],[data-design="blueprint"],[data-design="bento"]) :is(summary,.vopt,button){min-height:44px}
-  html:is([data-design="editorial"],[data-design="blueprint"],[data-design="bento"]) .ovh>.ring{display:none}
+  /* Все шесть дизайнов, «Аврора» тоже: цели не ниже 44 px; старое кольцо требований (ringHTML) не рисуется нигде — у дизайнов своё (.dx-ring). */
+  html:not([hidden]) :is(summary,.vopt,button){min-height:44px}
+  .ovh>.ring{display:none}
   /* Слоты особых элементов: рисуются из состояния (dxStamp, dxDim, dxRing), общий CSS их прячет, дизайн показывает свой. */
   .dx-stamp,.dx-dim,.dx-ring{display:none}
   html[data-design="editorial"] .dx-stamp{display:block;position:absolute;right:26px;top:24px;transform:rotate(-7deg);
@@ -803,8 +804,9 @@
   @media (prefers-reduced-motion: reduce){.dx-stamp,.dx-dim i:after,.dx-ring{animation:none}}
   /* «Пульт» и «Терминал»: оформление, тикер и ASCII-шкалы (слоты dxTicker, dxAscii). */
   .dx-ticker,.dx-ascii{display:none}
-  html:is([data-design="brutal"],[data-design="terminal"]) :is(summary,.vopt,button){min-height:44px}
-  html:is([data-design="brutal"],[data-design="terminal"]) .ovh>.ring{display:none}
+  /* Акцент «Пульта» (лайм) на бумаге бледнее 4,5:1: знак и выбранный пункт берут цвет текста. */
+  html[data-design="brutal"]:not([hidden]) .wordmark b,html[data-design="brutal"]:not([hidden]) .dopt[aria-selected="true"]{color:var(--tx)}
+  html[data-design="brutal"]:not([hidden]) .rail-brand .wordmark b{color:var(--rail-accent)}
   html[data-design="brutal"]:not([hidden]) body{background:radial-gradient(rgba(17,16,13,.11) .7px,transparent .7px) 0 0/18px 18px,var(--bg)}
   html[data-design="brutal"]:not([hidden]) .card{border-radius:0;border:2px solid var(--tx);box-shadow:var(--sh)}
   html[data-design="brutal"]:not([hidden]) :is(.ovh h2,.sec>summary,.wt){font-family:"Bahnschrift","Arial Black","Segoe UI Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:-.01em}
@@ -834,6 +836,8 @@
       --tx:#000!important;--tx2:#222!important;--mut:#333!important;--quiet:#444!important;--line:#999!important;--line2:#666!important;--sh:none!important;--sh-raised:none!important}
     html[data-design] body,html[data-design] .card,html[data-design] .hero,html[data-design] .ovh{background:#fff!important;color:#000!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
     body:before,body:after{display:none!important}
+    .dx-row code{color:#000!important}
+    .dx-ring,.dx-ring-in,.seg,.seg i{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .cockpit-rail,.askbar,.dx-ticker,.dcombo,.skip-link,button{display:none!important}
     .wrap{padding:0!important;max-width:none!important}
     details>.sec-body,details.sec>.sec-body{display:block!important}
@@ -866,6 +870,7 @@
   html[data-design="aurora"] .cockpit-rail{
     background:linear-gradient(155deg,var(--aurora-rail1),var(--aurora-rail2) 62%,var(--aurora-rail3));
     border-right-color:rgba(158,190,255,.14)}
+  html[data-design]:not([data-design="aurora"]) .cockpit-rail{background:var(--hero);border-right-color:var(--line2)}
   html[data-design="aurora"] .rail-nav a[aria-current]{background:rgba(77,240,190,.12);color:#B6FFE6;
     border:1px solid rgba(77,240,190,.22)}
   html[data-design="aurora"][lang]:not([hidden]) :focus-visible{outline-color:var(--aurora-sky)}
