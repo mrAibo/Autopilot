@@ -33,6 +33,14 @@
     python3 .autopilot/ap.py agents prune [--apply]     # профили autopilot-* сданных прогонов: без --apply только список
     python3 .autopilot/ap.py chore test-count           # генератор из interfaces.md («Команды-генераторы»): запуск и коммит только его файлов
     python3 .autopilot/ap.py ticket 03 land --message "T03: приём заявки" --requirements R01,R02 [--zone a/,b/]   # вне зоны, полная проверка, коммит зоны, done
+    python3 .autopilot/ap.py ticket 03 land --include a/x.py,b/   # land: дописать файлы вне зоны к коммиту (отдельно от --allow)
+    python3 .autopilot/ap.py ticket 03 redproof --command "…"   # bug: красный тест до правки (код ≠ 0)
+    python3 .autopilot/ap.py ticket 03 baseline --command "…"   # refactor: зелёные тесты до правок (код 0)
+    python3 .autopilot/ap.py ticket 03 bundle           # сводка для исполнителя: упавшая проверка, блокеры, замечания
+    python3 .autopilot/ap.py silence [--limit СЕК] [--transcript ПУТЬ]   # тихие агенты (код 3); нет журнала — код 1
+    python3 .autopilot/ap.py lessons candidates | add … | show | drop N | check   # уроки сборок в .autopilot/lessons.md
+    python3 .autopilot/ap.py profile refresh            # .autopilot/profile.md: команды проекта
+    python3 .autopilot/ap.py init --kind feature|bug|refactor …   # вид работы (init --kind)
     python3 "<skillDir>/tools/ap.py" bootstrap --project .   # поставить инструменты и дашборд в .autopilot/ (из папки навыка); печатает skillDir
     python3 "<skillDir>/tools/ap.py" doctor             # git-check, версия Claude Code, advisorModel, repo_doctor — строка на проверку
     python3 .autopilot/ap.py url                        # адрес дашборда с токеном — только эта команда (в чат не вставлять)
@@ -3118,8 +3126,11 @@ def cmd_silence(opt):
         die("silence: --limit — число секунд")
     path = opt["transcript"] if isinstance(opt.get("transcript"), str) else session_transcript()
     if not path:
-        print("тишина: журнала сессии не нашёл (путь задаёт --transcript)")
-        return 0
+        print("тишина: журнал не найден (путь задаёт --transcript)")
+        return 1
+    if not os.path.exists(path):
+        print("тишина: журнал не найден: %s" % path)
+        return 1
     quiet = silence.silent_agents(os.path.splitext(path)[0] + os.sep + "subagents", limit)
     for q in quiet:
         print("тихий агент %s: %d с без вывода (срок %d) — останови его TaskStop и пересоздай таск" % (q["file"], q["idle"], limit))
@@ -3594,6 +3605,9 @@ def cmd_check_bypass(pos):
     """Печатает добавленные skip/xfail/--no-verify и удалённые assert; только сигнал, код 0."""
     import review_checks
     rev = pos[1] if len(pos) > 1 else "HEAD~1..HEAD"
+    if len(pos) < 2 and subprocess.run(["git", "-C", ROOT, "rev-parse", "-q", "--verify", "HEAD~1"],
+                                       capture_output=True).returncode:
+        rev = "4b825dc642cb6eb9a060e54bf8d69288fbee4904..HEAD"  # единственный коммит: от пустого дерева
     if rev.startswith("-") or len(pos) > 2:
         die("check-bypass [РЕВИЗИЯ..РЕВИЗИЯ]")
     done = subprocess.run(["git", "-C", ROOT, "diff", "--no-color", rev, "--"], capture_output=True,

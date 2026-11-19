@@ -220,6 +220,35 @@ class Cli(unittest.TestCase):
         self.assertIn("добавлено: @unittest.skip('x')", out)
         self.assertIn("удалено: assert 1 == 1", out)
 
+    def test_check_bypass_without_args_works_on_a_single_commit_repo(self):
+        with open(os.path.join(self.root, "t.py"), "w", encoding="utf-8") as f:
+            f.write("import unittest\n@unittest.skip('x')\ndef test():\n    pass\n")
+        self.git("add", "t.py")
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--amend", "-m", "only")
+        code, out = self.ap("check-bypass")
+        self.assertEqual(code, 0, out)
+        self.assertIn("добавлено: @unittest.skip('x')", out)
+
+    # silence без журнала
+    def test_silence_with_missing_transcript_is_not_all_alive(self):
+        code, out = self.ap("silence", "--transcript", os.path.join(self.home, "нет.jsonl"))
+        self.assertEqual(code, 1, out)
+        self.assertIn("журнал не найден", out)
+        self.assertNotIn("подают признаки жизни", out)
+
+    def test_silence_without_any_transcript_is_not_all_alive(self):
+        code, out = self.ap("silence")
+        self.assertEqual(code, 1, out)
+        self.assertIn("журнал не найден", out)
+
+    # справка
+    def test_help_lists_new_commands(self):
+        text = read(os.path.join(TOOLS, "ap.py")).split('"""')[1]
+        for word in ("plan-fact", "check-review-report", "check-bypass", "blocker confirm", "ticket 03 redproof",
+                     "ticket 03 baseline", "ticket 03 bundle", "silence", "lessons", "profile",
+                     "init --kind", "land --include"):
+            self.assertIn(word, text)
+
 
 class Texts(unittest.TestCase):
     def test_new_prompts_exist_and_skill_lists_them(self):
