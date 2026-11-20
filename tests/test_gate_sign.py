@@ -206,27 +206,83 @@ class KeyRaceTests(unittest.TestCase):
         self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])
 
     def test_a_racer_arriving_mid_claim_never_displaces_a_whole_key(self):
-        # R03: a racer with a stale "the file is empty" finds the whole key already there. While it claims,
-        # a third racer runs ensure_key; the key must stay and the third racer must read that same key.
+        # R03: a racer with a stale "the file is empty" finds the whole key already there. A third racer runs
+        # ensure_key at the first directory change of the claim (whichever call makes it) and once more after
+        # it; the key must stay and both racers must read that same key.
         key = b"k" * 32
         self.path.write_bytes(key)
-        third, seen = [], []
+        started, seen = [], []
+
+        def racer():
+            gate_sign.ensure_key()
+            seen.append(gate_sign.load_key())
 
         def after(real):
             def wrapper(*args, **kwargs):
                 result = real(*args, **kwargs)
-                if not third:                                                   # the first directory change of the claim
-                    third.append(True)
-                    gate_sign.ensure_key()
-                    seen.append(gate_sign.load_key())
+                if not started:
+                    started.append(True)
+                    racer()
                 return result
             return wrapper
 
-        with mock.patch.object(os, "rename", after(os.rename)), mock.patch.object(os, "link", after(os.link)):
+        with contextlib.ExitStack() as stack:
+            for name in ("link", "rename", "replace", "unlink", "remove"):
+                stack.enter_context(mock.patch.object(os, name, after(getattr(os, name))))
             self.assertFalse(gate_sign._claim_empty(self.path))
+        racer()
+        self.assertEqual(seen, [key, key])
         self.assertEqual(gate_sign.load_key(), key)
-        self.assertEqual(seen, [key])
         self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])   # the claim is gone too
+
+    def busy_claim(self, failures):
+        """Path.unlink that refuses gate.key.claim `failures` times, as a Windows reader holding it would."""
+        real, left = Path.unlink, [failures]
+
+        def unlink(path, missing_ok=False):
+            if path.name == "gate.key.claim" and left[0] > 0:
+                left[0] -= 1
+                raise PermissionError(13, "the file is in use")
+            return real(path, missing_ok=missing_ok)
+
+        return mock.patch.object(Path, "unlink", unlink)
+
+    def test_a_claim_that_is_busy_for_a_moment_is_removed_by_retry(self):
+        self.path.write_bytes(b"")
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.busy_claim(3):
+            gate_sign.ensure_key()
+        self.assertEqual(len(gate_sign.load_key()), 32)
+        self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])   # the claim is gone
+
+    def test_a_claim_that_stays_busy_is_a_clear_error_and_the_key_is_kept(self):
+        key = b"k" * 32
+        self.path.write_bytes(key)
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.busy_claim(10 ** 6), \
+                self.assertRaises(OSError) as caught:
+            gate_sign._claim_empty(self.path)                                   # a stale racer under a whole key
+        self.assertNotIsInstance(caught.exception, PermissionError)             # not the raw Windows error
+        self.assertIn("gate.key.claim", str(caught.exception))
+        self.assertEqual(self.path.read_bytes(), key)                           # the key is neither lost nor replaced
+
+        self.path.write_bytes(b"")
+        (self.home / "gate.key.claim").unlink()
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.busy_claim(10 ** 6), \
+                self.assertRaises(OSError) as caught:
+            gate_sign.ensure_key()
+        self.assertNotIsInstance(caught.exception, PermissionError)
+        self.assertIn("gate.key.claim", str(caught.exception))
+
+    def test_an_abandoned_claim_is_named_in_the_error_with_the_way_out(self):
+        # R03: a killed claim holder leaves gate.key.claim; the error must say which file to delete.
+        self.path.write_bytes(b"")
+        (self.home / "gate.key.claim").write_bytes(b"")
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.assertRaises(OSError) as caught:
+            gate_sign.ensure_key()
+        text = str(caught.exception)
+        self.assertIn("gate.key.claim", text)
+        self.assertIn("удал", text)                                             # "delete it" (убит / удали)
+        self.assertIn("убит", text)
+        self.assertEqual(self.path.read_bytes(), b"")                           # nothing was touched
 
     def test_a_held_claim_makes_every_other_racer_back_off(self):
         self.path.write_bytes(b"")

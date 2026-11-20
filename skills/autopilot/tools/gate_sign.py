@@ -143,6 +143,10 @@ def _create_key_atomically(path, data):
         temp.unlink(missing_ok=True)
 
 
+def _claim_path(path):
+    return path.with_name(path.name + ".claim")
+
+
 def _claim_empty(path):
     """Remove an old empty key: exactly one racer gets True; the rest get False and leave the file alone.
 
@@ -150,7 +154,7 @@ def _claim_empty(path):
     finds the whole key behind its claim, drops it and moves nothing: the earlier rename-aside took such a
     key off the path for an instant, a third racer wrote its own key there and the first one was lost.
     """
-    claim = path.with_name(path.name + ".claim")
+    claim = _claim_path(path)
     try:
         _retry_busy(lambda: os.link(str(path), str(claim)))
     except (FileExistsError, FileNotFoundError):  # a claim is held, or there is no file left to claim
@@ -164,7 +168,11 @@ def _claim_empty(path):
             pass
         return True
     finally:
-        claim.unlink(missing_ok=True)
+        try:
+            _retry_busy(lambda: claim.unlink(missing_ok=True))
+        except PermissionError as exc:  # a reader kept the claim open for the whole retry: the key stays as it is
+            raise OSError("не удалось удалить заявку %s: файл занят; если процесс, который её создал, убит, "
+                          "удали её вручную" % claim) from exc
 
 
 def _wait_for_key(path):
@@ -219,7 +227,8 @@ def ensure_key():
                 except OSError as exc:
                     _warn("ключ не переписан под DPAPI (%s)" % type(exc).__name__)
         return path
-    raise OSError("не удалось создать ключ подписи %s: файл остался пустым или занят" % path)
+    raise OSError("не удалось создать ключ подписи %s: файл остался пустым или занят; если рядом лежит %s "
+                  "от убитого процесса, удали её" % (path, _claim_path(path)))
 
 
 def _stored_key():
