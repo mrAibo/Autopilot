@@ -35,3 +35,4 @@
 | 2026-11-20 | `2026-11-20-close-progress-bugs` | сдан | Закрыты баги plan-fact record, land_check, blocker confirm/redproof; вердикт второго прохода хранится в блокере; CI на tools/run-tests.py |
 | 2026-11-20 | `2026-11-20-close-known-bugs` | сдан | Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты |
 | 2026-11-20 | `2026-11-20-close-review-race-bugs` | сдан | Закрыты три бага: start зависимого при review, commit_paths с переименованием, гонка gate_sign |
+| 2026-11-20 | `2026-11-20-close-weak-spots--wip` | в работе | — |
