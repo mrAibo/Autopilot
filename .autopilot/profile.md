@@ -15,7 +15,8 @@
 не определён
 
 ## Подводные камни
-- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1245<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1258<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- `ticket MM start` пускает таск, чья зависимость в `review` (код закоммичен); `done` и `land` ждут `done` зависимости. `commit_paths` подхватывает старый путь переименования из индекса; ключ `gate.key` при пустом файле занимается жёсткой ссылкой `gate.key.claim` (брошенную заявку удалить руками, `docs/adr/0029`).
 - Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI запускает именно его. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (голый `ap.py` и остальные команды печатают адрес без `?t=`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
@@ -29,4 +30,3 @@
 - Тесты, копирующие `ap.py` в харнесс, копируют и `state_io.py`, и `process_containment.py`.
 - `worktrees.py land` требует `--zone`; в доках и командах `py -3`, не `py -3.13`.
 - Ключ подписи гейтов — `~/.autopilot/gate.key` (или `$AUTOPILOT_HOME`), запись «прогон начат подписанным» — `$AUTOPILOT_HOME/runs/`; в strict-прогоне `.autopilot/*.py` закрыты от Write/Edit. На Windows `gate.key` хранит блок `dpapi:` (читать и писать только через `gate_sign.py`; старый открытый файл переписывается защищённым); на остальных ОС — файл. `bash_gate` запрещает субагенту запись, удаление, копирование и перенос в `.autopilot/`, `~/.autopilot/`, `.claude/agents/`; принятые пробелы: `>|`, `case…esac`, `find -exec sh -c`, `perl -pi`, heredoc, подстановки `$(...)`.
-- Допустимые модели субагентов задаёт `model_router.is_allowed_subagent_model(name, premium_ok=…)`; Opus допускается только при подписанном подтверждении пользователя, Fable не проходит никогда.
