@@ -1,0 +1,18 @@
+# Заметки разведки (по коду, 2026-11-21)
+
+Номера строк — `skills/autopilot/tools/ap.py`, если не сказано иное; ориентир, не контракт.
+
+- **Кнопка (R01):** `phases/dashboard-template.html` — `actClick` ≈1746, разметка кнопки ≈2964: `st.busy ? A.sending : st.armed ? A.sure : A.label[actKind]`; тексты `act.label/sure` в i18n ≈1503 (ru) и ≈1661 (en). Тесты: `tests/test_dashboard_buttons.py`.
+- **`ask accept` (R02):** `cmd_ask` ≈3920 проверяет только `kind in WAIT_KINDS` (≈135); режим — `state["mode"]` (≈390). Ограничение «accept только в manual» есть лишь в `phases/8-final.md:182` и `phases/0-instruments.md:87`. Тесты `tests/test_dashboard_actions.py` зовут `ask accept` в своём харнессе (semi).
+- **Сервер (R03, R09):** `serve()` ≈1256–1290, `recorded()` ≈928, `kill_orphans` ≈964. Сервер старого `ap.py` отвечает на `/.ap-ping` 404 → `ping_reply` даёт `None`, и сервер считается своим по командной строке (тест `tests/test_followups_token.py:299`), не перезапускается. Пинг: `PING_PATH` ≈1018, `ping_digest` ≈1021 (hmac-sha256 от `serve.token`, сообщение `autopilot-ping|<port>`), `ping_reply` ≈1027, `server_is_ours` ≈1036, `tokenless_page` ≈1114. `log_message` ≈1233 пишет строку запроса в stderr сервера = `serve.log`. ADR `0013`.
+- **`::имя` (R04):** `tools/plan_items.py` — `EVIDENCE` ≈46, `_proved` ≈49–66 (для имени `name in text`). Тесты `tests/test_review_accuracy.py:145,169`.
+- **redproof (R05):** `ap.py` ≈3110–3131; фраза `cannot import name` в общем регексе ≈3127 вместе с `SyntaxError`, `ModuleNotFoundError`, `command not found`, `Ran 0 tests`, `collected 0 items`. Тесты `tests/test_work_kinds.py:351–397`.
+- **lessons (R06):** `tools/lessons.py` — `ABS_PATH` ≈17, `check_text` ≈20, `add` ≈43, `drop` ≈81 (перезапись), `refresh_profile` ≈145; вызовы из `ap.py` `cmd_lessons` ≈3296, `cmd_profile` ≈3332 идут до `locked_state` (≈4832). Замок проекта — `locked_state` ≈206.
+- **Тест silence (R07):** `tests/test_review_accuracy.py:346` читает реальный `~/.claude`: `session_transcript()` ≈4507 берёт `CLAUDE_CONFIG_DIR` или `~/.claude`; харнесс `Cli.setUp` задаёт только `self.home` и `AUTOPILOT_HOME`. Пример изоляции — `tests/test_subagent_spend.py:236`.
+- **Расход (R08):** `session_transcript` ≈4507 (запасной поиск по префиксу), `spend_orchestrator` ≈4576, `spend_subagents` ≈4613; дубли пишутся, чтение схлопывает (`run_log.collapse_agents`).
+- **Мёртвый CSS (R10):** `.nowh` ≈946–954, `.ov3` ≈1042/1073/1085, `.tl2` ≈1211–1222, `html[data-narrow]` ≈1197–1202 и ≈1266, JS ≈1384 и ≈2994. Тесты: `test_dashboard_now.py:58`, `test_dashboard_boards.py:288`, `test_followups_dashboard.py:127–241`, `test_dashboard_views.py:121`; ADR `0017:18`, `0019:17`.
+- **Трейлер (R19):** запись — `cmd_land` ≈3231 → `commit_paths` ≈3028 (`git commit --only --trailer=`); чтение — `tools/land_check.py:39–57` (`%(trailers:key=…)`). Проверки версии git нет нигде.
+- **chore (R21):** `cmd_chore` ≈3057, `porcelain()` ≈2967; грязный файл генератора — отказ ≈3069–3075.
+- **Маршрут (R15):** `tools/model_router.py` — профили ≈22–52, `assess_ticket` ≈276, `choose_route` ≈332; в `ap.py` `ROLE_SCORES` ≈2077, `cmd_plan_models` ≈2316, Opus ≈2123–2300. Слова `preset` в коде нет; маршрут **вычисляется** из оценки, настроек-набора, которому пресет мог бы быть именем, нет.
+- **Новая команда:** докстринг модуля (справка), диспетчер `main` ≈4736+, маска `allowed-tools` в `SKILL.md` покрывает любую команду `ap.py`.
+- **Слепая приёмка (R12):** `phases/8-final.md` (blind checker, два круга); Playwright в проекте нет; есть `tools/check-dashboard-browser.py` (headless Chrome/Edge через subprocess), CI `python-tests.yml` — шаг «Browser dashboard smoke» на Linux.

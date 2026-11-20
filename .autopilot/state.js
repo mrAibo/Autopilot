@@ -2,527 +2,420 @@ window.STATE =
 {
   "schemaVersion": 1,
   "version": 2,
-  "slug": "bugs-and-buttons",
-  "dir": "2026-11-20-bugs-and-buttons",
-  "title": "Баги ревью и кнопки подтверждения (R33–R35)",
+  "slug": "tails-and-r28",
+  "dir": "2026-11-21-tails-and-r28--wip",
+  "title": "Хвосты и R28: решения и пресеты",
   "mode": "semi",
   "depth": "normal",
   "kind": "task",
-  "tier": "T1",
+  "tier": "T2",
   "strictRouting": false,
   "gateSigned": false,
   "sequentialHost": false,
-  "spendLedger": [
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "orchestrator",
-      "origin": "claude-transcript",
-      "role": "orchestrator",
-      "ticket": null,
-      "agent": null,
-      "agent_type": null,
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 39,
-      "input": 92,
-      "output": 53773,
-      "cache_read": 12059422,
-      "cache_write": 89316,
-      "tokens": 53865,
-      "hit": 99
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "executor",
-      "ticket": "03",
-      "agent": "a0da94148aa45d537",
-      "agent_type": "autopilot-executor",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 65,
-      "input": 130,
-      "output": 87967,
-      "cache_read": 8613769,
-      "cache_write": 200009,
-      "tokens": 88097,
-      "hit": 98
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "executor",
-      "ticket": null,
-      "agent": "a13ae4097aae8c0c3",
-      "agent_type": "autopilot-executor",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 23,
-      "input": 46,
-      "output": 13142,
-      "cache_read": 980917,
-      "cache_write": 64636,
-      "tokens": 13188,
-      "hit": 94
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "reviewer",
-      "ticket": null,
-      "agent": "a28606f8fa9bb4a04",
-      "agent_type": "autopilot-reviewer",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 15,
-      "input": 30,
-      "output": 22391,
-      "cache_read": 856917,
-      "cache_write": 93294,
-      "tokens": 22421,
-      "hit": 90
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "reviewer",
-      "ticket": null,
-      "agent": "a2b3e8d345f01cdaf",
-      "agent_type": "autopilot-reviewer",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 4,
-      "input": 10,
-      "output": 2671,
-      "cache_read": 74402,
-      "cache_write": 37237,
-      "tokens": 2681,
-      "hit": 67
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "explorer",
-      "ticket": null,
-      "agent": "a3ef8512712465e21",
-      "agent_type": "autopilot-explorer",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 9,
-      "input": 18,
-      "output": 12481,
-      "cache_read": 287100,
-      "cache_write": 58521,
-      "tokens": 12499,
-      "hit": 83
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "executor",
-      "ticket": "F1",
-      "agent": "a7133f3c651daa5bd",
-      "agent_type": "autopilot-executor",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 19,
-      "input": 38,
-      "output": 7274,
-      "cache_read": 542603,
-      "cache_write": 38049,
-      "tokens": 7312,
-      "hit": 93
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "acceptance",
-      "ticket": null,
-      "agent": "aa3bb4f8f0393a81b",
-      "agent_type": "autopilot-acceptance",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 58,
-      "input": 116,
-      "output": 39887,
-      "cache_read": 3596338,
-      "cache_write": 102637,
-      "tokens": 40003,
-      "hit": 97
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "reviewer",
-      "ticket": null,
-      "agent": "aec6e07a35145acc1",
-      "agent_type": "autopilot-reviewer",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 2,
-      "input": 4,
-      "output": 1651,
-      "cache_read": 15062,
-      "cache_write": 23666,
-      "tokens": 1655,
-      "hit": 39
-    },
-    {
-      "t": "2026-11-20T19:53:57+01:00",
-      "run": "2026-11-20-bugs-and-buttons",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "executor",
-      "ticket": null,
-      "agent": "affb2104aecb5cff9",
-      "agent_type": "autopilot-executor",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 27,
-      "input": 54,
-      "output": 25221,
-      "cache_read": 1627019,
-      "cache_write": 87463,
-      "tokens": 25275,
-      "hit": 95
-    }
-  ],
+  "spendLedger": [],
   "isolateTickets": false,
-  "briefFile": "2026-11-20-brief.md",
+  "briefFile": "2026-11-21-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
-  "skillDir": "C:\\Users\\crown\\Downloads\\Projects\\Autopilot\\skills\\autopilot",
-  "baseCommit": "b0ce7bc",
-  "startedAt": "2026-11-20T18:55:34+01:00",
-  "updatedAt": "2026-11-20T19:53:56+01:00",
-  "finishedAt": "2026-11-20T19:53:57+01:00",
+  "skillDir": "C:/Users/crown/Downloads/Projects/Autopilot/skills/autopilot",
+  "baseCommit": null,
+  "startedAt": "2026-11-21T00:35:02+01:00",
+  "updatedAt": "2026-11-21T00:41:30+01:00",
+  "finishedAt": null,
   "stages": [
     {
       "id": "preflight",
       "status": "done",
-      "startedAt": "2026-11-20T18:55:34+01:00",
+      "startedAt": "2026-11-21T00:35:02+01:00",
       "segments": [
         {
-          "startedAt": "2026-11-20T18:55:34+01:00",
-          "finishedAt": "2026-11-20T18:55:51+01:00"
+          "startedAt": "2026-11-21T00:35:02+01:00",
+          "finishedAt": "2026-11-21T00:35:07+01:00"
         }
       ],
-      "finishedAt": "2026-11-20T18:55:51+01:00"
+      "finishedAt": "2026-11-21T00:35:07+01:00"
     },
     {
       "id": "manifest",
       "status": "done",
       "segments": [
         {
-          "startedAt": "2026-11-20T18:55:51+01:00",
-          "finishedAt": "2026-11-20T18:55:51+01:00"
+          "startedAt": "2026-11-21T00:35:07+01:00",
+          "finishedAt": "2026-11-21T00:35:53+01:00"
         }
       ],
-      "startedAt": "2026-11-20T18:55:51+01:00",
-      "finishedAt": "2026-11-20T18:55:51+01:00"
+      "startedAt": "2026-11-21T00:35:07+01:00",
+      "finishedAt": "2026-11-21T00:35:53+01:00"
     },
     {
       "id": "briefing",
       "status": "skipped",
       "segments": [
         {
-          "startedAt": "2026-11-20T18:55:51+01:00",
-          "finishedAt": "2026-11-20T18:56:03+01:00"
+          "startedAt": "2026-11-21T00:35:53+01:00",
+          "finishedAt": "2026-11-21T00:35:53+01:00"
         }
       ],
-      "startedAt": "2026-11-20T18:55:51+01:00",
-      "finishedAt": "2026-11-20T18:56:03+01:00",
-      "note": "вопросов не потребовалось: задача названа точно, детали R33–R35 в брифе"
+      "startedAt": "2026-11-21T00:35:53+01:00",
+      "finishedAt": "2026-11-21T00:35:53+01:00",
+      "note": "вопросов не потребовалось: объём задан PROGRESS.md и R28 из брифа"
     },
     {
       "id": "spec",
       "status": "done",
       "segments": [
         {
-          "startedAt": "2026-11-20T18:56:03+01:00",
-          "finishedAt": "2026-11-20T18:59:41+01:00"
+          "startedAt": "2026-11-21T00:35:53+01:00",
+          "finishedAt": "2026-11-21T00:41:25+01:00"
         }
       ],
-      "startedAt": "2026-11-20T18:56:03+01:00",
-      "finishedAt": "2026-11-20T18:59:41+01:00"
+      "startedAt": "2026-11-21T00:35:53+01:00",
+      "finishedAt": "2026-11-21T00:41:25+01:00"
     },
     {
       "id": "plan",
-      "status": "done",
+      "status": "active",
       "segments": [
         {
-          "startedAt": "2026-11-20T18:59:41+01:00",
-          "finishedAt": "2026-11-20T19:00:56+01:00"
+          "startedAt": "2026-11-21T00:41:25+01:00",
+          "finishedAt": null
         }
       ],
-      "startedAt": "2026-11-20T18:59:41+01:00",
-      "finishedAt": "2026-11-20T19:00:56+01:00"
+      "startedAt": "2026-11-21T00:41:25+01:00"
     },
     {
       "id": "build",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T19:00:56+01:00",
-          "finishedAt": "2026-11-20T19:29:07+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T19:00:56+01:00",
-      "finishedAt": "2026-11-20T19:29:07+01:00"
+      "status": "pending"
     },
     {
       "id": "review",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T19:29:07+01:00",
-          "finishedAt": "2026-11-20T19:40:40+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T19:29:07+01:00",
-      "finishedAt": "2026-11-20T19:40:40+01:00"
+      "status": "pending"
     },
     {
       "id": "final",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T19:40:40+01:00",
-          "finishedAt": "2026-11-20T19:53:57+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T19:40:40+01:00",
-      "finishedAt": "2026-11-20T19:53:57+01:00"
+      "status": "pending"
     }
   ],
   "requirements": {
-    "total": 8,
-    "done": 8,
-    "inTicket": 0,
+    "total": 21,
+    "done": 0,
+    "inTicket": 17,
     "inSpec": 0,
     "placeholder": 0,
-    "deferred": 0,
+    "deferred": 4,
     "dropped": 0
   },
   "tickets": [
     {
       "id": "01",
-      "title": "Три слабых места ревью: schedule и зона, commit_paths и каталог, заявка gate_sign",
+      "title": "Подпись кнопки, мёртвый CSS, строка «план: N из M»",
       "requirements": [
         "R01",
-        "R02",
-        "R03",
-        "R04"
-      ],
-      "blockedBy": [],
-      "wave": 1,
-      "zone": [
-        "skills/autopilot/tools/scheduler.py",
-        "skills/autopilot/tools/gate_sign.py",
-        "skills/autopilot/tools/ap.py",
-        "commit_paths",
-        "tests/test_scheduler.py",
-        "tests/test_review_race_bugs.py",
-        "tests/test_gate_sign.py"
-      ],
-      "review": "нет",
-      "model": "сильная",
-      "repro": false,
-      "testsEdit": null,
-      "fingerprint": "f16dc7277c3833bb0fd3d8c317a83d7ff31e747c848c2ccc1852e87c28804793",
-      "status": "done",
-      "startedAt": "2026-11-20T19:00:56+01:00",
-      "finishedAt": "2026-11-20T19:08:56+01:00",
-      "retries": 0,
-      "repairs": 0,
-      "tests": {
-        "passed": 1276,
-        "failed": 0
-      },
-      "commit": "18073ed",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "high",
-        "effortEnforced": true,
-        "score": 66,
-        "reason": "высокий риск: gate_sign, commit_paths (расчёт плана)",
-        "verified": true,
-        "agentType": "autopilot-executor-01-close-review-bugs",
-        "agentFile": ".claude/agents/autopilot-executor-01-close-review-bugs.md",
-        "profileSha": "e05beedd06fa99ce624896684fc4e13021891df6bbaa62fdd6c319f5f60b1f8b"
-      },
-      "startHead": "b0ce7bc9df41ca9a522338f017eea616518cf9de"
-    },
-    {
-      "id": "02",
-      "title": "Кнопки подтверждения на странице дашборда",
-      "requirements": [
-        "R34",
-        "R34.1",
-        "R35",
-        "R35.1"
+        "R10",
+        "R11"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
         "skills/autopilot/phases/dashboard-template.html",
         "tests/test_dashboard_buttons.py",
+        "tests/test_dashboard_now.py",
+        "tests/test_dashboard_boards.py",
+        "tests/test_followups_dashboard.py",
+        "tests/test_dashboard_views.py",
         "tests/test_dashboard_designs.py",
-        "docs/autopilot/dashboard-views.md"
+        "docs/adr/0017-*.md",
+        "docs/adr/0019-*.md"
       ],
       "review": "нет",
       "model": "обычная",
       "repro": false,
       "testsEdit": null,
-      "fingerprint": "1f11181841b29e86bb860b3c6668ceb3aead6dcb77bec39696a06bd26453a0dd",
-      "status": "done",
-      "startedAt": "2026-11-20T19:00:56+01:00",
-      "finishedAt": "2026-11-20T19:10:31+01:00",
+      "fingerprint": "1fda705befa795249710c1d85fa574ceff61847f780b4d71ac4bc8517c00c7b2",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1276,
-        "failed": 0
-      },
-      "commit": "d2c2681",
-      "placeholders": [],
-      "routing": {
+      "plannedRouting": {
+        "ticket": "01",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "medium",
-        "effortEnforced": true,
-        "score": 46,
-        "reason": "логика страницы по образцу (расчёт плана)",
-        "verified": true,
-        "agentType": "autopilot-executor-02-dashboard-buttons-ui",
-        "agentFile": ".claude/agents/autopilot-executor-02-dashboard-buttons-ui.md",
-        "profileSha": "62d34405bbfb5b06822c9b5be057a7ed19a7dc4dce21e62210ae59282bdc0926"
-      },
-      "startHead": "b0ce7bc9df41ca9a522338f017eea616518cf9de"
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=правка шаблона и тестов по образцу, но с удалением кода, на который ссылаются тесты",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "1fda705befa795249710c1d85fa574ceff61847f780b4d71ac4bc8517c00c7b2",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "02",
+      "title": "`ask accept` только в manual, `::имя`, redproof, git-версия, chore",
+      "requirements": [
+        "R02",
+        "R04",
+        "R05",
+        "R19",
+        "R21"
+      ],
+      "blockedBy": [],
+      "wave": 1,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/plan_items.py",
+        "tests/test_dashboard_actions.py",
+        "tests/test_review_accuracy.py",
+        "tests/test_work_kinds.py",
+        "tests/test_one_command.py",
+        "tests/test_git_version.py"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "repro": false,
+      "testsEdit": null,
+      "fingerprint": "dc9d63b278c4d7384287993cb2292ef15d33b7786eeae8fe4d34574245dd6be8",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "02",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=пять небольших правок CLI с регресс-тестами, без нового протокола",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "dc9d63b278c4d7384287993cb2292ef15d33b7786eeae8fe4d34574245dd6be8",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
     },
     {
       "id": "03",
-      "title": "Дверь на сервере для кнопок: POST /.ap-act, вид accept и ap.py await",
+      "title": "Старый сервер перезапускается, ping с nonce, чистый `serve.log`",
       "requirements": [
-        "R33",
-        "R33.1",
-        "R33.2",
-        "R33.3",
-        "R34",
-        "R34.2",
-        "R36"
+        "R03",
+        "R09"
       ],
       "blockedBy": [
-        "01"
+        "02"
       ],
       "wave": 2,
       "zone": [
         "skills/autopilot/tools/ap.py",
+        "tests/test_followups_token.py",
+        "tests/test_ap_audit.py",
         "tests/test_dashboard_actions.py",
-        "docs/adr/0015-dashboard-actions.md",
-        "skills/autopilot/phases/",
-        "0-instruments.md",
-        "2-briefing.md",
-        "3-spec.md",
-        "4-plan.md",
-        "8-final.md",
-        "tests/test_text_split.py",
-        "AGENTS.md",
-        "CHANGELOG.md"
+        "docs/adr/0013-server-ping.md"
       ],
-      "review": "да — дверь на сервере (токен, Origin, запись состояния)",
-      "model": "сильная",
+      "review": "нет",
+      "model": "обычная",
       "repro": false,
       "testsEdit": null,
-      "fingerprint": "fe58605af2cd14dc0e7b3f04cc145e91879d8d87509c783987cf857782d13969",
-      "status": "done",
-      "startedAt": "2026-11-20T19:10:43+01:00",
-      "finishedAt": "2026-11-20T19:29:00+01:00",
+      "fingerprint": "aae78be6cf28c4e3043c40621462c7870949cbc1a8b006375de16bbe360de598",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1320,
-        "failed": 0
-      },
-      "commit": "4ba8766",
-      "placeholders": [],
-      "routing": {
-        "provider": "anthropic",
-        "model": "sonnet",
-        "effort": "xhigh",
-        "effortEnforced": true,
-        "score": 65,
-        "reason": "высокий риск: запись в состояние под токеном и Origin, гонка с CLI (расчёт плана)",
-        "verified": true,
-        "agentType": "autopilot-executor-03-dashboard-actions-server",
-        "agentFile": ".claude/agents/autopilot-executor-03-dashboard-actions-server.md",
-        "profileSha": "ddf41229235fc4a7a7b6fc241df953c8bb09a501a3b7a6f41fb5f14026c99755"
-      },
-      "startHead": "d2c268163a888f0be7e3b1f48b66fbd516156e53"
-    },
-    {
-      "id": "F1",
-      "title": "Тест «без сетевых запросов» правится, а не обходится",
-      "requirements": [
-        "R35",
-        "R35.1"
-      ],
-      "blockedBy": [],
-      "wave": 3,
-      "zone": [
-        "skills/autopilot/phases/dashboard-template.html",
-        "tests/test_dashboard_designs.py",
-        "tests/test_dashboard_views.py",
-        "docs/autopilot/dashboard-views.md"
-      ],
-      "review": "да — ремонт ветки",
-      "model": "сильная",
-      "repro": false,
-      "testsEdit": null,
-      "fingerprint": "25de43a1a1b7955f7fe5b0a217005e67cfb0509510d40f62c0a645bed87d7965",
-      "status": "done",
-      "startedAt": "2026-11-20T19:34:04+01:00",
-      "finishedAt": "2026-11-20T19:39:59+01:00",
-      "retries": 0,
-      "repairs": 0,
-      "tests": {
-        "passed": 1321,
-        "failed": 0
-      },
-      "commit": "05cb135",
-      "placeholders": [],
-      "routing": {
+      "plannedRouting": {
+        "ticket": "03",
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "reason": "ремонт ветки: правка теста и вызова fetch"
-      },
-      "startHead": "e1c63ddb1734403e54501a9c8c6c6d8cf749a957"
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 55,
+        "factors": {
+          "algorithm": 20,
+          "coupling": 20,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 0
+        },
+        "reason": "score=55; profile=strong; high-risk=False; class=сложный; risk=обычный; why=меняет протокол проверки «свой сервер» и поведение перезапуска, где легко получить петлю перезапусков или чужой сервер",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "aae78be6cf28c4e3043c40621462c7870949cbc1a8b006375de16bbe360de598",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "04",
+      "title": "Уроки под замком, расход без дублей и чужих папок, тест без `~/.claude`",
+      "requirements": [
+        "R06",
+        "R07",
+        "R08"
+      ],
+      "blockedBy": [
+        "03"
+      ],
+      "wave": 3,
+      "zone": [
+        "skills/autopilot/tools/ap.py",
+        "skills/autopilot/tools/lessons.py",
+        "skills/autopilot/tools/run_log.py",
+        "tests/test_lessons.py",
+        "tests/test_subagent_spend.py",
+        "tests/test_review_accuracy.py",
+        "CHANGELOG.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "repro": false,
+      "testsEdit": null,
+      "fingerprint": "5526f6c573e60ae10e57bd766ffa8c5d302f11154909668b39cb349153bf3c47",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "04",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 51,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 20,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=51; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=три независимые правки по образцу соседнего кода, с регресс-тестами",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "5526f6c573e60ae10e57bd766ffa8c5d302f11154909668b39cb349153bf3c47",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "05",
+      "title": "R28a: скриншоты для слепой приёмки, прототип за флагом и ADR 0030",
+      "requirements": [
+        "R12"
+      ],
+      "blockedBy": [],
+      "wave": 1,
+      "zone": [
+        "skills/autopilot/tools/shots.py",
+        "tests/test_shots.py",
+        "docs/adr/0030-*.md",
+        "skills/autopilot/phases/8-final.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "repro": false,
+      "testsEdit": null,
+      "fingerprint": "157f2b8895945ad698c28b77d79e464ef799fc60d34537025a2166e1fe78ff30",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "05",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "medium",
+        "effortEnforced": null,
+        "profile": "balanced",
+        "score": 46,
+        "factors": {
+          "algorithm": 10,
+          "coupling": 15,
+          "uncertainty": 11,
+          "context": 5,
+          "testing": 5,
+          "risk": 0
+        },
+        "reason": "score=46; profile=balanced; high-risk=False; class=обычный; risk=обычный; why=новый маленький инструмент по образцу `tools/check-dashboard-browser.py` и ADR",
+        "requiresReview": false,
+        "status": "blocked",
+        "fingerprint": "157f2b8895945ad698c28b77d79e464ef799fc60d34537025a2166e1fe78ff30",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
+    },
+    {
+      "id": "06",
+      "title": "R28b–d: три ADR (несколько репозиториев, чат-менеджер, пресеты)",
+      "requirements": [
+        "R13",
+        "R14",
+        "R15"
+      ],
+      "blockedBy": [],
+      "wave": 1,
+      "zone": [
+        "docs/adr/0031-*.md",
+        "docs/adr/0032-*.md",
+        "docs/adr/0033-*.md"
+      ],
+      "review": "нет",
+      "model": "обычная",
+      "repro": false,
+      "testsEdit": null,
+      "fingerprint": "abe58370fc883aa7c6a6c720b0685c032a0d3caff838309d0a389c2de42c1ea9",
+      "status": "pending",
+      "retries": 0,
+      "repairs": 0,
+      "plannedRouting": {
+        "ticket": "06",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "high",
+        "effortEnforced": null,
+        "profile": "strong",
+        "score": 45,
+        "factors": {
+          "algorithm": 20,
+          "coupling": 10,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 0
+        },
+        "reason": "score=45; profile=strong; high-risk=False; class=сложный; risk=обычный; why=решения-ADR требуют чтения кода и взвешивания вариантов, не правки по образцу",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "abe58370fc883aa7c6a6c720b0685c032a0d3caff838309d0a389c2de42c1ea9",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
     }
   ],
-  "tests": {
-    "passed": 1326,
-    "failed": 0
-  },
+  "tests": null,
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -532,469 +425,259 @@ window.STATE =
   },
   "additions": [],
   "coverage": {
-    "found": 5,
-    "fixed": 5,
-    "deferred": 0,
-    "items": []
+    "found": 3,
+    "fixed": 2,
+    "deferred": 1,
+    "items": [
+      "R21 — отказ chore на грязном файле остаётся (защита правок пользователя); улучшено только сообщение"
+    ]
   },
-  "concerns": [
-    "dashboard-template.html: вызов через window.fetch.call(window, …) обходит старый тест, запрещающий подстроку fetch( — тест надо поправить, а не обходить (разрешён только POST на свой /.ap-act)"
-  ],
+  "concerns": [],
   "blockingFindings": [],
-  "blind": {
-    "checked": 7,
-    "matched": 7,
-    "mismatches": []
-  },
+  "blind": null,
   "beats": [
-    "2026-11-20T18:55:34+01:00",
-    "2026-11-20T18:55:50+01:00",
-    "2026-11-20T18:55:51+01:00",
-    "2026-11-20T18:56:03+01:00",
-    "2026-11-20T18:59:15+01:00",
-    "2026-11-20T18:59:41+01:00",
-    "2026-11-20T19:00:44+01:00",
-    "2026-11-20T19:00:47+01:00",
-    "2026-11-20T19:00:48+01:00",
-    "2026-11-20T19:00:50+01:00",
-    "2026-11-20T19:00:55+01:00",
-    "2026-11-20T19:00:56+01:00",
-    "2026-11-20T19:00:57+01:00",
-    "2026-11-20T19:07:31+01:00",
-    "2026-11-20T19:09:00+01:00",
-    "2026-11-20T19:10:32+01:00",
-    "2026-11-20T19:10:43+01:00",
-    "2026-11-20T19:27:20+01:00",
-    "2026-11-20T19:29:07+01:00",
-    "2026-11-20T19:34:02+01:00",
-    "2026-11-20T19:34:03+01:00",
-    "2026-11-20T19:34:04+01:00",
-    "2026-11-20T19:38:04+01:00",
-    "2026-11-20T19:40:17+01:00",
-    "2026-11-20T19:40:40+01:00",
-    "2026-11-20T19:53:45+01:00",
-    "2026-11-20T19:53:56+01:00"
+    "2026-11-21T00:35:02+01:00",
+    "2026-11-21T00:35:07+01:00",
+    "2026-11-21T00:35:40+01:00",
+    "2026-11-21T00:35:53+01:00",
+    "2026-11-21T00:41:25+01:00",
+    "2026-11-21T00:41:26+01:00",
+    "2026-11-21T00:41:30+01:00"
   ],
-  "rev": 37,
+  "rev": 12,
   "waiting": null,
   "waits": [],
   "log": [
     {
-      "t": "2026-11-20T18:55:34+01:00",
+      "t": "2026-11-21T00:35:02+01:00",
       "k": "init"
     },
     {
-      "t": "2026-11-20T18:55:51+01:00",
+      "t": "2026-11-21T00:35:07+01:00",
       "k": "stage",
       "id": "manifest",
       "act": "start"
     },
     {
-      "t": "2026-11-20T18:55:51+01:00",
-      "k": "stage",
-      "id": "briefing",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T18:56:03+01:00",
+      "t": "2026-11-21T00:35:53+01:00",
       "k": "stage",
       "id": "briefing",
       "act": "skip",
-      "note": "вопросов не потребовалось: задача названа точно, детали R33–R35 в брифе"
+      "note": "вопросов не потребовалось: объём задан PROGRESS.md и R28 из брифа"
     },
     {
-      "t": "2026-11-20T18:56:03+01:00",
+      "t": "2026-11-21T00:35:53+01:00",
       "k": "gate",
       "g": "G1",
       "ok": false,
-      "open": 8,
-      "total": 8
+      "open": 21,
+      "total": 21
     },
     {
-      "t": "2026-11-20T18:56:03+01:00",
+      "t": "2026-11-21T00:35:53+01:00",
       "k": "stage",
       "id": "spec",
       "act": "start"
     },
     {
-      "t": "2026-11-20T18:59:15+01:00",
+      "t": "2026-11-21T00:41:25+01:00",
+      "k": "gate",
+      "g": "G2",
+      "ok": true,
+      "found": 3,
+      "fixed": 2,
+      "deferred": 1
+    },
+    {
+      "t": "2026-11-21T00:41:25+01:00",
       "k": "gate",
       "g": "G1",
       "ok": true,
       "open": 0,
-      "total": 8
+      "total": 21
     },
     {
-      "t": "2026-11-20T18:59:15+01:00",
-      "k": "stage",
-      "id": "spec",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T18:59:41+01:00",
+      "t": "2026-11-21T00:41:25+01:00",
       "k": "stage",
       "id": "plan",
       "act": "start"
     },
     {
-      "t": "2026-11-20T19:00:44+01:00",
-      "k": "gate",
-      "g": "G2",
-      "ok": true,
-      "found": 5,
-      "fixed": 5,
-      "deferred": 0
-    },
-    {
-      "t": "2026-11-20T19:00:47+01:00",
+      "t": "2026-11-21T00:41:26+01:00",
       "k": "tier",
-      "v": "T1"
+      "v": "T2"
     },
     {
-      "t": "2026-11-20T19:00:47+01:00",
+      "t": "2026-11-21T00:41:26+01:00",
       "k": "tickets",
-      "n": 3
+      "n": 6
     },
     {
-      "t": "2026-11-20T19:00:48+01:00",
+      "t": "2026-11-21T00:41:26+01:00",
       "k": "gate",
       "g": "G3",
       "ok": true,
       "problems": 0
     },
     {
-      "t": "2026-11-20T19:00:50+01:00",
+      "t": "2026-11-21T00:41:30+01:00",
       "k": "plan-models",
       "provider": "anthropic",
       "applied": false,
-      "tickets": 3,
-      "blocked": 3
-    },
-    {
-      "t": "2026-11-20T19:00:56+01:00",
-      "k": "stage",
-      "id": "build",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:00:56+01:00",
-      "k": "ticket",
-      "ids": [
-        "01",
-        "02"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:00:56+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-20T19:00:57+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-20T19:07:31+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1276,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-20T19:09:00+01:00",
-      "k": "ticket",
-      "ids": [
-        "02"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1276,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-20T19:10:32+01:00",
-      "k": "add",
-      "key": "concerns",
-      "n": 1
-    },
-    {
-      "t": "2026-11-20T19:10:43+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:10:43+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-20T19:27:20+01:00",
-      "k": "ticket",
-      "ids": [
-        "03"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1320,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-20T19:29:07+01:00",
-      "k": "stage",
-      "id": "review",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:34:02+01:00",
-      "k": "add",
-      "key": "report",
-      "n": 4
-    },
-    {
-      "t": "2026-11-20T19:34:03+01:00",
-      "k": "tickets",
-      "n": 4
-    },
-    {
-      "t": "2026-11-20T19:34:03+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-20T19:34:04+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "route"
-    },
-    {
-      "t": "2026-11-20T19:34:04+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:38:04+01:00",
-      "k": "ticket",
-      "ids": [
-        "F1"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1321,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-20T19:40:17+01:00",
-      "k": "plan-fact",
-      "done": 19,
-      "total": 19
-    },
-    {
-      "t": "2026-11-20T19:40:40+01:00",
-      "k": "stage",
-      "id": "final",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T19:53:45+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 7,
-      "matched": 7
-    },
-    {
-      "t": "2026-11-20T19:53:45+01:00",
-      "k": "tests",
-      "passed": 1326,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-20T19:53:56+01:00",
-      "k": "finish",
-      "result": "кнопки подтверждения на дашборде (POST /.ap-act, ap.py await, вид accept, шесть дизайнов) и три слабых места ревью закрыты",
-      "problems": 0
+      "tickets": 6,
+      "blocked": 6
     }
   ],
   "reqList": [
     {
       "id": "R01",
-      "text": "«scheduler.py: зависимый с зоной, пересекающейся с родителем в review, всё равно ждёт (overlapping-zone)»",
-      "status": "done"
+      "text": "«Кнопки: после первого клика с подписи пропадает название действия»",
+      "status": "in-ticket"
     },
     {
       "id": "R02",
-      "text": "«commit_paths и каталог в paths: чужое застейдженное удаление, похожее на новый файл каталога (-M), может уйти в коммит, и нет теста «dir не захватывает dir2/»»",
-      "status": "done"
+      "text": "«ADR 0015: ask accept ограничен режимом manual только текстом фаз, CLI пускает его везде»",
+      "status": "in-ticket"
     },
     {
       "id": "R03",
-      "text": "«gate_sign: после стойко занятой заявки над целым ключом заявка gate.key.claim остаётся молча, а новый тест подменяет _claim_empty, а не занятую заявку»",
-      "status": "done"
+      "text": "«Сервер, запущенный старым ap.py, отвечает 501 на POST до перезапуска (finish или новый init)»",
+      "status": "in-ticket"
     },
     {
       "id": "R04",
-      "text": "«R28 не трогай»",
-      "status": "done"
+      "text": "«::имя ищется подстрокой»",
+      "status": "in-ticket"
     },
     {
-      "id": "R33",
-      "text": "«Исследование первым: что нужно, чтобы ответ из дашборда дошёл до агента… Нужна запись в docs/adr/0015-dashboard-actions.md: как агент узнаёт о нажатии (предложение: команда ap.py await --timeout N…) и что делать при закрытой вкладке»",
-      "status": "done"
+      "id": "R05",
+      "text": "««cannot import name» в выводе даёт ложный отказ redproof»",
+      "status": "in-ticket"
     },
     {
-      "id": "R34",
-      "text": "«Кнопками закрываются только ожидания из «Нужно от вас»: ответить на вопрос брифинга и ручной гейт спецификации, принять план (ask plan), принять сдачу. Кнопка называет, что именно произойдёт, и просит подтверждение вторым нажатием; пустог…",
-      "status": "done"
+      "id": "R06",
+      "text": "«lessons: проверка путей ловит только X:\\, /Users/, /home/; lessons.md, drop, profile refresh пишут без замка»",
+      "status": "in-ticket"
     },
     {
-      "id": "R35",
-      "text": "«Блок «Нужно от вас» с кнопками рисуется во всех шести дизайнах одним и тем же кодом, дизайны меняют только вид»",
-      "status": "done"
+      "id": "R07",
+      "text": "«test_silence_without_any_transcript_is_not_all_alive читает реальный ~/.claude»",
+      "status": "in-ticket"
     },
     {
-      "id": "R36",
-      "text": "«Любых изменений шлюзов, подписей, guard, слепой приёмки, правил Opus и Fable»; «Просмотра диффа и «план → факт» на странице»; «Кнопок над подписанными и пользовательскими действиями» — не делать",
-      "status": "done"
+      "id": "R08",
+      "text": "«Расход: поиск папки субагентов по префиксу может взять соседний проект; повторный spend-orchestrator дописывает строки»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R09",
+      "text": "«Сервер: управляющие символы подделывают serve.log; /.ap-ping без nonce»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R10",
+      "text": "«Мёртвый CSS .nowh .ov3 .tl2 и data-narrow (~3 КБ) — убирать вместе с тестами»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R11",
+      "text": "«Строка «план: N из M» на дашборде и отчёт не проверены в браузере»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R12",
+      "text": "«R28a. Визуальная проверка агентом в браузере … ADR и минимальный прототип за флагом; по умолчанию выключено.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R13",
+      "text": "«R28b. Несколько репозиториев в одной сборке. ADR: что ломается (baseCommit, зоны, commit_paths, state.js), оценка работ. Кода нет.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R14",
+      "text": "«R28c. Чат-менеджер рядом с прогоном. ADR: нужен ли он при дашборде и ap.py; что даёт сверх. Кода нет.»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R15",
+      "text": "«R28d. Пресеты ролей «Экономный / Оптимальный / Максимальный» … если пресет — просто имя для набора существующих настроек, сделать как одну команду ap.py preset <имя>, иначе ADR. Opus и Fable в пресетах не появляются без прежнего подтвержд…",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R16",
+      "text": "«Замеры R23f и R26d (как считать — docs/autopilot/measuring-cost.md) не сделаны»",
+      "status": "deferred",
+      "why": "нужны реальные сборки на разных моделях; здесь честно не измерить"
+    },
+    {
+      "id": "R17",
+      "text": "«лимит budgetTokens; Firefox/Safari для дашборда; пробная сборка на Haiku»",
+      "status": "deferred",
+      "why": "Firefox/Safari нет; Haiku-сборка — отдельный прогон; про budgetTokens не сказано, чего не хватает"
+    },
+    {
+      "id": "R18",
+      "text": "«scheduler.py/commit_paths/gate_sign: том без жёстких ссылок — пустой ключ не создаётся; брошенная заявка над целым ключом после ухода держателя остаётся до ручного удаления»",
+      "status": "deferred",
+      "why": "затрагивает подписи гейтов — по «Договорились» без слова пользователя не менять"
+    },
+    {
+      "id": "R19",
+      "text": "«трейлер Autopilot-Ticket нужен git ≥ 2.22»",
+      "status": "in-ticket"
+    },
+    {
+      "id": "R20",
+      "text": "«worktrees.link_deps: копия node_modules на macOS/Linux проверена только подменой платформы»",
+      "status": "deferred",
+      "why": "нет macOS/Linux для проверки"
+    },
+    {
+      "id": "R21",
+      "text": "«chore не принимает грязный AGENTS.md, запускать до правок»",
+      "status": "in-ticket"
     }
   ],
   "gates": {
     "G1": {
       "ok": true,
-      "at": "2026-11-20T18:59:15+01:00",
+      "at": "2026-11-21T00:41:25+01:00",
       "open": 0,
-      "total": 8
+      "total": 21
     },
     "G2": {
       "ok": true,
-      "at": "2026-11-20T19:00:44+01:00",
-      "found": 5,
-      "fixed": 5,
-      "deferred": 0
+      "at": "2026-11-21T00:41:25+01:00",
+      "found": 3,
+      "fixed": 2,
+      "deferred": 1
     },
     "G3": {
       "ok": true,
-      "at": "2026-11-20T19:34:03+01:00",
+      "at": "2026-11-21T00:41:26+01:00",
       "problems": 0
-    },
-    "G4": {
-      "ok": true,
-      "at": "2026-11-20T19:53:45+01:00",
-      "checked": 7,
-      "matched": 7
     }
   },
-  "result": "кнопки подтверждения на дашборде (POST /.ap-act, ap.py await, вид accept, шесть дизайнов) и три слабых места ревью закрыты",
+  "result": null,
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {
-      "executor": {
-        "n": 4,
-        "input": 268,
-        "output": 133604,
-        "cache_read": 11764308,
-        "cache_write": 390157,
-        "tokens": 133872,
-        "hit": 97
-      },
-      "reviewer": {
-        "n": 3,
-        "input": 44,
-        "output": 26713,
-        "cache_read": 946381,
-        "cache_write": 154197,
-        "tokens": 26757,
-        "hit": 86
-      },
-      "explorer": {
-        "n": 1,
-        "input": 18,
-        "output": 12481,
-        "cache_read": 287100,
-        "cache_write": 58521,
-        "tokens": 12499,
-        "hit": 83
-      },
-      "acceptance": {
-        "n": 1,
-        "input": 116,
-        "output": 39887,
-        "cache_read": 3596338,
-        "cache_write": 102637,
-        "tokens": 40003,
-        "hit": 97
-      },
-      "orchestrator": {
-        "n": 1,
-        "input": 92,
-        "output": 53773,
-        "cache_read": 12059422,
-        "cache_write": 89316,
-        "tokens": 53865,
-        "hit": 99
-      }
-    },
-    "byModel": {
-      "claude-sonnet-5-5": {
-        "n": 10,
-        "input": 538,
-        "output": 266458,
-        "cache_read": 28653549,
-        "cache_write": 794828,
-        "tokens": 266996,
-        "hit": 97
-      }
-    },
-    "byTicket": {
-      "03": {
-        "n": 1,
-        "input": 130,
-        "output": 87967,
-        "cache_read": 8613769,
-        "cache_write": 200009,
-        "tokens": 88097,
-        "hit": 98
-      },
-      "F1": {
-        "n": 1,
-        "input": 38,
-        "output": 7274,
-        "cache_read": 542603,
-        "cache_write": 38049,
-        "tokens": 7312,
-        "hit": 93
-      }
-    }
+    "byRole": {},
+    "byModel": {},
+    "byTicket": {}
   },
   "history": [
+    {
+      "dir": "2026-11-20-bugs-and-buttons",
+      "title": "Баги ревью и кнопки подтверждения (R33–R35)",
+      "startedAt": "2026-11-20T18:55:34+01:00",
+      "finishedAt": "2026-11-20T19:53:57+01:00",
+      "minutes": 58,
+      "tickets": 4,
+      "repairs": 0,
+      "result": "кнопки подтверждения на дашборде (POST /.ap-act, ap.py await, вид accept, шесть дизайнов) и три слабых места ревью закрыты",
+      "tokens": 266996
+    },
     {
       "dir": "2026-11-20-close-weak-spots",
       "title": "Слабые места: schedule/review, commit_paths каталог, busy-claim gate_sign",
@@ -1206,152 +889,6 @@ window.STATE =
     }
   ],
   "logFailures": 0,
-  "planContractDigest": "adf862f8dbe385d98b06cab28d6d19742b47d9f72972ed923c5c1a99c67906a9",
-  "planValidationDigest": "5f81ab02d48d1658c772e34cb284853d4213c28c8874b2ca2d83444f65a49066",
-  "report": [
-    "Дверь кнопок: ответ >2000 знаков молча режется; JSON из вложенных [[[… обрывает ответ (после токена, состояние цело)",
-    "Дверь кнопок: файл ответа остаётся после finish/init/reopen, и await без ожидания может отдать чужой старый ответ кодом 0; answered после нажатия кнопки стирает непрочитанный ответ",
-    "Страница: двойной щелчок за долю секунды обходит подтверждение вторым нажатием",
-    "ADR 0015: фраза про защиту since неверна для подряд идущих ask briefing"
-  ],
-  "planFact": {
-    "items": [
-      {
-        "id": "T01.1",
-        "ticket": "01",
-        "text": "R01: в неизолированном прогоне `schedule` предлагает pending-таск, чья зависимость в `review` и чья зона пересекается с зоной этого родителя; зона любого другого таска в `in-progress`/`repair`/`review` (не родителя) по-прежнему даёт `overlapping-zone`; в изолированном прогоне зависимость в `review` и пересечение блокируют как раньше (тесты в `tests/test_scheduler.py`)",
-        "status": "сделано",
-        "evidence": "tests/test_scheduler.py:61"
-      },
-      {
-        "id": "T01.2",
-        "ticket": "01",
-        "text": "R02: `commit_paths([\"dir/\"])` и `commit_paths([\"dir\"])` не подхватывают соседний каталог `dir2/…` и не берут чужое индексное удаление, лишь похожее на новый файл каталога (сходство меньше 100%); идентичное по содержимому (`R100`) переименование из каталога вне `paths` в каталог из `paths` попадает в коммит вместе со старым путём; дословный путь работает как раньше при любом сходстве; прежние тесты `CommitPathsRename` зелёные (тесты в `tests/test_review_race_bugs.py`)",
-        "status": "сделано",
-        "evidence": "tests/test_review_race_bugs.py:176"
-      },
-      {
-        "id": "T01.3",
-        "ticket": "01",
-        "text": "R03: когда `ensure_key` вернул ключ над целым `gate.key`, а `gate.key.claim` остаётся занятой, он ещё раз пробует её снять и, если не вышло, пишет в stderr одну строку с именем заявки и словом «удали»; новый тест воспроизводит настоящую занятую заявку через `busy_claim` (а не подменой `_claim_empty`): ключ вернулся, его байты те же, судьба заявки и строка проверены; прежние тесты `KeyRaceTests` зелёные",
-        "status": "сделано",
-        "evidence": "tests/test_gate_sign.py:309"
-      },
-      {
-        "id": "T01.4",
-        "ticket": "01",
-        "text": "Файлы R28 и R33–R35 не тронуты; полная проверка `python tools/run-tests.py` зелёная",
-        "status": "сделано",
-        "evidence": "tools/run-tests.py:1"
-      },
-      {
-        "id": "T02.1",
-        "ticket": "02",
-        "text": "При `waiting.kind` из `briefing|spec|plan|accept`, адресе `http(s)` с токеном в `location.search` блок кнопок рисуется (у `briefing` — поле ответа, пустое не отправляется); подпись называет действие; первый клик меняет подпись на «Точно? нажми ещё раз», запрос уходит только по второму клику: POST на `/.ap-act` + `location.search` с телом из контракта",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_buttons.py:102"
-      },
-      {
-        "id": "T02.2",
-        "ticket": "02",
-        "text": "Без токена или на `file://` кнопок нет, есть одна строка про `ap.py url`; при пустом `waiting` и при видах `action`/`stop` блока кнопок нет",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_buttons.py:146"
-      },
-      {
-        "id": "T02.3",
-        "ticket": "02",
-        "text": "Ответ не 200 (в том числе 403/409/413/503) или отказ `fetch` (сервер остановлен) — кнопка возвращается в исходное состояние с понятной строкой, страница не падает; 200 — кнопка заменяется строкой «Ответ отправлен»",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_buttons.py:134"
-      },
-      {
-        "id": "T02.4",
-        "ticket": "02",
-        "text": "Блок команд со словами пользователя (`ticket NN reset --by-user \"<цитата>\"`, `finish --by-user \"<цитата>\"`, `opus approve --by-user \"<цитата>\"`, пометка `dropped` в `manifest.md`) показывается с кнопкой «скопировать» и без кнопки действия, когда страница открыта по адресу с токеном и есть упавший таск или ожидание `action`/`stop`",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_buttons.py:160"
-      },
-      {
-        "id": "T02.5",
-        "ticket": "02",
-        "text": "Блок рисуется одним кодом во всех шести дизайнах (тест по `DESIGN_IDS`), контраст, 44 px и отсутствие внешних запросов не нарушены, шаблон не больше потолка (`TEMPLATE_CEILING`), прежние тесты шаблона зелёные; полная проверка `python tools/run-tests.py` зелёная",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_buttons.py:173"
-      },
-      {
-        "id": "T03.1",
-        "ticket": "03",
-        "text": "`POST /.ap-act` по контракту: 200 при верном нажатии для `briefing|spec|plan|accept`; 403 (без разбора тела) на неверный или отсутствующий токен, чужой или отсутствующий `Origin`, чужой `Host`, `Sec-Fetch-Site: cross-site` и запрещённый `kind` (`stop`, `action`, `finish`, `opus`, `reset`, `dropped`, подпись, гейт, модель, `blind`); 405 на прочие `POST`-пути; 413 на тело больше 8 КБ до чтения; 400 на битый JSON и на пустой ответ для `briefing`; 409 `no-wait`, `other-kind`, `stale`; 503 `busy` при занятом `state.lock`",
-        "status": "сделано",
-        "evidence": "skills/autopilot/tools/ap.py:1177"
-      },
-      {
-        "id": "T03.2",
-        "ticket": "03",
-        "text": "Нажатие закрывает ожидание теми же `close_wait`, `log`, `save`, `write_snapshot` под `locked_state`; в `state.js` строка `answered` с `source=dashboard` и без текста ответа; ответ (после редакции секретов, не более 2000 знаков) лежит в `serve.answer.json`, а `ask` и `answered` его удаляют; запрещённый запрос не меняет `state.js` (тест сравнивает до и после: подписи, гейты, модель, слепая приёмка нетронуты)",
-        "status": "сделано",
-        "evidence": "skills/autopilot/tools/ap.py:1056"
-      },
-      {
-        "id": "T03.3",
-        "ticket": "03",
-        "text": "Одновременное нажатие и `ap.py answered`: один выигрывает, второй получает 409 (тест)",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_actions.py:350"
-      },
-      {
-        "id": "T03.4",
-        "ticket": "03",
-        "text": "`ALLOWED_ACTIONS` в `ap.py` и в тесте; тест падает, если в коде появилось действие без записи; `WAIT_KINDS` содержит `accept`",
-        "status": "сделано",
-        "evidence": "skills/autopilot/tools/ap.py:138"
-      },
-      {
-        "id": "T03.5",
-        "ticket": "03",
-        "text": "`ap.py await [--timeout N]`: код 0 с JSON-строкой при закрытом ожидании (с `answer`, если ответ из дашборда; файл удалён), 3 при исходе срока (`нет ответа`), 4 без ожидания; не держит `state.lock`; тесты",
-        "status": "сделано",
-        "evidence": "skills/autopilot/tools/ap.py:5128"
-      },
-      {
-        "id": "T03.6",
-        "ticket": "03",
-        "text": "`docs/adr/0015-dashboard-actions.md` записан: почему `await`, что делать при закрытой вкладке, почему ответ не в `state.js`, коды и контракт; фазы (`0-instruments.md`, `2-briefing.md`, `3-spec.md`, `4-plan.md`, `8-final.md`) и `AGENTS.md` знают про `await` и вид `accept` (в `manual`); `CHANGELOG.md` записан на все шесть пунктов; `tests/test_text_split.py` зелёный; харнесс `tests/test_ap.py` не сломан",
-        "status": "сделано",
-        "evidence": "docs/adr/0015-dashboard-actions.md:1"
-      },
-      {
-        "id": "T03.7",
-        "ticket": "03",
-        "text": "R28 и всё запрещённое (шлюзы, подписи, guard, слепая приёмка, Opus и Fable) не тронуто; полная проверка `python tools/run-tests.py` зелёная",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_actions.py:140"
-      },
-      {
-        "id": "F1.1",
-        "ticket": "F1",
-        "text": "`skills/autopilot/phases/dashboard-template.html` вызывает `fetch('/.ap-act' + location.search, …)` напрямую, без `window.fetch.call`; поведение кнопки то же (прежние 9 тестов `tests/test_dashboard_buttons.py` зелёные)",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_views.py:802"
-      },
-      {
-        "id": "F1.2",
-        "ticket": "F1",
-        "text": "Тесты `tests/test_dashboard_designs.py` (около строки 426) и `tests/test_dashboard_views.py` (около 789) запрещают `fetch(` во всём шаблоне, кроме вызова с первым аргументом `'/.ap-act'`; новый тест доказывает, что `fetch('/other')`, `fetch(location.href)`, `window.fetch.call(window, '/x')` и `fetch('https://x')` по-прежнему краснеют (проверка самой регулярки/функции на строках-примерах)",
-        "status": "сделано",
-        "evidence": "tests/test_dashboard_views.py:793"
-      },
-      {
-        "id": "F1.3",
-        "ticket": "F1",
-        "text": "Строка про обход в `docs/autopilot/dashboard-views.md` убрана или исправлена; R28 и серверный код не тронуты; полная проверка `python tools/run-tests.py` зелёная",
-        "status": "сделано",
-        "evidence": "docs/autopilot/dashboard-views.md:1"
-      }
-    ],
-    "done": 19,
-    "total": 19
-  },
-  "blindRounds": 1
+  "planContractDigest": "83af169c1b374c961a0b1bddb03171a171046b5414efccb3188686ac5e37b29f",
+  "planValidationDigest": "20c73e01b141f2263b28a0b1e8e81e00f42addf8f0311ba98424dbd2b4ab057a"
 }
