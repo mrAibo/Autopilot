@@ -90,7 +90,7 @@ class Cli(unittest.TestCase):
         os.makedirs(os.path.join(self.root, "src"))
         for name in ("a.py", "b.py"):
             with open(os.path.join(self.root, "src", name), "w") as f:
-                f.write("x\n")
+                f.write("x\ny\nz\nf\nq\n")
         self.ap("init", "--slug", "ra", "--title", "T", "--skill-dir", SKILL)
         self.dir = os.path.join(self.a, self.state()["dir"])
         self.write("manifest.md", MANIFEST)
@@ -160,6 +160,26 @@ class Cli(unittest.TestCase):
         for rel in ("prompts/review-checklist.md", "prompts/review.md"):
             self.assertIn("файл::имя", read(os.path.join(SKILL, rel)))
         self.assertNotIn("файл:строка или команда", read(os.path.join(SKILL, "prompts/review-checklist.md")))
+
+    def test_plan_fact_done_checks_the_line_number_and_the_name_in_the_file(self):
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:9999",
+                "--verdict", "T01.2 | сделано | src/a.py::нет_такого", "--verdict", "T01.3 | сделано | src/a.py:0")
+        self.assertEqual(self.state()["planFact"]["done"], 0)
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:5",
+                "--verdict", "T01.2 | сделано | src/a.py::f")
+        self.assertEqual([i["status"] for i in self.state()["planFact"]["items"]], ["сделано", "сделано", "не сделано"])
+
+    def test_plan_fact_record_keeps_manual_plan_concerns(self):
+        manual = "план: вручную — проверить миграцию"
+        self.assertEqual(self.ap("add", "concerns", manual)[0], 0)
+        for _ in range(2):
+            self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:1")
+        mine = [c for c in self.state()["concerns"] if c.startswith("план: ") and c != manual]
+        self.assertEqual(self.state()["concerns"].count(manual), 1)
+        self.assertEqual(len(mine), 2)
+        self.ap("plan-fact", "record", "--verdict", "T01.2 | сделано | src/a.py:1")
+        self.assertIn(manual, self.state()["concerns"])
+        self.assertEqual(len([c for c in self.state()["concerns"] if c.startswith("план: ")]), 2)
 
     def test_plan_fact_unknown_id_refuses_and_changes_nothing(self):
         self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:1")
@@ -252,6 +272,26 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 1, out)
         b = self.state()["blockingFindings"][0]
         self.assertEqual((b["status"], b["secondPass"]["verdict"]), ("open", "confirmed"))
+
+    def test_blocker_confirmed_can_be_corrected_by_the_user_only(self):
+        self.open_blocker()
+        self.ap("blocker", "confirm", "--id", "B01", "--verdict", "confirmed", "--quote", "a.py:5 — замка нет")
+        args = ("blocker", "confirm", "--id", "B01", "--verdict", "not-confirmed", "--quote", "a.py:6 — замок есть")
+        for extra in ((), ("--by-user", "  ")):
+            code, out = self.ap(*args, *extra)
+            self.assertEqual(code, 1, out)
+            self.assertIn("--by-user", out)
+        self.assertEqual(self.state()["blockingFindings"][0]["status"], "open")
+        self.assertEqual(self.ap("blocker", "confirm", "--id", "B01", "--verdict", "confirmed",
+                                 "--quote", "ещё раз", "--by-user", "да")[0], 1)
+        code, out = self.ap(*args, "--by-user", "второй проход ошибся, замок есть")
+        self.assertEqual(code, 0, out)
+        st = self.state()
+        b = st["blockingFindings"][0]
+        self.assertEqual((b["status"], b["secondPass"]["verdict"], b["secondPass"]["replaces"]),
+                         ("downgraded", "not-confirmed", "confirmed"))
+        self.assertIn("не подтверждено вторым проходом: гонка в записи состояния", st["concerns"])
+        self.assertTrue([e for e in st["log"] if e.get("k") == "blocker" and e.get("act") == "corrected"])
 
     def test_blocker_confirm_stores_second_pass_and_logs_verdict(self):
         self.open_blocker()

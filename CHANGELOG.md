@@ -80,6 +80,13 @@ Wave 2: run log and hook gaps.
 - **R22d run log hardening:** without `run_log.py` every `ap.py` command prints one stderr line (`run_log.py не найден, журнал не пишется`; an import error names its type) and `report-run` says "журнал недоступен", not "журнал пуст"; a test checks that every `tools/*.py` is in `phases/0-instruments.md` or in the explicit `RUN_FROM_SKILL` list; `report-run` skips hand-broken lines and rows of wrong structure and prints "пропущено испорченных строк: N", takes the run of the last row that has a `run` (none: one line), and shows a "роль" column from the new `role` field of executor rows (`executor`/`reviewer`/`explorer`/`acceptance`/`agent`).
 - **R22c `accept-edit` and worktree:** a done ticket whose worktree is not `released` no longer passes `ap.py tickets` after `accept-edit`; the refusal names `worktree NN land` and `worktree NN release`.
 
+Closed the remaining known bugs (ADR 0028).
+
+- **`plan-fact record`:** "done" now checks the evidence: `path:N` needs N within the file line count, `path::name` needs the name in the file; only the "план: …" concerns that earlier records wrote are replaced, manual ones stay.
+- **Pre-landing check:** `ticket NN land` adds an `Autopilot-Ticket: NN` trailer and a commit with that trailer counts as the ticket's own even without the subject prefix; merge commits are read against their first parent, so a change that came in through a merge is seen as foreign.
+- **`blocker confirm`:** a wrong `confirmed` on a still-open blocker can be corrected with `--verdict not-confirmed --quote "…" --by-user "<user words>"` (blocker becomes `downgraded`, old verdict kept in `secondPass.replaces`, event `corrected`); without `--by-user` it is refused with the command.
+- **`ticket NN redproof`:** output with `ImportError`, `ModuleNotFoundError` or `cannot import name` is no longer a real red test (stub the function first, then fail on `AssertionError`).
+
 ## 2.7.0 — Dashboard views (2026-11-05)
 
 The dashboard gets eight switchable views and the project logo; refreshing an old project's dashboard no longer fails on some `state.js` files.

@@ -36,24 +36,33 @@ def _overlap(a, b):
     return found
 
 
-def _own(subject, ticket):
-    """Тема коммита начинается с id таска: `T02:`, `T02 `, `F1:`."""
+def _own(subject, ticket, trailers=""):
+    """Коммит этого таска: тема начинается с id (`T02:`, `T02 `, `F1:`) или трейлер `Autopilot-Ticket` с этим id."""
     words = subject.split(None, 1)
     first = words[0].rstrip(":") if words else ""
-    return first == ("T" + ticket if ticket[:1] != "F" else ticket)
+    tid = "T" + ticket if ticket[:1] != "F" else ticket
+    return first == tid or ticket in [t.strip() for t in trailers.split(",")]
 
 
 def _foreign_files(root, start_head, ticket):
-    """Файлы (относительно root), тронутые после start_head коммитами не этого таска."""
-    log = _git(root, "log", "--format=%H %s", "%s..HEAD" % start_head)
+    """Файлы (относительно root), тронутые после start_head коммитами не этого таска; merge — против первого родителя."""
+    log = _git(root, "log", "--format=%H%x1f%P%x1f%s%x1f%(trailers:key=Autopilot-Ticket,valueonly,separator=%x2c)%x1e",
+               "%s..HEAD" % start_head)
     found = set()
-    for line in (log or "").splitlines():
-        sha, _, subject = line.partition(" ")
-        if _own(subject, ticket):
+    for rec in (log or "").split("\x1e"):
+        parts = rec.strip("\n").split("\x1f")
+        if len(parts) < 4:
             continue
-        names = _git(root, "show", "--name-only", "--format=", "-z", "--relative", sha)
+        sha, parents, subject, trailers = parts[0], parts[1].split(), parts[2], parts[3]
+        if _own(subject, ticket, trailers.replace("\n", "")):
+            continue
+        if len(parents) > 1:
+            names = _git(root, "diff", "--name-only", "-z", "--relative", sha + "^1", sha)
+        else:
+            names = _git(root, "show", "--name-only", "--format=", "-z", "--relative", sha)
         found.update(n for n in (names or "").split("\0") if n and not n.startswith(".autopilot/"))
     return found
+
 
 
 def preflight(root, start_head, base_commit, zone, ticket, active_zones, files=None):

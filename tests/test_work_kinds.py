@@ -174,6 +174,37 @@ class WorktreeLand(Repo):
         self.assertEqual(git(self.root, "rev-parse", "HEAD").stdout.strip(), head)
         self.assertFalse(os.path.exists(os.path.join(self.root, "src", "w.py")))
 
+    def test_trailer_marks_a_commit_as_own_without_a_subject_prefix(self):
+        self.commit_file("src/a.py", "own\n")
+        git(self.root, "commit", "-q", "--amend", "-m", "работа без префикса", "--trailer", "Autopilot-Ticket: 01")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], [])
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "02", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], ["src/a.py"])
+        git(self.root, "commit", "-q", "--amend", "-m", "работа без префикса")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], ["src/a.py"])
+
+    def _merge(self, message):
+        main = git(self.root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        git(self.root, "checkout", "-q", "-b", "side")
+        self.commit_file("src/a.py", "from side\n")
+        git(self.root, "commit", "-q", "--amend", "-m", "side", "--trailer", "Autopilot-Ticket: 01")
+        git(self.root, "checkout", "-q", main)
+        self.commit_file("docs/y.md")
+        git(self.root, "commit", "-q", "--amend", "-m", "T01: docs")
+        self.assertEqual(git(self.root, "merge", "-q", "--no-ff", "-m", message, "side").returncode, 0)
+
+    def test_merge_commit_that_brought_a_file_in_is_seen_as_foreign(self):
+        self._merge("Merge side")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], ["src/a.py"])
+
+    def test_own_merge_commit_is_not_foreign(self):
+        self._merge("T01: merge side")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], [])
+
 
 class LandBase(Project):
     def setUp(self):
@@ -232,6 +263,13 @@ class LandPreflight(LandBase):
         self.assertIn("src/core/a.py", out)
         self.assertIn("что делать", out)
         self.assertEqual(self.head(), head)
+
+    def test_land_writes_the_ticket_trailer(self):
+        self.plan(T1)
+        self.start("01")
+        self.put("src/core/a.py", "x = 1\n")
+        self.assertEqual(self.land("01")[0], 0)
+        self.assertIn("Autopilot-Ticket: 01", self.git("log", "-1", "--format=%B").stdout)
 
     def test_foreign_commit_outside_the_zone_does_not_stop_land(self):
         self.plan(T1)
@@ -320,16 +358,18 @@ class BugKind(LandBase):
         self.assertEqual(code, 0, out)
         self.assertEqual(self.tk("01")["redproof"]["exit"], 1)
 
-    def test_redproof_rejects_not_found_and_syntax_error_but_takes_a_failing_test(self):
+    def test_redproof_rejects_not_found_syntax_and_import_errors_but_takes_a_failing_test(self):
         self.start("01")
         self.put(".autopilot/syntax.py", "x =\n")
-        self.put(".autopilot/imp.py", "raise ImportError('new')\n")
-        for cmd in ("exit 127", PY + " .autopilot/syntax.py"):
+        self.put(".autopilot/imp.py", "raise ImportError(\"cannot import name 'f' from 'm'\")\n")
+        self.put(".autopilot/mod.py", "import no_such_module_xyz\n")
+        self.put(".autopilot/assert.py", "raise AssertionError('f() returns 1, expected 2')\n")
+        for cmd in ("exit 127", PY + " .autopilot/syntax.py", PY + " .autopilot/imp.py", PY + " .autopilot/mod.py"):
             code, out = self.ap("ticket", "01", "redproof", "--command", cmd, "--no-serve")
             self.assertEqual(code, 1, out)
             self.assertIn("не по-настоящему красный", out)
             self.assertNotIn("redproof", self.tk("01"))
-        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/imp.py", "--no-serve")
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/assert.py", "--no-serve")
         self.assertEqual(code, 0, out)
 
     def test_redproof_takes_syntaxerror_word_inside_assert_and_rejects_zero_tests(self):

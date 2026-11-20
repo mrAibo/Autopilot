@@ -2977,9 +2977,9 @@ def cmd_proof(state, pos, opt):
     code, out = run_shell(command, 1800)
     if code is None:
         die("%s: таймаут 1800 с" % act)
-    # shortcut: режем синтаксис, «команда не найдена», 126/127 и ноль тестов; ImportError законен (тест на ненаписанный код)
+    # shortcut: режем синтаксис, ImportError (нет функции/модуля), «команда не найдена», 126/127 и ноль тестов
     if act == "redproof" and code != 0 and (code in (126, 127, 9009) or re.search(
-            r"(?m:^\s*(?:SyntaxError|IndentationError)\b)|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
+            r"(?m:^\s*(?:SyntaxError|IndentationError|ImportError|ModuleNotFoundError)\b)|cannot import name|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
         die("redproof: тест не по-настоящему красный: %s" % last_line(out))
     if (act == "redproof") == (code == 0):
         die("redproof: тест не красный (код 0)" if act == "redproof" else
@@ -3084,7 +3084,8 @@ def cmd_land(state, pos, opt):
     for line in review_signals(files, status)[:3]:
         print("land %s: сигнал обхода — %s" % (i, line))
     try:
-        sha = commit_paths(files, message.strip(), ["Autopilot-Run: " + run_key(state.get("dir")), "Requirements: " + reqs])
+        sha = commit_paths(files, message.strip(), ["Autopilot-Run: " + run_key(state.get("dir")), "Requirements: " + reqs,
+                                                  "Autopilot-Ticket: " + i])
     except OSError as exc:
         red("коммит", "git отказал (%s)" % exc, "сбой машины, не кода: ticket %s fail --note \"git отказал\" и вопрос пользователю" % i)
     if sha is None:
@@ -3537,6 +3538,19 @@ def blocker_confirm(state, opt):
     if entry is None or entry["status"] != "open":
         die("blocker: нет открытого замечания с этим ID")
     verdict, quote = opt.get("verdict"), opt.get("quote")
+    prior = entry.get("secondPass")
+    if prior and prior.get("verdict") == "confirmed" and verdict == "not-confirmed":
+        by_user = clean_quote(opt.get("by-user"))
+        if not by_user or not isinstance(quote, str) or not quote.strip():
+            die("blocker confirm: у %s уже стоит confirmed; поправка — `blocker confirm --id %s --verdict not-confirmed "
+                "--quote \"…\" --by-user \"<слова пользователя>\"`" % (entry["id"], entry["id"]))
+        entry["confirmQuote"] = clean_quote(quote)
+        entry["secondPass"] = {"verdict": verdict, "quote": entry["confirmQuote"], "at": now(),
+                               "replaces": prior["verdict"], "byUser": by_user}
+        entry.update(status="downgraded", downgradedAt=state["updatedAt"])
+        cmd_add(state, ["concerns", "не подтверждено вторым проходом: " + entry["text"]])
+        log(state, "blocker", id=entry["id"], act="corrected", ticket=entry.get("ticket"), verdict=verdict, quote=by_user)
+        return
     if verdict not in ("confirmed", "not-confirmed"):
         die("blocker confirm: --verdict confirmed|not-confirmed")
     if not isinstance(quote, str) or not quote.strip():
@@ -3591,7 +3605,9 @@ def cmd_plan_fact(state, pos, multi):
         die("plan-fact record: нет пунктов с id %s — см. `plan-fact list`" % ", ".join(unknown))
     previous = (state.get("planFact") or {}).get("items")
     fact = state["planFact"] = plan_items.build_plan_fact(by_ticket, plan_items.merge_verdicts(previous, verdicts), ROOT)
-    state["concerns"] = [c for c in state.get("concerns") or [] if not (isinstance(c, str) and c.startswith("план: "))]
+    mine = {"план: %s — %s — %s" % (i["id"], i["status"], i["text"]) for i in previous or []
+            if isinstance(i, dict) and i.get("status") != plan_items.DONE}      # только свои прежние строки, ручные остаются
+    state["concerns"] = [c for c in state.get("concerns") or [] if c not in mine]
     for item in fact["items"]:
         if item["status"] != plan_items.DONE:
             cmd_add(state, ["concerns", "план: %s — %s — %s" % (item["id"], item["status"], item["text"])])
@@ -3636,7 +3652,8 @@ def cmd_check_bypass(pos):
 def cmd_blocker(state, pos, opt):
     if len(pos) != 1 or pos[0] not in ("open", "resolve", "confirm"):
         die("blocker open --note TEXT [--ticket NN] | blocker resolve --id BNN --commit SHA --tests N/0 --note REVIEW"
-            " | blocker confirm --id BNN --verdict confirmed|not-confirmed --quote \"цитата кода\"")
+            " | blocker confirm --id BNN --verdict confirmed|not-confirmed --quote \"цитата кода\" [--by-user \"слова пользователя\"]"
+            " (--by-user — только поправка confirmed -> not-confirmed)")
     if pos[0] == "confirm":
         return blocker_confirm(state, opt)
     if pos[0] == "open":

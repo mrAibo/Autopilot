@@ -43,14 +43,25 @@ def item_prefix(ticket):
     return ticket if re.fullmatch(r"F\d+", ticket) else "T" + ticket
 
 
-EVIDENCE = re.compile(r"(?P<path>[^\s:|]+?)(?::\d+|::\w+)")
+EVIDENCE = re.compile(r"(?P<path>[^\s:|]+?)(?::(?P<line>\d+)|::(?P<name>\w+))")
 
 
 def _proved(evidence, root):
-    """Доказательство `путь:строка` или `путь::имя`, где `путь` есть под root."""
+    """Доказательство `путь:N` (1 <= N <= числа строк) или `путь::имя` (имя есть в тексте файла); `путь` под root."""
+    real = os.path.realpath(root)
     for m in EVIDENCE.finditer(evidence):
         full = os.path.realpath(os.path.join(root, m.group("path")))
-        if os.path.exists(full) and os.path.commonpath([os.path.realpath(root), full]) == os.path.realpath(root):
+        if not (os.path.isfile(full) and os.path.commonpath([real, full]) == real):
+            continue
+        try:
+            with open(full, encoding="utf-8", errors="replace") as stream:
+                text = stream.read()
+        except OSError:
+            continue
+        if m.group("line"):
+            if 1 <= int(m.group("line")) <= len(text.splitlines()):
+                return True
+        elif m.group("name") in text:
             return True
     return False
 
