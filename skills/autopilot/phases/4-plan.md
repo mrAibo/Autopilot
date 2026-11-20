@@ -143,7 +143,7 @@ A ticket that exists only in the dialogue is not a ticket — the user sees a su
 - **semi, interview** — one screen, one plain line per ticket saying what the user can do when it lands, then «Показываю план и начинаю. Скажи "стоп", если что-то не так» — and start. Never promise a countdown you cannot hold.
 - **Forecast** — if `ap.py plan-models` printed `forecast`, add it as one line on the screen, as the estimate it is; no key, no line.
 - **full** — the same screen as a notification.
-- **manual** — a gate: `ap.py ask plan`, then technical detail, granularity and order discussed, an explicit «ок» before Phase 5.
+- **manual** — a gate: `ap.py ask plan`, then technical detail, granularity and order discussed, an explicit «ок» (the chat, or the dashboard button — `ap.py await`) before Phase 5.
 
 **Strict Claude Code run** (`strictRouting` on Claude Code): read `4-plan-strict.md` — Phase 4 ends there with a required new chat.
 

@@ -132,4 +132,4 @@ Act on it before leaving: *missing* or *half-covered* → write what is missing;
 
 **full, semi, interview** — two lines: what will be built, what deliberately will not, where the file is. Then start; in interview too — they chose questions, not gates.
 
-**manual** — the spec is a gate: `ap.py ask spec`, show it in full, wait for an explicit «ок», rewrite on every objection. Silence is not agreement; nor is work already started.
+**manual** — the spec is a gate: `ap.py ask spec`, show it in full, wait for an explicit «ок» (the chat, or the dashboard button — `ap.py await`), rewrite on every objection. Silence is not agreement; nor is work already started.

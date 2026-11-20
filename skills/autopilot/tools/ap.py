@@ -52,8 +52,9 @@
     python3 .autopilot/ap.py add report "Два формата даты в уведомлениях — оставлено"
     python3 .autopilot/ap.py blind checked=12 matched=11 --mismatch "R07 — статус не виден"
     python3 .autopilot/ap.py tests 34/0                 # последний полный прогон
-    python3 .autopilot/ap.py ask briefing --note "три вопроса в чате"   # ждём пользователя
+    python3 .autopilot/ap.py ask briefing --note "три вопроса в чате"   # ждём пользователя (briefing|spec|plan|accept|action|stop)
     python3 .autopilot/ap.py answered                   # ответил (stage/ticket закрывают сами)
+    python3 .autopilot/ap.py await [--timeout 300]      # ждать ответ из чата или с кнопки дашборда: код 0 — ответ (JSON), 3 — нет ответа, 4 — не ждём
     python3 .autopilot/ap.py finish --result "Бот принимает заявки и пишет их в таблицу"
     python3 .autopilot/ap.py finish --result "…" --by-user "<цитата>"   # сдать с оговорками — только словами пользователя
     python3 .autopilot/ap.py reopen                     # второй бриф в сданном прогоне
@@ -122,6 +123,7 @@ LOG = os.path.join(A, "serve.log")
 TOKEN_FILE = "serve.token"
 RUN_LOG_FAIL = os.path.join(A, "run-log.fail")
 LOCK = os.path.join(A, "state.lock")
+ANSWER_FILE = os.path.join(A, "serve.answer.json")   # ответ с кнопки дашборда; под `serve.*` в .gitignore, в state.js не попадает
 BEGIN, END = "/*STATE-BEGIN*/", "/*STATE-END*/"
 WIN = os.name == "nt"
 REPO = "mrAibo/Autopilot"
@@ -130,7 +132,15 @@ STOP_DELAY = 12
 BEATS_KEPT = 2000
 LOG_KEPT = 300
 QUOTE_MAX = 240
-WAIT_KINDS = ("briefing", "spec", "plan", "action", "stop")
+WAIT_KINDS = ("briefing", "spec", "plan", "accept", "action", "stop")
+# Что кнопка дашборда может закрыть через POST /.ap-act; список дублирует ACT_KINDS шаблона. Новое действие — запись здесь,
+# в шаблоне, в tests/test_dashboard_actions.py и в ADR 0015. У `action` и `stop` кнопок нет никогда.
+ALLOWED_ACTIONS = ("briefing", "spec", "plan", "accept")
+ACT_PATH = "/.ap-act"
+ACT_BODY_MAX = 8192            # байт тела POST; больше — 413 по Content-Length, до чтения
+ACT_ANSWER_MAX = 2000          # знаков ответа в serve.answer.json
+ACT_LOCK_TIMEOUT = 10          # секунд ждать state.lock; занято — 503 busy
+AWAIT_DEFAULT, AWAIT_MAX = 300, 3500
 # Команды, которые значат «работа пошла дальше»: ожидание пользователя ими закрывается,
 # даже если `answered` забыли.
 MOVES_ON = {"stage", "ticket", "tickets", "check-plan", "coverage", "blind", "tests", "finish", "reopen"}
@@ -196,11 +206,12 @@ def clean_quote(raw):
 def locked_state(timeout=10):
     """Cross-platform exclusive process lock. Never delete the lock file."""
     with open(LOCK, "a+b") as f:
-        f.seek(0)
-        if not f.read(1):
+        with contextlib.suppress(OSError):               # Windows: чужая блокировка байта 0 не даёт его и прочесть — байт уже есть
             f.seek(0)
-            f.write(b"1")
-            f.flush()
+            if not f.read(1):
+                f.seek(0)
+                f.write(b"1")
+                f.flush()
         f.seek(0)
         deadline = time.monotonic() + timeout
         while True:
@@ -330,16 +341,23 @@ def refresh_g1(state, create=False):
     set_gate(state, "G1", n == 0, open=n, total=len(rows))
 
 
-def close_wait(state):
+def drop_answer():
+    """Ответ с кнопки дашборда прошлого ожидания не доживает до следующего."""
+    with contextlib.suppress(OSError):
+        os.unlink(ANSWER_FILE)
+
+
+def close_wait(state, source=None):
     """Ожидание пользователя кончилось: интервал уходит в waits — часы дашборда
-    его не считают, это не работа сборки."""
+    его не считают, это не работа сборки. `source` пишется только для кнопки дашборда (`dashboard`)."""
     w = state.get("waiting")
     if not w:
         return
+    drop_answer()
     state.setdefault("waits", []).append({"kind": w.get("kind"), "from": w.get("since"),
                                           "to": state["updatedAt"]})
     state["waiting"] = None
-    log(state, "answered", kind=w.get("kind"))
+    log(state, "answered", kind=w.get("kind"), source=source)
 
 
 def run_dir(state):
@@ -1022,9 +1040,48 @@ def server_is_ours(port):
     return got is not None and hmac.compare_digest(got.encode(), ping_digest(serve_token(), port).encode())
 
 
+def put_answer(kind, since, answer, at):
+    """Ответ с кнопки — в serve.answer.json атомарно (state.js его не получает: `.autopilot/` коммитится)."""
+    tmp = ANSWER_FILE + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"kind": kind, "since": since, "answer": answer, "source": "dashboard", "at": at},
+                      f, ensure_ascii=False)
+        state_io.replace_with_retry(tmp, ANSWER_FILE)
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+
+
+def apply_action(kind, since, answer):
+    """Нажатие кнопки дашборда -> (код HTTP, причина отказа или None). Звать под state.lock.
+    Ожидание закрывают те же `close_wait`, `save`, `write_snapshot`, что и `ap.py answered`; ответ ложится в файл до `save`,
+    чтобы `await`, увидев закрытое ожидание, уже нашёл его."""
+    state = read_state() or {}
+    w = state.get("waiting")
+    if not w:
+        return 409, "no-wait"
+    if w.get("kind") != kind:
+        return 409, "other-kind"
+    if w.get("since") != since:
+        return 409, "stale"
+    state["updatedAt"] = now()
+    beat(state)
+    try:
+        close_wait(state, source="dashboard")
+        put_answer(kind, since, answer, state["updatedAt"])
+        save(state)
+    except BaseException:
+        drop_answer()
+        raise
+    write_snapshot(state)
+    return 200, None
+
+
 def make_server(directory, port, token):
     """HTTP-сервер каталога `directory` на 127.0.0.1. 403, если чужой Host/Origin,
-    `Sec-Fetch-Site: cross-site`, либо запрошено не страница и не статика, а токена `?t=` нет."""
+    `Sec-Fetch-Site: cross-site`, либо запрошено не страница и не статика, а токена `?t=` нет.
+    Единственный `POST` — ACT_PATH (кнопки дашборда, docs/adr/0015); прочие пути — 405."""
 
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kw):
@@ -1090,6 +1147,76 @@ def make_server(directory, port, token):
             self.end_headers()
             if not head:
                 self.wfile.write(body)
+
+        body_taken = False
+
+        def reply(self, status, payload, **headers):
+            """JSON-ответ на POST. Непрочитанное тело вычитывается (≤64 КБ, 0,2 с, не разбирается): закрытый сокет
+            с лишними байтами шлёт RST и рвёт ответ у клиента."""
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            for name, value in headers.items():
+                self.send_header(name, value)
+            self.end_headers()
+            self.wfile.write(body)
+            self.close_connection = True
+            if not self.body_taken:
+                try:
+                    left = min(int(self.headers.get("Content-Length") or 0), 65536)
+                    self.connection.settimeout(0.2)
+                    while left > 0:
+                        chunk = self.rfile.read1(left)
+                        if not chunk:
+                            break
+                        left -= len(chunk)
+                except (OSError, ValueError):
+                    pass
+
+        def do_POST(self):
+            bad = {"ok": False, "error": "bad-request"}
+            if urllib.parse.unquote(urllib.parse.urlsplit(self.path).path) != ACT_PATH:
+                return self.reply(405, {"ok": False, "error": "method-not-allowed"}, Allow="GET, HEAD")
+            host = (self.headers.get("Host") or "").lower()
+            if (not self.allowed() or (self.headers.get("Origin") or "").lower() != "http://" + host
+                    or self.headers.get_content_type() != "application/json"):
+                return self.reply(403, {"ok": False, "error": "forbidden"})          # тело не разбираем
+            length = self.headers.get("Content-Length") or ""
+            if not re.fullmatch(r"[0-9]{1,9}", length):
+                return self.reply(400, bad)
+            if int(length) > ACT_BODY_MAX:
+                return self.reply(413, {"ok": False, "error": "too-large"})         # по Content-Length, до чтения
+            self.connection.settimeout(10)
+            try:
+                raw = self.rfile.read(int(length))
+            except OSError:
+                raw = b""
+            self.body_taken = True
+            try:
+                body = json.loads(raw.decode("utf-8"))
+                kind = body["kind"]
+            except (ValueError, KeyError, TypeError):
+                return self.reply(400, bad)
+            if not isinstance(kind, str):
+                return self.reply(400, bad)
+            if kind not in ALLOWED_ACTIONS:
+                return self.reply(403, {"ok": False, "error": "forbidden"})
+            since, answer = body.get("since"), body.get("answer")
+            if not isinstance(since, str):
+                return self.reply(400, bad)
+            if kind == "briefing":
+                if not isinstance(answer, str) or not answer.strip():
+                    return self.reply(400, bad)
+                answer = redact_secrets(answer.strip())[0][:ACT_ANSWER_MAX]
+            else:
+                answer = ""                                                          # ответ нужен только брифингу
+            try:
+                with locked_state(ACT_LOCK_TIMEOUT):
+                    status, error = apply_action(kind, since, answer)
+            except (SystemExit, OSError):                                            # die() из блокировки, чтения и записи
+                status, error = 503, "busy"
+            self.reply(status, {"ok": True, "kind": kind} if status == 200 else {"ok": False, "error": error})
 
         def do_HEAD(self):
             if not self.allowed():
@@ -3792,6 +3919,7 @@ def cmd_ask(state, pos, opt):
     kind = pos[0] if pos else ""
     if kind not in WAIT_KINDS:
         die("ask <%s> --note \"что ждём, одной строкой\"" % "|".join(WAIT_KINDS))
+    drop_answer()
     w = state.get("waiting")
     if w and w.get("kind") != kind:
         close_wait(state)
@@ -4795,6 +4923,7 @@ def main():
             cmd_ask(state, rest, opt)
         elif cmd == "answered":
             close_wait(state)
+            drop_answer()
         elif cmd == "finish":
             notes = cmd_finish(state, opt)
         elif cmd == "reopen":
@@ -4976,6 +5105,60 @@ def forecast(records, tickets):
             % (len(tickets), round(tokens), ", ≈%d минут" % round(minutes) if minutes else "", len(known), len(tickets)))
 
 
+def read_answer():
+    try:
+        with open(ANSWER_FILE, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return rec if isinstance(rec, dict) else None
+
+
+def await_result(kind, since):
+    """Строка JSON для `await`: ответ с кнопки (файл забирается) или «ответ в чате» — ожидание закрыла команда CLI."""
+    rec = read_answer()
+    out = {"answered": True, "kind": kind, "source": "chat"}
+    if rec and rec.get("kind") == kind and rec.get("since") == since:
+        drop_answer()
+        out.update(source="dashboard", answer=str(rec.get("answer") or ""))
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
+def cmd_await(opt):
+    """`await [--timeout N]` — ждёт, пока ожидание закроется чатом или кнопкой дашборда (docs/adr/0015). Работает вне
+    state.lock и state.js не пишет, читает его раз в секунду. Код 0 — закрыто (строка JSON, `answer` только с кнопки),
+    3 — срок вышел, 4 — ожидания нет (ответ, нажатый до вызова, не пропадает: файл ответа отдаётся с кодом 0)."""
+    raw = opt.get("timeout", AWAIT_DEFAULT)
+    if not re.fullmatch(r"\d{1,9}", str(raw)):
+        die("await: --timeout — число секунд, например 300")
+    deadline = time.monotonic() + min(int(raw), AWAIT_MAX)
+    if not os.path.exists(STATE):
+        die("await: state.js ещё нет — начни с `ap.py init`")
+    awaited = None
+    while True:
+        try:
+            w = state_io.read_state_file(STATE).get("waiting")
+        except state_io.StateError:
+            w = False                                    # файл на миг занят записью: следующий круг
+        if w is not False:
+            cur = (w.get("kind"), w.get("since")) if isinstance(w, dict) else None
+            if awaited is None:
+                if cur is None:
+                    rec = read_answer()
+                    if rec is None:
+                        print("ожидания нет")
+                        return 4
+                    return await_result(rec.get("kind"), rec.get("since"))
+                awaited = cur
+            elif cur != awaited:                         # закрыто, или уже новое ожидание
+                return await_result(*awaited)
+        if time.monotonic() >= deadline:
+            print("нет ответа")
+            return 3
+        time.sleep(min(1.0, max(0.0, deadline - time.monotonic())))
+
+
 def cmd_report_run(argv):
     """Свод журнала: читает только run-log.jsonl, без блокировки и без state.js."""
     if run_log is None:
@@ -5003,6 +5186,8 @@ if __name__ == "__main__":
         main()
     elif sys.argv[1:2] == ["report-run"]:
         sys.exit(cmd_report_run(sys.argv[2:]))
+    elif sys.argv[1:2] == ["await"] and "--help" not in sys.argv:
+        sys.exit(cmd_await(parse_args(sys.argv[2:])[1]))          # без state.lock: ждёт долго и state.js не пишет
     elif sys.argv[1:2] in (["bootstrap"], ["doctor"]) and "--help" not in sys.argv:
         # из папки навыка: без state.lock (иначе он появится в tools/ навыка) и без state.js проекта
         _opt = parse_args(sys.argv[2:])[1]

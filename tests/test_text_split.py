@@ -69,5 +69,22 @@ class TextSplit(unittest.TestCase):
         self.assertLessEqual(total, NORMAL_PATH_LIMIT, "обычный путь %d байт, порог %d" % (total, NORMAL_PATH_LIMIT))
 
 
+class DashboardAnswers(unittest.TestCase):
+    """R33: фазы знают `ap.py await` и вид ожидания `accept` (docs/adr/0015)."""
+
+    def test_phases_and_agents_md_name_await(self):
+        self.assertIn("`await [--timeout 300]`", read("phases", "0-instruments.md").decode("utf-8"))
+        for name in ("2-briefing", "3-spec", "4-plan", "8-final"):
+            self.assertIn("ap.py await", read("phases", name + ".md").decode("utf-8"), name)
+        with open(os.path.join(ROOT, "AGENTS.md"), encoding="utf-8") as f:
+            self.assertIn("ap.py await", f.read())
+
+    def test_ask_kinds_in_instruments_list_accept_and_final_asks_it_in_manual_only(self):
+        self.assertIn(r"ask briefing\|spec\|plan\|accept\|action\|stop", read("phases", "0-instruments.md").decode("utf-8"))
+        final = read("phases", "8-final.md").decode("utf-8")
+        self.assertIn("ap.py ask accept", final)
+        self.assertIn("manual only", final)
+
+
 if __name__ == "__main__":
     unittest.main()

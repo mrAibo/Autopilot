@@ -20,7 +20,7 @@
 Ответь номерами или «ок», если согласен со всеми.
 ```
 
-Before each round goes out: `ap.py ask briefing --note "три вопроса — где хранить заявки, ночь, отмена"`. The answers close it — `answered`, or the next round's `ask`.
+Before each round goes out: `ap.py ask briefing --note "три вопроса — где хранить заявки, ночь, отмена"`. The answers close it — `answered`, or the next round's `ask`. The user may also type the answer on the dashboard: after the round went out, `ap.py await` (`phases/0-instruments.md`) returns it as `answer`; code 3 — no answer, wait for the chat.
 
 - **Every question names its requirement** — internally, «this closes R07». A question that closes no row is dropped.
 - **Look facts up, ask only decisions.** What stack the repo uses is a fact; which payment provider they have an account with is a decision.

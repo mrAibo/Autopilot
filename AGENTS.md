@@ -62,6 +62,7 @@
 - `init --kind …`: справка пишет `feature`, код знает `quick|bug|task|refactor` (`kinds.KINDS`); сценарии — `phases/kind-*.md`, `docs/adr/0020`.
 - `silence [--limit СЕК]` — код 3, если есть тихие агенты; останавливает их оркестратор (TaskStop), не `ap.py` (`silence.py`, `docs/adr/0022`).
 - `lessons candidates|add|show|drop N|check` и `profile refresh` — уроки в `.autopilot/lessons.md`, профиль в `.autopilot/profile.md` (`lessons.py`, `docs/adr/0024`).
+- Кнопки дашборда: `POST /.ap-act?t=<токен>` (`make_server`; `ALLOWED_ACTIONS` = `briefing|spec|plan|accept`; обязательны токен, `Origin` = `http://<Host>`, `application/json`, тело до 8 КБ) закрывает ожидание теми же `close_wait`, `save`, `write_snapshot`, что `answered` (в ленте `source=dashboard`); ответ лежит в `.autopilot/serve.answer.json` (редакция секретов, до 2000 знаков), в `state.js` его нет; `ap.py await [--timeout N]` (вне `state.lock`) отдаёт его агенту: код 0 — ответ (JSON), 3 — нет ответа, 4 — не ждём; вид `accept` — только в `manual`, после отчёта; слова пользователя (`reset`, `finish`, `opus approve`, `dropped`) кнопкой не бывают — готовая команда с «скопировать» (`docs/adr/0015`, `tests/test_dashboard_actions.py`).
 - После правки `ap.py` или модуля из `skills/autopilot/tools/` — `ap.py upgrade-tools` обновляет копии в `.autopilot/`.
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->
