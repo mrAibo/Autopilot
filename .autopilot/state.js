@@ -2,223 +2,97 @@ window.STATE =
 {
   "schemaVersion": 1,
   "version": 2,
-  "slug": "close-known-bugs",
-  "dir": "2026-11-20-close-known-bugs",
-  "title": "Закрыть известные баги: plan-fact, land_check, blocker confirm, redproof",
+  "slug": "close-review-race-bugs",
+  "dir": "2026-11-20-close-review-race-bugs--wip",
+  "title": "Баги: review/start, commit_paths, гонка test_gate_sign",
   "mode": "semi",
   "depth": "normal",
   "kind": "task",
-  "tier": "T1",
+  "tier": "T0",
   "strictRouting": false,
   "gateSigned": false,
   "sequentialHost": false,
-  "spendLedger": [
-    {
-      "t": "2026-11-20T09:11:51+01:00",
-      "run": "2026-11-20-close-known-bugs",
-      "source": "orchestrator",
-      "origin": "claude-transcript",
-      "role": "orchestrator",
-      "ticket": null,
-      "agent": null,
-      "agent_type": null,
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 30,
-      "input": 68,
-      "output": 19823,
-      "cache_read": 5496635,
-      "cache_write": 60062,
-      "tokens": 19891,
-      "hit": 99
-    },
-    {
-      "t": "2026-11-20T09:11:51+01:00",
-      "run": "2026-11-20-close-known-bugs",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "reviewer",
-      "ticket": null,
-      "agent": "a1bcc831987444e96",
-      "agent_type": "autopilot-reviewer",
-      "model": "claude-haiku-5-5",
-      "effort": null,
-      "turns": 2,
-      "input": 4,
-      "output": 4654,
-      "cache_read": 14784,
-      "cache_write": 26799,
-      "tokens": 4658,
-      "hit": 36
-    },
-    {
-      "t": "2026-11-20T09:11:51+01:00",
-      "run": "2026-11-20-close-known-bugs",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "reviewer",
-      "ticket": null,
-      "agent": "aa9f56edde44bc670",
-      "agent_type": "autopilot-reviewer",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 4,
-      "input": 8,
-      "output": 3722,
-      "cache_read": 78295,
-      "cache_write": 35028,
-      "tokens": 3730,
-      "hit": 69
-    },
-    {
-      "t": "2026-11-20T09:11:51+01:00",
-      "run": "2026-11-20-close-known-bugs",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "acceptance",
-      "ticket": null,
-      "agent": "ab35ce0357c9b75aa",
-      "agent_type": "autopilot-acceptance",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 8,
-      "input": 16,
-      "output": 3314,
-      "cache_read": 158769,
-      "cache_write": 25703,
-      "tokens": 3330,
-      "hit": 86
-    },
-    {
-      "t": "2026-11-20T09:11:51+01:00",
-      "run": "2026-11-20-close-known-bugs",
-      "source": "subagent",
-      "origin": "claude-subagents",
-      "role": "executor",
-      "ticket": "01",
-      "agent": "af5211987978b5ae3",
-      "agent_type": "autopilot-executor",
-      "model": "claude-sonnet-5-5",
-      "effort": null,
-      "turns": 33,
-      "input": 66,
-      "output": 22593,
-      "cache_read": 1990266,
-      "cache_write": 87824,
-      "tokens": 22659,
-      "hit": 96
-    }
-  ],
+  "spendLedger": [],
   "isolateTickets": false,
   "briefFile": "2026-11-20-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
-  "skillDir": "C:/Users/crown/.claude/skills/autopilot",
-  "baseCommit": "14c198d",
-  "startedAt": "2026-11-20T08:59:40+01:00",
-  "updatedAt": "2026-11-20T09:11:50+01:00",
-  "finishedAt": "2026-11-20T09:11:51+01:00",
+  "skillDir": "C:\\Users\\crown\\Downloads\\Projects\\Autopilot\\skills\\autopilot",
+  "baseCommit": null,
+  "startedAt": "2026-11-20T10:26:17+01:00",
+  "updatedAt": "2026-11-20T10:27:45+01:00",
+  "finishedAt": null,
   "stages": [
     {
       "id": "preflight",
       "status": "done",
-      "startedAt": "2026-11-20T08:59:40+01:00",
+      "startedAt": "2026-11-20T10:26:17+01:00",
       "segments": [
         {
-          "startedAt": "2026-11-20T08:59:40+01:00",
-          "finishedAt": "2026-11-20T08:59:46+01:00"
+          "startedAt": "2026-11-20T10:26:17+01:00",
+          "finishedAt": "2026-11-20T10:26:32+01:00"
         }
       ],
-      "finishedAt": "2026-11-20T08:59:46+01:00"
+      "finishedAt": "2026-11-20T10:26:32+01:00"
     },
     {
       "id": "manifest",
       "status": "done",
       "segments": [
         {
-          "startedAt": "2026-11-20T08:59:46+01:00",
-          "finishedAt": "2026-11-20T08:59:57+01:00"
+          "startedAt": "2026-11-20T10:26:32+01:00",
+          "finishedAt": "2026-11-20T10:27:38+01:00"
         }
       ],
-      "startedAt": "2026-11-20T08:59:46+01:00",
-      "finishedAt": "2026-11-20T08:59:57+01:00"
+      "startedAt": "2026-11-20T10:26:32+01:00",
+      "finishedAt": "2026-11-20T10:27:38+01:00"
     },
     {
       "id": "briefing",
-      "status": "done",
+      "status": "skipped",
       "segments": [
         {
-          "startedAt": "2026-11-20T08:59:57+01:00",
-          "finishedAt": "2026-11-20T09:01:19+01:00"
+          "startedAt": "2026-11-20T10:26:48+01:00",
+          "finishedAt": "2026-11-20T10:26:48+01:00"
         }
       ],
-      "startedAt": "2026-11-20T08:59:57+01:00",
-      "finishedAt": "2026-11-20T09:01:19+01:00"
+      "startedAt": "2026-11-20T10:26:48+01:00",
+      "finishedAt": "2026-11-20T10:26:48+01:00",
+      "note": "вопросов не потребовалось: три бага названы явно"
     },
     {
       "id": "spec",
       "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T09:01:19+01:00",
-          "finishedAt": "2026-11-20T09:01:35+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T09:01:19+01:00",
-      "finishedAt": "2026-11-20T09:01:35+01:00"
+      "startedAt": "2026-11-20T10:27:38+01:00",
+      "finishedAt": "2026-11-20T10:27:38+01:00"
     },
     {
       "id": "plan",
-      "status": "done",
+      "status": "active",
       "segments": [
         {
-          "startedAt": "2026-11-20T09:01:35+01:00",
-          "finishedAt": "2026-11-20T09:01:41+01:00"
+          "startedAt": "2026-11-20T10:27:38+01:00",
+          "finishedAt": null
         }
       ],
-      "startedAt": "2026-11-20T09:01:35+01:00",
-      "finishedAt": "2026-11-20T09:01:41+01:00"
+      "startedAt": "2026-11-20T10:27:38+01:00"
     },
     {
       "id": "build",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T09:01:41+01:00",
-          "finishedAt": "2026-11-20T09:09:47+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T09:01:41+01:00",
-      "finishedAt": "2026-11-20T09:09:47+01:00"
+      "status": "pending"
     },
     {
       "id": "review",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T09:09:47+01:00",
-          "finishedAt": "2026-11-20T09:09:47+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T09:09:47+01:00",
-      "finishedAt": "2026-11-20T09:09:47+01:00"
+      "status": "pending"
     },
     {
       "id": "final",
-      "status": "done",
-      "segments": [
-        {
-          "startedAt": "2026-11-20T09:09:47+01:00",
-          "finishedAt": "2026-11-20T09:11:51+01:00"
-        }
-      ],
-      "startedAt": "2026-11-20T09:09:47+01:00",
-      "finishedAt": "2026-11-20T09:11:51+01:00"
+      "status": "pending"
     }
   ],
   "requirements": {
-    "total": 7,
-    "done": 7,
+    "total": 4,
+    "done": 0,
     "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
@@ -228,50 +102,58 @@ window.STATE =
   "tickets": [
     {
       "id": "01",
-      "title": "Закрыть известные баги plan-fact, land_check, blocker confirm, redproof",
+      "title": "Закрыть баги: start зависимого при review, commit_paths и переименование, гонка test_gate_sign",
       "requirements": [
         "R01",
         "R02",
         "R03",
-        "R04",
-        "R05",
-        "R06",
-        "R07"
+        "R04"
       ],
       "blockedBy": [],
       "wave": 1,
       "zone": [
-        "skills/autopilot/tools/plan_items.py",
-        "skills/autopilot/tools/land_check.py",
         "skills/autopilot/tools/ap.py",
-        "skills/autopilot/phases/kind-bug.md",
+        "skills/autopilot/tools/gate_sign.py",
+        "skills/autopilot/phases/",
         "tests/",
         "CHANGELOG.md",
         "docs/adr/"
       ],
       "review": "нет",
-      "model": "обычная",
+      "model": "сильная",
       "repro": false,
       "testsEdit": null,
-      "fingerprint": "5ba4b744963919b5fd865fe3bdacbaa4154e44d8aa864a5d923950818e2c8d14",
-      "status": "done",
-      "startedAt": "2026-11-20T09:01:41+01:00",
-      "finishedAt": "2026-11-20T09:08:58+01:00",
+      "fingerprint": "1c4eba6d65861afee0f7ff7fc30b499c4fbd2d509bb516fe1c617f7cfe3d31b2",
+      "status": "pending",
       "retries": 0,
       "repairs": 0,
-      "tests": {
-        "passed": 1240,
-        "failed": 0
-      },
-      "commit": "5069947",
-      "placeholders": [],
-      "startHead": "14c198d230f4bdd48590082c2f1d6fd3c283398b"
+      "plannedRouting": {
+        "ticket": "01",
+        "provider": "anthropic",
+        "model": "sonnet",
+        "effort": "xhigh",
+        "effortEnforced": null,
+        "profile": "critical",
+        "score": 65,
+        "factors": {
+          "algorithm": 20,
+          "coupling": 20,
+          "uncertainty": 0,
+          "context": 5,
+          "testing": 10,
+          "risk": 10
+        },
+        "reason": "score=65; profile=critical; high-risk=True; class=сложный; risk=высокий; why=третий баг — гонка в коде подписи гейтов (`gate_sign`), причину надо найти, а не угадать",
+        "requiresReview": true,
+        "status": "blocked",
+        "fingerprint": "1c4eba6d65861afee0f7ff7fc30b499c4fbd2d509bb516fe1c617f7cfe3d31b2",
+        "hostExecutionVerified": false,
+        "error": "No verified host capabilities",
+        "applied": false
+      }
     }
   ],
-  "tests": {
-    "passed": 1245,
-    "failed": 0
-  },
+  "tests": null,
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -286,69 +168,59 @@ window.STATE =
     "deferred": 0,
     "items": []
   },
-  "concerns": [
-    "plan_items.py:_proved — ::имя ищется подстрокой, слабая проверка",
-    "land_check.py — на git старше 2.22 трейлер Autopilot-Ticket не распознаётся (прежнее поведение)",
-    "ap.py:cmd_proof — «cannot import name» ловится в любом месте вывода, возможен ложный отказ redproof"
-  ],
+  "concerns": [],
   "blockingFindings": [],
-  "blind": {
-    "checked": 7,
-    "matched": 7,
-    "mismatches": []
-  },
+  "blind": null,
   "beats": [
-    "2026-11-20T08:59:40+01:00",
-    "2026-11-20T08:59:46+01:00",
-    "2026-11-20T08:59:56+01:00",
-    "2026-11-20T08:59:57+01:00",
-    "2026-11-20T09:01:19+01:00",
-    "2026-11-20T09:01:34+01:00",
-    "2026-11-20T09:01:35+01:00",
-    "2026-11-20T09:01:36+01:00",
-    "2026-11-20T09:01:40+01:00",
-    "2026-11-20T09:01:41+01:00",
-    "2026-11-20T09:07:29+01:00",
-    "2026-11-20T09:09:45+01:00",
-    "2026-11-20T09:09:47+01:00",
-    "2026-11-20T09:11:50+01:00"
+    "2026-11-20T10:26:17+01:00",
+    "2026-11-20T10:26:32+01:00",
+    "2026-11-20T10:26:48+01:00",
+    "2026-11-20T10:27:38+01:00",
+    "2026-11-20T10:27:39+01:00",
+    "2026-11-20T10:27:42+01:00",
+    "2026-11-20T10:27:45+01:00"
   ],
-  "rev": 22,
+  "rev": 11,
   "waiting": null,
   "waits": [],
   "log": [
     {
-      "t": "2026-11-20T08:59:40+01:00",
+      "t": "2026-11-20T10:26:17+01:00",
       "k": "init"
     },
     {
-      "t": "2026-11-20T08:59:46+01:00",
+      "t": "2026-11-20T10:26:32+01:00",
       "k": "stage",
       "id": "manifest",
       "act": "start"
     },
     {
-      "t": "2026-11-20T08:59:57+01:00",
+      "t": "2026-11-20T10:26:48+01:00",
       "k": "stage",
       "id": "briefing",
-      "act": "start"
+      "act": "skip",
+      "note": "вопросов не потребовалось: три бага названы явно"
     },
     {
-      "t": "2026-11-20T09:01:19+01:00",
-      "k": "gate",
-      "g": "G1",
-      "ok": true,
-      "open": 0,
-      "total": 7
-    },
-    {
-      "t": "2026-11-20T09:01:19+01:00",
+      "t": "2026-11-20T10:27:38+01:00",
       "k": "stage",
-      "id": "spec",
+      "id": "plan",
       "act": "start"
     },
     {
-      "t": "2026-11-20T09:01:34+01:00",
+      "t": "2026-11-20T10:27:39+01:00",
+      "k": "tickets",
+      "n": 1
+    },
+    {
+      "t": "2026-11-20T10:27:39+01:00",
+      "k": "gate",
+      "g": "G3",
+      "ok": true,
+      "problems": 0
+    },
+    {
+      "t": "2026-11-20T10:27:42+01:00",
       "k": "gate",
       "g": "G2",
       "ok": true,
@@ -357,230 +229,74 @@ window.STATE =
       "deferred": 0
     },
     {
-      "t": "2026-11-20T09:01:35+01:00",
+      "t": "2026-11-20T10:27:42+01:00",
       "k": "tier",
-      "v": "T1"
+      "v": "T0"
     },
     {
-      "t": "2026-11-20T09:01:35+01:00",
-      "k": "stage",
-      "id": "plan",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T09:01:35+01:00",
-      "k": "tickets",
-      "n": 1
-    },
-    {
-      "t": "2026-11-20T09:01:36+01:00",
-      "k": "gate",
-      "g": "G3",
-      "ok": true,
-      "problems": 0
-    },
-    {
-      "t": "2026-11-20T09:01:41+01:00",
-      "k": "stage",
-      "id": "build",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T09:01:41+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T09:07:29+01:00",
-      "k": "ticket",
-      "ids": [
-        "01"
-      ],
-      "act": "done",
-      "tests": {
-        "passed": 1240,
-        "failed": 0
-      }
-    },
-    {
-      "t": "2026-11-20T09:09:45+01:00",
-      "k": "add",
-      "key": "concerns",
-      "n": 3
-    },
-    {
-      "t": "2026-11-20T09:09:47+01:00",
-      "k": "stage",
-      "id": "review",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T09:09:47+01:00",
-      "k": "stage",
-      "id": "final",
-      "act": "start"
-    },
-    {
-      "t": "2026-11-20T09:11:50+01:00",
-      "k": "gate",
-      "g": "G4",
-      "ok": true,
-      "checked": 7,
-      "matched": 7
-    },
-    {
-      "t": "2026-11-20T09:11:50+01:00",
-      "k": "tests",
-      "passed": 1245,
-      "failed": 0
-    },
-    {
-      "t": "2026-11-20T09:11:50+01:00",
-      "k": "finish",
-      "result": "Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты",
-      "problems": 0
+      "t": "2026-11-20T10:27:45+01:00",
+      "k": "plan-models",
+      "provider": "anthropic",
+      "applied": false,
+      "tickets": 1,
+      "blocked": 1
     }
   ],
   "reqList": [
     {
       "id": "R01",
-      "text": "«plan-fact (сверять строку в доказательстве «сделано»»",
-      "status": "done"
+      "text": "«ticket NN review держит таск в review, и зависимый ticket MM start отказывает до done»",
+      "status": "open"
     },
     {
       "id": "R02",
-      "text": "«не стирать ручные concerns с префиксом «план: »»",
-      "status": "done"
+      "text": "«commit_paths: переименование оставляет старый путь в индексе»",
+      "status": "open"
     },
     {
       "id": "R03",
-      "text": "«land_check (узнавать свой коммит без префикса темы»",
-      "status": "done"
+      "text": "«test_gate_sign один раз упал в параллельном прогоне (гонка)»",
+      "status": "open"
     },
     {
       "id": "R04",
-      "text": "«видеть правки через merge-коммиты»",
-      "status": "done"
-    },
-    {
-      "id": "R05",
-      "text": "«blocker confirm (способ исправить ошибочный confirmed по цитате пользователя)»",
-      "status": "done"
-    },
-    {
-      "id": "R06",
-      "text": "«redproof (не считать ImportError на отсутствующую функцию красным по существу)»",
-      "status": "done"
-    },
-    {
-      "id": "R07",
       "text": "«R28 и R33–R35 не трогай»",
-      "status": "done"
+      "status": "open"
     }
   ],
   "gates": {
-    "G1": {
+    "G3": {
       "ok": true,
-      "at": "2026-11-20T09:01:19+01:00",
-      "open": 0,
-      "total": 7
+      "at": "2026-11-20T10:27:39+01:00",
+      "problems": 0
     },
     "G2": {
       "ok": true,
-      "at": "2026-11-20T09:01:34+01:00",
+      "at": "2026-11-20T10:27:42+01:00",
       "found": 0,
       "fixed": 0,
       "deferred": 0
-    },
-    "G3": {
-      "ok": true,
-      "at": "2026-11-20T09:01:36+01:00",
-      "problems": 0
-    },
-    "G4": {
-      "ok": true,
-      "at": "2026-11-20T09:11:50+01:00",
-      "checked": 7,
-      "matched": 7
     }
   },
-  "result": "Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты",
+  "result": null,
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {
-      "reviewer": {
-        "n": 2,
-        "input": 12,
-        "output": 8376,
-        "cache_read": 93079,
-        "cache_write": 61827,
-        "tokens": 8388,
-        "hit": 60
-      },
-      "acceptance": {
-        "n": 1,
-        "input": 16,
-        "output": 3314,
-        "cache_read": 158769,
-        "cache_write": 25703,
-        "tokens": 3330,
-        "hit": 86
-      },
-      "executor": {
-        "n": 1,
-        "input": 66,
-        "output": 22593,
-        "cache_read": 1990266,
-        "cache_write": 87824,
-        "tokens": 22659,
-        "hit": 96
-      },
-      "orchestrator": {
-        "n": 1,
-        "input": 68,
-        "output": 19823,
-        "cache_read": 5496635,
-        "cache_write": 60062,
-        "tokens": 19891,
-        "hit": 99
-      }
-    },
-    "byModel": {
-      "claude-haiku-5-5": {
-        "n": 1,
-        "input": 4,
-        "output": 4654,
-        "cache_read": 14784,
-        "cache_write": 26799,
-        "tokens": 4658,
-        "hit": 36
-      },
-      "claude-sonnet-5-5": {
-        "n": 4,
-        "input": 158,
-        "output": 49452,
-        "cache_read": 7723965,
-        "cache_write": 208617,
-        "tokens": 49610,
-        "hit": 97
-      }
-    },
-    "byTicket": {
-      "01": {
-        "n": 1,
-        "input": 66,
-        "output": 22593,
-        "cache_read": 1990266,
-        "cache_write": 87824,
-        "tokens": 22659,
-        "hit": 96
-      }
-    }
+    "byRole": {},
+    "byModel": {},
+    "byTicket": {}
   },
   "history": [
+    {
+      "dir": "2026-11-20-close-known-bugs",
+      "title": "Закрыть известные баги: plan-fact, land_check, blocker confirm, redproof",
+      "startedAt": "2026-11-20T08:59:40+01:00",
+      "finishedAt": "2026-11-20T09:11:51+01:00",
+      "minutes": 12,
+      "tickets": 1,
+      "repairs": 0,
+      "result": "Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты",
+      "tokens": 54268
+    },
     {
       "dir": "2026-11-20-close-progress-bugs",
       "title": "Закрыть баги из PROGRESS.md: plan-fact, land_check, blocker confirm, вердикты второго прохода, CI на run-tests",
@@ -759,7 +475,6 @@ window.STATE =
     }
   ],
   "logFailures": 0,
-  "planContractDigest": "d0e29507f22ddbf865fb99a47c947256b9465267156d3cc8b40e1d12e21a7b0a",
-  "planValidationDigest": "38964201cf39a4496e372e5672b0a93639a5fb542b3a981cd9e9ffcd4a6142fd",
-  "blindRounds": 1
+  "planContractDigest": "8d30908cf035ab37c3e5f849460fb7311ea5be1ef937028ec0ceb79b2012b343",
+  "planValidationDigest": "0e4451066ea49294810f9e8f228a431193c01c2780b4911d33ad5eeddd1b8ddc"
 }

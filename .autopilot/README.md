@@ -34,3 +34,4 @@
 | 2026-11-19 | `2026-11-19-purpleflow-ideas-waves1-4` | сдан с оговорками | Волны 1–4: план→факт, чек-лист и второй проход ревью, виды работы, проверка перед влитием, сторож молчания, уроки и профиль |
 | 2026-11-20 | `2026-11-20-close-progress-bugs` | сдан | Закрыты баги plan-fact record, land_check, blocker confirm/redproof; вердикт второго прохода хранится в блокере; CI на tools/run-tests.py |
 | 2026-11-20 | `2026-11-20-close-known-bugs` | сдан | Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты |
+| 2026-11-20 | `2026-11-20-close-review-race-bugs--wip` | в работе | — |
