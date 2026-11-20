@@ -14,6 +14,12 @@ Three more bugs from PROGRESS.md (ADR 0029).
 - **`commit_paths` and renames:** after `git mv old new` the commit of `new` takes the old path from the index too, so no `D old` is left staged (`land`, `chore`); the "nothing to commit" check no longer prints a rename header.
 - **`gate_sign` race:** an old empty `gate.key` is claimed by a hard link, so a racer with a stale "the file is empty" no longer moves a whole key aside (two different keys, or `PermissionError` read as an unreadable key, in about 5% of parallel inits under load); the DPAPI call runs under a lock because its ctypes prototypes were shared by all threads. The claim file `gate.key.claim` is removed with a retry (on Windows a reader holding it gave a raw `PermissionError` and left the claim behind); if it stays busy, `ensure_key` fails with an `OSError` that names the file, and an abandoned claim is named in the "file stayed empty or busy" error with the way out (delete it).
 
+Three weak spots left by ADR 0029 (ADR 0029, addendum).
+
+- **`schedule` and review:** `ap.py schedule` offers a pending ticket whose dependency is in `review`, as `ticket MM start` does; `in-progress`, `repair`, `failed`, `pending` and an unknown id still block, and in an isolated run the dependency must be `done`.
+- **`commit_paths` and directories:** the old path of a staged rename is carried into the commit when `paths` holds a directory (`dir/` or `dir`) covering the new path, including a rename from a directory outside `paths`; a foreign staged rename still stays out.
+- **`gate_sign` and a stuck claim:** when `gate.key.claim` stays busy but `gate.key` has meanwhile become whole, `ensure_key` returns the key unchanged instead of failing with `OSError`; over an empty key the error is the same and names the claim.
+
 Closed bugs from the last build's PROGRESS.md (ADR 0027).
 
 - **`plan-fact record`:** verdicts for some items no longer erase the others (new verdicts overlay `planFact.items` by id); "done" needs `path:line` or `path::name` with an existing path; an unknown id is a refusal that changes nothing; repeated records replace the "план: …" concerns instead of piling them up.

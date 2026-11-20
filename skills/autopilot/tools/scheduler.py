@@ -88,8 +88,11 @@ def schedule(tickets, max_parallel=2, *, strict=False, isolated=False,
         key=lambda t: (t.get("wave") if type(t.get("wave")) is int else 999, t["id"]))
     for ticket in candidates:
         tid = ticket["id"]
+        # `ticket start` пускает и зависимость в review (код закоммичен); в изолированном прогоне нужен done:
+        # рабочее дерево зависимого строится от ветки, где код зависимости уже слит
+        ready = ("done",) if isolated else ("done", "review")
         missing = [dep for dep in ticket.get("blockedBy") or []
-                   if dep not in index or index[dep].get("status") != "done"]
+                   if dep not in index or index[dep].get("status") not in ready]
         if missing:
             blocked.append({"ticket": tid, "reason": "dependencies", "ids": missing})
             continue

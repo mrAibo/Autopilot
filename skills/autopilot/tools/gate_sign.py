@@ -203,7 +203,17 @@ def ensure_key():
         except FileNotFoundError:
             size = None
         if size == 0:  # an empty key would sign nothing; one racer swaps it
-            if _claim_empty(path):
+            try:
+                claimed = _claim_empty(path)
+            except OSError:  # a stuck claim over a key that has since become whole is no failure
+                try:
+                    whole = path.stat().st_size >= _KEY_SIZE
+                except OSError:
+                    whole = False
+                if not whole:
+                    raise
+                claimed = False
+            if claimed:
                 size = None
             elif not _wait_for_key(path):
                 continue  # the winner died between the claim and the write: retry

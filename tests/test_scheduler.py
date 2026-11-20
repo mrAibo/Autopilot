@@ -38,6 +38,26 @@ class SchedulerTests(unittest.TestCase):
         self.assertFalse(p["selected"])
         self.assertEqual(p["blocked"][0]["reason"], "dependencies")
 
+    def test_a_dependency_in_review_lets_the_ticket_start_like_ticket_start_does(self):
+        # R01: код зависимости закоммичен (review) — `ticket start` пускает, `schedule` тоже
+        ts = [ticket("01", ["app/"], status="review"), ticket("02", ["lib/"], deps=["01"])]
+        p = scheduler.schedule(ts)
+        self.assertEqual([(x["ticket"], x["action"]) for x in p["selected"]], [("02", "start")])
+
+    def test_other_dependency_states_and_unknown_ids_still_block(self):
+        for status in ("in-progress", "repair", "failed", "pending"):
+            ts = [ticket("01", ["app/"], status=status), ticket("02", ["lib/"], deps=["01"])]
+            blocked = [x for x in scheduler.schedule(ts)["blocked"] if x["ticket"] == "02"]
+            self.assertEqual(blocked, [{"ticket": "02", "reason": "dependencies", "ids": ["01"]}], status)
+        p = scheduler.schedule([ticket("02", ["lib/"], deps=["99"])])
+        self.assertEqual(p["blocked"], [{"ticket": "02", "reason": "dependencies", "ids": ["99"]}])
+
+    def test_isolated_run_still_waits_for_done_not_review(self):
+        ts = [ticket("01", ["app/"], status="review"), ticket("02", ["lib/"], deps=["01"])]
+        p = scheduler.schedule(ts, isolated=True)
+        self.assertFalse(p["selected"])
+        self.assertEqual(p["blocked"], [{"ticket": "02", "reason": "dependencies", "ids": ["01"]}])
+
     def test_inflight_and_prepared_reservations_use_capacity(self):
         ts = [ticket("01", ["src/a"], status="in-progress"),
               ticket("02", ["src/b"], worktree={"status": "prepared", "cwd": "/fake"}),

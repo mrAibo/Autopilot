@@ -2910,7 +2910,7 @@ def commit_paths(paths, message, trailers):
     moved, n = [], 0
     while n < len(parts) and parts[n]:
         width = 3 if parts[n][0] in "RC" else 2
-        if parts[n][0] == "R" and parts[n + 2] in paths and parts[n + 1] not in paths:
+        if parts[n][0] == "R" and covers(paths, parts[n + 2]) and not covers(paths, parts[n + 1]):
             moved.append(parts[n + 1])
         n += width
     paths = list(paths) + moved

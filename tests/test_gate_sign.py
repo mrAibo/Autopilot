@@ -272,6 +272,19 @@ class KeyRaceTests(unittest.TestCase):
         self.assertNotIsInstance(caught.exception, PermissionError)
         self.assertIn("gate.key.claim", str(caught.exception))
 
+    def test_a_stuck_claim_over_a_key_that_became_whole_gives_the_key_back(self):
+        # R03: the racer's stat saw an empty file, the claim stays busy, but the key is whole by now
+        key = b"k" * 32
+        self.path.write_bytes(b"")
+
+        def stuck(path):
+            path.write_bytes(key)                                               # the winner finishes meanwhile
+            raise OSError("не удалось удалить заявку gate.key.claim")
+
+        with mock.patch.object(gate_sign, "_claim_empty", stuck):
+            self.assertEqual(gate_sign.ensure_key(), self.path)
+        self.assertEqual(gate_sign.load_key(), key)                             # the key itself is unchanged
+
     def test_an_abandoned_claim_is_named_in_the_error_with_the_way_out(self):
         # R03: a killed claim holder leaves gate.key.claim; the error must say which file to delete.
         self.path.write_bytes(b"")

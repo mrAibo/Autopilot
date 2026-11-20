@@ -125,6 +125,34 @@ class CommitPathsRename(unittest.TestCase):
         self.assertEqual(self.changed_by_head(), ["M\ta.txt"])
         self.assertEqual(self.git("status", "--porcelain").strip(), "R  x.txt -> y.txt")
 
+    def test_a_zone_directory_carries_the_old_path_of_a_rename_inside_it(self):
+        # R02: `dir/` и `dir` покрывают новый путь, старый путь каталога тоже внутри — в коммит оба
+        for folder, spec in (("da", "da/"), ("db", "db")):
+            os.makedirs(os.path.join(self.root, folder))
+            self.put(folder + "/old.txt", self.BODY)
+            self.git("add", folder + "/old.txt")
+            self.git("commit", "-q", "-m", "add " + folder)
+            self.git("mv", folder + "/old.txt", folder + "/new.txt")
+            self.assertTrue(self.ap.commit_paths([spec], "rename " + spec, []))
+            self.assertEqual(self.git("status", "--porcelain"), "")
+            self.assertEqual(self.changed_by_head(), ["A\t%s/new.txt" % folder, "D\t%s/old.txt" % folder])
+
+    def test_a_rename_from_outside_the_zone_directory_into_it_is_carried(self):
+        self.git("mv", "old.txt", "dir_new.txt")
+        os.makedirs(os.path.join(self.root, "dir"))
+        self.git("mv", "dir_new.txt", "dir/new.txt")
+        self.assertTrue(self.ap.commit_paths(["dir/"], "move in", []))
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assertEqual(self.changed_by_head(), ["A\tdir/new.txt", "D\told.txt"])
+
+    def test_a_foreign_rename_stays_staged_when_a_directory_is_committed(self):
+        self.git("mv", "x.txt", "y.txt")
+        os.makedirs(os.path.join(self.root, "dir"))
+        self.put("dir/a.txt", "changed\n")
+        self.assertTrue(self.ap.commit_paths(["dir/"], "plain", []))
+        self.assertEqual(self.changed_by_head(), ["A\tdir/a.txt"])
+        self.assertEqual(self.git("status", "--porcelain").strip(), "R  x.txt -> y.txt")
+
     def test_a_plain_path_commits_only_itself_and_nothing_to_commit_is_none(self):
         self.put("a.txt", "changed\n")
         self.assertTrue(self.ap.commit_paths(["a.txt"], "plain", ["Autopilot-Run: r"]))
