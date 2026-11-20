@@ -36,3 +36,4 @@
 | 2026-11-20 | `2026-11-20-close-known-bugs` | сдан | Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты |
 | 2026-11-20 | `2026-11-20-close-review-race-bugs` | сдан | Закрыты три бага: start зависимого при review, commit_paths с переименованием, гонка gate_sign |
 | 2026-11-20 | `2026-11-20-close-weak-spots` | сдан | schedule пускает таск с зависимостью в review; commit_paths берёт старый путь переименования и при каталоге зоны; ensure_key не падает над целым ключом при занятой заявке |
+| 2026-11-20 | `2026-11-20-bugs-and-buttons--wip` | в работе | — |
