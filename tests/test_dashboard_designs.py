@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
-from test_dashboard_views import DESIGN_IDS, HARNESS, NODE, SECTIONS, TEMPLATE, _fixtures
+from test_dashboard_views import DESIGN_IDS, HARNESS, NODE, SECTIONS, TEMPLATE, _fixtures, forbidden_network
 
 # The harness of test_dashboard_views up to its own driver: env(), run(), the DOM stub; the driver below is ours.
 PRE = HARNESS.split("const out = {renders")[0]
@@ -423,8 +423,9 @@ class AllDesignLimits(unittest.TestCase):
             self.assertNotIn('[data-design="terminal"]', m.group(1))
 
     def test_nothing_external_and_the_template_fits_the_ceiling(self):
-        for bad in ("http://", "https://", "<link", "@import", "@font-face", "fetch("):
+        for bad in ("http://", "https://", "<link", "@import", "@font-face"):
             self.assertNotIn(bad, self.html)
+        self.assertEqual(forbidden_network(self.html), [])
         self.assertLessEqual(len(self.html.encode("utf-8")), TEMPLATE_CEILING)
 
     def test_every_design_is_covered_by_motion_and_print_rules(self):

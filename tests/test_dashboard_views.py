@@ -207,6 +207,11 @@ def _fixtures():
             "landed": landed, "opus": opus}
 
 
+def forbidden_network(html):
+    """Network calls the page must not make: any `fetch` except `fetch('/.ap-act' + location.search,`, plus XHR, sockets, beacons."""
+    return re.findall(r"""(?<!\.)\bfetch\b(?!\(\s*'/\.ap-act'\s*\+\s*location\.search\s*,)|\.fetch\b|XMLHttpRequest|WebSocket|EventSource|sendBeacon""", html)
+
+
 @unittest.skipUnless(NODE, "node is not installed")
 class TemplateRuns(unittest.TestCase):
     @classmethod
@@ -785,9 +790,20 @@ class TemplateStrings(unittest.TestCase):
     def test_template_has_no_web_addresses_at_all(self):
         self.assertNotRegex(self.html, r"https?://")  # the page was offline before and stays offline
 
+    def test_network_guard_lets_only_the_own_act_post_through(self):
+        ok = "p = fetch('/.ap-act' + location.search, {method: 'POST'});"
+        self.assertEqual(forbidden_network(ok), [])
+        for bad in ("fetch('/other')", "fetch(location.href)", "window.fetch.call(window, '/x')", "fetch('https://x')",
+                    "fetch('/.ap-act')", "fetch('/.ap-act2' + location.search, {})", "window.fetch('/.ap-act' + location.search, {})",
+                    "const f = fetch; f('/x')", "navigator.sendBeacon('/x')"):
+            with self.subTest(bad=bad):
+                self.assertTrue(forbidden_network(bad))
+
     def test_no_network_requests_and_no_external_fonts(self):
-        for bad in ("<link", "@import", "googleapis", "gstatic", "fetch(", "XMLHttpRequest", "@font-face", "WebSocket"):
+        for bad in ("<link", "@import", "googleapis", "gstatic", "@font-face"):
             self.assertNotIn(bad, self.html)
+        self.assertEqual(forbidden_network(self.html), [])
+        self.assertEqual(self.html.count("fetch('/.ap-act' + location.search,"), 1)  # the one allowed call
         self.assertNotRegex(self.html, r"""(?:src|href)=["']https?://""")
 
     def test_header_has_one_live_updated_line_and_one_mechanism_for_all_ages(self):

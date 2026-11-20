@@ -1755,7 +1755,7 @@ function actClick() {
   if (w.kind === 'briefing') body.answer = st.text.trim();
   let p;
   try {
-    p = window.fetch.call(window, '/.ap-act' + location.search, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    p = fetch('/.ap-act' + location.search, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   } catch (e) { p = Promise.reject(e); }
   Promise.resolve(p).then(r => { if (r && r.status === 200) st.sent = true; else st.err = A.err(r ? r.status : 0); },
     () => { st.err = A.net; }).then(() => { st.busy = false; redraw(); });
@@ -2030,7 +2030,7 @@ function tick(){
 // Но подресурсы живут только у страницы, у которой есть адрес. Панель Claude не
 // открывает file:// как страницу — она вклеивает HTML в data:text/html, а оттуда
 // origin равен null: state.js не грузится ни относительным путём, ни абсолютным
-// file://, ни через fetch. Поэтому состояние вписано ещё и внутрь страницы.
+// file://, ни запросом из скрипта. Поэтому состояние вписано ещё и внутрь страницы.
 // Живое обновление остаётся за http (панель через preview_start, обычный браузер).
 // Видимость НЕ проверяем: те же панели держат document.hidden === true всё время.
 // rev растёт на каждой записи ap.py — и на синхронизации, которая не меняет
