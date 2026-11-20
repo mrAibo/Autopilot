@@ -1196,7 +1196,7 @@ def make_server(directory, port, token):
             try:
                 body = json.loads(raw.decode("utf-8"))
                 kind = body["kind"]
-            except (ValueError, KeyError, TypeError):
+            except (ValueError, KeyError, TypeError, RecursionError):                # `[[[…` глубже лимита стека — не ValueError
                 return self.reply(400, bad)
             if not isinstance(kind, str):
                 return self.reply(400, bad)
@@ -1208,7 +1208,9 @@ def make_server(directory, port, token):
             if kind == "briefing":
                 if not isinstance(answer, str) or not answer.strip():
                     return self.reply(400, bad)
-                answer = redact_secrets(answer.strip())[0][:ACT_ANSWER_MAX]
+                answer = redact_secrets(answer.strip())[0]
+                if len(answer) > ACT_ANSWER_MAX:
+                    return self.reply(413, {"ok": False, "error": "too-large"})     # не режем молча: пользователь сократит
             else:
                 answer = ""                                                          # ответ нужен только брифингу
             try:
@@ -1714,6 +1716,7 @@ def cmd_init(opt):
         die("идёт прогон %s — это продолжение, а не новый прогон (или --force)" % old.get("dir"))
     if old:
         notes.append("прошлый прогон убран в архив: %s" % archive_old_state(old))
+    drop_answer()                                # ответ с кнопки прошлого прогона в новый не переходит
     state = fresh_state(opt)
     if state["gateSigned"]:
         state["gateMark"] = _gs().run_mark(state)
@@ -3919,8 +3922,9 @@ def cmd_ask(state, pos, opt):
     kind = pos[0] if pos else ""
     if kind not in WAIT_KINDS:
         die("ask <%s> --note \"что ждём, одной строкой\"" % "|".join(WAIT_KINDS))
-    drop_answer()
     w = state.get("waiting")
+    if w:
+        drop_answer()                          # при открытом ожидании файл только чужой; непрочитанный ответ закрытого не трогаем
     if w and w.get("kind") != kind:
         close_wait(state)
         w = None
@@ -4164,6 +4168,7 @@ def cmd_finish(state, opt):
         else:
             notes.append("! не смог переименовать %s — оставляю как есть" % d)
     state["finishedAt"] = t
+    drop_answer()
     state["result"] = opt.get("result") if isinstance(opt.get("result"), str) else None
     problems = refuse + caveat
     if problems:
@@ -4199,6 +4204,7 @@ def cmd_reopen(state):
     if not d.endswith("--wip") and git_mv(d, d + "--wip"):
         state["dir"] = d + "--wip"
     state["finishedAt"] = None
+    drop_answer()
     state["blind"] = None
     state["blindRounds"] = 0
     state.pop("landedWith", None)
@@ -4922,8 +4928,7 @@ def main():
         elif cmd == "ask":
             cmd_ask(state, rest, opt)
         elif cmd == "answered":
-            close_wait(state)
-            drop_answer()
+            close_wait(state)                  # ответ с кнопки, ещё не прочитанный `await`, остаётся (docs/adr/0015)
         elif cmd == "finish":
             notes = cmd_finish(state, opt)
         elif cmd == "reopen":

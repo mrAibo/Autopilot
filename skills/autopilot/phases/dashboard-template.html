@@ -1736,11 +1736,11 @@ const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus
 
 // Кнопки подтверждения: только ожидания из ACT_KINDS (тот же список, что ALLOWED_ACTIONS в ap.py) и только по адресу с токеном.
 // Первый клик «взводит» кнопку, второй шлёт POST /.ap-act по контракту; ответ не 200 или тишина — кнопка возвращается со строкой причины.
-const ACT_KINDS = ["briefing", "spec", "plan", "accept"];
+const ACT_KINDS = ["briefing", "spec", "plan", "accept"], ACT_ARM_MS = 600;
 const hasToken = () => SERVED && /[?&]t=[^&#]+/.test(location.search || '');
 function actState(w) {
   const key = w.kind + '|' + w.since;
-  if (UI.act.key !== key) UI.act = {key, text: '', armed: false, busy: false, err: '', sent: false};
+  if (UI.act.key !== key) UI.act = {key, text: '', armed: false, armedAt: 0, busy: false, err: '', sent: false};
   return UI.act;
 }
 function actClick() {
@@ -1749,7 +1749,8 @@ function actClick() {
   const st = actState(w), A = CUR.act, redraw = () => render(CUR.lang);
   if (st.busy || st.sent) return;
   if (w.kind === 'briefing' && !st.text.trim()) { st.armed = false; st.err = A.empty; return redraw(); }
-  if (!st.armed) { st.armed = true; st.err = ''; return redraw(); }
+  if (!st.armed) { st.armed = true; st.armedAt = Date.now(); st.err = ''; return redraw(); }
+  if (Date.now() - st.armedAt < ACT_ARM_MS) return;   // двойной щелчок — один жест, а не «нажми ещё раз»
   st.armed = false; st.busy = true; st.err = '';
   const body = {kind: w.kind, since: w.since};
   if (w.kind === 'briefing') body.answer = st.text.trim();

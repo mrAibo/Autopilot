@@ -26,12 +26,14 @@ function page(state, waiting, o) {
   if (waiting) s.waiting = waiting; else delete s.waiting;
   const e = env(s, {}, false, 0, {search: o.search, protocol: o.protocol || 'http:'});
   e.calls = [];
+  e.clock = {t: 1e6};                                   // a fake clock: the second click must come later than ACT_ARM_MS
+  const RD = e.ctx.Date; e.ctx.Date = class extends RD { static now() { return e.clock.t; } };
   e.ctx.fetch = (url, opts) => { e.calls.push({url, opts}); return o.reply === 'down' ? Promise.reject(new Error('down')) : Promise.resolve({status: o.reply || 200}); };
   run(e, "render('en')");
   return e;
 }
 const btn = a => ({dataset: {}, hasAttribute: n => n === a});
-const click = (e, a) => e.app.listeners.click({target: {closest: () => btn(a)}});
+const click = (e, a, gap) => { e.clock.t += gap === undefined ? 1000 : gap; return e.app.listeners.click({target: {closest: () => btn(a)}}); };
 const type = (e, v) => e.app.listeners.input({target: {closest: s => s === '[data-act-answer]' ? {value: v} : null}});
 const W = kind => ({kind, since: '2026-11-03T08:15:00Z', note: 'n'});
 const body = e => (e.calls[0] ? JSON.parse(e.calls[0].opts.body) : null);
@@ -46,6 +48,9 @@ for (const kind of ['briefing', 'spec', 'plan', 'accept']) {
   click(e, 'data-act'); await wait(); r.callsAfterSecond = e.calls.length; r.call = e.calls[0]; r.sent = e.app.innerHTML;
   out.kinds[kind] = r;
 }
+// a double click inside a fraction of a second is one gesture: it arms, it does not send
+{ const e = page(F.running, W('plan'), {search: TOKEN}); click(e, 'data-act'); click(e, 'data-act', 100); await wait(); out.fastCalls = e.calls.length;
+  click(e, 'data-act', 700); await wait(); out.slowCalls = e.calls.length; }
 // typing after arming drops the arming
 { const e = page(F.running, W('briefing'), {search: TOKEN}); type(e, 'a'); click(e, 'data-act'); type(e, 'ab'); out.rearm = e.app.innerHTML; }
 // the server says no: the button is back, a line says why, nothing throws
@@ -119,6 +124,9 @@ class DashboardButtons(unittest.TestCase):
                 self.assertEqual(sent.get("answer"), "use postgres" if kind == "briefing" else None)
                 self.assertNotIn("data-act>", block(r["sent"]))
                 self.assertIn("Answer sent", text(block(r["sent"])))
+
+    def test_a_double_click_does_not_skip_the_confirmation(self):
+        self.assertEqual((self.out["fastCalls"], self.out["slowCalls"]), (0, 1))
 
     def test_briefing_has_an_answer_field_and_an_empty_answer_is_not_sent(self):
         r = self.out["kinds"]["briefing"]

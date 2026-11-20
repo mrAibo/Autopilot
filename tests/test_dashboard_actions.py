@@ -305,7 +305,7 @@ class Press(Door):
         self.assertEqual(rec["answer"], "таблица, ночь — без звонков")
         self.assertFalse(os.path.exists(self.answer_file + ".tmp"))
 
-    def test_secret_shapes_are_redacted_and_the_answer_is_cut_to_2000(self):
+    def test_secret_shapes_are_redacted_and_an_answer_over_2000_is_refused(self):
         since = self.ask("briefing")
         fake_key = "sk-" + "a1B2" * 6                                       # по форме ключ, значения нет
         self.assertEqual(self.press("briefing", since, answer="ключ %s и всё" % fake_key)[0], 200)
@@ -314,9 +314,12 @@ class Press(Door):
         self.assertNotIn(fake_key, text)
         self.assertIn("[REDACTED:API_KEY]", text)
         since = self.ask("briefing")
-        self.assertEqual(self.press("briefing", since, answer="я" * 3000)[0], 200)
+        self.assertEqual(self.press("briefing", since, answer="я" * 2000)[0], 200)        # ровно предел проходит
         with open(self.answer_file, encoding="utf-8") as f:
             self.assertEqual(len(json.load(f)["answer"]), 2000)
+        since = self.ask("briefing")
+        self.assertEqual(self.press("briefing", since, answer="я" * 2001)[0], 413)       # длиннее — отказ, а не молчаливый срез
+        self.assertEqual(self.h.state()["waiting"]["since"], since)
 
     def test_extra_body_fields_change_nothing_else(self):
         since = self.ask("plan")
@@ -407,15 +410,32 @@ class AnswerFile(Door):
         self.assertTrue(os.path.exists(self.answer_file))
         return since
 
-    def test_ask_removes_a_stale_answer(self):
-        self.pressed(answer="да")
+    def test_ask_with_an_open_wait_removes_a_stale_answer(self):
+        self.ask("briefing")
+        with open(self.answer_file, "w", encoding="utf-8") as f:
+            f.write("{}")
         self.ask("briefing")
         self.assertFalse(os.path.exists(self.answer_file))
 
-    def test_answered_removes_the_answer(self):
-        self.pressed(answer="да")
-        self.assertEqual(self.h.ap("answered")[0], 0)
+    def test_ask_and_answered_after_a_press_keep_the_unread_answer(self):
+        since = self.pressed(answer="да")
+        self.assertEqual(self.h.ap("answered")[0], 0)                    # агент по привычке зовёт answered
+        self.assertTrue(os.path.exists(self.answer_file))
+        code, out = self.await_cli("--timeout", "5")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(out)["answer"], "да")
         self.assertFalse(os.path.exists(self.answer_file))
+        self.assertTrue(since)
+
+    def test_a_new_ask_after_a_press_does_not_erase_the_unread_answer(self):
+        self.pressed(answer="да")
+        self.ask("briefing")
+        self.assertTrue(os.path.exists(self.answer_file))
+
+    def test_nested_json_gets_400_and_the_server_lives(self):
+        since = self.ask("plan")
+        self.assertEqual(self.post(None, raw=b"[" * 8000)[0], 400)
+        self.assertEqual(self.press("plan", since)[0], 200)
 
     def test_a_command_that_closes_an_open_wait_removes_a_stale_answer(self):
         self.ask("plan")
