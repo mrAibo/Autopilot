@@ -161,6 +161,16 @@ class Chore(Project):
         self.assertEqual(self.head(), head)
         self.assertNotIn("out.txt", self.git("show", "--name-only", "--pretty=format:", "HEAD").stdout)
 
+    def test_a_dirty_generator_file_is_named_with_the_action_and_left_untouched(self):
+        self.put("out.txt", "user edit\n")
+        head = self.head()
+        code, out = self.chore("ok")
+        self.assertEqual(code, 2, out)
+        self.assertIn("out.txt", out)
+        self.assertIn("закоммить или отмени правки", out)
+        self.assertEqual(self.head(), head)
+        self.assertEqual(read(os.path.join(self.root, "out.txt")), "user edit\n")
+
     def test_an_undeclared_name_refuses(self):
         head = self.head()
         code, out = self.chore("nope")
@@ -426,7 +436,7 @@ class Doctor(Project):
         code, out = self.doctor("--text", "2.1.320")
         self.assertEqual(code, 0, out)
         lines = out.strip().splitlines()
-        self.assertEqual(len(lines), 4, out)
+        self.assertEqual(len(lines), 5, out)
         for word in ("git: запись разрешена", "Claude Code 2.1.320", "advisorModel: не задан", "repo_doctor: готов"):
             self.assertIn(word, out)
         self.assertFalse(os.path.exists(os.path.join(self.skill, "tools", "state.lock")))

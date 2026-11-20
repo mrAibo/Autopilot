@@ -3071,7 +3071,7 @@ def cmd_chore(state, pos):
         return refuse("git не отвечает — коммита нет")
     dirty = [p for p in before if covers(declared, p)]
     if dirty:
-        return refuse("%s: файлы генератора грязные до запуска (%s) — закоммить или убери, коммита нет"
+        return refuse("%s: файлы генератора грязные до запуска (%s) — закоммить или отмени правки в этих файлах и запусти chore до правок, коммита нет"
                       % (name, ", ".join(dirty[:3])))
     code, out = run_shell(command, 600)
     if code is None:
@@ -3124,7 +3124,7 @@ def cmd_proof(state, pos, opt):
         die("%s: таймаут 1800 с" % act)
     # shortcut: режем синтаксис, ImportError (нет функции/модуля), «команда не найдена», 126/127 и ноль тестов
     if act == "redproof" and code != 0 and (code in (126, 127, 9009) or re.search(
-            r"(?m:^\s*(?:SyntaxError|IndentationError|ImportError|ModuleNotFoundError)\b)|cannot import name|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
+            r"(?m:^\s*(?:SyntaxError|IndentationError|ImportError|ModuleNotFoundError)\b)|(?m:^\s*(?:E\s+)?\w*Error: cannot import name)|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
         die("redproof: тест не по-настоящему красный: %s" % last_line(out))
     if (act == "redproof") == (code == 0):
         die("redproof: тест не красный (код 0)" if act == "redproof" else
@@ -3922,7 +3922,9 @@ def cmd_ask(state, pos, opt):
     kind = pos[0] if pos else ""
     if kind not in WAIT_KINDS:
         die("ask <%s> --note \"что ждём, одной строкой\"" % "|".join(WAIT_KINDS))
-    w = state.get("waiting")
+    if kind == "accept" and state.get("mode") != "manual":
+        die("ask accept: только в режиме manual (сейчас %s); в других режимах приёмку не ждём" % state.get("mode"))
+    w =state.get("waiting")
     if w:
         drop_answer()                          # при открытом ожидании файл только чужой; непрочитанный ответ закрытого не трогаем
     if w and w.get("kind") != kind:
@@ -4321,6 +4323,21 @@ def cmd_doctor(opt):
             code = cmd_git_check()
         return out.getvalue().strip(), code
 
+    def git_ver():
+        text = opt.get("git-text")
+        if text is None:
+            try:
+                text = subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=20).stdout
+            except (OSError, subprocess.SubprocessError):
+                text = ""
+        m = re.search(r"(\d+)\.(\d+)", str(text))
+        if not m:
+            return "git: версия не определена", 0
+        line = "git: версия %s.%s" % m.groups()
+        if (int(m[1]), int(m[2])) < (2, 22):
+            line += "\ngit ниже 2.22: трейлер Autopilot-Ticket не поддерживается — обнови git"
+        return line, 0
+
     def version():
         level, lines = claude_version_report(parse_claude_version(str(claude_version_text(opt))))
         return "claude: " + lines[0].rstrip(":"), 2 if level == "refuse" else 0
@@ -4351,7 +4368,7 @@ def cmd_doctor(opt):
         return ("repo_doctor: готов" if report["status"] == "ready"
                 else "repo_doctor: блокеры — " + ", ".join(report["blockers"])), 0
     worst = 0
-    for check in (git, version, advisor, repo):
+    for check in (git, git_ver, version, advisor, repo):
         try:
             line, code = check()
         except Exception as exc:                      # сбой одной проверки не мешает остальным

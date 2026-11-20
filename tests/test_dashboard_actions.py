@@ -43,6 +43,8 @@ class Door(unittest.TestCase):
             return f.read()
 
     def ask(self, kind):
+        if kind == "accept":                       # accept живёт только в manual (ADR 0015)
+            self.h.edit_state(mode="manual")
         code, out = self.h.ap("ask", kind, "--note", "ждём")
         self.assertEqual(code, 0, out)
         return self.h.state()["waiting"]["since"]
@@ -102,6 +104,15 @@ class ActionList(Door):
         since = self.ask("accept")
         self.assertEqual(self.h.state()["waiting"]["kind"], "accept")
         self.assertTrue(since)
+
+    def test_ask_accept_is_refused_outside_manual_naming_the_mode(self):
+        for mode in ("semi", "full", "interview"):
+            self.h.edit_state(mode=mode)
+            code, out = self.h.ap("ask", "accept", "--note", "x")
+            self.assertNotEqual(code, 0, mode)
+            self.assertIn("manual", out)
+            self.assertIn(mode, out)
+            self.assertIsNone(self.h.state()["waiting"])
 
 
 class Refusals(Door):

@@ -372,6 +372,15 @@ class BugKind(LandBase):
         code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/assert.py", "--no-serve")
         self.assertEqual(code, 0, out)
 
+    def test_redproof_takes_the_import_phrase_inside_text_but_not_as_the_exception(self):
+        self.start("01")
+        self.put(".autopilot/txt.py", "raise AssertionError('assert \"cannot import name\" not in output')\n")
+        self.put(".autopilot/exc.py", "raise ImportError(\"cannot import name 'f' from 'm'\")\n")
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/txt.py", "--no-serve")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/exc.py", "--no-serve")
+        self.assertEqual(code, 1, out)
+
     def test_redproof_takes_syntaxerror_word_inside_assert_and_rejects_zero_tests(self):
         self.start("01")
         self.put(".autopilot/word.py", "raise AssertionError('expected no SyntaxError here')\n")

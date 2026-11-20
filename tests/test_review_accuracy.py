@@ -169,6 +169,13 @@ class Cli(unittest.TestCase):
                 "--verdict", "T01.2 | сделано | src/a.py::f")
         self.assertEqual([i["status"] for i in self.state()["planFact"]["items"]], ["сделано", "сделано", "не сделано"])
 
+    def test_plan_fact_name_is_a_whole_word_not_a_substring(self):
+        with open(os.path.join(self.root, "src", "a.py"), "w", encoding="utf-8") as f:
+            f.write("def runtime():\n    pass\n\ndef run():\n    pass\n")
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py::untime",
+                "--verdict", "T01.2 | сделано | src/a.py::run")
+        self.assertEqual([i["status"] for i in self.state()["planFact"]["items"]], ["не сделано", "сделано", "не сделано"])
+
     def test_plan_fact_record_keeps_manual_plan_concerns(self):
         manual = "план: вручную — проверить миграцию"
         self.assertEqual(self.ap("add", "concerns", manual)[0], 0)

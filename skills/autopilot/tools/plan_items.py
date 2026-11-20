@@ -61,7 +61,7 @@ def _proved(evidence, root):
         if m.group("line"):
             if 1 <= int(m.group("line")) <= len(text.splitlines()):
                 return True
-        elif m.group("name") in text:
+        elif re.search(r"(?<![A-Za-z0-9_])" + re.escape(m.group("name")) + r"(?![A-Za-z0-9_])", text):
             return True
     return False
 
