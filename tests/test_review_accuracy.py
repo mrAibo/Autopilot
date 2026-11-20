@@ -152,6 +152,15 @@ class Cli(unittest.TestCase):
         self.assertEqual(st["planFact"]["done"], 0)
         self.assertIn("план: T01.1 — не сделано — первое", st["concerns"])
 
+    def test_plan_fact_demotion_names_the_reason_and_prompts_ask_for_file_line(self):
+        code, out = self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | pytest -q")
+        self.assertEqual(code, 0, out)
+        self.assertIn("T01.1 понижен до «не сделано»", out)
+        self.assertIn("файл:строка", out)
+        for rel in ("prompts/review-checklist.md", "prompts/review.md"):
+            self.assertIn("файл::имя", read(os.path.join(SKILL, rel)))
+        self.assertNotIn("файл:строка или команда", read(os.path.join(SKILL, "prompts/review-checklist.md")))
+
     def test_plan_fact_unknown_id_refuses_and_changes_nothing(self):
         self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:1")
         before = self.state()

@@ -332,6 +332,16 @@ class BugKind(LandBase):
         code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/imp.py", "--no-serve")
         self.assertEqual(code, 0, out)
 
+    def test_redproof_takes_syntaxerror_word_inside_assert_and_rejects_zero_tests(self):
+        self.start("01")
+        self.put(".autopilot/word.py", "raise AssertionError('expected no SyntaxError here')\n")
+        self.put(".autopilot/zero.py", "print('Ran 0 tests')\nraise SystemExit(1)\n")
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/word.py", "--no-serve")
+        self.assertEqual(code, 0, out)
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/zero.py", "--no-serve")
+        self.assertEqual(code, 1, out)
+        self.assertIn("не по-настоящему красный", out)
+
     def test_repro_land_needs_the_proof_and_then_skips_the_full_check(self):
         self.start("01")
         self.put("tests/test_bug.py", "def test_x():\n    assert False\n")

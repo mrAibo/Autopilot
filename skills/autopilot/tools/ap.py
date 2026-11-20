@@ -2979,7 +2979,7 @@ def cmd_proof(state, pos, opt):
         die("%s: таймаут 1800 с" % act)
     # shortcut: режем синтаксис, «команда не найдена», 126/127 и ноль тестов; ImportError законен (тест на ненаписанный код)
     if act == "redproof" and code != 0 and (code in (126, 127, 9009) or re.search(
-            r"SyntaxError|IndentationError|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
+            r"(?m:^\s*(?:SyntaxError|IndentationError)\b)|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
         die("redproof: тест не по-настоящему красный: %s" % last_line(out))
     if (act == "redproof") == (code == 0):
         die("redproof: тест не красный (код 0)" if act == "redproof" else
@@ -3596,7 +3596,10 @@ def cmd_plan_fact(state, pos, multi):
         if item["status"] != plan_items.DONE:
             cmd_add(state, ["concerns", "план: %s — %s — %s" % (item["id"], item["status"], item["text"])])
     log(state, "plan-fact", done=fact["done"], total=fact["total"])
-    return [plan_line(state)]
+    asked = {v["id"] for v in verdicts if v.get("status") == plan_items.DONE}
+    demoted = ["%s понижен до «не сделано»: для «сделано» нужно доказательство файл:строка или файл::имя с существующим путём" % i["id"]
+               for i in fact["items"] if i["id"] in asked and i["status"] != plan_items.DONE]
+    return [plan_line(state)] + demoted
 
 
 def cmd_check_review_report(opt):
