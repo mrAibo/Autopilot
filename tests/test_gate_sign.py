@@ -285,6 +285,41 @@ class KeyRaceTests(unittest.TestCase):
             self.assertEqual(gate_sign.ensure_key(), self.path)
         self.assertEqual(gate_sign.load_key(), key)                             # the key itself is unchanged
 
+    def whole_key_after_claim(self, key):
+        """os.link that, right after the claim link is made, lets a winner fill the key (same inode as the claim)."""
+        real = os.link
+
+        def link(src, dst, *args, **kwargs):
+            real(src, dst, *args, **kwargs)
+            if str(dst).endswith("gate.key.claim"):
+                self.path.write_bytes(key)
+        return mock.patch.object(os, "link", link)
+
+    def test_a_claim_busy_over_a_whole_key_is_retried_once_more_and_the_key_is_kept(self):
+        # R03: the claim stays busy through the whole retry, then frees up: ensure_key removes it on its own
+        key = b"k" * 32
+        self.path.write_bytes(b"")
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.busy_claim(100), \
+                self.whole_key_after_claim(key), contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(gate_sign.ensure_key(), self.path)
+        self.assertEqual(gate_sign.load_key(), key)                             # same key bytes
+        self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])   # the claim is gone
+        self.assertEqual(err.getvalue(), "")
+
+    def test_a_claim_that_stays_busy_over_a_whole_key_is_named_in_one_stderr_line(self):
+        # R03: the key comes back, the claim stays: one line with its name and the word "удали"
+        key = b"k" * 32
+        self.path.write_bytes(b"")
+        with mock.patch.object(gate_sign.time, "sleep", lambda _seconds: None), self.busy_claim(10 ** 6), \
+                self.whole_key_after_claim(key), contextlib.redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(gate_sign.ensure_key(), self.path)
+        self.assertEqual(gate_sign.load_key(), key)
+        self.assertTrue((self.home / "gate.key.claim").exists())                # still there, for the user to remove
+        lines = err.getvalue().strip().splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        self.assertIn("gate.key.claim", lines[0])
+        self.assertIn("удали", lines[0])
+
     def test_an_abandoned_claim_is_named_in_the_error_with_the_way_out(self):
         # R03: a killed claim holder leaves gate.key.claim; the error must say which file to delete.
         self.path.write_bytes(b"")

@@ -2897,6 +2897,7 @@ def last_line(text):
 
 def commit_paths(paths, message, trailers):
     """Единственное место, где ap.py коммитит: `git commit --only -- <пути>` с трейлерами → короткий SHA.
+    Старый путь переименования: у дословного пути при любом сходстве, у каталога — при R100.
     Без `git add -A` и `git stash`; сбой git — OSError с его последней строкой; нечего коммитить — None."""
     def git(*args):
         r = subprocess.run(["git", "--literal-pathspecs", "-C", ROOT] + list(args), capture_output=True, text=True,
@@ -2910,7 +2911,9 @@ def commit_paths(paths, message, trailers):
     moved, n = [], 0
     while n < len(parts) and parts[n]:
         width = 3 if parts[n][0] in "RC" else 2
-        if parts[n][0] == "R" and covers(paths, parts[n + 2]) and not covers(paths, parts[n + 1]):
+        # дословный путь берёт прежний при любом сходстве; каталог — только R100 (иначе чужое `D`, лишь похожее на новый файл)
+        if (parts[n][0] == "R" and covers(paths, parts[n + 2]) and not covers(paths, parts[n + 1])
+                and (parts[n] == "R100" or parts[n + 2] in paths)):
             moved.append(parts[n + 1])
         n += width
     paths = list(paths) + moved

@@ -213,6 +213,11 @@ def ensure_key():
                 if not whole:
                     raise
                 claimed = False
+                claim = _claim_path(path)  # the key is whole, only our own claim is left behind: one more try
+                try:
+                    _retry_busy(lambda: claim.unlink(missing_ok=True))
+                except OSError:
+                    _warn("заявка %s осталась от занятого файла, ключ цел; удали её вручную" % claim)
             if claimed:
                 size = None
             elif not _wait_for_key(path):

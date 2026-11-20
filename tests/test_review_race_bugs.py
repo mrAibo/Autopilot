@@ -153,6 +153,35 @@ class CommitPathsRename(unittest.TestCase):
         self.assertEqual(self.changed_by_head(), ["A\tdir/a.txt"])
         self.assertEqual(self.git("status", "--porcelain").strip(), "R  x.txt -> y.txt")
 
+    def test_a_directory_does_not_take_a_sibling_directory_with_the_same_prefix(self):
+        # R02: `dir` / `dir/` не захватывают `dir2/…`, ни как новый путь, ни как старый
+        for n, spec in enumerate(("dir", "dir/")):
+            with self.subTest(spec=spec):
+                for folder in ("dir", "dir2"):
+                    os.makedirs(os.path.join(self.root, folder), exist_ok=True)
+                self.put("dir2/p%d.txt" % n, self.BODY)
+                self.put("q%d.txt" % n, self.BODY)
+                self.git("add", "-A")
+                self.git("commit", "-q", "-m", "seed " + spec)
+                self.git("mv", "q%d.txt" % n, "dir2/q%d-moved.txt" % n)        # чужой перенос в соседний каталог
+                self.git("mv", "dir2/p%d.txt" % n, "dir2/p%d-moved.txt" % n)   # чужое переименование внутри него
+                self.put("dir/z%d.txt" % n, "changed\n")
+                self.assertTrue(self.ap.commit_paths([spec], "dir only", []))
+                self.assertEqual(self.changed_by_head(), ["A\tdir/z%d.txt" % n])
+                self.assertEqual(sorted(self.git("status", "--porcelain").splitlines()),
+                                 ["R  dir2/p%d.txt -> dir2/p%d-moved.txt" % (n, n),
+                                  "R  q%d.txt -> dir2/q%d-moved.txt" % (n, n)])
+                self.git("commit", "-q", "-m", "clean up")
+
+    def test_a_foreign_deletion_only_similar_to_a_new_file_in_the_directory_stays_staged(self):
+        # R02: чужое `D x.txt` + новый `dir/new.txt` с похожим содержимым — git видит R9x, но это не перенос
+        self.git("rm", "-q", "x.txt")
+        os.makedirs(os.path.join(self.root, "dir"))
+        self.put("dir/new.txt", self.BODY.replace("line 3\n", "line three\n"))
+        self.assertTrue(self.ap.commit_paths(["dir/"], "similar", []))
+        self.assertEqual(self.changed_by_head(), ["A\tdir/new.txt"])
+        self.assertEqual(self.git("status", "--porcelain").strip(), "D  x.txt")
+
     def test_a_plain_path_commits_only_itself_and_nothing_to_commit_is_none(self):
         self.put("a.txt", "changed\n")
         self.assertTrue(self.ap.commit_paths(["a.txt"], "plain", ["Autopilot-Run: r"]))

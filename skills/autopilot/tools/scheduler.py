@@ -103,7 +103,10 @@ def schedule(tickets, max_parallel=2, *, strict=False, isolated=False,
         if not already_reserved and available <= 0:
             blocked.append({"ticket": tid, "reason": "parallel-capacity"})
             continue
-        conflicts = [t["id"] for t in held if t["id"] != tid and intersect(ticket, t)]
+        # родитель в review (неизолированный прогон): его код закоммичен, зависимый строится поверх — зона не держит
+        parents = set() if isolated else {d for d in ticket.get("blockedBy") or []
+                                          if index[d].get("status") == "review"}
+        conflicts = [t["id"] for t in held if t["id"] != tid and t["id"] not in parents and intersect(ticket, t)]
         conflicts += [e["ticket"] for e in selected if e["ticket"] != tid and
                       intersect(ticket, index[e["ticket"]])]
         if conflicts:

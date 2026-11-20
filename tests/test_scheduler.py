@@ -58,6 +58,27 @@ class SchedulerTests(unittest.TestCase):
         self.assertFalse(p["selected"])
         self.assertEqual(p["blocked"], [{"ticket": "02", "reason": "dependencies", "ids": ["01"]}])
 
+    def test_zone_of_the_parent_in_review_does_not_block_its_dependent(self):
+        # R01: код родителя закоммичен, зависимый строится поверх; зона у них общая
+        ts = [ticket("01", ["app/"], status="review"), ticket("02", ["app/ui/"], deps=["01"])]
+        p = scheduler.schedule(ts)
+        self.assertEqual([(x["ticket"], x["action"]) for x in p["selected"]], [("02", "start")])
+        self.assertEqual(p["blocked"], [])
+
+    def test_zone_of_a_ticket_that_is_not_the_parent_still_blocks(self):
+        for status in ("in-progress", "repair", "review"):
+            ts = [ticket("01", ["lib/"], status="review"), ticket("03", ["app/"], status=status),
+                  ticket("02", ["app/ui/"], deps=["01"])]
+            p = scheduler.schedule(ts, 3)
+            self.assertEqual(p["selected"], [], status)
+            self.assertEqual(p["blocked"], [{"ticket": "02", "reason": "overlapping-zone", "ids": ["03"]}], status)
+
+    def test_isolated_run_blocks_on_a_parent_in_review_and_the_overlap(self):
+        ts = [ticket("01", ["app/"], status="review"), ticket("02", ["app/ui/"], deps=["01"])]
+        p = scheduler.schedule(ts, isolated=True)
+        self.assertEqual(p["selected"], [])
+        self.assertEqual(p["blocked"], [{"ticket": "02", "reason": "dependencies", "ids": ["01"]}])
+
     def test_inflight_and_prepared_reservations_use_capacity(self):
         ts = [ticket("01", ["src/a"], status="in-progress"),
               ticket("02", ["src/b"], worktree={"status": "prepared", "cwd": "/fake"}),
