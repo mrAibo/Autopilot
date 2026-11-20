@@ -10,7 +10,7 @@
     python3 .autopilot/ap.py set tier=T2 baseCommit=a1b2c3d
     python3 .autopilot/ap.py tickets                    # опубликовать таски из <dir>/tickets/*.md
     python3 .autopilot/ap.py check-plan                 # гейт G3: трасса манифест ↔ таски
-    python3 .autopilot/ap.py ticket 02 03 start         # волна ушла
+    python3 .autopilot/ap.py ticket 02 03 start         # волна ушла (зависимости — в done или review; done ждёт только done)
     python3 .autopilot/ap.py ticket 02 review
     python3 .autopilot/ap.py ticket 02 repair --note "пустой адрес проходит — R01.1"
     python3 .autopilot/ap.py ticket 02 done --tests 34/0 --commit a1b2c3d
@@ -2550,8 +2550,10 @@ def cmd_ticket(state, pos, opt):
                 die("таск %s: лимит известных токенов достигнут (%d/%d)" %
                     (i, consumed, state["budgetTokens"]))
         if act in ("start", "done"):
+            # `review` means the parent's code is committed and only the review runs beside the build
+            ready = ("done", "review") if act == "start" else ("done",)
             pending = [dep for dep in tk.get("blockedBy", [])
-                       if known.get(dep, {}).get("status") != "done"]
+                       if known.get(dep, {}).get("status") not in ready]
             if pending:
                 die("таск %s: сначала заверши зависимости %s" % (i, ", ".join(pending)))
         if act in ("start", "done", "retry") and state.get("strictRouting") and not profile_ok(tk):
@@ -2903,7 +2905,17 @@ def commit_paths(paths, message, trailers):
             raise OSError(last_line(r.stderr or r.stdout) or "git вернул код %d" % r.returncode)
         return r.stdout.strip()
     git("add", "--", *paths)
-    if subprocess.run(["git", "--literal-pathspecs", "-C", ROOT, "diff", "--cached", "--quiet", "--"] + list(paths)).returncode == 0:
+    # `git mv old new` ставит в индекс обе половины; `--only -- new` оставил бы там `D old`: прежний путь берём из индекса
+    parts = git("diff", "--cached", "--name-status", "-M", "-z").split("\0")   # без путей: с ними переименование — просто `A new`
+    moved, n = [], 0
+    while n < len(parts) and parts[n]:
+        width = 3 if parts[n][0] in "RC" else 2
+        if parts[n][0] == "R" and parts[n + 2] in paths and parts[n + 1] not in paths:
+            moved.append(parts[n + 1])
+        n += width
+    paths = list(paths) + moved
+    if subprocess.run(["git", "--literal-pathspecs", "-C", ROOT, "diff", "--cached", "--quiet", "--"] + paths,
+                      capture_output=True).returncode == 0:
         return None                                   # после нормализации концов строк менять нечего
     git("commit", "-q", "--only", "-m", message, *["--trailer=" + t for t in trailers], "--", *paths)
     return git("rev-parse", "--short", "HEAD")

@@ -8,6 +8,12 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Three more bugs from PROGRESS.md (ADR 0029).
+
+- **Dependent start during review:** `ap.py ticket MM start` accepts dependencies in `done` or `review` (the code is committed, the review runs beside the build); `ticket MM done` still waits until they are `done`, and `pending`, `in-progress`, `repair` or `failed` dependencies are refused as before. `phases/5-subagents.md` and `phases/6-review.md` say so.
+- **`commit_paths` and renames:** after `git mv old new` the commit of `new` takes the old path from the index too, so no `D old` is left staged (`land`, `chore`); the "nothing to commit" check no longer prints a rename header.
+- **`gate_sign` race:** an old empty `gate.key` is claimed by a hard link, so a racer with a stale "the file is empty" no longer moves a whole key aside (two different keys, or `PermissionError` read as an unreadable key, in about 5% of parallel inits under load); the DPAPI call runs under a lock because its ctypes prototypes were shared by all threads.
+
 Closed bugs from the last build's PROGRESS.md (ADR 0027).
 
 - **`plan-fact record`:** verdicts for some items no longer erase the others (new verdicts overlay `planFact.items` by id); "done" needs `path:line` or `path::name` with an existing path; an unknown id is a refusal that changes nothing; repeated records replace the "план: …" concerns instead of piling them up.

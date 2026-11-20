@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 import secrets
 import sys
+import threading
 import time
 
 import state_io
@@ -41,6 +42,7 @@ KEY_UNREADABLE_MESSAGE = (
 IS_WINDOWS = os.name == "nt"
 _KEY_SIZE = 32
 _warned = set()
+_dpapi_lock = threading.Lock()
 
 
 def _warn(text):
@@ -60,18 +62,19 @@ def _dpapi(data, protect):
 
     crypt32, kernel32 = ctypes.windll.crypt32, ctypes.windll.kernel32
     call = crypt32.CryptProtectData if protect else crypt32.CryptUnprotectData
-    call.argtypes = [ctypes.POINTER(Blob), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
-                     ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(Blob)]
-    call.restype = wintypes.BOOL
-    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
     buf = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
     src, out = Blob(len(data), buf), Blob()
-    if not call(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
-        raise ctypes.WinError()
-    try:
-        return ctypes.string_at(out.pbData, out.cbData)
-    finally:
-        kernel32.LocalFree(out.pbData)
+    with _dpapi_lock:  # the prototypes below are shared by every thread and name this call's own Blob class
+        call.argtypes = [ctypes.POINTER(Blob), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                         ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(Blob)]
+        call.restype = wintypes.BOOL
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        if not call(ctypes.byref(src), None, None, None, None, 0, ctypes.byref(out)):
+            raise ctypes.WinError()
+        try:
+            return ctypes.string_at(out.pbData, out.cbData)
+        finally:
+            kernel32.LocalFree(out.pbData)
 
 
 def _write_key_file(path, data):
@@ -105,6 +108,17 @@ def _protected(key):
     return key
 
 
+def _retry_busy(action, attempts=100):
+    """Run `action`; on Windows a reader holding the file for an instant is a PermissionError: retry, then raise."""
+    for attempt in range(attempts):
+        try:
+            return action()
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.02)
+
+
 def _create_key_atomically(path, data):
     """Full key in a temp file, then os.link: the key appears whole or not at all, a loser keeps the winner's."""
     temp = path.with_name("%s.%d.%s.tmp" % (path.name, os.getpid(), secrets.token_hex(4)))
@@ -130,32 +144,27 @@ def _create_key_atomically(path, data):
 
 
 def _claim_empty(path):
-    """Rename an old empty key to an orphan name: exactly one racer wins; the rest get False (nothing to do)."""
-    orphan = path.with_name("%s.%d.%s.old" % (path.name, os.getpid(), secrets.token_hex(4)))
-    for _ in range(100):
-        try:
-            os.rename(str(path), str(orphan))
-            break
-        except FileNotFoundError:
-            return False
-        except PermissionError:  # Windows: a reader holds the file for an instant
-            time.sleep(0.02)
-    else:
+    """Remove an old empty key: exactly one racer gets True; the rest get False and leave the file alone.
+
+    The claim is a hard link at a fixed name (atomic, never overwrites). A racer whose `size == 0` is stale
+    finds the whole key behind its claim, drops it and moves nothing: the earlier rename-aside took such a
+    key off the path for an instant, a third racer wrote its own key there and the first one was lost.
+    """
+    claim = path.with_name(path.name + ".claim")
+    try:
+        _retry_busy(lambda: os.link(str(path), str(claim)))
+    except (FileExistsError, FileNotFoundError):  # a claim is held, or there is no file left to claim
         return False
     try:
-        try:
-            filled = orphan.stat().st_size
-        except OSError:  # seen on Windows: the renamed file is already gone; a lost link race is harmless
-            return True
-        if filled:  # someone filled it between our stat and rename: give the real key back
-            try:
-                os.link(str(orphan), str(path))
-            except OSError:
-                pass
+        if claim.stat().st_size:  # filled between our stat and the claim: it is the real key
             return False
+        try:
+            _retry_busy(path.unlink)
+        except FileNotFoundError:
+            pass
         return True
     finally:
-        orphan.unlink(missing_ok=True)
+        claim.unlink(missing_ok=True)
 
 
 def _wait_for_key(path):

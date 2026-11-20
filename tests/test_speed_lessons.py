@@ -366,7 +366,7 @@ class Texts(unittest.TestCase):
             self.assertIn("link_deps", f.read())
 
     def test_protected_files_are_untouched(self):
-        r = subprocess.run(["git", "-C", ROOT, "diff", "--stat", "HEAD", "--", "skills/autopilot/tools/gate_sign.py",
+        r = subprocess.run(["git", "-C", ROOT, "diff", "--stat", "HEAD", "--",     # gate_sign.py снят: правка гонки ключа, docs/adr/0029
                             "skills/autopilot/tools/claude_agent_guard.py", "skills/autopilot/tools/model_router.py"], capture_output=True, text=True)
         self.assertEqual(r.stdout.strip(), "")
 

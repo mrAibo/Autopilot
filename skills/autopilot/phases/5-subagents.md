@@ -47,7 +47,7 @@ OpenAI default: Luna for cheap/balanced, Sol for strong; Anthropic default: Haik
 - **At most two in flight by default**; three only if explicitly permitted by the verified policy and truly independent. A wave of five normally goes out as two, two, one. A point reviewer writes nothing and does not count.
 - **Zones disjoint** — rechecked at launch; same files → serialise. When in doubt, serialise.
 - **A wave is not a barrier.** When a ticket returns, first launch the next ticket whose dependencies are all committed, then process the one that landed.
-- **A dependent never launches on an uncommitted parent.**
+- **A dependent never launches on an uncommitted parent.** A parent in `review` is committed (only its review is running): `ticket MM start` passes; `ticket MM done` still waits until the parent is `done`.
 - `ap.py ticket 02 03 start` goes **before** the launch — one call for the whole wave, **in the same message as the Agent calls**: Bash first, the launches after it.
 - **One event, one message.** Every call re-reads your whole context (at 200K, about a small subagent's first steps). The `ap.py` mark, the commit, the next launch and the line to the user go out together — never a call that only marks, then one that only launches.
 - **Waiting is ending your turn** — a background subagent wakes you. Never spawn an agent or loop just to wait.

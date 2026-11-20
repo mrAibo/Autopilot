@@ -21,7 +21,7 @@ Merged or ranked together, one axis masks another. **Which axis a finding belong
 
 **One fresh subagent per review** — never a reviewer kept alive across tickets. **Do not inherit the orchestrator model**: route this reviewer through `model_router.py` and verified host capabilities. A security-sensitive reviewer normally needs strong; a routine targeted review can be balanced. A blocked route means no spawn, not a fallback to Astra/Fable. Strict Claude Code: the run's `roleAgents.reviewer` from Phase 4 (`5-host-claude.md`). Ordinary Claude Code run: `autopilot-reviewer`, with `model` and `effort` passed in the call.
 
-**Launch it in the background right after the commit** — `ap.py ticket NN review`, then the subagent — and go on with the build: launch the next wave, land other tickets. Waiting on a point review is never a reason to hold a wave.
+**Launch it in the background right after the commit** — `ap.py ticket NN review`, then the subagent — and go on with the build: launch the next wave, land other tickets. Waiting on a point review is never a reason to hold a wave: a dependent of a ticket in `review` may `start` (its code is committed), but its `done` waits until the parent is `done`.
 
 It gets, by path: **`prompts/review.md`** (`skillDir`), required reading before the diff; the ticket file — its brief quotes are the Manifest axis; the spec sections the ticket names; `interfaces.md`; whatever the repo documents about how code is written. Pasted: the executor's `TESTS` and `REDPROOF` lines, and **why it is reviewed** — «фундамент», the named risk, or «оговорка о требовании»: that decides what blocks. And the command that shows the ticket's commit — `git show <commit>`. It must not repair, refactor, invoke skills or spawn agents.
 

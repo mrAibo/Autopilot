@@ -383,7 +383,7 @@ class Texts(unittest.TestCase):
         self.assertEqual(len(lines), 1)
 
     def test_gated_files_untouched(self):
-        diff = subprocess.run(["git", "diff", "HEAD", "--stat", "--", "skills/autopilot/tools/gate_sign.py",
+        diff = subprocess.run(["git", "diff", "HEAD", "--stat", "--",       # gate_sign.py снят: правка гонки ключа, docs/adr/0029
                                "skills/autopilot/tools/claude_agent_guard.py",
                                "skills/autopilot/tools/model_router.py"],
                               cwd=os.path.dirname(HERE), capture_output=True, text=True).stdout

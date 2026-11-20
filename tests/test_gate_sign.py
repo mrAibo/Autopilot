@@ -113,6 +113,30 @@ class DpapiKeyTests(unittest.TestCase):
         self.assertTrue(self.path.read_bytes().startswith(b"dpapi:"))
         self.assertEqual(gate_sign.load_key(), plain)           # signatures of old gates stay valid
 
+    def test_dpapi_calls_from_many_threads_do_not_mix_their_prototypes(self):
+        # R03: the ctypes prototypes are shared by all threads; a call used to meet another thread's Blob class
+        # (ArgumentError), which read as "the key is unreadable" in a parallel init.
+        errors = []
+
+        def run():
+            for _ in range(100):
+                try:
+                    self.assertEqual(gate_sign._dpapi(gate_sign._dpapi(b"k" * 32, True), False), b"k" * 32)
+                except Exception as exc:  # noqa: BLE001 — the test collects any thread failure
+                    errors.append(type(exc).__name__)
+
+        threads = [threading.Thread(target=run) for _ in range(8)]
+        interval = sys.getswitchinterval()
+        sys.setswitchinterval(1e-6)                                             # widens the window, adds no wait
+        try:
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=120)
+        finally:
+            sys.setswitchinterval(interval)
+        self.assertEqual(errors, [])
+
     def test_dpapi_failure_keeps_the_plain_file_and_warns_once(self):
         gate_sign._warned.clear()
         err = io.StringIO()
@@ -180,6 +204,36 @@ class KeyRaceTests(unittest.TestCase):
         self.assertFalse(gate_sign._claim_empty(self.path))
         self.assertEqual(self.path.read_bytes(), key)
         self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])
+
+    def test_a_racer_arriving_mid_claim_never_displaces_a_whole_key(self):
+        # R03: a racer with a stale "the file is empty" finds the whole key already there. While it claims,
+        # a third racer runs ensure_key; the key must stay and the third racer must read that same key.
+        key = b"k" * 32
+        self.path.write_bytes(key)
+        third, seen = [], []
+
+        def after(real):
+            def wrapper(*args, **kwargs):
+                result = real(*args, **kwargs)
+                if not third:                                                   # the first directory change of the claim
+                    third.append(True)
+                    gate_sign.ensure_key()
+                    seen.append(gate_sign.load_key())
+                return result
+            return wrapper
+
+        with mock.patch.object(os, "rename", after(os.rename)), mock.patch.object(os, "link", after(os.link)):
+            self.assertFalse(gate_sign._claim_empty(self.path))
+        self.assertEqual(gate_sign.load_key(), key)
+        self.assertEqual(seen, [key])
+        self.assertEqual([p.name for p in self.home.iterdir()], ["gate.key"])   # the claim is gone too
+
+    def test_a_held_claim_makes_every_other_racer_back_off(self):
+        self.path.write_bytes(b"")
+        (self.home / "gate.key.claim").write_bytes(b"")                         # someone else is removing the file
+        self.assertFalse(gate_sign._claim_empty(self.path))
+        self.assertTrue(self.path.exists())
+        self.assertTrue((self.home / "gate.key.claim").exists())                # not ours: left for its holder
 
     def test_claiming_a_really_empty_file_removes_it_whole(self):
         self.path.write_bytes(b"")
