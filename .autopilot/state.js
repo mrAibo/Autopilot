@@ -3,7 +3,7 @@ window.STATE =
   "schemaVersion": 1,
   "version": 2,
   "slug": "close-known-bugs",
-  "dir": "2026-11-20-close-known-bugs--wip",
+  "dir": "2026-11-20-close-known-bugs",
   "title": "Закрыть известные баги: plan-fact, land_check, blocker confirm, redproof",
   "mode": "semi",
   "depth": "normal",
@@ -12,16 +12,112 @@ window.STATE =
   "strictRouting": false,
   "gateSigned": false,
   "sequentialHost": false,
-  "spendLedger": [],
+  "spendLedger": [
+    {
+      "t": "2026-11-20T09:11:51+01:00",
+      "run": "2026-11-20-close-known-bugs",
+      "source": "orchestrator",
+      "origin": "claude-transcript",
+      "role": "orchestrator",
+      "ticket": null,
+      "agent": null,
+      "agent_type": null,
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 30,
+      "input": 68,
+      "output": 19823,
+      "cache_read": 5496635,
+      "cache_write": 60062,
+      "tokens": 19891,
+      "hit": 99
+    },
+    {
+      "t": "2026-11-20T09:11:51+01:00",
+      "run": "2026-11-20-close-known-bugs",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "reviewer",
+      "ticket": null,
+      "agent": "a1bcc831987444e96",
+      "agent_type": "autopilot-reviewer",
+      "model": "claude-haiku-5-5",
+      "effort": null,
+      "turns": 2,
+      "input": 4,
+      "output": 4654,
+      "cache_read": 14784,
+      "cache_write": 26799,
+      "tokens": 4658,
+      "hit": 36
+    },
+    {
+      "t": "2026-11-20T09:11:51+01:00",
+      "run": "2026-11-20-close-known-bugs",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "reviewer",
+      "ticket": null,
+      "agent": "aa9f56edde44bc670",
+      "agent_type": "autopilot-reviewer",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 4,
+      "input": 8,
+      "output": 3722,
+      "cache_read": 78295,
+      "cache_write": 35028,
+      "tokens": 3730,
+      "hit": 69
+    },
+    {
+      "t": "2026-11-20T09:11:51+01:00",
+      "run": "2026-11-20-close-known-bugs",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "acceptance",
+      "ticket": null,
+      "agent": "ab35ce0357c9b75aa",
+      "agent_type": "autopilot-acceptance",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 8,
+      "input": 16,
+      "output": 3314,
+      "cache_read": 158769,
+      "cache_write": 25703,
+      "tokens": 3330,
+      "hit": 86
+    },
+    {
+      "t": "2026-11-20T09:11:51+01:00",
+      "run": "2026-11-20-close-known-bugs",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "executor",
+      "ticket": "01",
+      "agent": "af5211987978b5ae3",
+      "agent_type": "autopilot-executor",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 33,
+      "input": 66,
+      "output": 22593,
+      "cache_read": 1990266,
+      "cache_write": 87824,
+      "tokens": 22659,
+      "hit": 96
+    }
+  ],
   "isolateTickets": false,
   "briefFile": "2026-11-20-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:/Users/crown/.claude/skills/autopilot",
-  "baseCommit": null,
+  "baseCommit": "14c198d",
   "startedAt": "2026-11-20T08:59:40+01:00",
-  "updatedAt": "2026-11-20T09:01:36+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-20T09:11:50+01:00",
+  "finishedAt": "2026-11-20T09:11:51+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -73,32 +169,57 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-20T09:01:35+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-20T09:01:41+01:00"
         }
       ],
-      "startedAt": "2026-11-20T09:01:35+01:00"
+      "startedAt": "2026-11-20T09:01:35+01:00",
+      "finishedAt": "2026-11-20T09:01:41+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T09:01:41+01:00",
+          "finishedAt": "2026-11-20T09:09:47+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T09:01:41+01:00",
+      "finishedAt": "2026-11-20T09:09:47+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T09:09:47+01:00",
+          "finishedAt": "2026-11-20T09:09:47+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T09:09:47+01:00",
+      "finishedAt": "2026-11-20T09:09:47+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T09:09:47+01:00",
+          "finishedAt": "2026-11-20T09:11:51+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T09:09:47+01:00",
+      "finishedAt": "2026-11-20T09:11:51+01:00"
     }
   ],
   "requirements": {
     "total": 7,
-    "done": 0,
-    "inTicket": 7,
+    "done": 7,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -133,12 +254,24 @@ window.STATE =
       "repro": false,
       "testsEdit": null,
       "fingerprint": "5ba4b744963919b5fd865fe3bdacbaa4154e44d8aa864a5d923950818e2c8d14",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-20T09:01:41+01:00",
+      "finishedAt": "2026-11-20T09:08:58+01:00",
       "retries": 0,
-      "repairs": 0
+      "repairs": 0,
+      "tests": {
+        "passed": 1240,
+        "failed": 0
+      },
+      "commit": "5069947",
+      "placeholders": [],
+      "startHead": "14c198d230f4bdd48590082c2f1d6fd3c283398b"
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 1245,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -153,9 +286,17 @@ window.STATE =
     "deferred": 0,
     "items": []
   },
-  "concerns": [],
+  "concerns": [
+    "plan_items.py:_proved — ::имя ищется подстрокой, слабая проверка",
+    "land_check.py — на git старше 2.22 трейлер Autopilot-Ticket не распознаётся (прежнее поведение)",
+    "ap.py:cmd_proof — «cannot import name» ловится в любом месте вывода, возможен ложный отказ redproof"
+  ],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 7,
+    "matched": 7,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-20T08:59:40+01:00",
     "2026-11-20T08:59:46+01:00",
@@ -164,9 +305,15 @@ window.STATE =
     "2026-11-20T09:01:19+01:00",
     "2026-11-20T09:01:34+01:00",
     "2026-11-20T09:01:35+01:00",
-    "2026-11-20T09:01:36+01:00"
+    "2026-11-20T09:01:36+01:00",
+    "2026-11-20T09:01:40+01:00",
+    "2026-11-20T09:01:41+01:00",
+    "2026-11-20T09:07:29+01:00",
+    "2026-11-20T09:09:45+01:00",
+    "2026-11-20T09:09:47+01:00",
+    "2026-11-20T09:11:50+01:00"
   ],
-  "rev": 12,
+  "rev": 22,
   "waiting": null,
   "waits": [],
   "log": [
@@ -231,43 +378,107 @@ window.STATE =
       "g": "G3",
       "ok": true,
       "problems": 0
+    },
+    {
+      "t": "2026-11-20T09:01:41+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T09:01:41+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T09:07:29+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1240,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-20T09:09:45+01:00",
+      "k": "add",
+      "key": "concerns",
+      "n": 3
+    },
+    {
+      "t": "2026-11-20T09:09:47+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T09:09:47+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T09:11:50+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 7,
+      "matched": 7
+    },
+    {
+      "t": "2026-11-20T09:11:50+01:00",
+      "k": "tests",
+      "passed": 1245,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-20T09:11:50+01:00",
+      "k": "finish",
+      "result": "Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты",
+      "problems": 0
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«plan-fact (сверять строку в доказательстве «сделано»»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«не стирать ручные concerns с префиксом «план: »»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
       "text": "«land_check (узнавать свой коммит без префикса темы»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R04",
       "text": "«видеть правки через merge-коммиты»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R05",
       "text": "«blocker confirm (способ исправить ошибочный confirmed по цитате пользователя)»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R06",
       "text": "«redproof (не считать ImportError на отсутствующую функцию красным по существу)»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R07",
       "text": "«R28 и R33–R35 не трогай»",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
@@ -288,14 +499,86 @@ window.STATE =
       "ok": true,
       "at": "2026-11-20T09:01:36+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-20T09:11:50+01:00",
+      "checked": 7,
+      "matched": 7
     }
   },
-  "result": null,
+  "result": "Закрыты известные баги plan-fact, land_check, blocker confirm, redproof; R28 и R33–R35 не тронуты",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
-    "byTicket": {}
+    "byRole": {
+      "reviewer": {
+        "n": 2,
+        "input": 12,
+        "output": 8376,
+        "cache_read": 93079,
+        "cache_write": 61827,
+        "tokens": 8388,
+        "hit": 60
+      },
+      "acceptance": {
+        "n": 1,
+        "input": 16,
+        "output": 3314,
+        "cache_read": 158769,
+        "cache_write": 25703,
+        "tokens": 3330,
+        "hit": 86
+      },
+      "executor": {
+        "n": 1,
+        "input": 66,
+        "output": 22593,
+        "cache_read": 1990266,
+        "cache_write": 87824,
+        "tokens": 22659,
+        "hit": 96
+      },
+      "orchestrator": {
+        "n": 1,
+        "input": 68,
+        "output": 19823,
+        "cache_read": 5496635,
+        "cache_write": 60062,
+        "tokens": 19891,
+        "hit": 99
+      }
+    },
+    "byModel": {
+      "claude-haiku-5-5": {
+        "n": 1,
+        "input": 4,
+        "output": 4654,
+        "cache_read": 14784,
+        "cache_write": 26799,
+        "tokens": 4658,
+        "hit": 36
+      },
+      "claude-sonnet-5-5": {
+        "n": 4,
+        "input": 158,
+        "output": 49452,
+        "cache_read": 7723965,
+        "cache_write": 208617,
+        "tokens": 49610,
+        "hit": 97
+      }
+    },
+    "byTicket": {
+      "01": {
+        "n": 1,
+        "input": 66,
+        "output": 22593,
+        "cache_read": 1990266,
+        "cache_write": 87824,
+        "tokens": 22659,
+        "hit": 96
+      }
+    }
   },
   "history": [
     {
@@ -477,5 +760,6 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "d0e29507f22ddbf865fb99a47c947256b9465267156d3cc8b40e1d12e21a7b0a",
-  "planValidationDigest": "38964201cf39a4496e372e5672b0a93639a5fb542b3a981cd9e9ffcd4a6142fd"
+  "planValidationDigest": "38964201cf39a4496e372e5672b0a93639a5fb542b3a981cd9e9ffcd4a6142fd",
+  "blindRounds": 1
 }

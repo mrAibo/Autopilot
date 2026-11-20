@@ -1,7 +1,7 @@
 <!-- autopilot:progress -->
 # Autopilot — что осталось
 
-Последняя сборка: `.autopilot/2026-11-20-close-progress-bugs/` — закрыты баги `plan-fact record`, `land_check`, `blocker confirm`/`redproof`, вердикт второго прохода хранится в блокере (`secondPass`), CI гоняет `tools/run-tests.py`; 1238 тестов зелёные. R28 и R33–R35 не трогались. Предыдущая: `2026-11-19-purpleflow-ideas-waves1-4`.
+Последняя сборка: `.autopilot/2026-11-20-close-known-bugs/` — закрыты баги `plan-fact` (строка/имя в доказательстве, ручные «план: » не стираются), `land_check` (свой коммит по трейлеру `Autopilot-Ticket`, merge-коммиты), `blocker confirm --by-user` (поправка ошибочного `confirmed`), `redproof` (ImportError не красный); ADR `0028`. R28 и R33–R35 не трогались. Предыдущая: `2026-11-20-close-progress-bugs`.
 
 ## Договорились — не пересматривать
 
@@ -27,10 +27,8 @@
 
 ## Известные баги
 
+- Слабые места закрытого: `::имя` ищется подстрокой; трейлер `Autopilot-Ticket` нужен git ≥ 2.22; «cannot import name» в любом месте вывода даёт ложный отказ `redproof`
 - `ticket NN review` держит таск в `review`, зависимый `ticket MM start` отказывает до `done`
-- `plan-fact`: доказательство «сделано» проверяется только по существованию файла (строка не сверяется); `record` стирает и ручные `concerns` с префиксом «план: »
-- `blocker confirm`: ошибочный `confirmed` не исправить (выход — новый блокер); `redproof` не отличает ImportError на отсутствующую функцию от «красного» по существу
-- `land_check`: «свой» коммит узнаётся по теме `T01:`/`F1:` — своя тема в `land --message` без префикса даёт ложный отказ; через merge-коммиты чужие правки не видны
 - `lessons`: проверка путей ловит только `X:\`, `/Users/`, `/home/` (не `/etc/`, `~/`); `lessons.md`, `drop`, `profile refresh` пишут без замка; `test_silence_without_any_transcript_is_not_all_alive` читает реальный `~/.claude`
 - `worktrees.link_deps`: копия `node_modules` на macOS/Linux проверена только подменой платформы
 - `commit_paths`: переименование оставляет старый путь в индексе; `chore` не принимает грязный `AGENTS.md`, запускать до правок
