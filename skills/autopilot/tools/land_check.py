@@ -36,24 +36,46 @@ def _overlap(a, b):
     return found
 
 
-def preflight(root, start_head, base_commit, zone, ticket, active_zones):
-    """-> {"ahead", "foreign_files", "neighbors", "unsupported"}. Только чтение: rev-list, diff --name-only."""
+def _own(subject, ticket):
+    """Тема коммита начинается с id таска: `T02:`, `T02 `, `F1:`."""
+    words = subject.split(None, 1)
+    first = words[0].rstrip(":") if words else ""
+    return first == ("T" + ticket if ticket[:1] != "F" else ticket)
+
+
+def _foreign_files(root, start_head, ticket):
+    """Файлы (относительно root), тронутые после start_head коммитами не этого таска."""
+    log = _git(root, "log", "--format=%H %s", "%s..HEAD" % start_head)
+    found = set()
+    for line in (log or "").splitlines():
+        sha, _, subject = line.partition(" ")
+        if _own(subject, ticket):
+            continue
+        names = _git(root, "show", "--name-only", "--format=", "-z", "--relative", sha)
+        found.update(n for n in (names or "").split("\0") if n and not n.startswith(".autopilot/"))
+    return found
+
+
+def preflight(root, start_head, base_commit, zone, ticket, active_zones, files=None):
+    """-> {"ahead", "foreign_files", "neighbors", "unsupported"}. Только чтение: rev-list, log, show.
+    `files` — вливаемые файлы (пути проекта): с ними чужие коммиты и соседи считаются только по ним."""
     report = {"ahead": 0, "foreign_files": [], "neighbors": [], "unsupported": None}
-    top = _git(root, "rev-parse", "--show-toplevel")
-    if top is None or _norm(top.strip()) != _norm(root):
-        report["unsupported"] = "не поддержано: проект не в корне репозитория, проверка перед влитием пропущена"
+    if _git(root, "rev-parse", "--show-toplevel") is None:
+        report["unsupported"] = "не поддержано: git не отвечает, проверка перед влитием пропущена"
         return report
     zone = [z.replace("\\", "/") for z in zone]
+    prefix = (_git(root, "rev-parse", "--show-prefix") or "").strip()      # проект в подпапке репозитория
+    mine = None if files is None else {f.replace("\\", "/")[len(prefix):] if f.startswith(prefix) else f for f in files}
     count = _git(root, "rev-list", "--count", "%s..HEAD" % base_commit) if base_commit else None
     report["ahead"] = int(count) if count and count.strip().isdigit() else 0
     if start_head:
-        names = _git(root, "diff", "--name-only", "-z", start_head, "HEAD")
-        files = [n for n in (names or "").split("\0") if n and not n.startswith(".autopilot/")]
-        report["foreign_files"] = sorted(f for f in files if _covers(zone, f))
+        touched = _foreign_files(root, start_head, ticket)
+        report["foreign_files"] = sorted(f for f in touched if (f in mine if mine is not None else _covers(zone, f)))
     for other, zones in sorted((active_zones or {}).items()):
         if other == ticket:
             continue
-        both = _overlap(zone, [z.replace("\\", "/") for z in zones])
+        theirs = [z.replace("\\", "/") for z in zones]
+        both = _overlap(zone, theirs) if mine is None else [f for f in mine if _covers(theirs, f)]
         if both:
             report["neighbors"].append({"ticket": other, "files": sorted(set(both))})
     return report

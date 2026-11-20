@@ -125,12 +125,39 @@ class LandCheckUnit(Repo):
         rep = land_check.preflight(self.root, None, self.base, ["src/"], "01", {})
         self.assertEqual(rep["foreign_files"], [])
 
-    def test_subfolder_project_is_unsupported_warning_not_refusal(self):
-        sub = os.path.join(self.root, "src")
-        rep = land_check.preflight(sub, self.base, self.base, ["x/"], "01", {})
-        self.assertTrue(rep["unsupported"])
-        self.assertIn("не поддержано", rep["unsupported"])
+    def test_not_a_repository_is_unsupported_warning_not_refusal(self):
+        outside = tempfile.mkdtemp(prefix="ap-nogit-")
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+        rep = land_check.preflight(outside, self.base, self.base, ["x/"], "01", {})
+        self.assertIn("git не отвечает", rep["unsupported"])
         self.assertEqual(land_check.problems(rep), [])
+
+    def test_subfolder_project_is_checked(self):
+        self.commit_file("src/b.py")
+        sub = os.path.join(self.root, "src")
+        rep = land_check.preflight(sub, self.base, self.base, ["./"], "01", {})
+        self.assertIsNone(rep["unsupported"])
+        rep = land_check.preflight(sub, self.base, self.base, ["b.py"], "01", {}, files=["b.py"])
+        self.assertEqual(rep["foreign_files"], ["b.py"])
+
+    def test_files_limit_neighbors_to_whole_segments_and_shared_files(self):
+        rep = land_check.preflight(self.root, None, self.base, ["src/"], "01", {"02": ["src/b.py"]}, files=["src/a.py"])
+        self.assertEqual(rep["neighbors"], [])
+        rep = land_check.preflight(self.root, None, self.base, ["src/"], "01", {"02": ["src/a.py"]}, files=["src/a.py"])
+        self.assertEqual([n["ticket"] for n in rep["neighbors"]], ["02"])
+        rep = land_check.preflight(self.root, None, self.base, ["src/a"], "01", {"02": ["src/ab"]}, files=["src/a/x.py"])
+        self.assertEqual(rep["neighbors"], [])
+
+    def test_own_commit_is_not_foreign_and_other_commit_in_a_landed_file_is(self):
+        self.commit_file("src/a.py", "own\n")
+        git(self.root, "commit", "-q", "--amend", "-m", "T01: свой")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], [])
+        self.commit_file("src/a.py", "foreign\n")
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/a.py"])
+        self.assertEqual(rep["foreign_files"], ["src/a.py"])
+        rep = land_check.preflight(self.root, self.base, self.base, ["src/"], "01", {}, files=["src/other.py"])
+        self.assertEqual(rep["foreign_files"], [])
 
 
 class WorktreeLand(Repo):
@@ -196,13 +223,13 @@ class LandPreflight(LandBase):
     def test_foreign_commit_in_the_zone_refuses_with_a_command(self):
         self.plan(T1)
         self.start("01")
-        self.put("src/core/other.py", "y\n")
+        self.put("src/core/a.py", "y\n")
         self.commit_all("чужой")
         self.put("src/core/a.py", "x = 1\n")
         head = self.head()
         code, out = self.land("01")
         self.assertEqual(code, 2, out)
-        self.assertIn("src/core/other.py", out)
+        self.assertIn("src/core/a.py", out)
         self.assertIn("что делать", out)
         self.assertEqual(self.head(), head)
 
@@ -292,6 +319,18 @@ class BugKind(LandBase):
         code, out = self.ap("ticket", "01", "redproof", "--command", RED, "--no-serve")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.tk("01")["redproof"]["exit"], 1)
+
+    def test_redproof_rejects_not_found_and_syntax_error_but_takes_a_failing_test(self):
+        self.start("01")
+        self.put(".autopilot/syntax.py", "x =\n")
+        self.put(".autopilot/imp.py", "raise ImportError('new')\n")
+        for cmd in ("exit 127", PY + " .autopilot/syntax.py"):
+            code, out = self.ap("ticket", "01", "redproof", "--command", cmd, "--no-serve")
+            self.assertEqual(code, 1, out)
+            self.assertIn("не по-настоящему красный", out)
+            self.assertNotIn("redproof", self.tk("01"))
+        code, out = self.ap("ticket", "01", "redproof", "--command", PY + " .autopilot/imp.py", "--no-serve")
+        self.assertEqual(code, 0, out)
 
     def test_repro_land_needs_the_proof_and_then_skips_the_full_check(self):
         self.start("01")

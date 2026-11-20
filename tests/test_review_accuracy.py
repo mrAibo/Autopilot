@@ -87,6 +87,10 @@ class Cli(unittest.TestCase):
             if name.endswith(".py"):
                 shutil.copy(os.path.join(TOOLS, name), os.path.join(self.a, name))
         shutil.copy(os.path.join(SKILL, "phases", "dashboard-template.html"), os.path.join(self.a, "dashboard.html"))
+        os.makedirs(os.path.join(self.root, "src"))
+        for name in ("a.py", "b.py"):
+            with open(os.path.join(self.root, "src", name), "w") as f:
+                f.write("x\n")
         self.ap("init", "--slug", "ra", "--title", "T", "--skill-dir", SKILL)
         self.dir = os.path.join(self.a, self.state()["dir"])
         self.write("manifest.md", MANIFEST)
@@ -136,12 +140,48 @@ class Cli(unittest.TestCase):
         code, out = self.ap("plan-fact", "show")
         self.assertIn("план: 1 из 3", out)
 
+    def test_plan_fact_record_by_parts_keeps_other_verdicts(self):
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:3")
+        code, out = self.ap("plan-fact", "record", "--verdict", "T01.2 | сделано | src/b.py::f")
+        self.assertEqual(code, 0, out)
+        self.assertEqual([i["status"] for i in self.state()["planFact"]["items"]], ["сделано", "сделано", "не сделано"])
+
+    def test_plan_fact_done_needs_an_existing_path(self):
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | ок", "--verdict", "T01.2 | сделано | нет.py:1")
+        st = self.state()
+        self.assertEqual(st["planFact"]["done"], 0)
+        self.assertIn("план: T01.1 — не сделано — первое", st["concerns"])
+
+    def test_plan_fact_unknown_id_refuses_and_changes_nothing(self):
+        self.ap("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:1")
+        before = self.state()
+        code, out = self.ap("plan-fact", "record", "--verdict", "T99.1 | сделано | src/a.py:1")
+        self.assertEqual(code, 1, out)
+        self.assertIn("T99.1", out)
+        after = self.state()
+        self.assertEqual((after["planFact"], after["concerns"]), (before["planFact"], before["concerns"]))
+
+    def test_plan_fact_repeat_does_not_duplicate_concerns(self):
+        args = ("plan-fact", "record", "--verdict", "T01.1 | сделано | src/a.py:1")
+        self.ap(*args)
+        first = [c for c in self.state()["concerns"] if c.startswith("план: ")]
+        self.ap(*args)
+        self.assertEqual([c for c in self.state()["concerns"] if c.startswith("план: ")], first)
+        self.assertEqual(len(first), 2)
+
     def test_old_state_without_plan_fact_is_read(self):
         self.assertNotIn("planFact", self.state())
         code, out = self.ap("plan-fact", "show")
         self.assertEqual(code, 0, out)
         self.assertIn("план: 0 из 0", out)
         self.assertEqual(self.ap("stage", "spec")[0], 0)
+
+    def test_ci_runs_the_parallel_runner(self):
+        wf = read(os.path.join(os.path.dirname(HERE), ".github", "workflows", "python-tests.yml"))
+        self.assertIn("run: python tools/run-tests.py", wf)
+        self.assertNotIn("unittest discover", wf)
+        self.assertIn("ubuntu-latest, windows-latest", wf)
+        self.assertNotIn("CI запускает то же", read(os.path.join(os.path.dirname(HERE), "AGENTS.md")))
 
     # шаблон дашборда
     def test_dashboard_template_has_plan_line_in_both_languages_under_ceiling(self):
@@ -195,6 +235,24 @@ class Cli(unittest.TestCase):
         self.assertEqual(b["status"], "open")
         self.assertEqual(b["confirmQuote"], "a.py:5 — замка нет")
         self.assertNotEqual(self.ap("blocker", "confirm", "--id", "B01", "--verdict", "maybe", "--quote", "x")[0], 0)
+
+    def test_blocker_second_verdict_is_refused(self):
+        self.open_blocker()
+        self.ap("blocker", "confirm", "--id", "B01", "--verdict", "confirmed", "--quote", "a.py:5 — замка нет")
+        code, out = self.ap("blocker", "confirm", "--id", "B01", "--verdict", "not-confirmed", "--quote", "a.py:6")
+        self.assertEqual(code, 1, out)
+        b = self.state()["blockingFindings"][0]
+        self.assertEqual((b["status"], b["secondPass"]["verdict"]), ("open", "confirmed"))
+
+    def test_blocker_confirm_stores_second_pass_and_logs_verdict(self):
+        self.open_blocker()
+        self.assertNotIn("secondPass", self.state()["blockingFindings"][0])    # старые блокеры читаются
+        self.ap("blocker", "confirm", "--id", "B01", "--verdict", "not-confirmed", "--quote", "a.py:5 — замок")
+        sp = self.state()["blockingFindings"][0]["secondPass"]
+        self.assertEqual((sp["verdict"], sp["quote"]), ("not-confirmed", "a.py:5 — замок"))
+        self.assertTrue(sp["at"])
+        events = [e for e in self.state()["log"] if e.get("k") == "blocker" and e.get("act") == "downgraded"]
+        self.assertEqual(events[-1]["verdict"], "not-confirmed")
 
     # agent-for
     def test_agent_for_plain_run_without_plan_models(self):

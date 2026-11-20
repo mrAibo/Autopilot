@@ -8,6 +8,13 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Closed bugs from the last build's PROGRESS.md (ADR 0027).
+
+- **`plan-fact record`:** verdicts for some items no longer erase the others (new verdicts overlay `planFact.items` by id); "done" needs `path:line` or `path::name` with an existing path; an unknown id is a refusal that changes nothing; repeated records replace the "план: …" concerns instead of piling them up.
+- **Pre-landing check:** neighbors and foreign commits are counted by the files the ticket lands and by whole path segments; commits whose subject starts with the ticket id (`T01:`, `F1:`) are not foreign; a project in a repo subfolder is checked (`unsupported` only when git does not answer).
+- **`blocker confirm`:** one second-pass verdict per blocker, stored as `secondPass` (`verdict`, `quote`, `at`) and in the journal event; `ticket NN redproof` refuses exit 126/127, syntax errors, "command not found" and zero tests.
+- **CI:** the workflow runs `python tools/run-tests.py` in the same OS and Python matrix.
+
 Speed and lessons (R26, R27).
 
 - **One message back:** `ap.py ticket NN bundle` prints the failed check's tail (`lastCheck`, saved by `land` on a red check), open blockers and the ticket's concerns; checks and review run together (`phases/5-parallel.md`); executors run only their own tests.

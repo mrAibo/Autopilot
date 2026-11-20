@@ -367,8 +367,7 @@ class Texts(unittest.TestCase):
 
     def test_protected_files_are_untouched(self):
         r = subprocess.run(["git", "-C", ROOT, "diff", "--stat", "HEAD", "--", "skills/autopilot/tools/gate_sign.py",
-                            "skills/autopilot/tools/claude_agent_guard.py", "skills/autopilot/tools/model_router.py",
-                            ".github"], capture_output=True, text=True)
+                            "skills/autopilot/tools/claude_agent_guard.py", "skills/autopilot/tools/model_router.py"], capture_output=True, text=True)
         self.assertEqual(r.stdout.strip(), "")
 
 

@@ -11,8 +11,8 @@
 | `python3 skills/autopilot/tools/ap.py` | Поднять дашборд, адрес без токена (в проектах — `.autopilot/ap.py`); адрес с токеном — `ap.py url` |
 | `python3 skills/autopilot/tools/ap.py bootstrap --project .` | Из папки навыка поставить инструменты в `.autopilot/` проекта (до `init`, без `state.lock`) |
 | `python3 .autopilot/ap.py doctor` | Предполётная проверка проекта: строка на проверку, код 2 — отказ `git-check` или версия ниже минимума |
-| `python3 -m unittest discover -s tests` | Все тесты (CI запускает то же на Python 3.11 и 3.13, Ubuntu и Windows) |
-| `python tools/run-tests.py` | Все тесты параллельно, итог в формате unittest (CI не меняется) |
+| `python3 -m unittest discover -s tests` | Все тесты последовательно |
+| `python tools/run-tests.py` | Все тесты параллельно, итог в формате unittest; CI запускает его на Python 3.11 и 3.13, Ubuntu и Windows |
 | `python3 -m compileall -q skills/autopilot/tools tests` | Проверка синтаксиса |
 
 ## Как здесь работает Autopilot
@@ -24,7 +24,7 @@
 ## Подводные камни
 
 - Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1225<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
-- Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI остаётся на `unittest discover`. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
+- Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI запускает именно его. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
 - Сервер дашборда (`ap.py`) отдаёт данные только с `?t=<токен>` из `.autopilot/serve.token` (страница без токена приходит с `window.STATE=null`); адрес с токеном печатает только `ap.py url` (голый `ap.py` и остальные команды печатают адрес без `?t=`); адрес с токеном не вставлять в чат и скриншоты; 403 на чужой Host/Origin и `Sec-Fetch-Site: cross-site`; `file://` токена не требует (`docs/adr/0001`).
 - Ответ `/.ap-ping` (hmac от `serve.token` и порта) подтверждает свой сервер без PowerShell; не сошёлся — сервер перезапускается, нет ответа — прежняя проверка процесса (`docs/adr/0013`).
@@ -53,9 +53,9 @@
 - `ticket F<n> route --model --effort --reason` в обычном прогоне пишет `tk["routing"]` без профиля; строгая ветка прежняя.
 - `blind` второго круга сводит круги в `state.blind.rounds`, верхние поля — итог; `checked` круга 2 — от числа расхождений круга 1 до него же плюс один (`docs/adr/0012`).
 - Тексты чужих режимов лежат в `phases/4-plan-strict.md`, `4-plan-opus.md`, `5-strict.md`, `5-sequential-host.md`; `tests/test_text_split.py` держит размер обычного пути и дословность переноса.
-- `plan-fact record --verdict "T02.1 | сделано | файл:строка" …` заменяет все вердикты целиком — передавать все сразу; пункты с id — `plan-fact list` (`plan_items.py`, `phases/8-plan-fact.md`).
+- `plan-fact record --verdict "T02.1 | сделано | файл:строка" …` накладывает вердикты по id на прежние (`planFact.items`), чужие пункты не стирает; «сделано» требует `путь:строка` или `путь::имя` с существующим путём, неизвестный id — отказ, строки «план: …» в `concerns` заменяются; пункты с id — `plan-fact list` (`plan_items.py`, `phases/8-plan-fact.md`).
 - `check-review-report --file ФАЙЛ` — код 1, если пункт чек-листа без ответа (`review_checks.py`); `check-bypass [A..B]` только печатает сигналы.
-- `blocker confirm --id B01 --verdict confirmed|not-confirmed --quote "…"` — `not-confirmed` ставит `downgraded`.
+- `blocker confirm --id B01 --verdict confirmed|not-confirmed --quote "…"` — `not-confirmed` ставит `downgraded`; вердикт хранится в блокере (`secondPass`), второй `confirm` по тому же блокеру — отказ (`docs/adr/0027`).
 - `ticket NN redproof|baseline --command "…"` — проверка до правки для `bug`/`refactor`; `ticket NN bundle` — сводка для исполнителя.
 - `ticket NN land --include a,b` коммитит файлы вне зоны; `--allow` не коммитит (`land_check.py`, `docs/adr/0025`, `0026`).
 - `init --kind …`: справка пишет `feature`, код знает `quick|bug|task|refactor` (`kinds.KINDS`); сценарии — `phases/kind-*.md`, `docs/adr/0020`.

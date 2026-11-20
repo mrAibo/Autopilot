@@ -177,7 +177,7 @@ Caveats, so the numbers are not over-read:
 
 ## Доля блокирующих, снятых вторым проходом
 
-Не измерено: журналы блокеров прошлых сборок не хранят вердиктов второго прохода (`blocker confirm` появился в этой сборке). Измерить можно по `blockingFindings` со статусом `downgraded` на следующей сборке.
+Вердикт второго прохода хранится в самом блокере: `blockingFindings[].secondPass = {verdict, quote, at}` (и поле `verdict` в событии журнала `blocker`). Доля снятых = блокеры с `secondPass.verdict == "not-confirmed"` (статус `downgraded`) / блокеры с любым `secondPass`. Блокеры прошлых сборок `secondPass` не несут и в расчёт не входят: на них число не измерено.
 
 ## Speed changes: before and after
 

@@ -6,7 +6,7 @@
 - Совет и прогноз — ключи `advice` и `forecast` в JSON `plan-models`. Нет истории — нет ключа. Отдельной строки после JSON нет. Маршрут они не меняют.
 - Кэш истории — `.autopilot/history-cache.json`, ключ `(имя папки, st_mtime_ns, st_size)` файла `state.js` архива. Запись через временный файл и `os.replace`; `tokens` считаются из журнала каждый раз.
 - На `finish` `attestations.jsonl` переезжает в папку прогона (при повторном finish после reopen строки дописываются), профили прогона удаляются. `ap.py agents prune [--apply]` делает то же для накопленных. Удаляются только имена `autopilot-<роль>-<slug>`; постоянные `autopilot-executor|reviewer|acceptance|explorer` не трогаются. Сбой — строка `!`, `finish` не срывается.
-- `tools/run-tests.py` запускает набор в нескольких процессах; классы с `serial = True` идут после. CI и `python -m unittest discover -s tests` не меняются.
+- `tools/run-tests.py` запускает набор в нескольких процессах; классы с `serial = True` идут после. `python -m unittest discover -s tests` не меняется; с ADR этой сборки CI гоняет `tools/run-tests.py`.
 
 ## Почему
 - Отвергнуто: читать `state.js` в `report-run`. Это ломает контракт «только журнал» и тянет архивы. Цена выбранного пути — история не глубже ротации журнала.
@@ -20,4 +20,4 @@
 - `history-cache.json` попадает в `.gitignore` от `init`; в живом проекте без нового `init` файл может остаться неигнорируемым.
 - В проекте, где `attestations.jsonl` отслеживается git, перенос виден как удаление и новый файл.
 - Профили живого прогона удаляются только на `finish`; после `reopen` их надо создать заново через `plan-models --apply`.
-- Запускатель тестов не заменяет `unittest discover` в CI; помеченный `serial` класс замедляет прогон.
+- Запускатель тестов (позже поставлен в CI вместо `unittest discover`); помеченный `serial` класс замедляет прогон.

@@ -2977,6 +2977,10 @@ def cmd_proof(state, pos, opt):
     code, out = run_shell(command, 1800)
     if code is None:
         die("%s: таймаут 1800 с" % act)
+    # shortcut: режем синтаксис, «команда не найдена», 126/127 и ноль тестов; ImportError законен (тест на ненаписанный код)
+    if act == "redproof" and code != 0 and (code in (126, 127, 9009) or re.search(
+            r"SyntaxError|IndentationError|command not found|is not recognized|Ran 0 tests|no tests ran|collected 0 items", out)):
+        die("redproof: тест не по-настоящему красный: %s" % last_line(out))
     if (act == "redproof") == (code == 0):
         die("redproof: тест не красный (код 0)" if act == "redproof" else
             "baseline: тесты красные до правок (код %d): %s" % (code, last_line(out)))
@@ -3045,14 +3049,14 @@ def cmd_land(state, pos, opt):
     if outside:
         red("вне зоны", "изменено %s%s" % (", ".join(outside[:3]), " и ещё %d" % (len(outside) - 3) if len(outside) > 3 else ""),
             "верни файл или назови причину (--allow путь — если он не от таска; --include путь — влить в коммит)")
+    files = sorted(p for p in status if covers(zone, p) or p == ".env.example" or covers(include, p))
     active = {x["id"]: x.get("zone") or [] for x in state.get("tickets") or [] if x["id"] != i and x.get("status") in ACTIVE_EXECUTOR}
-    report = land_check.preflight(ROOT, tk.get("startHead"), state.get("baseCommit") or tk.get("startHead"), zone, i, active)
+    report = land_check.preflight(ROOT, tk.get("startHead"), state.get("baseCommit") or tk.get("startHead"), zone, i, active, files)
     if report["unsupported"]:
         print("land %s: предупреждение — %s" % (i, report["unsupported"]))
     bad = land_check.problems(report, i)
     if bad:
         red("пересечения", bad[0], bad[1] if len(bad) > 1 else None)
-    files = sorted(p for p in status if covers(zone, p) or p == ".env.example" or covers(include, p))
     tests = {f for f in land_check.tracked_files(ROOT) if kinds.is_test_path(f)} if kind == "refactor" else set()
     kind_bad = kinds.land_problems(kind, tk, files, tests, tk.get("redproof"), state.get("tickets") or [])
     quote = clean_quote(opt.get("by-user")) if kind == "bug" else None
@@ -3537,13 +3541,16 @@ def blocker_confirm(state, opt):
         die("blocker confirm: --verdict confirmed|not-confirmed")
     if not isinstance(quote, str) or not quote.strip():
         die("blocker confirm: нужна цитата второго прохода --quote (место кода и что в нём)")
+    if entry.get("secondPass"):
+        die("blocker confirm: у %s уже есть вердикт второго прохода (%s)" % (entry["id"], entry["secondPass"].get("verdict")))
     entry["confirmQuote"] = clean_quote(quote)
+    entry["secondPass"] = {"verdict": verdict, "quote": entry["confirmQuote"], "at": now()}
     if verdict == "confirmed":
-        log(state, "blocker", id=entry["id"], act="confirmed", ticket=entry.get("ticket"))
+        log(state, "blocker", id=entry["id"], act="confirmed", ticket=entry.get("ticket"), verdict=verdict)
         return
     entry.update(status="downgraded", downgradedAt=state["updatedAt"])
     cmd_add(state, ["concerns", "не подтверждено вторым проходом: " + entry["text"]])
-    log(state, "blocker", id=entry["id"], act="downgraded", ticket=entry.get("ticket"))
+    log(state, "blocker", id=entry["id"], act="downgraded", ticket=entry.get("ticket"), verdict=verdict)
 
 
 def plan_items_by_ticket(state):
@@ -3579,7 +3586,12 @@ def cmd_plan_fact(state, pos, multi):
     verdicts = [plan_items.parse_verdict(v) for v in multi.get("verdict", [])]
     if not verdicts or None in verdicts:
         die("plan-fact record: --verdict \"T02.1 | сделано|частично|не сделано | доказательство\" (по одному на пункт)")
-    fact = state["planFact"] = plan_items.build_plan_fact(by_ticket, verdicts)
+    unknown = plan_items.unknown_ids(by_ticket, verdicts)
+    if unknown:
+        die("plan-fact record: нет пунктов с id %s — см. `plan-fact list`" % ", ".join(unknown))
+    previous = (state.get("planFact") or {}).get("items")
+    fact = state["planFact"] = plan_items.build_plan_fact(by_ticket, plan_items.merge_verdicts(previous, verdicts), ROOT)
+    state["concerns"] = [c for c in state.get("concerns") or [] if not (isinstance(c, str) and c.startswith("план: "))]
     for item in fact["items"]:
         if item["status"] != plan_items.DONE:
             cmd_add(state, ["concerns", "план: %s — %s — %s" % (item["id"], item["status"], item["text"])])
