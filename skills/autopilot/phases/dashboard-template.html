@@ -1182,6 +1182,17 @@
   .askbar .ak{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
   .askbar p{flex:1 1 320px;margin:0;font-size:16px;font-weight:650;overflow-wrap:anywhere}
   .askbar .aw{font-variant-numeric:tabular-nums;font-weight:800}
+  .actblock{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:16px 18px;border-radius:16px;background:var(--card);
+    border:1px solid var(--line2);color:var(--tx)}
+  .actblock p{margin:0;overflow-wrap:anywhere}
+  .actblock h3{margin:0;font-size:15px;font-weight:800}
+  .actblock textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--tx)}
+  .actblock button{appearance:none;font:inherit;cursor:pointer;min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;
+    border:1px solid var(--line2);background:var(--card);color:var(--tx);font-weight:650}
+  .actblock button[disabled]{cursor:default;opacity:.7}
+  .actblock .acterr{font-weight:650}
+  .actblock .actcmd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
+  .actblock .actcmd code{flex:1 1 280px;min-width:0;padding:8px 10px;border-radius:10px;background:var(--inset);color:var(--tx);overflow-wrap:anywhere}
   .det-slot{scroll-margin-top:18px}
   html[data-narrow] .cockpit-rail{display:none}
   html[data-narrow] .wrap{padding:0 12px 25px}
@@ -1411,7 +1422,7 @@ const I18N = {
     leadFailed:l=>`Не собрался: ${l}.`,leadIdle:"Следующая волна вот-вот уйдёт.",
     waitState:"Сборка ждёт тебя",
     waitH2:{briefing:"Ответь в чате на вопросы по брифу",spec:"Посмотри спецификацию и скажи «ок»",
-      plan:"Посмотри план и скажи «ок»",action:"Нужно твоё решение перед необратимым шагом",stop:"Сборка остановлена — нужен ты"},
+      plan:"Посмотри план и скажи «ок»",accept:"Принять сдачу",action:"Нужно твоё решение перед необратимым шагом",stop:"Сборка остановлена — нужен ты"},
     waitHint:"Ответ — в чате. Дальше сборка пойдёт сама",waitBig:"ждём ответа · часы сборки стоят",
     failState:"Сборка остановилась",failH2:n=>`Этап «${n}» не прошёл`,
     doneState:"Сдано",landedState:"Сдано с оговорками",landedLead:"Сдано с оговорками. Что осталось:",doneDefault:"Сборка сдана",
@@ -1489,6 +1500,14 @@ const I18N = {
     needToken:"Данные прогона открываются по адресу с токеном: возьми его командой ap.py url.",
     bootHelp:"Страница проверяет файл каждые десять секунд и покажет данные, как только он появится. Если сборка идёт давно, скажи агенту «обнови состояние». Саму сборку это не затрагивает.",
     tabWait:"● Ждём ответа",
+    act:{label:{briefing:"Отправить ответ на брифинг",spec:"Подтвердить спецификацию",plan:"Принять план",accept:"Принять сдачу"},
+      sure:"Точно? нажми ещё раз",sending:"Отправляю…",sent:"Ответ отправлен",field:"Твой ответ",empty:"Ответ пустой: напиши текст, пустой не отправляется.",
+      noToken:"Кнопки есть только на странице по адресу с токеном: возьми его командой ap.py url.",
+      net:"Сервер не отвечает (возможно, остановлен). Кнопка снова доступна — попробуй позже.",
+      err:c=>({403:"Сервер отказал (403): открой страницу по адресу из ap.py url.",409:"Ожидание уже изменилось (409): обнови страницу.",
+        413:"Ответ слишком длинный (413): сократи его.",503:"Сервер занят (503): попробуй ещё раз."}[c] || `Сервер ответил ошибкой (${c}). Кнопка снова доступна.`),
+      cmdH:"Нужны твои слова — команды только копируются",cmdNote:"Подставь вместо <цитата> свои слова и выполни в терминале проекта.",
+      dropped:"Снять требование: пометь его dropped в manifest.md сам",copy:"скопировать",copied:"скопировано"},
     askBar:"Нужен твой ответ",gReset:"сброшена: план изменился",doneAt:t=>`сдано ${t}`,
     notify:"Включить уведомления",notifyBody:"Сборка стоит и ждёт тебя",
     bd:{boardTitle:"Доска тасков",none:"тасков ещё нет",
@@ -1566,7 +1585,7 @@ const I18N = {
     leadFailed:l=>`Failed: ${l}.`,leadIdle:"The next wave is about to go.",
     waitState:"The build is waiting for you",
     waitH2:{briefing:"Answer the briefing questions in the chat",spec:"Look at the spec and say “ok”",
-      plan:"Look at the plan and say “ok”",action:"Your call is needed before an irreversible step",stop:"The build has stopped — you are needed"},
+      plan:"Look at the plan and say “ok”",accept:"Accept the delivery",action:"Your call is needed before an irreversible step",stop:"The build has stopped — you are needed"},
     waitHint:"Answer in the chat. The build carries on by itself",waitBig:"waiting for you · the build clock is stopped",
     failState:"The build has stopped",failH2:n=>`Stage “${n}” failed`,
     doneState:"Done",landedState:"Landed with caveats",landedLead:"Landed with caveats. What is left:",doneDefault:"The build is done",
@@ -1639,6 +1658,14 @@ const I18N = {
     needToken:"Run data opens at the address with the token: get it with the ap.py url command.",
     bootHelp:"The page rechecks the file every ten seconds and will render as soon as it appears. If the build has been running a while, ask the agent to write the state. The build itself is unaffected.",
     tabWait:"● Waiting for you",
+    act:{label:{briefing:"Send the answer to the briefing",spec:"Approve the spec",plan:"Accept the plan",accept:"Accept the delivery"},
+      sure:"Sure? click again",sending:"Sending…",sent:"Answer sent",field:"Your answer",empty:"The answer is empty: write something, an empty one is not sent.",
+      noToken:"Buttons exist only on the page opened at the address with the token: get it with ap.py url.",
+      net:"The server does not answer (maybe it is stopped). The button is available again: try later.",
+      err:c=>({403:"The server refused (403): open the page at the address from ap.py url.",409:"The wait has already changed (409): reload the page.",
+        413:"The answer is too long (413): shorten it.",503:"The server is busy (503): try again."}[c] || `The server answered with an error (${c}). The button is available again.`),
+      cmdH:"These need your own words: commands are copy-only",cmdNote:"Replace <цитата> with your words and run it in the project terminal.",
+      dropped:"Dropping a requirement: mark it dropped in manifest.md yourself",copy:"copy",copied:"copied"},
     askBar:"Your answer is needed",gReset:"reset: the plan changed",doneAt:t=>`done ${t}`,
     notify:"Turn on notifications",notifyBody:"The build is stopped and waits for you",
     bd:{boardTitle:"Ticket board",none:"no tickets yet",
@@ -1705,7 +1732,35 @@ let booted = false;
 // Что пользователь раскрыл и отфильтровал — переживает перерисовку на каждом событии.
 // sec — какие секции <details> пользователь раскрыл или свернул (id → bool; нет записи — как по умолчанию в page());
 // panel — id таска в боковой панели; focus — куда вернуть фокус после перерисовки (кнопка закрытия панели или карточка таска).
-const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus: null, combo: {open: false, q: '', i: 0}};
+const UI = {filter: 'all', open: {}, sec: {}, rbOkAll: false, panel: null, focus: null, combo: {open: false, q: '', i: 0}, act: {key: ''}};
+
+// Кнопки подтверждения: только ожидания из ACT_KINDS (тот же список, что ALLOWED_ACTIONS в ap.py) и только по адресу с токеном.
+// Первый клик «взводит» кнопку, второй шлёт POST /.ap-act по контракту; ответ не 200 или тишина — кнопка возвращается со строкой причины.
+const ACT_KINDS = ["briefing", "spec", "plan", "accept"];
+const hasToken = () => SERVED && /[?&]t=[^&#]+/.test(location.search || '');
+function actState(w) {
+  const key = w.kind + '|' + w.since;
+  if (UI.act.key !== key) UI.act = {key, text: '', armed: false, busy: false, err: '', sent: false};
+  return UI.act;
+}
+function actClick() {
+  const w = STATE && !STATE.finishedAt && STATE.waiting;
+  if (!w || !ACT_KINDS.includes(w.kind) || !hasToken()) return;
+  const st = actState(w), A = CUR.act, redraw = () => render(CUR.lang);
+  if (st.busy || st.sent) return;
+  if (w.kind === 'briefing' && !st.text.trim()) { st.armed = false; st.err = A.empty; return redraw(); }
+  if (!st.armed) { st.armed = true; st.err = ''; return redraw(); }
+  st.armed = false; st.busy = true; st.err = '';
+  const body = {kind: w.kind, since: w.since};
+  if (w.kind === 'briefing') body.answer = st.text.trim();
+  let p;
+  try {
+    p = window.fetch.call(window, '/.ap-act' + location.search, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  } catch (e) { p = Promise.reject(e); }
+  Promise.resolve(p).then(r => { if (r && r.status === 200) st.sent = true; else st.err = A.err(r ? r.status : 0); },
+    () => { st.err = A.net; }).then(() => { st.busy = false; redraw(); });
+  redraw();
+}
 
 // ——— дизайн в шапке: поисковый список (combobox) ———
 // Поиск — по имени на двух языках, номеру («05» и «5»), id и тегам; пустой запрос — все шесть по порядку.
@@ -2896,6 +2951,27 @@ function render(lang){
   // Ждёт ответа — вопрос закреплён сверху: текст, сколько ждёт. Уведомление и значок на вкладке — отдельно:
   // кнопка есть, пока браузер умеет уведомления и разрешения ещё нет; без неё полоса и значок остаются.
   const canAsk = typeof Notification !== 'undefined' && Notification.permission === 'default';
+  // Блок кнопок (одна разметка для всех дизайнов): кнопка действия — только для ожиданий ACT_KINDS по адресу с токеном;
+  // команды со словами пользователя (reset, finish, opus approve, dropped) — только «скопировать», без кнопки действия.
+  const A = L.act, actKind = waiting && ACT_KINDS.includes(waiting.kind) ? waiting.kind : null, tokenOk = hasToken();
+  let actBlock = '';
+  if (actKind && !tokenOk) actBlock = `<section class="actblock"><p>${esc(A.noToken)}</p></section>`;
+  else if (actKind) {
+    const st = actState(waiting);
+    actBlock = `<section class="actblock">` + (st.sent ? `<p role="status">${esc(A.sent)}</p>` : `${actKind === 'briefing'
+      ? `<label for="act-answer">${esc(A.field)}</label><textarea id="act-answer" data-act-answer rows="3" maxlength="2000"${st.busy ? ' disabled' : ''}>${esc(st.text)}</textarea>` : ''
+      }<button type="button" data-act${st.busy ? ' disabled' : ''}>${esc(st.busy ? A.sending : st.armed ? A.sure : A.label[actKind])}</button>${
+      st.err ? `<p class="acterr" role="alert">${esc(st.err)}</p>` : ''}`) + `</section>`;
+  }
+  if (tokenOk && (failedT.length || (waiting && (waiting.kind === 'action' || waiting.kind === 'stop')))) {
+    const q = '"<цитата>"', py = 'python3 .autopilot/ap.py ';
+    const cmds = failedT.map(t => `ticket ${String(t.id).replace(/^\D+/, '')} reset --by-user ${q}`);
+    if (!cmds.length) cmds.push(`ticket NN reset --by-user ${q}`);
+    cmds.push(`finish --by-user ${q}`, `opus approve --by-user ${q}`);
+    const row = (shown, copy) => `<div class="actcmd"><code>${esc(shown)}</code><button type="button" data-copy="${esc(copy)}" data-copied="${esc(A.copied)}">${esc(A.copy)}</button></div>`;
+    actBlock += `<section class="actblock"><h3>${esc(A.cmdH)}</h3><p>${esc(A.cmdNote)}</p>${cmds.map(c => row(py + c, py + c)).join('')}
+      <p>${esc(A.dropped)}</p>${row('dropped', 'dropped')}</section>`;
+  }
   const askBar = waiting ? `<section class="askbar" role="status"><span class="ak">${L.askBar}</span>
     <p>${esc(waiting.note || L.waitH2[waiting.kind] || L.waitState)}</p>
     <span class="aw" data-since="${esc(waiting.since)}">${fmtClock(spanMs(waiting.since, null))}</span>${
@@ -2940,7 +3016,7 @@ function render(lang){
   // A live refresh or language/filter click must not discard keyboard focus.
   // Only stable, locally generated attributes are used; no selector interpolation.
   const active = document.activeElement;
-  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh','data-card','data-pclose','data-rbok','data-notify'];
+  const focusAttrs = ['data-focus-key','data-lang','data-theme','data-filter','data-more','data-refresh','data-card','data-pclose','data-rbok','data-notify','data-act','data-act-answer'];
   const focusAttr = active && typeof app.contains === 'function' && app.contains(active)
     ? focusAttrs.find(name => active.hasAttribute(name)) : null;
   const focusValue = focusAttr ? active.getAttribute(focusAttr) : null;
@@ -2957,7 +3033,7 @@ function render(lang){
     gatesNote: L.gatesOf(okGates),
     feedNote: feedItems.length ? String(feedItems.length) : ''
   };
-  const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, hasNeed: !!(keysBlock + phBlock + asmBlock), askBar, ovHero, tiles, logBadge, route, reqBoard,
+  const pageHtml = page(Object.assign({L, fin, secOpen: UI.sec, hasReqs: reqRows.length > 0, hasNeed: !!(keysBlock + phBlock + asmBlock), askBar: askBar + actBlock, ovHero, tiles, logBadge, route, reqBoard,
     matrixCard, wordsView, ganttFull, emptyGantt, board, needSum, nextCard, planCard, mismatchCard, needCard, verdictCard, blindView, reviewView,
     asmCard, addCard, kpiRow, routesCard, spendCard, historyCard, isolationView, gatesCard, feedAll}, secNote));
   // Ссылка рейки показывается, только если на странице есть её якорь.
@@ -3103,6 +3179,10 @@ document.getElementById('app').addEventListener('click', e => {
   } else if (b.hasAttribute('data-notify')) {
     // Разрешение просим только здесь — по клику пользователя; когда ответит, перерисовка пошлёт уведомление.
     if (typeof Notification !== 'undefined') Promise.resolve(Notification.requestPermission()).then(() => render(CUR.lang));
+  } else if (b.hasAttribute('data-act')) {
+    actClick();
+  } else if (b.dataset.copy) {
+    try { Promise.resolve(navigator.clipboard.writeText(b.dataset.copy)).then(() => { b.textContent = b.dataset.copied; }, () => {}); } catch(err) {}
   } else if (b.hasAttribute('data-refresh')) {
     refreshNow(b);
   } else if (b.dataset.filter) {
@@ -3114,6 +3194,12 @@ document.getElementById('app').addEventListener('click', e => {
 
 // Дизайн в шапке: ввод фильтрует список, стрелки/Enter/Esc — пока фокус в комбобоксе (#app перерисовывается целиком, события всплывают к нему).
 document.getElementById('app').addEventListener('input', e => {
+  const ta = e.target && e.target.closest ? e.target.closest('[data-act-answer]') : null;
+  if (ta) {  // правка ответа снимает «взвод» кнопки: подтверждается то, что видно
+    UI.act.text = ta.value || '';
+    if (UI.act.armed || UI.act.err) { UI.act.armed = false; UI.act.err = ''; render(CUR.lang); }
+    return;
+  }
   const inp = e.target && e.target.closest ? e.target.closest('[data-dcombo-input]') : null;
   if (!inp) return;
   UI.combo.q = inp.value || '';

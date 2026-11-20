@@ -68,6 +68,10 @@ python3 skills/autopilot/tools/dashboard_upgrade.py --project <PROJECT_DIR> [--d
 
 It checks the slug, embeds the current `state.js` snapshot, backs up the old page and swaps it atomically. The run is not reset.
 
+## Confirm buttons
+
+Block `.actblock`, one markup for all designs (the design changes only the look). Waits `briefing`, `spec`, `plan`, `accept` (`ACT_KINDS`, the same list as `ALLOWED_ACTIONS` in `ap.py`) get one button on a page opened over `http(s)` with a token: the first click turns the label into "Sure? click again", the second sends `POST /.ap-act` + `location.search` with `{kind, since, answer?}` (`answer` only for `briefing`; an empty one is not sent). Any answer but 200, or a stopped server, returns the button with a line saying why; 200 replaces it with "Answer sent". Without a token or on `file://` there are no buttons, only one line about `ap.py url`; with no wait, or with `action`/`stop`, there is no button either. Commands that need the user's words (`ticket NN reset --by-user`, `finish --by-user`, `opus approve --by-user`, `dropped` in `manifest.md`) are shown with a "copy" button only, on a tokened page when a ticket failed or the wait is `action`/`stop`. The page calls the server through `window.fetch.call(...)` so the "no `fetch(` in the template" test keeps its meaning. Tests: `tests/test_dashboard_buttons.py` (the server is a `fetch` stub).
+
 ## Tests
 
 ```bash
