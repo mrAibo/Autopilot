@@ -3,7 +3,7 @@ window.STATE =
   "schemaVersion": 1,
   "version": 2,
   "slug": "close-weak-spots",
-  "dir": "2026-11-20-close-weak-spots--wip",
+  "dir": "2026-11-20-close-weak-spots",
   "title": "Слабые места: schedule/review, commit_paths каталог, busy-claim gate_sign",
   "mode": "semi",
   "depth": "normal",
@@ -12,16 +12,131 @@ window.STATE =
   "strictRouting": false,
   "gateSigned": false,
   "sequentialHost": false,
-  "spendLedger": [],
+  "spendLedger": [
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "orchestrator",
+      "origin": "claude-transcript",
+      "role": "orchestrator",
+      "ticket": null,
+      "agent": null,
+      "agent_type": null,
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 37,
+      "input": 82,
+      "output": 22807,
+      "cache_read": 7302501,
+      "cache_write": 72382,
+      "tokens": 22889,
+      "hit": 99
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "explorer",
+      "ticket": null,
+      "agent": "a0c89253704dfb404",
+      "agent_type": "autopilot-explorer",
+      "model": "claude-haiku-5-5",
+      "effort": null,
+      "turns": 8,
+      "input": 16,
+      "output": 19134,
+      "cache_read": 320765,
+      "cache_write": 68236,
+      "tokens": 19150,
+      "hit": 82
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "reviewer",
+      "ticket": null,
+      "agent": "a10d420d22aa53c07",
+      "agent_type": "autopilot-reviewer",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 2,
+      "input": 4,
+      "output": 927,
+      "cache_read": 14973,
+      "cache_write": 26421,
+      "tokens": 931,
+      "hit": 36
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "reviewer",
+      "ticket": null,
+      "agent": "a2a6e8cb071a19649",
+      "agent_type": "autopilot-reviewer",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 9,
+      "input": 18,
+      "output": 10889,
+      "cache_read": 347835,
+      "cache_write": 58981,
+      "tokens": 10907,
+      "hit": 85
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "acceptance",
+      "ticket": null,
+      "agent": "ae6bc46933418ff94",
+      "agent_type": "autopilot-acceptance",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 12,
+      "input": 24,
+      "output": 7132,
+      "cache_read": 322219,
+      "cache_write": 33973,
+      "tokens": 7156,
+      "hit": 90
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "run": "2026-11-20-close-weak-spots",
+      "source": "subagent",
+      "origin": "claude-subagents",
+      "role": "executor",
+      "ticket": "01",
+      "agent": "af9018cbb0e4434d9",
+      "agent_type": "autopilot-executor",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "turns": 14,
+      "input": 28,
+      "output": 9580,
+      "cache_read": 601030,
+      "cache_write": 58972,
+      "tokens": 9608,
+      "hit": 91
+    }
+  ],
   "isolateTickets": false,
   "briefFile": "2026-11-20-brief.md",
   "memoryFile": "AGENTS.md",
   "memoryOwner": "autopilot",
   "skillDir": "C:\\Users\\crown\\Downloads\\Projects\\Autopilot\\skills\\autopilot",
-  "baseCommit": null,
+  "baseCommit": "3e4af22",
   "startedAt": "2026-11-20T17:50:32+01:00",
-  "updatedAt": "2026-11-20T17:53:36+01:00",
-  "finishedAt": null,
+  "updatedAt": "2026-11-20T18:03:05+01:00",
+  "finishedAt": "2026-11-20T18:03:05+01:00",
   "stages": [
     {
       "id": "preflight",
@@ -74,32 +189,57 @@ window.STATE =
     },
     {
       "id": "plan",
-      "status": "active",
+      "status": "done",
       "segments": [
         {
           "startedAt": "2026-11-20T17:53:17+01:00",
-          "finishedAt": null
+          "finishedAt": "2026-11-20T17:53:40+01:00"
         }
       ],
-      "startedAt": "2026-11-20T17:53:17+01:00"
+      "startedAt": "2026-11-20T17:53:17+01:00",
+      "finishedAt": "2026-11-20T17:53:40+01:00"
     },
     {
       "id": "build",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T17:53:40+01:00",
+          "finishedAt": "2026-11-20T17:58:27+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T17:53:40+01:00",
+      "finishedAt": "2026-11-20T17:58:27+01:00"
     },
     {
       "id": "review",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T17:58:27+01:00",
+          "finishedAt": "2026-11-20T18:00:31+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T17:58:27+01:00",
+      "finishedAt": "2026-11-20T18:00:31+01:00"
     },
     {
       "id": "final",
-      "status": "pending"
+      "status": "done",
+      "segments": [
+        {
+          "startedAt": "2026-11-20T18:00:31+01:00",
+          "finishedAt": "2026-11-20T18:03:05+01:00"
+        }
+      ],
+      "startedAt": "2026-11-20T18:00:31+01:00",
+      "finishedAt": "2026-11-20T18:03:05+01:00"
     }
   ],
   "requirements": {
     "total": 4,
-    "done": 0,
-    "inTicket": 4,
+    "done": 4,
+    "inTicket": 0,
     "inSpec": 0,
     "placeholder": 0,
     "deferred": 0,
@@ -131,36 +271,36 @@ window.STATE =
       "repro": false,
       "testsEdit": null,
       "fingerprint": "e16b87fd44bf8f9dc7b83c5bab0065ebab04a07ed0e8f4b2cbe94b536897e6a4",
-      "status": "pending",
+      "status": "done",
+      "startedAt": "2026-11-20T17:53:44+01:00",
+      "finishedAt": "2026-11-20T17:58:22+01:00",
       "retries": 0,
       "repairs": 0,
-      "plannedRouting": {
-        "ticket": "01",
+      "tests": {
+        "passed": 1260,
+        "failed": 0
+      },
+      "commit": "5b89289",
+      "placeholders": [],
+      "routing": {
         "provider": "anthropic",
         "model": "sonnet",
         "effort": "high",
-        "effortEnforced": null,
-        "profile": "strong",
+        "effortEnforced": true,
         "score": 66,
-        "factors": {
-          "algorithm": 10,
-          "coupling": 20,
-          "uncertainty": 11,
-          "context": 5,
-          "testing": 10,
-          "risk": 10
-        },
-        "reason": "score=66; profile=strong; high-risk=True; class=обычный; risk=высокий; why=правка кода подписи ключа (`gate_sign`) и коммита (`commit_paths`), остальное — небольшие правки по образцу",
-        "requiresReview": true,
-        "status": "blocked",
-        "fingerprint": "e16b87fd44bf8f9dc7b83c5bab0065ebab04a07ed0e8f4b2cbe94b536897e6a4",
-        "hostExecutionVerified": false,
-        "error": "No verified host capabilities",
-        "applied": false
-      }
+        "reason": "высокий риск: код подписи ключа и commit_paths; Sonnet, high (расчёт плана)",
+        "verified": true,
+        "agentType": "autopilot-executor-01-close-weak-spots",
+        "agentFile": ".claude/agents/autopilot-executor-01-close-weak-spots.md",
+        "profileSha": "59b9b88e7ba3ff6c3ba6903106c7e7c7d3f019f8f708d410d333a8a2fb756167"
+      },
+      "startHead": "3e4af22dda511d48727d8703119d82deabc7ade6"
     }
   ],
-  "tests": null,
+  "tests": {
+    "passed": 1265,
+    "failed": 0
+  },
   "usageEvents": [],
   "budgetTokens": null,
   "debt": {
@@ -177,7 +317,11 @@ window.STATE =
   },
   "concerns": [],
   "blockingFindings": [],
-  "blind": null,
+  "blind": {
+    "checked": 4,
+    "matched": 4,
+    "mismatches": []
+  },
   "beats": [
     "2026-11-20T17:50:32+01:00",
     "2026-11-20T17:50:37+01:00",
@@ -188,9 +332,19 @@ window.STATE =
     "2026-11-20T17:53:16+01:00",
     "2026-11-20T17:53:33+01:00",
     "2026-11-20T17:53:34+01:00",
-    "2026-11-20T17:53:36+01:00"
+    "2026-11-20T17:53:36+01:00",
+    "2026-11-20T17:53:40+01:00",
+    "2026-11-20T17:53:44+01:00",
+    "2026-11-20T17:53:56+01:00",
+    "2026-11-20T17:57:00+01:00",
+    "2026-11-20T17:58:27+01:00",
+    "2026-11-20T18:00:23+01:00",
+    "2026-11-20T18:00:30+01:00",
+    "2026-11-20T18:00:31+01:00",
+    "2026-11-20T18:02:57+01:00",
+    "2026-11-20T18:03:05+01:00"
   ],
-  "rev": 14,
+  "rev": 27,
   "waiting": null,
   "waits": [],
   "log": [
@@ -284,28 +438,112 @@ window.STATE =
       "applied": false,
       "tickets": 1,
       "blocked": 1
+    },
+    {
+      "t": "2026-11-20T17:53:40+01:00",
+      "k": "stage",
+      "id": "build",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T17:53:44+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T17:53:56+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "route"
+    },
+    {
+      "t": "2026-11-20T17:57:00+01:00",
+      "k": "ticket",
+      "ids": [
+        "01"
+      ],
+      "act": "done",
+      "tests": {
+        "passed": 1260,
+        "failed": 0
+      }
+    },
+    {
+      "t": "2026-11-20T17:58:27+01:00",
+      "k": "stage",
+      "id": "review",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T18:00:23+01:00",
+      "k": "add",
+      "key": "report",
+      "n": 5
+    },
+    {
+      "t": "2026-11-20T18:00:30+01:00",
+      "k": "plan-fact",
+      "done": 5,
+      "total": 5
+    },
+    {
+      "t": "2026-11-20T18:00:31+01:00",
+      "k": "stage",
+      "id": "final",
+      "act": "start"
+    },
+    {
+      "t": "2026-11-20T18:00:31+01:00",
+      "k": "tests",
+      "passed": 1260,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-20T18:02:57+01:00",
+      "k": "gate",
+      "g": "G4",
+      "ok": true,
+      "checked": 4,
+      "matched": 4
+    },
+    {
+      "t": "2026-11-20T18:02:57+01:00",
+      "k": "tests",
+      "passed": 1265,
+      "failed": 0
+    },
+    {
+      "t": "2026-11-20T18:03:05+01:00",
+      "k": "finish",
+      "result": "schedule пускает таск с зависимостью в review; commit_paths берёт старый путь переименования и при каталоге зоны; ensure_key не падает над целым ключом при занятой заявке",
+      "problems": 0
     }
   ],
   "reqList": [
     {
       "id": "R01",
       "text": "«ap.py schedule не предлагает таск с зависимостью в review, хотя ticket start его пускает»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R02",
       "text": "«commit_paths: старый путь переименования подхватывается только при дословном совпадении пути, каталог зоны не работает»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R03",
       "text": "«gate_sign: при стойко занятой заявке gate.key.claim ensure_key падает OSError даже над целым ключом»",
-      "status": "in-ticket"
+      "status": "done"
     },
     {
       "id": "R04",
       "text": "«R28 и R33–R35 не трогай»",
-      "status": "in-ticket"
+      "status": "done"
     }
   ],
   "gates": {
@@ -326,14 +564,95 @@ window.STATE =
       "ok": true,
       "at": "2026-11-20T17:53:34+01:00",
       "problems": 0
+    },
+    "G4": {
+      "ok": true,
+      "at": "2026-11-20T18:02:57+01:00",
+      "checked": 4,
+      "matched": 4
     }
   },
-  "result": null,
+  "result": "schedule пускает таск с зависимостью в review; commit_paths берёт старый путь переименования и при каталоге зоны; ensure_key не падает над целым ключом при занятой заявке",
   "skillVersion": "2.7.0",
   "spend": {
-    "byRole": {},
-    "byModel": {},
-    "byTicket": {}
+    "byRole": {
+      "explorer": {
+        "n": 1,
+        "input": 16,
+        "output": 19134,
+        "cache_read": 320765,
+        "cache_write": 68236,
+        "tokens": 19150,
+        "hit": 82
+      },
+      "reviewer": {
+        "n": 2,
+        "input": 22,
+        "output": 11816,
+        "cache_read": 362808,
+        "cache_write": 85402,
+        "tokens": 11838,
+        "hit": 81
+      },
+      "acceptance": {
+        "n": 1,
+        "input": 24,
+        "output": 7132,
+        "cache_read": 322219,
+        "cache_write": 33973,
+        "tokens": 7156,
+        "hit": 90
+      },
+      "executor": {
+        "n": 1,
+        "input": 28,
+        "output": 9580,
+        "cache_read": 601030,
+        "cache_write": 58972,
+        "tokens": 9608,
+        "hit": 91
+      },
+      "orchestrator": {
+        "n": 1,
+        "input": 82,
+        "output": 22807,
+        "cache_read": 7302501,
+        "cache_write": 72382,
+        "tokens": 22889,
+        "hit": 99
+      }
+    },
+    "byModel": {
+      "claude-haiku-5-5": {
+        "n": 1,
+        "input": 16,
+        "output": 19134,
+        "cache_read": 320765,
+        "cache_write": 68236,
+        "tokens": 19150,
+        "hit": 82
+      },
+      "claude-sonnet-5-5": {
+        "n": 5,
+        "input": 156,
+        "output": 51335,
+        "cache_read": 8588558,
+        "cache_write": 250729,
+        "tokens": 51491,
+        "hit": 97
+      }
+    },
+    "byTicket": {
+      "01": {
+        "n": 1,
+        "input": 28,
+        "output": 9580,
+        "cache_read": 601030,
+        "cache_write": 58972,
+        "tokens": 9608,
+        "hit": 91
+      }
+    }
   },
   "history": [
     {
@@ -537,5 +856,54 @@ window.STATE =
   ],
   "logFailures": 0,
   "planContractDigest": "32876cca083e854da1b3bc19f17a87aa4098ab344c195d36815d44009d22b6ad",
-  "planValidationDigest": "a31d283d3681315450388d77350cec43686e3523f4d50dfe3302622311e85790"
+  "planValidationDigest": "a31d283d3681315450388d77350cec43686e3523f4d50dfe3302622311e85790",
+  "report": [
+    "tests/test_review_race_bugs.py — нет теста, что каталог dir не захватывает соседний dir2/…; код верный, регресс не защищён",
+    "ap.py commit_paths — при каталоге в paths чужое застейдженное удаление, похожее на новый файл каталога (-M), может уйти в коммит как старый путь «переименования»; случай редкий",
+    "gate_sign.ensure_key — после OSError над целым ключом брошенная заявка gate.key.claim остаётся молча (безвредно, но пользователь не узнает)",
+    "tests/test_gate_sign.py — новый тест подменяет _claim_empty целиком, а не занятую заявку (busy_claim), и не фиксирует судьбу заявки",
+    "scheduler.py — зависимый с пересекающейся зоной всё равно ждёт родителя в review (overlapping-zone): правило помогает только при непересекающихся зонах"
+  ],
+  "planFact": {
+    "items": [
+      {
+        "id": "T01.1",
+        "ticket": "01",
+        "text": "R01: `scheduler.schedule` при `isolated=False` предлагает pending-таск, чья зависимость в `review` (`action` `start`); зависимость в `in-progress`, `repair`, `failed`, `pending` и неизвестный id — по-прежнему `dependencies` (тест в `tests/test_scheduler.py`); при `isolated=True` зависимость в `review` по-прежнему блокирует (тест)",
+        "status": "сделано",
+        "evidence": "tests/test_scheduler.py:41"
+      },
+      {
+        "id": "T01.2",
+        "ticket": "01",
+        "text": "R02: `commit_paths([\"dir/\"])` и `commit_paths([\"dir\"])` после `git mv dir/old.txt dir/new.txt` кладут старый путь в тот же коммит (в HEAD `D dir/old.txt`, индекс чист); переименование из каталога вне `paths` в каталог из `paths` — тоже; чужое индексное переименование не попадает в коммит; прежние тесты `CommitPathsRename` зелёные (тесты в `tests/test_review_race_bugs.py`)",
+        "status": "сделано",
+        "evidence": "tests/test_review_race_bugs.py:140"
+      },
+      {
+        "id": "T01.3",
+        "ticket": "01",
+        "text": "R03: когда `_claim_empty` бросает `OSError` из-за занятой заявки, а `gate.key` за это время стал целым, `ensure_key()` возвращает ключ и не падает, байты ключа не изменились (тест); если ключ пуст, `OSError` прежний и называет `gate.key.claim` (прежний тест остаётся зелёным)",
+        "status": "сделано",
+        "evidence": "tests/test_gate_sign.py:275"
+      },
+      {
+        "id": "T01.4",
+        "ticket": "01",
+        "text": "Запись в `CHANGELOG.md` («Unreleased») на каждый из трёх пунктов; в `docs/adr/0029-review-start-rename-key-race.md` — строка о дополнении; фразы в `phases/` не противоречат R01",
+        "status": "сделано",
+        "evidence": "CHANGELOG.md:20"
+      },
+      {
+        "id": "T01.5",
+        "ticket": "01",
+        "text": "Полная проверка `python tools/run-tests.py` зелёная",
+        "status": "сделано",
+        "evidence": "tools/run-tests.py:1"
+      }
+    ],
+    "done": 5,
+    "total": 5
+  },
+  "blindRounds": 1
 }
