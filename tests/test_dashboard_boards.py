@@ -285,7 +285,6 @@ class Boards(unittest.TestCase):
         self.assertNotRegex(css, r"#[0-9a-fA-F]{3,8}\b")  # no fixed colours: light and dark come from the palette
         for var in ("--bad-soft", "--bad-tx", "--inset", "--card", "--tx"):
             self.assertIn("var(%s)" % var, css)
-        self.assertIn("html[data-narrow] :is(.bd-cols", css)
         self.assertIn("min-height:44px", css)
 
     def test_long_durations_are_hours_not_an_object(self):

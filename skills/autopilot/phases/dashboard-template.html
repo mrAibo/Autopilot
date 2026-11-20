@@ -943,15 +943,6 @@
   .fc-v{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
   .fc-s{font-size:13px;color:var(--tx2)}
   /* «Сейчас»: герой одной строкой — кольцо .sm, заголовок в одну строку, время и тесты рядом */
-  .nowh{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 20px;border-radius:20px}
-  .nowh .ring.sm{--rs:64px}
-  .nowh .ring-in span{display:none}
-  .nowh h2{flex:1 1 220px;min-width:0;margin:0;font-size:clamp(17px,2vw,22px);line-height:1.2;font-weight:800;letter-spacing:-.01em;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .nowh-side{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:14px}
-  .nowh-side .kv{gap:6px}
-  .nowh-note{flex:1 1 100%;font-size:14px;line-height:1.45;color:var(--tx2)}
-  .nowh-note ul{margin:4px 0 0;padding-left:20px}
   .tokhint{margin-top:12px}
   .tokhint p{margin:0;color:var(--tx2);line-height:1.5}
   .bd-more{list-style:none}
@@ -1039,8 +1030,6 @@
   .gx.mini .gx-bar,.gx.mini .gx-tail{top:3px;height:24px;font-size:12px;padding:0 6px}
   .gx.mini+.gx-legend{justify-content:flex-start;margin-top:12px}
 
-  .ov3{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.9fr);gap:16px;align-items:start;scroll-margin-top:18px}
-  .ov3>.col:empty{display:none}
   .ask-card>.card{background:var(--warn-bg);border-color:var(--warn-bd)}
   .ask-card .wt,.ask-card .nh,.ask-card .nh span{color:var(--warn-tx)}
   .ask-card .key{background:var(--card);border:1px solid var(--warn-bd)}
@@ -1070,7 +1059,6 @@
   .gchip.wait{background:transparent;box-shadow:inset 0 0 0 1.5px var(--idle);color:var(--tx2)}
   .gchip.warn{background:var(--warn-bg);color:var(--warn-tx);box-shadow:inset 0 0 0 1px var(--warn-bd)}
 
-  @media(max-width:1180px){.ov3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ov3>.col:last-child{grid-column:1/-1}}
   @media(max-width:900px){
     .ovh{padding:22px 20px;gap:20px}
     .ring{--rs:170px}
@@ -1082,7 +1070,6 @@
     .gx-lane{background:var(--inset);border-radius:8px}
     .gx-grid,.gx-nowline{top:0;bottom:0}
   }
-  @media(max-width:760px){.ov3{grid-template-columns:minmax(0,1fr)}}
   @media(max-width:560px){.route{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:360px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gchips{grid-template-columns:minmax(0,1fr)}}
 
@@ -1194,12 +1181,6 @@
   .actblock .actcmd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
   .actblock .actcmd code{flex:1 1 280px;min-width:0;padding:8px 10px;border-radius:10px;background:var(--inset);color:var(--tx);overflow-wrap:anywhere}
   .det-slot{scroll-margin-top:18px}
-  html[data-narrow] .cockpit-rail{display:none}
-  html[data-narrow] .wrap{padding:0 12px 25px}
-  html[data-narrow] :is(.cols,.ov3,.tl2){grid-template-columns:minmax(0,1fr)}
-  html[data-narrow] .ovh{flex-direction:column;align-items:stretch;padding:20px}
-  html[data-narrow] .ovh>:is(.ovh-main,.ovh-side){flex:0 0 auto}
-  html[data-narrow] .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   /* F6: «обновлено N назад» в шапке, «Таймлайн» (герой, пять карточек, правая колонка), герой «Итога», узкий «Компактный» */
   .upd{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);white-space:nowrap}
   .top .upd+.tools{margin-left:auto}
@@ -1208,18 +1189,12 @@
   .tiles.t5 .tv{font-size:32px}
   .tlh .ovh-main{flex-basis:360px}
   .tlh .route{flex:1 1 100%;background:none;border:0;border-radius:0;padding:8px 0 0}
-  .tl2{display:grid;gap:16px;align-items:start;min-width:0}
-  .tl2>.vsec{gap:16px}
-  .tl2{grid-template-columns:minmax(0,1fr) 330px}
-  .tl2 .gx{--cols:180px minmax(0,1fr) 124px}
   .kcards{display:flex;flex-direction:column;gap:10px}
   .kcard{background:var(--card);border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 0 0 1px var(--line);color:var(--tx)}
   .kk{font:11px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
   .kcard b{font-size:26px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
   .ks{font-size:12.5px;color:var(--tx2)}
   .sum-h .ovh-side{flex:0 1 300px}
-  @media(max-width:1100px){.tl2{grid-template-columns:minmax(0,1fr)}.tl2 .gx{--cols:260px minmax(0,1fr) 150px}}
-  @media(max-width:900px){.tl2 .gx{--cols:minmax(0,1fr)}}
   /* Доски страницы «Сейчас»: тасков и требований, боковая панель таска. Цвета — только из палитры (светлая и тёмная темы). */
   .bd-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
   .bd-cols.r5{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -1263,7 +1238,6 @@
   .tp-sec code{font:12.5px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;background:var(--inset);border-radius:6px;padding:1px 6px;margin-right:4px;display:inline-block}
   .tp-sec em{font-style:normal;color:var(--mut);margin-right:6px;font-variant-numeric:tabular-nums}
   @media(max-width:1100px){.bd-cols,.bd-cols.r5{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  html[data-narrow] :is(.bd-cols,.bd-cols.r5,.bd-strips){grid-template-columns:minmax(0,1fr)}
   /* До 520 px страница сама сжимается в один столбец; правило последнее в CSS, выбора вида нет. */
   @media(max-width:520px){
     .top .upd{white-space:normal;min-width:0;text-align:right;font-size:12px}
@@ -1381,9 +1355,6 @@ function applyDesign(id){
 }
 
 // Вида дашборда больше нет: раскладка одна. Старые `autopilot-view` и `autopilot-boardmode` в хранилище не читаются.
-// Узкое окно (меньше 700 px): раскладка сама складывается в одну колонку — render() ставит data-narrow на корень.
-let NARROW_MQ = null;
-try { NARROW_MQ = matchMedia('(max-width: 699px)'); } catch(e) {}
 
 const plural = (n, one, few, many) => {
   const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
@@ -2961,7 +2932,7 @@ function render(lang){
     const st = actState(waiting);
     actBlock = `<section class="actblock">` + (st.sent ? `<p role="status">${esc(A.sent)}</p>` : `${actKind === 'briefing'
       ? `<label for="act-answer">${esc(A.field)}</label><textarea id="act-answer" data-act-answer rows="3" maxlength="2000"${st.busy ? ' disabled' : ''}>${esc(st.text)}</textarea>` : ''
-      }<button type="button" data-act${st.busy ? ' disabled' : ''}>${esc(st.busy ? A.sending : st.armed ? A.sure : A.label[actKind])}</button>${
+      }<button type="button" data-act${st.busy ? ' disabled' : ''}>${esc(st.busy ? A.sending : st.armed ? A.label[actKind] + " · " + A.sure : A.label[actKind])}</button>${
       st.err ? `<p class="acterr" role="alert">${esc(st.err)}</p>` : ''}`) + `</section>`;
   }
   if (tokenOk && (failedT.length || (waiting && (waiting.kind === 'action' || waiting.kind === 'stop')))) {
@@ -2991,8 +2962,6 @@ function render(lang){
     : new Date(doneAtMs).toLocaleString(L.lang === 'en' ? 'en-GB' : 'ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   document.documentElement.lang = L.lang;
   document.documentElement.setAttribute('data-design', DESIGN);
-  if (NARROW_MQ && NARROW_MQ.matches) document.documentElement.setAttribute('data-narrow', '1');
-  else document.documentElement.removeAttribute('data-narrow');
   const comboIds = comboList(UI.combo.q);
   if (UI.combo.i >= comboIds.length || UI.combo.i < 0) UI.combo.i = 0;
   const comboActive = UI.combo.open && comboIds.length ? 'dopt-' + comboIds[UI.combo.i] : '';
@@ -3153,7 +3122,6 @@ function gxFit(root) {
   });
 }
 window.addEventListener('resize', () => gxFit(document.getElementById('app')));
-try { NARROW_MQ.addEventListener('change', () => { if (window.STATE) render(CUR.lang); }); } catch(e) {}
 
 // Один обработчик на всё: #app переписывается целиком на каждом событии сборки.
 document.getElementById('app').addEventListener('click', e => {

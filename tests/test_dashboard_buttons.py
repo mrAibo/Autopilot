@@ -45,6 +45,7 @@ for (const kind of ['briefing', 'spec', 'plan', 'accept']) {
   const r = {first: e.app.innerHTML};
   if (kind === 'briefing') { click(e, 'data-act'); r.emptyCalls = e.calls.length; r.emptyHtml = e.app.innerHTML; type(e, 'use postgres'); }
   click(e, 'data-act'); r.armed = e.app.innerHTML; r.callsAfterFirst = e.calls.length;
+  run(e, "render('ru')"); r.armedRu = e.app.innerHTML; run(e, "render('en')");
   click(e, 'data-act'); await wait(); r.callsAfterSecond = e.calls.length; r.call = e.calls[0]; r.sent = e.app.innerHTML;
   out.kinds[kind] = r;
 }
@@ -75,6 +76,14 @@ for (const id of input.ids) {
   const e = page(F.running, W('briefing'), {search: TOKEN});
   run(e, `applyDesign(${JSON.stringify(id)}); render('en')`);
   out.designs[id] = e.app.innerHTML;
+}
+// R11: the line "plan: N of M" is on the page in every design, in both languages
+out.planLine = {};
+for (const id of input.ids) for (const lang of ['en', 'ru']) {
+  const st = JSON.parse(JSON.stringify(F.running)); st.planFact = {done: 3, total: 7};
+  const e = env(st, {}, false, 0, {protocol: 'http:'});
+  run(e, `applyDesign(${JSON.stringify(id)}); render(${JSON.stringify(lang)})`);
+  out.planLine[id + '/' + lang] = e.app.innerHTML;
 }
 console.log(JSON.stringify(out));
 """
@@ -112,6 +121,8 @@ class DashboardButtons(unittest.TestCase):
                 self.assertEqual(block(r["first"]).count("data-act>"), 1)
                 self.assertIn(label, text(block(r["first"])))
                 self.assertIn("Sure? click again", text(block(r["armed"])))
+                self.assertIn(label, text(block(r["armed"])))      # R01: arming keeps the name of the action
+                self.assertIn("нажми ещё раз", text(block(r["armedRu"])))
                 self.assertEqual(r["callsAfterFirst"], 0)
                 self.assertEqual(r["callsAfterSecond"], 1)
                 call = r["call"]
@@ -177,6 +188,11 @@ class DashboardButtons(unittest.TestCase):
                 self.assertIn("copy", text(h))
         self.assertIn('ticket 05 reset --by-user "<цитата>"', htmllib.unescape(self.out["failedNoWait"]))
         self.assertNotIn("data-copy", self.out["failedNoToken"])  # no token: read-only page
+
+    def test_plan_line_n_of_m_is_on_the_page_in_every_design(self):
+        for key, h in self.out["planLine"].items():
+            with self.subTest(key=key):
+                self.assertIn("plan: 3 of 7" if key.endswith("/en") else "план: 3 из 7", h)
 
     def test_one_block_in_every_design(self):
         self.assertGreaterEqual(len(DESIGN_IDS), 6)

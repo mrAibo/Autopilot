@@ -111,14 +111,12 @@ try {
   out.gx.fit = Object.fromEntries(Object.entries(cases).map(([k, b]) => [k,
     {on: b.children.findIndex(x => x.cl.has('on')), out: b.cl.has('out'), side: b.dataset.side || null, fit: b.cl.has('fit')}]));
 } catch (err) { out.gx.error = String(err && err.stack || err); }
-// The expanded note of a Gantt row, the address of state.js with and without the token, the narrow window, humanRoute.
+// The expanded note of a Gantt row, the address of state.js with and without the token, humanRoute.
 const x = env(input.fixtures.notes, {}, false);
 out.expanded = run(x, "UI.open['nt:T05'] = true; render('en'); document.getElementById('app').innerHTML");
 const c = env(input.fixtures.running, {}, false);
 out.now = {url: [run(env(input.fixtures.running, {}, false, 0, {search: '?t=abc123'}), 'stateUrl()'),
   run(env(input.fixtures.running, {}, false), 'stateUrl()')]};
-out.now.narrow = [true, false].map(narrow => { const n = env(input.fixtures.running, {}, false, 0, {narrow});
-  run(n, "render('en')"); return n.ctx.document.documentElement.attrs['data-narrow'] || null; });
 const hr = (route, lang) => run(c, `humanRoute(${JSON.stringify(route)}, I18N.${lang})`);
 out.hr = {
   risky: hr({model: 'sonnet', reason: 'score=62; profile=strong; high-risk=True'}, 'ru'),

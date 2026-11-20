@@ -15,5 +15,5 @@
 ## Последствия
 - Прежние пользователи теряют выбранный вид без сообщения; страница не ломается, ключи в `localStorage` остаются мёртвыми.
 - Переписаны тесты `test_dashboard_views`, `now`, `boards`, `details` под одну страницу.
-- Мёртвый CSS `.nowh`, `.ov3`, `.tl2` и атрибут `data-narrow` остались: их читают `test_dashboard_now.py` и `test_dashboard_boards.py` (см. 0019). Это долг, а не решение.
+- Мёртвый CSS `.nowh`, `.ov3`, `.tl2` и атрибут `data-narrow` остались: их читают `test_dashboard_now.py` и `test_dashboard_boards.py` (см. 0019). Это долг, а не решение. Закрыто сборкой 2026-11-21 (tails-and-r28): мёртвый CSS и JS убраны вместе с тестами.
 - Рейка строится по якорям `#mission #tasks #models #quality`, подсветки «текущего вида» нет.

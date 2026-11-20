@@ -122,13 +122,6 @@ class CompactDashboard(unittest.TestCase):
         self.assertRegex(landed, r"<ul><li>no full test run</li></ul>")
         self.assertIn("no full test run", landed)
 
-    def test_the_ring_of_the_hero_is_smaller_than_the_old_one(self):
-        css = TEMPLATE.read_text(encoding="utf-8")
-        small = int(re.search(r"\.nowh \.ring\.sm\{--rs:(\d+)px", css).group(1))
-        old = int(re.search(r"\.ring\.sm\{--rs:(\d+)px", css).group(1))
-        self.assertLess(small, old)
-        self.assertLessEqual(small, 72)
-
     def test_model_routes_show_the_planners_phrase(self):
         r = self.out["route"]
         self.assertEqual(r["withWhy"], "Sonnet, reinforced mode: the ticket touches signatures and keys (class: сложный, risk: высокий) — запись в общий кэш")
@@ -231,18 +224,9 @@ class Styles(unittest.TestCase):
         for card, tx, tx2 in palettes:
             self.assertGreaterEqual(self.ratio(tx, card), 4.5, (card, tx))
             self.assertGreaterEqual(self.ratio(tx2, card), 4.5, (card, tx2))
-        block = re.search(r"\.nowh\{.*?\.bd-more \.btn-soft\{[^}]*\}", self.css, re.S).group(0)
+        block = re.search(r"\.tokhint\{.*?\.bd-more \.btn-soft\{[^}]*\}", self.css, re.S).group(0)
         colors = set(re.findall(r"color:(var\(--[\w-]+\))", block))
         self.assertLessEqual(colors, {"var(--tx2)"})      # only the already checked text colour
-
-    def test_the_hero_wraps_on_a_narrow_screen_and_asks_for_no_wide_minimum(self):
-        block = re.search(r"\.nowh\{[^}]*\}", self.css).group(0)
-        self.assertIn("flex-wrap:wrap", block)
-        h2 = re.search(r"\.nowh h2\{[^}]*\}", self.css).group(0)
-        self.assertIn("white-space:nowrap", h2)
-        self.assertIn("min-width:0", h2)
-        widest = max(int(n) for n in re.findall(r"flex:1 1 (\d+)px", h2))
-        self.assertLess(widest, 400)
 
 
 if __name__ == "__main__":

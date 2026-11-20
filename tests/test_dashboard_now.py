@@ -51,12 +51,6 @@ class NowPage(unittest.TestCase):
     def test_brand_mark_stands_in_the_header_and_the_rail(self):
         self.assertEqual(self.page("running").count('class="brandmark"'), 2)
 
-    def test_narrow_window_folds_by_matchmedia(self):
-        self.assertEqual(self.out["now"]["narrow"], ["1", None])
-        html = TEMPLATE.read_text(encoding="utf-8")
-        self.assertIn("matchMedia('(max-width: 699px)')", html)
-        self.assertRegex(html, r"html\[data-narrow\] :is\(\.cols,\.ov3,\.tl2\)\{grid-template-columns:minmax\(0,1fr\)\}")
-
     def test_state_js_is_asked_with_the_token_from_the_page_address(self):
         with_token, without = self.out["now"]["url"]
         self.assertRegex(with_token, r"^state\.js\?t=abc123&_=\d+$")

@@ -498,7 +498,7 @@ class AllDesignLimits(unittest.TestCase):
         # Root cause of the 400 px gap: .ovh-main{flex:1 1 400px} became a 400 px HEIGHT once .ovh turned flex-direction:column.
         css = re.sub(r"/\*.*?\*/", "", self.css, flags=re.S)
         stacked = [m.start() for m in re.finditer(r"[^{}]*\.ovh\{[^}]*flex-direction:column", css)]
-        self.assertGreaterEqual(len(stacked), 2)                                  # the data-narrow rule and the 520 px rule
+        self.assertGreaterEqual(len(stacked), 1)                                  # the 520 px rule
         reset = [m.start() for m in re.finditer(r"\.ovh>:is\(\.ovh-main,\.ovh-side\)\{[^}]*flex:0 0 auto", css)]
         self.assertEqual(len(reset), len(stacked), "a stacked hero keeps the row flex-basis of its children")
         self.assertGreater(min(reset), min(stacked))
