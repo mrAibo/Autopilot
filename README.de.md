@@ -636,7 +636,7 @@ Der Agent liest die Dateien in `phases/` einzeln und erst, wenn die passende Pha
 
 Alles ist schlichtes Markdown. Du kannst es öffnen und lesen: [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md).
 
-Die Testsuite hat <!-- tests:count -->1258<!-- /tests:count --> `unittest`-Tests (`python3 -m unittest discover -s tests`); die Zahl trägt `skills/autopilot/tools/test_count.py --write` ein.
+Die Testsuite hat <!-- tests:count -->1265<!-- /tests:count --> `unittest`-Tests (`python3 -m unittest discover -s tests`); die Zahl trägt `skills/autopilot/tools/test_count.py --write` ein.
 
 ---
 
