@@ -40,6 +40,7 @@
     python3 .autopilot/ap.py handoff [--tokens N]        # после коммита плана: код 3 — остановиться, продолжить в новом чате; 0 — идти дальше; 1 — резюме потеряло бы данные
     python3 .autopilot/ap.py silence [--limit СЕК] [--transcript ПУТЬ]   # тихие агенты (код 3); нет журнала — код 1
     python3 .autopilot/ap.py lessons candidates | add … | show | drop N | check   # уроки сборок в .autopilot/lessons.md
+    python3 .autopilot/ap.py doc-check                  # имена ap.py <cmd> и --flag из CHANGELOG (Unreleased) и ADR прогона есть в ap.py; код 1 при расхождении
     python3 .autopilot/ap.py profile refresh            # .autopilot/profile.md: команды проекта
     python3 .autopilot/ap.py init --kind quick|bug|task|refactor …   # вид работы (init --kind)
     python3 "<skillDir>/tools/ap.py" bootstrap --project .   # поставить инструменты и дашборд в .autopilot/ (из папки навыка); печатает skillDir
@@ -3420,6 +3421,18 @@ def cmd_silence(opt):
     return 3 if quiet else 0
 
 
+def doc_check_lines(state):
+    """Расхождения документов прогона с ap.py (пусто — всё сходится)."""
+    import doc_check
+    return doc_check.check(ROOT, os.path.join(A, "ap.py"), doc_check.run_files(ROOT, state.get("baseCommit")))
+
+
+def cmd_doc_check(state):
+    bad = doc_check_lines(state)
+    print(chr(10).join(bad) or "doc-check: расхождений нет")
+    return 1 if bad else 0
+
+
 def lessons_path():
     return os.path.join(A, "lessons.md")
 
@@ -4322,6 +4335,12 @@ def cmd_finish(state, opt):
             notes.append("профиль проекта обновлён: .autopilot/profile.md")
     except OSError:
         pass
+    try:
+        bad = doc_check_lines(state)
+        if bad:
+            notes.append("! doc-check: %d расхождений (ap.py doc-check)" % len(bad))
+    except Exception:                                   # предупреждение не должно ронять finish
+        pass
     notes.append("уроки: запусти лёгкого агента по phases/9-lessons.md (ap.py lessons candidates)")
     return notes
 
@@ -4994,6 +5013,8 @@ def main():
             sys.exit(cmd_silence(opt))                    # только чтение: state.js не трогаем
         if cmd == "lessons":
             sys.exit(cmd_lessons(state, rest, opt))       # state.js не трогаем
+        if cmd == "doc-check":
+            sys.exit(cmd_doc_check(state))                # только чтение: state.js не трогаем
         if cmd == "profile":
             cmd_profile(state, rest)
             return
