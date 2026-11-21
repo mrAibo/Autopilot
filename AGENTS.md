@@ -23,7 +23,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1352<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1360<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `ticket MM start` пускает таск, чья зависимость в `review` (код закоммичен); `done` и `land` ждут `done` зависимости. `ap.py schedule` тоже пускает такой таск (не в изолированном прогоне); `commit_paths` подхватывает старый путь переименования из индекса, и при каталоге в `paths` тоже; `ensure_key` над целым ключом не падает из-за занятой заявки; ключ `gate.key` при пустом файле занимается жёсткой ссылкой `gate.key.claim` (брошенную заявку удалить руками, `docs/adr/0029`).
 - Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI запускает именно его. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
@@ -63,6 +63,7 @@
 - `silence [--limit СЕК]` — код 3, если есть тихие агенты; останавливает их оркестратор (TaskStop), не `ap.py` (`silence.py`, `docs/adr/0022`).
 - `lessons candidates|add|show|drop N|check` и `profile refresh` — уроки в `.autopilot/lessons.md`, профиль в `.autopilot/profile.md` (`lessons.py`, `docs/adr/0024`).
 - Кнопки дашборда: `POST /.ap-act?t=<токен>` (`make_server`; `ALLOWED_ACTIONS` = `briefing|spec|plan|accept`; обязательны токен, `Origin` = `http://<Host>`, `application/json`, тело до 8 КБ) закрывает ожидание теми же `close_wait`, `save`, `write_snapshot`, что `answered` (в ленте `source=dashboard`); ответ лежит в `.autopilot/serve.answer.json` (редакция секретов, до 2000 знаков), в `state.js` его нет; `ap.py await [--timeout N]` (вне `state.lock`) отдаёт его агенту: код 0 — ответ (JSON), 3 — нет ответа, 4 — не ждём; вид `accept` — только в `manual` (`ap.py ask accept` вне него отказывает), после отчёта; слова пользователя (`reset`, `finish`, `opus approve`, `dropped`) кнопкой не бывают — готовая команда с «скопировать» (`docs/adr/0015`, `tests/test_dashboard_actions.py`).
+- `ap.py handoff [--tokens N]` после коммита плана: код 3 — остановиться и продолжить в новом чате (контекст выше `AUTOPILOT_CONTEXT_HINT`, резюме без потерь), 1 — резюме потеряло бы данные; по умолчанию читаются выжимки `skills/autopilot/phases/short/*.md` девяти тяжёлых фаз, при расхождении верен полный текст; правишь фазу — правь выжимку (`docs/adr/0034`).
 - После правки `ap.py` или модуля из `skills/autopilot/tools/` — `ap.py upgrade-tools` обновляет копии в `.autopilot/`.
 - Что осталось после этой сборки — `.autopilot/PROGRESS.md`.
 <!-- autopilot:end -->

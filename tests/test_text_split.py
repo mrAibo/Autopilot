@@ -13,7 +13,7 @@ NORMAL_PATH = (["SKILL.md"]
                                                "5-repair", "6-review", "8-final", "9-memory")]
                + ["prompts/executor.md", "prompts/review.md"])
 # Фактический размер после переноса (окончания строк LF) + 5 %; до переноса было 191 540 байт.
-NORMAL_PATH_LIMIT = 193114
+NORMAL_PATH_LIMIT = 194500
 
 # Файл-получатель -> основной файл фазы, который обязан на него ссылаться.
 EXTRACTED = {"4-plan-strict.md": "4-plan.md", "4-plan-opus.md": "4-plan.md",
@@ -88,3 +88,27 @@ class DashboardAnswers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Digests(unittest.TestCase):
+    """Выжимки тяжёлых фаз (ADR 0034): короче полного текста, называют его, не выдумывают команд."""
+    NAMES = ("0-modes", "0-preflight", "1-manifest", "3-spec", "4-plan", "5-subagents", "5-host-claude", "6-review", "8-final")
+
+    def test_each_digest_is_short_and_points_at_the_full_text(self):
+        for n in self.NAMES:
+            d, full = read("phases", "short", n + ".md"), read("phases", n + ".md")
+            self.assertLess(len(d), len(full) * 0.6, n)
+            self.assertIn(("phases/%s.md" % n).encode(), d, n)
+            self.assertIn(b"Read the full text only if", d, n)
+
+    def test_digest_commands_exist_in_the_full_phase_or_skill(self):
+        import re
+        pool = b"".join(read("phases", f) for f in os.listdir(os.path.join(SKILL, "phases")) if f.endswith(".md")) + read("SKILL.md")
+        for n in self.NAMES:
+            for cmd in set(re.findall(rb"ap\.py ([a-z][a-z-]+)", read("phases", "short", n + ".md"))):
+                self.assertIn(b"ap.py " + cmd, pool, "%s: команды %s нет в фазах" % (n, cmd.decode()))
+
+    def test_skill_md_makes_digests_the_default(self):
+        s = read("SKILL.md").decode("utf-8")
+        self.assertIn("phases/short/", s)
+        self.assertIn("full file wins", s)

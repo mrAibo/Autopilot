@@ -1,0 +1,13 @@
+# Phase 0 — Preflight (digest)
+
+Working digest of `phases/0-preflight.md`. **Read the full text only if something below is not enough** (the §5 carry-over, the `doctor` details, the resume cases).
+
+**Case, first match wins:** `state.js` unfinished + `updatedAt` < 5 min + server in `serve.pid` answers → another window runs it: say so, ask which carries on · `state.js` unfinished → resume (`phases/0-resume.md`, instead of this file) · `finishedAt` set → new feature, everything below (`init` archives the old state) · no `state.js` → new run. «Доделай ещё» for a landed run → new dated brief file in the same dir + `ap.py reopen`. Nothing here is a question to the user.
+
+1. **Look first:** `git rev-parse --git-dir`, `CLAUDE.md`/`AGENTS.md`, stack files, existing code (explored before the spec), `CONTEXT.md`, `GLOSSARY.md`, `docs/adr/` (flag, never silently override), `.autopilot/PROGRESS.md`.
+2. **Git:** no repo → `git init`, then `.gitignore` first (`.env`, `.env.*`, `!.env.example`, `node_modules/`, `__pycache__/`, `.DS_Store`). `.autopilot/` is committed; only `serve.*` ignored. First commit is the plan commit (Phase 4). Before the briefing and `init`: `python3 "<skill-dir>/tools/ap.py" doctor` — exit 2 (git refusal, Claude Code below minimum) → stop at once with one plain sentence; other lines are for you to weigh. Dirty tree: say so in one line, never stash/reset/clean/commit it; every commit names its paths.
+3. **Memory:** read `phases/0-memory.md` (not `9-memory.md`).
+3a. Claude Code version: `ap.py claude-version` (below 2.1.295 refuses, below 2.1.311 warns). Strict run with `advisorModel` set → warn, offer `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`.
+4. **Instruments:** read `phases/0-instruments.md`: `bootstrap`, `init` with the memory choice, dashboard. Slug short, kebab-case, latin, never changes; every path is built from `dir` in `state.js`, never from the slug.
+5. **After a landed run only** (`PROGRESS.md` exists or a commit «Autopilot: сборка сдана»): read the progress file whole + the code-only log since that commit (`git log --oneline --no-merges "$L"..HEAD -- . ':(exclude).autopilot'`, `L` = the landing commit); past ~30 commits one `autopilot-explorer` returns ten lines. Write `.autopilot/<dir>/carried.md` (the four sections + «Изменено после сборки»). Use each part once: Договорились → binds the spec (copied to `interfaces.md` as project rules; a contradicting brief is flagged, not obeyed silently); Не доделано / Известные баги → offered in Phase 2, never taken by you (full: none taken); Изменено после сборки → to the Phase 3 explorer.
+6. **Announce:** opening block (`0-modes.md`), one line from `carried.md` after a landed run («С прошлой сборки: …»), then `ap.py stage manifest` and straight into Phase 1.

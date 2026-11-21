@@ -37,6 +37,7 @@
     python3 .autopilot/ap.py ticket 03 redproof --command "…"   # bug: красный тест до правки (код ≠ 0)
     python3 .autopilot/ap.py ticket 03 baseline --command "…"   # refactor: зелёные тесты до правок (код 0)
     python3 .autopilot/ap.py ticket 03 bundle           # сводка для исполнителя: упавшая проверка, блокеры, замечания
+    python3 .autopilot/ap.py handoff [--tokens N]        # после коммита плана: код 3 — остановиться, продолжить в новом чате; 0 — идти дальше; 1 — резюме потеряло бы данные
     python3 .autopilot/ap.py silence [--limit СЕК] [--transcript ПУТЬ]   # тихие агенты (код 3); нет журнала — код 1
     python3 .autopilot/ap.py lessons candidates | add … | show | drop N | check   # уроки сборок в .autopilot/lessons.md
     python3 .autopilot/ap.py profile refresh            # .autopilot/profile.md: команды проекта
@@ -3274,6 +3275,49 @@ def cmd_bundle(state, pos):
     return "\n".join(out)
 
 
+def cmd_handoff(state, opt):
+    """`handoff [--tokens N]`: после коммита плана решает, останавливать ли цикл ради нового чата (ADR 0034).
+    Только чтение. Код 3 — контекст выше порога и новый чат продолжит без потерь; 0 — идти дальше; 1 — резюме
+    потеряло бы данные (нет `baseCommit`, плана, коммита плана в истории или `.autopilot/` не закоммичен)."""
+    tickets = state.get("tickets") or []
+    problems = []
+    if not state.get("baseCommit"):
+        problems.append("baseCommit не записан — сначала коммит плана")
+    elif subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", str(state["baseCommit"]), "HEAD"],
+                        capture_output=True).returncode:
+        problems.append("baseCommit %s не предок HEAD" % state["baseCommit"])
+    if not tickets:
+        problems.append("в state.js нет тасков")
+    if any(t.get("status") not in ("pending", None) for t in tickets):
+        return _handoff_say(0, "сборка уже началась — новый чат не нужен, продолжаем здесь")
+    dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "--", ".autopilot"],
+                           capture_output=True, text=True).stdout.splitlines()
+    dirty = [x for x in dirty if not x[3:].strip().endswith(("state.js", "dashboard.html", "state.json", "serve.log"))
+             and "serve." not in x and "run-log" not in x and "history-cache" not in x]
+    if dirty:
+        problems.append("не закоммичено в .autopilot/: %s" % dirty[0][3:].strip())
+    if problems:
+        return _handoff_say(1, "резюме потеряло бы данные: " + "; ".join(problems))
+    if state.get("strictRouting") or len(tickets) < 2:
+        return _handoff_say(0, "строгий прогон (там свой обязательный шаг) или один таск — продолжаем здесь")
+    raw = os.environ.get("AUTOPILOT_CONTEXT_HINT", "").strip()
+    limit = int(raw) if re.fullmatch(r"[0-9]+", raw) else CONTEXT_HINT
+    try:
+        n = int(opt["tokens"]) if opt.get("tokens") else last_context_tokens()
+    except ValueError:
+        die("handoff: --tokens — число")
+    if limit <= 0 or n is None or n <= limit:
+        return _handoff_say(0, "контекст в норме или не измерен — продолжаем здесь")
+    return _handoff_say(3, "СТОП: контекст %d тыс. токенов. Скажи пользователю одной строкой: «План готов и сохранён. "
+                        "Открой новый чат в этой папке и напиши `/autopilot` — сборка продолжится с этого места.» "
+                        "`stage build` здесь не запускай" % round(n / 1000))
+
+
+def _handoff_say(code, text):
+    print("handoff: " + text)
+    return code
+
+
 def cmd_silence(opt):
     """`silence [--limit СЕК] [--transcript ПУТЬ]`: тихие агенты → код 3; агента не останавливает."""
     import silence
@@ -4864,6 +4908,8 @@ def main():
         if cmd == "ticket" and rest[-1:] == ["bundle"]:
             print(cmd_bundle(state, rest[:-1]))
             return                                        # только печать
+        if cmd == "handoff":
+            sys.exit(cmd_handoff(state, opt))             # только чтение: state.js не трогаем
         if cmd == "silence":
             sys.exit(cmd_silence(opt))                    # только чтение: state.js не трогаем
         if cmd == "lessons":
