@@ -1795,11 +1795,13 @@ def cmd_execution(state, pos, opt):
 
 
 def cmd_stage(state, pos, opt):
+    """→ строки для notes (полная проверка перед ревью, если посадки шли по целевой, R06)."""
     if not pos:
         die("stage <id> [done|skip|fail] [--note …]")
     sid, action = pos[0], (pos[1] if len(pos) > 1 else "start")
     if sid not in ORDER:
         die("этапы: " + ", ".join(ORDER))
+    notes = full_check_gate(state, "stage review") if sid == "review" and action in ("start", "done") else []
     s = stage(state, sid)
     t = now()
     if action == "start":
@@ -1830,6 +1832,7 @@ def cmd_stage(state, pos, opt):
         refresh_g1(state, create=True)
     log(state, "stage", id=sid, act=action,
         note=opt["note"] if action in ("skip", "fail") and isinstance(opt.get("note"), str) else None)
+    return notes
 
 
 def close_requirements(state, tk, opt, t):
@@ -2951,6 +2954,58 @@ def full_check_command(state):
     return m.group(1).strip() if m else None
 
 
+def targeted_check_command(state, ticket_id):
+    """Команда из строки «Целевая проверка: `…`» в файле таска (`tickets/NN-*.md`; префиксы `*`, `-`, `>`, `**…**`
+    допустимы); нет файла или строки — None. `land` гоняет её вместо полной, полная идёт перед ревью и в finish."""
+    for path in sorted(ticket_files(state, "%s-*.md" % ticket_id)):
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                text = f.read()
+        except OSError:
+            continue
+        m = re.search(r"(?m)^[ \t>*-]*Целевая проверка(?:\*\*)?:(?:\*\*)?[ \t]*`([^`\n]+)`", text)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def print_red_check(head, out):
+    """Красная проверка: заголовок, имена упавших тестов (до 20, T01) и хвост вывода — для land, stage review, finish."""
+    names = failed_tests(out)
+    print(head)
+    if names:
+        print("упавшие тесты (до 20):")
+        print("\n".join("  - " + n for n in names[:20]))
+        if len(names) > 20:
+            print("  … и ещё %d" % (len(names) - 20))
+    print("хвост вывода (последние 15 строк):")
+    print("\n".join("  " + x.rstrip() for x in [y for y in out.splitlines() if y.strip()][-15:]))
+
+
+def full_check_gate(state, who):
+    """`stage review` и `finish`: пока в `state["targetedLands"]` есть посадки по целевой проверке, гоняет полную.
+    Красная, ноль тестов, таймаут — печать и код 2, state не сохраняется (список остаётся). Зелёная — `state["tests"]`
+    = итог, список очищен. Нет строки «Полная проверка» — строка «!» вместо запуска. → список строк для notes."""
+    lands = state.get("targetedLands") or []
+    if not lands:
+        return []
+    check = full_check_command(state)
+    if not check:
+        return ["! %s: в interfaces.md нет строки «Полная проверка: `команда`» — полная проверка после целевых посадок (%s) не запущена"
+                % (who, ", ".join(lands))]
+    code, out = run_shell(check, 1800)
+    counts = None if code is None else count_tests(out)
+    why = ("таймаут 1800 с" if code is None else "красная: код %d" % code if code
+           else "не смог посчитать тесты: вывод не unittest, pytest или cargo" if counts is None
+           else "ноль тестов" if counts[0] < 1 else "упало %d" % counts[1] if counts[1] else None)
+    if why:
+        print_red_check("%s: стоп — полная проверка после целевых посадок (%s) %s" % (who, ", ".join(lands), why), out)
+        sys.exit(2)
+    state["tests"] = {"passed": counts[0], "failed": 0}
+    state["targetedLands"] = []
+    return ["полная проверка после целевых посадок (%s): %d тестов" % (", ".join(lands), counts[0])]
+
+
 def generators(state):
     """Таблица «Имя | Команда | Файлы» раздела «Команды-генераторы» → {имя: (команда, [файлы])}."""
     found, inside = {}, False
@@ -3193,7 +3248,8 @@ def cmd_land(state, pos, opt):
     import land_check
     kind = kinds.of_state(state)
     repro = kind == "bug" and bool(tk.get("repro"))            # красный тест вливается без полной проверки
-    check = full_check_command(state)
+    targeted = None if repro else targeted_check_command(state, i)    # целевая строка таска вместо полной (R05)
+    check = targeted or full_check_command(state)
     if not check and not repro:
         red("проверка", "в interfaces.md нет строки «Полная проверка: `команда`»", "впиши её и повтори")
     include = split_paths(opt.get("include"))
@@ -3230,15 +3286,7 @@ def cmd_land(state, pos, opt):
     if code:
         tk["lastCheck"] = "\n".join(out.strip().splitlines()[-30:])[-3000:]      # хвост для `ticket NN bundle`
         save(state)
-        names = failed_tests(out)
-        print("land %s: стоп на шаге «проверка» — красная: код %d%s" % (i, code, ", упало %d" % counts[1] if counts else ""))
-        if names:
-            print("упавшие тесты (до 20):")
-            print("\n".join("  - " + n for n in names[:20]))
-            if len(names) > 20:
-                print("  … и ещё %d" % (len(names) - 20))
-        print("хвост вывода (последние 15 строк):")
-        print("\n".join("  " + x.rstrip() for x in [y for y in out.splitlines() if y.strip()][-15:]))
+        print_red_check("land %s: стоп на шаге «проверка» — красная: код %d%s" % (i, code, ", упало %d" % counts[1] if counts else ""), out)
         sys.exit(2)
     tk.pop("lastCheck", None)
     if counts is None:
@@ -3257,6 +3305,11 @@ def cmd_land(state, pos, opt):
         red("коммит", "git отказал (%s)" % exc, "сбой машины, не кода: ticket %s fail --note \"git отказал\" и вопрос пользователю" % i)
     if sha is None:
         red("коммит", "в зоне нечего коммитить")
+    if targeted:                                                # полная проверка за этой посадкой — перед ревью и в finish
+        lands = state.setdefault("targetedLands", [])
+        if i not in lands:
+            lands.append(i)
+        save(state)                                             # коммит уже есть: отметка не должна пропасть, если `ticket done` откажет
     done = {"commit": sha} if repro else {"tests": "%d/%d" % (passed, failed), "commit": sha}
     if isinstance(opt.get("placeholder"), str):
         done["placeholder"] = opt["placeholder"]
@@ -4224,8 +4277,8 @@ def cmd_finish(state, opt):
             lines.append("Сдать как есть можно только словами пользователя: "
                          "finish --result \"…\" --by-user \"<его цитата>\"")
         die("\n".join(lines))
+    notes = full_check_gate(state, "finish")                  # посадки по целевой проверке: красная полная не пускает
     t = now()
-    notes = []
     for s in state.get("stages") or []:
         if s.get("status") in ("active", "pending") and s.get("id") == "final":
             if s.get("status") == "active":
@@ -4975,7 +5028,7 @@ def main():
             notes.append(cmd_execution(state, rest, opt))
         elif cmd == "stage":
             notes += upgrade_note(state)
-            cmd_stage(state, rest, opt)
+            notes += cmd_stage(state, rest, opt)
             import silence
             notes += ["! стадия %s идёт %d мин — проверь, не завис ли агент (`ap.py silence`)" % x
                       for x in silence.long_stages(state.get("stages"), 60)]
