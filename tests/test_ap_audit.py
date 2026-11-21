@@ -179,8 +179,9 @@ class Server(unittest.TestCase):
         self.assertEqual(ask("/state.js?t=" + token), 200)
         self.assertEqual(ask("/state.js"), 403)
         self.assertEqual(ask("/state.js?t=" + token, host="evil.example"), 403)
-        self.assertEqual(ask("/.ap-ping"), 200)                             # подтверждение сервера без токена в адресе
-        self.assertEqual(ask("/.ap-ping", host="evil.example"), 403)
+        self.assertEqual(ask("/.ap-ping?n=0123456789abcdef"), 200)           # подтверждение сервера без токена в адресе
+        self.assertEqual(ask("/.ap-ping"), 403)                             # без nonce не отвечает
+        self.assertEqual(ask("/.ap-ping?n=0123456789abcdef", host="evil.example"), 403)
         self.assertTrue(load_ap(h).server_is_ours(port))                    # настоящий процесс: токен он взял из serve.token
 
     def test_token_never_reaches_the_server_log(self):
@@ -194,6 +195,28 @@ class Server(unittest.TestCase):
             self.assertEqual(self.get("/serve.token?t=" + self.TOKEN), 403)
         self.assertIn("/state.js", err.getvalue())                          # запросы в журнале есть
         self.assertNotIn(self.TOKEN, err.getvalue())
+
+    def test_control_characters_in_a_request_cannot_forge_a_log_line(self):
+        import contextlib
+        import io
+        import time
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.get("/x%0d%0aFORGED")                # перевод строки в виде %0d%0a
+            for raw in (b"/a\rb", b"/a\x1bb[31mred", b"/a\x7fb"):                  # сырые символы в строке запроса
+                s = socket.create_connection(("127.0.0.1", self.port), timeout=5)
+                s.sendall(b"GET " + raw + b" HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n" % self.port)
+                s.recv(200)
+                s.close()
+            time.sleep(0.3)
+        lines = err.getvalue().splitlines()
+        self.assertTrue(all(l.startswith("127.0.0.1 - - [") for l in lines), lines)
+        self.assertNotIn("FORGED", " ".join(lines))                                # хвост после управляющих символов — в `?...`
+        for l in lines:
+            self.assertNotRegex(l, "[\x00-\x1f\x7f]|%0[dDaA]")
+        text = "\n".join(lines)
+        self.assertIn('"GET /x? HTTP', text)                                       # %0d%0a стали `?`
+        self.assertIn("/a?", text)                                                 # сырые символы тоже
 
     def test_own_server_is_recognised_by_its_command_line(self):
         m = self.ap

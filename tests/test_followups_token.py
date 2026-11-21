@@ -175,6 +175,9 @@ class AddressPrinting(unittest.TestCase):
             self.assertNotIn(TOKEN, out, argv[0])
 
 
+NONCE = "0123456789abcdef"
+
+
 class ServerPing(unittest.TestCase):
     """R14/R20: живой сервер подтверждает себя ответом `/.ap-ping` (hmac от токена и порта), а не вызовом
     PowerShell; удалённый `serve.token` или чужой процесс на порту — «не наш», сервер поднимается заново."""
@@ -193,9 +196,9 @@ class ServerPing(unittest.TestCase):
         self.addCleanup(self.srv.shutdown)
 
     @staticmethod
-    def digest(port):
-        """Ожидание из спецификации, не из кода: hex hmac-sha256 с ключом-токеном от «autopilot-ping|<порт>»."""
-        return hmac.new(TOKEN.encode(), ("autopilot-ping|%d" % port).encode(), "sha256").hexdigest()
+    def digest(port, nonce=NONCE):
+        """Ожидание из спецификации, не из кода: hex hmac-sha256 с ключом-токеном от «autopilot-ping|<порт>|<nonce>»."""
+        return hmac.new(TOKEN.encode(), ("autopilot-ping|%d|%s" % (port, nonce)).encode(), "sha256").hexdigest()
 
     def get(self, path, host=None, headers=None, port=None):
         port = port or self.port
@@ -250,17 +253,19 @@ class ServerPing(unittest.TestCase):
         return fake, out.getvalue()
 
     def test_ping_answers_with_the_digest_of_the_token_and_the_port_never_the_token(self):
-        self.assertEqual(self.get("/.ap-ping"), (200, self.digest(self.port)))
-        self.assertNotEqual(self.get("/.ap-ping")[1], self.digest(self.port + 1))    # привязан к порту
-        for path in ("/.ap-ping", "/dashboard.html?t=" + TOKEN, "/state.js?t=" + TOKEN):
+        ping = "/.ap-ping?n=" + NONCE
+        self.assertEqual(self.get(ping), (200, self.digest(self.port)))
+        self.assertNotEqual(self.get(ping)[1], self.digest(self.port + 1))           # привязан к порту
+        self.assertNotEqual(self.get(ping)[1], self.digest(self.port, "fedcba9876543210"))   # и к nonce
+        for path in (ping, "/dashboard.html?t=" + TOKEN, "/state.js?t=" + TOKEN):
             self.assertNotIn(TOKEN, self.get(path)[1], path)
         self.assertNotIn("/.ap-ping", self.m.OPEN_PAGES)
 
     def test_ping_keeps_the_host_origin_and_fetch_site_checks_and_the_rest_still_needs_the_token(self):
         for kw in ({"host": "evil.example:%d" % self.port}, {"host": "127.0.0.1:1"},
                    {"headers": {"Sec-Fetch-Site": "cross-site"}}, {"headers": {"Origin": "http://evil.example"}}):
-            self.assertEqual(self.get("/.ap-ping", **kw)[0], 403, kw)
-        self.assertEqual(self.get("/.ap-ping", host="localhost:%d" % self.port)[0], 200)
+            self.assertEqual(self.get("/.ap-ping?n=" + NONCE, **kw)[0], 403, kw)
+        self.assertEqual(self.get("/.ap-ping?n=" + NONCE, host="localhost:%d" % self.port)[0], 200)
         self.assertEqual(self.get("/state.js")[0], 403)
         self.assertEqual(self.get("/state.js?t=" + TOKEN)[0], 200)
 
@@ -296,12 +301,79 @@ class ServerPing(unittest.TestCase):
         fake, _ = self.url_command(return_value="сервер поднят")
         fake.assert_called_once()
 
-    def test_an_old_server_without_ping_keeps_the_process_check(self):
-        port = self.foreign_server(False)
+    def test_ping_without_a_usable_nonce_is_refused(self):
+        for path in ("/.ap-ping", "/.ap-ping?n=", "/.ap-ping?n=short", "/.ap-ping?n=" + "a" * 129, "/.ap-ping?n=bad%20nonce!!!!!!!!"):
+            status, body = self.get(path)
+            self.assertEqual(status, 403, path)
+            self.assertNotIn(self.digest(self.port, ""), body)
+
+    def test_a_recorded_reply_does_not_pass_for_a_new_nonce(self):
+        old = self.get("/.ap-ping?n=" + NONCE)[1]                   # подслушанный ответ на чужой nonce
+        for answer in (old, self.digest(self.port, "")):            # устаревший и «без nonce»
+            with mock.patch.object(self.m, "ping_reply", return_value=answer):
+                self.assertFalse(self.m.server_is_ours(self.port), answer)
+        self.assertTrue(self.m.server_is_ours(self.port))           # живой сервер на свежий nonce отвечает верно
+
+    def test_the_client_sends_a_fresh_random_nonce_each_time(self):
+        seen = []
+        with mock.patch.object(self.m, "ping_reply", side_effect=lambda port, nonce: seen.append(nonce)):
+            self.m.server_is_ours(self.port)
+            self.m.server_is_ours(self.port)
+        self.assertEqual(len(set(seen)), 2)
+        self.assertTrue(all(re.fullmatch(r"[0-9a-f]{16,}", n) for n in seen), seen)
+
+    def old_server(self):
+        """Имитация старого ap.py: страница есть, `/.ap-ping` — 404 (или прежний ответ без nonce)."""
+        return self.foreign_server(False)
+
+    def test_an_old_server_without_ping_is_restarted_even_when_its_process_looks_like_ours(self):
+        port = self.old_server()
         guarded = "%s %s --serve %d" % (sys.executable, self.m.__file__, port)
         popen = mock.MagicMock()
-        self.assertEqual(self.serve(port, popen=popen, cmd=guarded), "http://localhost:%d/dashboard.html" % port)
-        popen.assert_not_called()
+        out = self.serve(port, popen=popen, cmd=guarded)
+        popen.assert_called_once()
+        self.assertNotIn("localhost:%d/" % port, out)
+
+    def test_a_server_of_the_previous_version_that_ignores_the_nonce_is_restarted(self):
+        class Prev(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = (hmac.new(TOKEN.encode(), ("autopilot-ping|%d" % self.server.server_port).encode(), "sha256")
+                        .hexdigest().encode() if self.path.startswith("/.ap-ping") else b"<html></html>")
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+        srv = http.server.HTTPServer(("127.0.0.1", 0), Prev)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        self.assertFalse(self.m.server_is_ours(srv.server_port))
+        popen = mock.MagicMock()
+        self.serve(srv.server_port, popen=popen)
+        popen.assert_called_once()
+
+    def test_the_restarted_server_is_ours_so_the_next_command_does_not_restart_it_again(self):
+        old = self.old_server()
+        starts = []
+        real = self.m.make_server(self.h.a, 0, TOKEN)               # то, что поднимет `ap.py --serve` после перезапуска
+        threading.Thread(target=real.serve_forever, daemon=True).start()
+        self.addCleanup(real.server_close)
+        self.addCleanup(real.shutdown)
+        recorded = [(old, os.getpid())]
+
+        def popen(*a, **kw):
+            starts.append(1)
+            recorded[:] = [(real.server_port, os.getpid())]
+            return mock.MagicMock()
+        with mock.patch.object(self.m, "recorded", side_effect=lambda: recorded[0]),                 mock.patch.object(self.m, "kill_orphans", return_value=0),                 mock.patch.object(self.m, "free_port", return_value=real.server_port),                 mock.patch.object(self.m.subprocess, "Popen", popen),                 mock.patch.dict(os.environ, {"CI": "", "SSH_CONNECTION": ""}):
+            self.m.serve(self.h.state())
+            self.assertEqual(starts, [1])
+            for _ in range(3):
+                self.assertEqual(self.m.serve(self.h.state()), "http://localhost:%d/dashboard.html" % real.server_port)
+            self.assertEqual(starts, [1])
 
 
 class RefreshDashboard(unittest.TestCase):
