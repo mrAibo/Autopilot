@@ -52,6 +52,7 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 | `done` | **частично / нет** | 🔴 **drift** — the manifest is wrong. A ticket, or a line in the report; never an edit of your own |
 | `placeholder` | частично | expected — confirm the stub is visible, not an invented fact |
 | `dropped` / `deferred` | нет | expected — in the report as not built |
+| `deferred` / `placeholder` row, or a spec line under «Вне рамок» | частично / нет | **known**, not 🔴: into the report as known, no round 2 for it |
 | — | реализовано, но не из брифа | scope that grew without a parent — reported |
 
 **At most two rounds, and no third look.** Round 1 is this acceptance. A 🔴 goes to one round of fixes (the G2-style fix tickets, `F2`), then **one** re-check by a fresh blind checker, then the report. `ap.py` counts the rounds (`blindRounds`, cap `BLIND_ROUNDS = 2`) and refuses a third `blind`. In the brief's words: «один круг исправлений, потом отчёт, третьего взгляда нет». What is still 🔴 after round 2 goes to the report as it is, in «Открытые вопросы». Judge by the brief, not by the spec.

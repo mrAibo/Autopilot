@@ -22,6 +22,7 @@ Never two tickets in one context — accumulated context is what breaks long ses
 | `interfaces.md` | by path, read first |
 | `notes.md` | by path, in an existing codebase |
 | `context-pack.md` | by path, when the scout wrote one (`phases/3-spec.md`); the executor reads it first and reads the source itself for anything it skips |
+| `Целевая проверка` | a ticket line; `land` runs it instead of the full check; the full one runs on `stage review` and in `finish` after targeted landings |
 | `reference.md` | by path, when the ticket builds something the user will look at |
 | the check command and how to run one test file | from `interfaces.md` |
 | its zone, and what it must not touch | zones of tickets flying beside it included |
