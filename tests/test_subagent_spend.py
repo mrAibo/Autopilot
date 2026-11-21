@@ -104,12 +104,22 @@ class SpendSubagentsCommand(unittest.TestCase):
         self.assertNotIn(SECRET, raw)
         self.assertNotIn(DESC, raw)
         hx.h.ap("spend-subagents", "--transcript", tp)
-        self.assertEqual(len(self.sub_rows(hx)), 2)                   # две строки журнала...
+        self.assertEqual(len(self.sub_rows(hx)), 1)                   # те же числа: строка не дописана
         dirname = hx.h.state()["dir"]
         s = load_ap().compute_spend(hx.journal(), dirname)
         self.assertEqual((s["byRole"]["reviewer"]["n"], s["byRole"]["reviewer"]["input"]), (1, 10))   # ...сумма одна
         t = run_log.summarize(hx.journal(), run=dirname)
         self.assertEqual(len([e for e in t["tokens"] if e.get("agent")]), 1)
+
+    def test_new_numbers_add_a_row_for_the_same_agent(self):
+        hx = Harness(self)
+        tp, folder = session(hx)
+        put_agent(folder, "aaa", [msg("m", T % 1, input_tokens=10)], {"agentType": "autopilot-reviewer-x"})
+        hx.h.ap("spend-subagents", "--transcript", tp)
+        put_agent(folder, "aaa", [msg("m", T % 1, input_tokens=10), msg("n", T % 2, input_tokens=5)],
+                  {"agentType": "autopilot-reviewer-x"})
+        hx.h.ap("spend-subagents", "--transcript", tp)
+        self.assertEqual([r["input"] for r in self.sub_rows(hx)], [10, 15])
 
     def test_no_subagents_folder_is_an_honest_line(self):
         hx = Harness(self)
@@ -261,6 +271,15 @@ class SessionTranscriptPrefix(unittest.TestCase):
         exact = self.log(self.want, 100)
         self.log(self.want[:110], 999)
         self.assertEqual(self.find(), exact)
+
+    def test_neighbour_project_folder_is_not_taken(self):
+        self.log(self.want + "-neighbour", 999)                    # длиннее want: чужой проект с тем же началом
+        self.assertIsNone(self.find())
+
+    def test_two_truncated_candidates_mean_no_transcript(self):
+        self.log(self.want[:110], 100)
+        self.log(self.want[:120], 200)
+        self.assertIsNone(self.find())
 
     def test_nothing_found_is_none(self):
         self.log("совсем-другая-папка", 5)

@@ -185,7 +185,7 @@ class SpendOrchestratorCommand(unittest.TestCase):
         self.assertNotIn("СЕКРЕТНЫЙ", raw)
         self.assertEqual(self.h_orch(hx), self.h_orch(hx))
         self.assertEqual(hx.h.ap("spend-orchestrator", "--transcript", tp)[0], 0)
-        self.assertEqual(len(self.h_orch(hx)), 2)                       # две строки журнала...
+        self.assertEqual(len(self.h_orch(hx)), 1)                       # те же числа: строка не дописана
         s = load_ap().compute_spend(hx.journal(), hx.h.state()["dir"])
         self.assertEqual(s["byRole"]["orchestrator"]["input"], 11)      # ...но сумма одна
         self.assertEqual(s["byRole"]["orchestrator"]["cache_read"], 330)
@@ -197,7 +197,7 @@ class SpendOrchestratorCommand(unittest.TestCase):
         code, once = hx.h.ap("report-run")
         self.assertEqual(code, 0, once)
         hx.h.ap("spend-orchestrator", "--transcript", tp)
-        self.assertEqual(len(self.h_orch(hx)), 2)
+        self.assertEqual(len(self.h_orch(hx)), 1)
         code, twice = hx.h.ap("report-run")
         self.assertEqual(code, 0, twice)
         self.assertEqual(once, twice)

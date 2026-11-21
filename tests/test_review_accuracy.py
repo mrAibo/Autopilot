@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.join(os.path.dirname(HERE), "skills", "autopilot")
@@ -351,7 +352,10 @@ class Cli(unittest.TestCase):
         self.assertNotIn("подают признаки жизни", out)
 
     def test_silence_without_any_transcript_is_not_all_alive(self):
-        code, out = self.ap("silence")
+        empty = tempfile.mkdtemp(prefix="ap-cfg-")           # не реальный ~/.claude с журналами
+        self.addCleanup(shutil.rmtree, empty, ignore_errors=True)
+        with mock.patch.dict(os.environ, {"CLAUDE_CONFIG_DIR": empty}):
+            code, out = self.ap("silence")
         self.assertEqual(code, 1, out)
         self.assertIn("журнал не найден", out)
 

@@ -8,6 +8,20 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Tails of the last build and R28 (ADR 0030-0033).
+
+- **Buttons:** the button label reads `<name> · Точно?` before the second press; `ask accept` works only in `manual`, after the report.
+- **Server:** `/.ap-ping?n=<nonce>` answers hmac over token, port and nonce (no nonce: 403); an old or mismatching server is restarted; `serve.log` stays clean (ADR 0001, 0013).
+- **`::name`:** `plan-fact record` matches `path::name` as a whole word.
+- **`redproof`:** a line `ImportError:` in the output is a refusal, not a red proof.
+- **Git version:** `doctor` prints a `git: version X.Y` line (test key `--git-text`).
+- **`chore`:** the generator's dirty-file refusal and commit go through `commit_paths`.
+- **Lessons:** the path check also refuses `~/`, `C:/`, UNC `\server\`, `/root/`, `/private/`, `/var/folders/`; `add`, `drop` and `profile refresh` run under `state.lock` (test: two parallel `add` keep both lines).
+- **Spend:** the fallback search for the session log by prefix takes only a folder whose name is a prefix of this project's path, and only if it is the single one; a repeated `spend-orchestrator` or `spend-subagents` with the same numbers writes no row, new numbers write one.
+- **Test `silence`:** `test_silence_without_any_transcript_is_not_all_alive` points `CLAUDE_CONFIG_DIR` at an empty folder and no longer reads the real `~/.claude`.
+- **Dead CSS:** `.nowh`, `.ov3`, `.tl2` and `html[data-narrow]` are removed from the dashboard template.
+- **`shots.py`:** `skills/autopilot/tools/shots.py` takes dashboard screenshots with headless Chrome/Edge (exit 2 without a browser), behind `AUTOPILOT_BLIND_SHOTS=1` in `phases/8-final.md` (ADR 0030); ADR 0031-0033 record R28b-d.
+
 Review bugs and dashboard buttons (R01-R03, R33-R35; ADR 0015).
 
 - **R01, `schedule` and the parent's zone in review:** in a run that is not isolated, a pending ticket whose dependency is in `review` is no longer blocked as `overlapping-zone` by that parent's zone (its code is committed, the dependent builds on it); zones of other tickets in progress still block, `in-progress`, `repair`, `failed` and `pending` dependencies still block, and in an isolated run the dependency must be `done`.

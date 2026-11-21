@@ -4530,7 +4530,7 @@ def compute_spend(records, run):
 
 def session_transcript():
     """Самый свежий журнал сессии проекта: <CLAUDE_CONFIG_DIR|~/.claude>/projects/<путь с «-»>/*.jsonl или None.
-    Нет точной папки (Claude Code усекает длинные имена) — папка с самым длинным общим префиксом ≥100 знаков."""
+    Нет точной папки (Claude Code усекает длинные имена) — единственная папка ≥100 знаков, чьё имя префикс пути проекта."""
     root = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
     projects = os.path.join(root, "projects")
     want = re.sub(r"[^A-Za-z0-9]", "-", os.path.dirname(A))
@@ -4543,10 +4543,9 @@ def session_transcript():
             names = os.listdir(projects)
         except OSError:
             names = []
-        scored = [(len(os.path.commonprefix([want, n])), max(os.path.getmtime(f) for f in fs), fs)
-                  for n in names for fs in [newest(n)] if fs]
-        scored = [x for x in scored if x[0] >= 100]
-        files = max(scored, key=lambda x: x[:2])[2] if scored else []
+        # усечённое имя обязано быть префиксом want (соседний проект расходится раньше); кандидатов не один — журнала нет
+        cands = [fs for n in names if len(n) >= 100 and want.startswith(n) for fs in [newest(n)] if fs]
+        files = cands[0] if len(cands) == 1 else []
     return max(files, key=os.path.getmtime) if files else None
 
 
@@ -4597,6 +4596,15 @@ def context_hint():
             "продолжит сборку с этого места, это дешевле" % round(n / 1000))
 
 
+SPEND_NUMBERS = ("input", "output", "cache_read", "cache_write", "turns")
+
+
+def _spend_repeat(rows, run, new, keys):
+    """True, если последняя строка прогона с теми же `keys` несёт те же числа: повтор не дописывается."""
+    same = [r for r in rows if r.get("run") == run and all(r.get(k) == new.get(k) for k in keys)]
+    return bool(same) and all(same[-1].get(k) == new.get(k) for k in SPEND_NUMBERS)
+
+
 def spend_orchestrator(state, transcript=None):
     """Расход главной сессии за время прогона → строки `executor`/`role=orchestrator` в run-log.jsonl
     (числа и модель, без текста). Возвращает одну печатную строку; не бросает исключений."""
@@ -4612,9 +4620,12 @@ def spend_orchestrator(state, transcript=None):
             return miss("журнал сессии не читается")
         if not by_model:
             return miss("в журнале сессии нет ответов за время прогона")
+        rows = run_log.read_all(A)
         saved = [run_log.append(A, "executor", run=state.get("dir"), role="orchestrator",
                                 source="orchestrator", origin="claude-transcript", model=model, **u)
-                 for model, u in sorted(by_model.items())]
+                 for model, u in sorted(by_model.items())
+                 if not _spend_repeat(rows, state.get("dir"), dict(u, role="orchestrator", model=model),
+                                      ("role", "model"))]
         if not all(saved):
             return "расход оркестратора не записан: журнал прогона недоступен для записи"
         return "расход оркестратора: %s ток. вход+выход, кэш чтение %s, моделей %d" % (
@@ -4638,7 +4649,7 @@ def spend_subagents(state, transcript=None):
     """Расход субагентов за время прогона из `<журнал сессии без .jsonl>/subagents/` → строки расхода
     по агентам (числа, модель, agent_type, id агента, таск; без текста). Таск берётся из имени профиля,
     а по времени — только для исполнителей и general-purpose: ревьюеру чужой таск не приписывается.
-    Повторный вызов не удваивает расход: читатели берут последнюю строку на `agent`."""
+    Повторный вызов с теми же числами строку не дописывает; новые числа — новая строка (читатели берут последнюю на `agent`)."""
     miss = lambda why: "расход субагентов не найден: " + why
     try:
         if run_log is None:
@@ -4656,10 +4667,12 @@ def spend_subagents(state, transcript=None):
             if from_profile:
                 return from_profile
             return _ticket_at(state, agent["first_at"]) if role in ("executor", "agent") else None
+        rows = run_log.read_all(A)
         saved = [run_log.append(A, "executor", run=state.get("dir"), role=run_log.role_of(a["agent_type"]),
                                 source="subagent", origin="claude-subagents",
                                 ticket=ticket_of(a),
-                                **{k: v for k, v in a.items() if k != "first_at"}) for a in agents]
+                                **{k: v for k, v in a.items() if k != "first_at"}) for a in agents
+                 if not _spend_repeat(rows, state.get("dir"), a, ("agent",))]
         if not all(saved):
             return "расход субагентов не записан: журнал прогона недоступен для записи"
         return "расход субагентов: %s ток. вход+выход, кэш чтение %s, агентов %d" % (
