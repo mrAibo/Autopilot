@@ -3029,6 +3029,11 @@ def count_tests(text):
     return None
 
 
+def failed_tests(out):
+    """Вывод unittest → ['FAIL: имя (модуль.Класс)', 'ERROR: …'] без повторов, в порядке вывода."""
+    return list(dict.fromkeys(m.group(1) for m in re.finditer(r"^((?:FAIL|ERROR): \S.*\(.+\))\s*$", out, re.M)))
+
+
 def last_line(text):
     return next((x.strip()[:200] for x in reversed(text.splitlines()) if x.strip()), "")
 
@@ -3225,7 +3230,16 @@ def cmd_land(state, pos, opt):
     if code:
         tk["lastCheck"] = "\n".join(out.strip().splitlines()[-30:])[-3000:]      # хвост для `ticket NN bundle`
         save(state)
-        red("проверка", "красная: код %d%s" % (code, ", упало %d" % counts[1] if counts else ""), last_line(out))
+        names = failed_tests(out)
+        print("land %s: стоп на шаге «проверка» — красная: код %d%s" % (i, code, ", упало %d" % counts[1] if counts else ""))
+        if names:
+            print("упавшие тесты (до 20):")
+            print("\n".join("  - " + n for n in names[:20]))
+            if len(names) > 20:
+                print("  … и ещё %d" % (len(names) - 20))
+        print("хвост вывода (последние 15 строк):")
+        print("\n".join("  " + x.rstrip() for x in [y for y in out.splitlines() if y.strip()][-15:]))
+        sys.exit(2)
     tk.pop("lastCheck", None)
     if counts is None:
         red("проверка", "не смог посчитать тесты: вывод не unittest, pytest или cargo", "отдельно: ticket %s done --tests N/0 --commit SHA" % i)

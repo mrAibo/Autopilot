@@ -214,9 +214,9 @@ class Land(Project):
         self.assertEqual(self.ap("ticket", "01", "start", "--no-serve")[0], 0)
         self.put("src/core/a.py", "x = 1\n")
 
-    def refused(self, out, code, head, words):
+    def refused(self, out, code, head, words, lines=3):
         self.assertEqual(code, 2, out)
-        self.assertLessEqual(len(out.strip().splitlines()), 3, out)
+        self.assertLessEqual(len(out.strip().splitlines()), lines, out)
         self.assertIn(words, out)
         self.assertEqual(self.head(), head)
         self.assertNotEqual(self.state()["tickets"][0]["status"], "done")
@@ -258,7 +258,7 @@ class Land(Project):
         self.mode("red")
         head = self.head()
         code, out = self.land()
-        self.refused(out, code, head, "красная")
+        self.refused(out, code, head, "красная", lines=5)
 
     def test_zero_tests_is_red(self):
         self.plan()
