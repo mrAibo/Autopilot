@@ -6,6 +6,7 @@ On CI, set AUTOPILOT_SCREENSHOT_DIR to preserve screenshots as artifacts.
 
 `--designs [DIR]` instead takes one screenshot of each of the six designs at 1440 and 400 px
 (default DIR: docs/autopilot/dashboard-designs/); without Chrome it prints a note and exits 0.
+`--plan` (and the default run) checks the line «план: N из M» (planFact) in every design at 1440 and 400 px.
 `--print [DIR]` prints each design on the `finished` fixture to DIR/<design>-print.pdf (`--print-to-pdf`) and,
 when `pdftotext` is on PATH, checks the text: no rail, bar, ticker or buttons, every section open.
 """
@@ -191,8 +192,62 @@ def print_designs(browser, out_dir):
     return 1 if bad else 0
 
 
+PLAN_RE = re.compile(r"план: \d+ из \d+")
+
+
+def plan_line_ok(texts):
+    """True, когда среди заголовков карточек `section.card.w h3.wt` есть строка «план: N из M» целиком."""
+    return any(PLAN_RE.fullmatch(" ".join(str(t).split())) for t in texts)
+
+
+def check_plan_line(browser):
+    """Шесть дизайнов x 1440 и 400 px при planFact {done, total}: карточка с «план: N из M» есть в DOM (ru)."""
+    template = TEMPLATE.read_text(encoding="utf-8")
+    anchor = "/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/"
+    ids = design_ids(template)
+    if anchor not in template or len(ids) != 6:
+        print("Dashboard template: state anchor or six designs missing", file=sys.stderr)
+        return 2
+    state = fixture()
+    state["planFact"] = {"done": 3, "total": 5}
+    embedded = "/*STATE-BEGIN*/window.STATE=" + json.dumps(state, ensure_ascii=False).replace("</", "<\\/") + ";/*STATE-END*/"
+    mirror = ("<script>const t = setInterval(() => { try { const c = document.getElementById('f').contentDocument, s = c && c.getElementById('plan-probe');"
+              "if (!s) return; const m = document.createElement('pre'); m.id = 'plan-probe'; m.textContent = s.textContent;"
+              "document.body.appendChild(m); clearInterval(t); } catch (e) { clearInterval(t); } }, 50);</script>")
+    with tempfile.TemporaryDirectory(prefix="dashboard-plan-") as temp:
+        for design in ids:
+            probe = ("<script>UI.sec.quality = true; applyDesign(%s); render('ru');"
+                     "const o = document.createElement('pre'); o.id = 'plan-probe'; o.hidden = true;"
+                     "o.textContent = JSON.stringify([...document.querySelectorAll('#app section.card.w h3.wt')].map(h => h.textContent));"
+                     "document.body.appendChild(o);</script>" % json.dumps(design))
+            child = Path(temp) / ("plan-%s.html" % design)
+            child.write_text(template.replace(anchor, embedded).replace("</body>", probe + "</body>"), encoding="utf-8")
+            for width in (1440, 400):
+                page = child
+                if width == 400:  # headless Chrome clamps windows to ~500 px: real 400 px viewport = iframe
+                    page = Path(temp) / ("plan-frame-%s.html" % design)
+                    page.write_text('<!doctype html><meta charset="utf-8"><body style="margin:0"><iframe id="f" src="%s" '
+                                    'style="border:0;width:400px;height:3600px"></iframe>%s</body>' % (child.name, mirror), encoding="utf-8")
+                done = subprocess.run([browser, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+                                       "--allow-file-access-from-files", "--virtual-time-budget=2000",
+                                       "--window-size=%d,2600" % max(width, 500), "--dump-dom", page.as_uri()],
+                                      capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+                found = re.findall(r'<pre id="plan-probe"[^>]*>(.*?)</pre>', done.stdout, flags=re.DOTALL)
+                texts = json.loads(unescape(found[-1])) if found else []
+                if done.returncode or not plan_line_ok(texts):
+                    print("Plan line «план: N из M» missing: %s %d %s" % (design, width, ascii(texts)), file=sys.stderr)
+                    return 1
+                print("Plan line OK: %s %d" % (design, width))
+    return 0
+
+
 def main():
     browser = chrome_browser()
+    if "--plan" in sys.argv:
+        if not browser:
+            print("не проверено: нет Chrome")
+            return 0
+        return check_plan_line(browser)
     if "--print" in sys.argv:
         if not browser:
             print("не проверено: нет Chrome")
@@ -485,7 +540,7 @@ const repeat = setInterval(() => {
                     print("Screenshot failed: " + label + " " + grab.stderr[-500:], file=sys.stderr)
                     return 1
             print("Dashboard browser DOM OK: " + label)
-    return 0
+    return check_plan_line(browser)
 
 
 if __name__ == "__main__":
