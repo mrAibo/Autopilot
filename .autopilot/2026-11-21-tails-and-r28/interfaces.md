@@ -34,4 +34,6 @@
 **Shots (T05):** `python skills/autopilot/tools/shots.py --url URL --out DIR [--width N --height N]`; код 0 — файлы записаны, 2 — нет Chrome/Edge (строка причины); печатает пути, по строке на файл. Флаг `AUTOPILOT_BLIND_SHOTS=1` только в тексте `phases/8-final.md`; код приёмки не меняется.
 
 ## Что построили тикеты
-—
+- T01: подпись кнопки `<название> · Точно?`; из шаблона убраны `.nowh`, `.ov3`, `.tl2`, `data-narrow`; шаблон 266750 байт.
+- T02: `ask accept` только в manual; `doctor` печатает 5 строк (добавлено `git: версия X.Y`, ключ теста `--git-text`); `::имя` целым словом; `redproof` по строке исключения `ImportError:`.
+- T05: `skills/autopilot/tools/shots.py` (`find_browser`, `free_port`, `serve_dir`, `parse_args`, `main`); ADR 0030. T06: ADR 0031–0033.
