@@ -16,7 +16,7 @@ Tails of the last build and R28 (ADR 0030-0033).
 - **`redproof`:** a line `ImportError:` in the output is a refusal, not a red proof.
 - **Git version:** `doctor` prints a `git: version X.Y` line (test key `--git-text`).
 - **`chore`:** the generator's dirty-file refusal and commit go through `commit_paths`.
-- **Lessons:** the path check also refuses `~/`, `C:/`, UNC `\server\`, `/root/`, `/private/`, `/var/folders/`; `add`, `drop` and `profile refresh` run under `state.lock` (test: two parallel `add` keep both lines).
+- **Lessons:** the path check also refuses `~/`, `C:/`, UNC `\\server\`, `/var/folders/`; web routes such as `/root/…` and `/private/…` are not paths and are not refused; `add`, `drop` and `profile refresh` run under `state.lock` (test: two parallel `add` keep both lines).
 - **Spend:** the fallback search for the session log by prefix takes only a folder whose name is a prefix of this project's path, and only if it is the single one; a repeated `spend-orchestrator` or `spend-subagents` with the same numbers writes no row, new numbers write one.
 - **Test `silence`:** `test_silence_without_any_transcript_is_not_all_alive` points `CLAUDE_CONFIG_DIR` at an empty folder and no longer reads the real `~/.claude`.
 - **Dead CSS:** `.nowh`, `.ov3`, `.tl2` and `html[data-narrow]` are removed from the dashboard template.
