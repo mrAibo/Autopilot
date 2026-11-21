@@ -6,7 +6,6 @@ import socket
 import sys
 import tempfile
 import unittest
-import urllib.request
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,16 +30,13 @@ class ShotsTests(unittest.TestCase):
         with socket.socket() as s:
             s.bind(("127.0.0.1", port))
 
-    def test_serve_dir_serves_on_free_port(self):
-        with tempfile.TemporaryDirectory() as d:
-            with open(os.path.join(d, "a.txt"), "w") as f:
-                f.write("hi")
-            server, port = shots.serve_dir(d)
-            try:
-                self.assertEqual(urllib.request.urlopen("http://127.0.0.1:%d/a.txt" % port).read(), b"hi")
-            finally:
-                server.shutdown()
-                server.server_close()
+    def test_bad_url_scheme_exit_2_with_reason(self):
+        err = io.StringIO()
+        with tempfile.TemporaryDirectory() as d, contextlib.redirect_stderr(err),                 mock.patch.object(shots.subprocess, "run") as run:
+            code = shots.main(["--url", "ftp://x/", "--out", d])
+        self.assertEqual(code, 2)
+        self.assertIn("схема", err.getvalue())
+        run.assert_not_called()
 
     def test_no_browser_exit_2_with_reason(self):
         err = io.StringIO()

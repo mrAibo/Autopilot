@@ -58,8 +58,6 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 
 **Round 2 asks only about the mismatches.** A fresh checker again — never the one of round 1 — that still does not see `spec.md`, `manifest.md` or the tickets. It gets the brief files **whole** and the repository as in round 1, plus **the list of the requirements round 1 answered «частично» or «нет», in the brief's own words** (not manifest ids). Its prompt is the round-1 prompt up to the cloning paragraph, and in place of the per-requirement paragraphs it says:
 
-**Screenshots for the blind checker (prototype, off by default).** Only when `AUTOPILOT_BLIND_SHOTS=1` is set: before the checker goes out, take pictures of the built page with `python3 .autopilot/shots.py --url URL --out DIR [--width N --height N]` (headless Chrome/Edge; exit 0 prints one file path per line, exit 2 means no browser — go on without pictures) and hand the files to the checker as part of the repository. The checker still never receives `spec.md`, `manifest.md` or the tickets. Without the flag nothing changes (`docs/adr/0030`).
-
 > Это повторная проверка. Склонируй репозиторий заново во временную папку — новый
 > клон, не тот, что был в прошлый раз, — поставь зависимости с нуля и **пройди
 > основной сценарий один раз**. Не поднимается — это расхождение, даже если его
@@ -69,6 +67,8 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 > По каждому — реализовано / частично / нет и одна строка, где это видно.
 > Остальное не перепроверяй и не оценивай. Не открывай `.autopilot/`, не вызывай
 > скиллы, ничего не отправляй наружу — как и раньше.
+
+**Screenshots for the blind checker (prototype, off by default).** Only when `AUTOPILOT_BLIND_SHOTS=1` is set: before the checker goes out, take pictures of the built page with `python3 .autopilot/shots.py --url URL --out DIR [--width N --height N]` (headless Chrome/Edge; exit 0 prints one file path per line, exit 2 means no browser — go on without pictures) and hand the files over: the checker clones the repository afresh, so keep the folder **outside the clone** and give its path in the checker's prompt (or commit the files explicitly). `--url` is the built app page (a served address or a built `.html`), never `.autopilot/dashboard.html`, the spec or the manifest. The checker still never receives `spec.md`, `manifest.md` or the tickets. Without the flag nothing changes (`docs/adr/0030`).
 
 Round 1's verdict on every other requirement stands. Record round 2 the same way — `ap.py blind checked=K matched=J --mismatch "…"` with `K` = the listed requirements + 1 for the main scenario, one `--mismatch` per one still 🔴 (or the scenario that did not come up) — and `ap.py` merges the two rounds: `checked` stays as in round 1, the mismatches are the ones left after round 2, `rounds` keeps both. It refuses `K` above round 1's mismatches plus one, without writing; `reopen` clears both rounds.
 

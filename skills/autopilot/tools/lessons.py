@@ -14,7 +14,7 @@ SECRET = re.compile(
     r"|\b\d{8,10}:[A-Za-z0-9_-]{35}\b|\beyJ[\w-]{5,}\.[\w-]{5,}|\w+://[^\s/:@]+:[^\s/@]+@\S+"
     r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
     r"|(?i:key|token|secret|password|ключ|токен|пароль|доступ)\W{0,3}[A-Za-z0-9+/=]{32,}")
-ABS_PATH = re.compile(r"(?<![\w.])(?:[A-Za-z]:[/\x5c]|~/|\x5c\x5c[\w.$-]+\x5c|/(?:Users|home|root|private|var/folders)/)")
+ABS_PATH = re.compile(r"(?<![\w.])(?:[A-Za-z]:[/\x5c]|~/|\x5c\x5c[\w.$-]+\x5c|/(?:Users|home|var/folders)/)")
 
 
 def check_text(text):

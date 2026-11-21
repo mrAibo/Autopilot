@@ -10,7 +10,7 @@ import lessons  # sys.path уже задан test_speed_lessons
 BS = chr(92)
 FORMS = {"тильда": "лежит в ~/proj", "слеш вперёд": "лежит в C:/work/x",
          "UNC": "лежит в " + BS * 2 + "server" + BS + "share" + BS + "x",
-         "root": "см. /ro" "ot/x", "private": "см. /priv" "ate/tmp/x", "folders": "см. /var/fol" "ders/ab/x",
+         "folders": "см. /var/fol" "ders/ab/x",
          "Users": "см. /Us" "ers/a/b", "home": "см. /ho" "me/a/b", "диск": "C:" + BS + "Users" + BS + "a"}
 
 
@@ -22,6 +22,14 @@ class PathForms(unittest.TestCase):
 
     def test_project_relative_text_passes(self):
         self.assertIsNone(lessons.check_text("правь tests/x.py и ~ как знак, а не путь a/b"))
+
+
+class RoutesPass(unittest.TestCase):
+    def test_web_routes_are_not_paths(self):
+        for text in ("GET /root/ route отдаёт 200", "redirect to /root/dashboard после входа",
+                     "роут /private/ закрыт логином, см. /private/area"):
+            with self.subTest(text):
+                self.assertIsNone(lessons.check_text(text))
 
 
 class ParallelAdd(Cli):

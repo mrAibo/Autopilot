@@ -3,18 +3,15 @@
 
 `shots.py --url URL --out DIR [--width N --height N]`; код 0 — файлы записаны, пути по строке на файл;
 код 2 — нет Chrome/Edge (строка причины в stderr) или не вышло снять. Только стандартная библиотека.
-`--url` может быть путём к файлу или адресом; для папки со статикой `serve_dir` поднимает сервер на свободном порту.
+`--url` — путь к файлу или адрес со схемой http, https или file; сервер для папки не поднимается.
 """
 import argparse
-import functools
-import http.server
 import os
 from pathlib import Path
 import shutil
 import socket
 import subprocess
 import sys
-import threading
 
 
 def find_browser():
@@ -41,15 +38,6 @@ def free_port():
         return s.getsockname()[1]
 
 
-def serve_dir(directory):
-    """Статика из `directory` на свободном порту; возвращает (сервер, порт). Остановить: server.shutdown()."""
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(directory))
-    handler.log_message = lambda *a, **k: None
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", free_port()), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    return server, server.server_address[1]
-
-
 def parse_args(argv):
     p = argparse.ArgumentParser(prog="shots.py", description=__doc__.splitlines()[0])
     p.add_argument("--url", required=True)
@@ -61,6 +49,9 @@ def parse_args(argv):
 
 def main(argv=None):
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    if "://" in args.url and args.url.split("://", 1)[0].lower() not in ("http", "https", "file"):
+        print("схема не http, https и не file: " + args.url, file=sys.stderr)
+        return 2
     browser = find_browser()
     if not browser:
         print("нет Chrome/Edge: скриншоты не сняты", file=sys.stderr)
