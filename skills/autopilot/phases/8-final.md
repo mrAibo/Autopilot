@@ -58,6 +58,8 @@ It receives every `*-brief.md` in `dir`, oldest first, **whole, `## Дополн
 
 **Round 2 asks only about the mismatches.** A fresh checker again — never the one of round 1 — that still does not see `spec.md`, `manifest.md` or the tickets. It gets the brief files **whole** and the repository as in round 1, plus **the list of the requirements round 1 answered «частично» or «нет», in the brief's own words** (not manifest ids). Its prompt is the round-1 prompt up to the cloning paragraph, and in place of the per-requirement paragraphs it says:
 
+**Screenshots for the blind checker (prototype, off by default).** Only when `AUTOPILOT_BLIND_SHOTS=1` is set: before the checker goes out, take pictures of the built page with `python3 .autopilot/shots.py --url URL --out DIR [--width N --height N]` (headless Chrome/Edge; exit 0 prints one file path per line, exit 2 means no browser — go on without pictures) and hand the files to the checker as part of the repository. The checker still never receives `spec.md`, `manifest.md` or the tickets. Without the flag nothing changes (`docs/adr/0030`).
+
 > Это повторная проверка. Склонируй репозиторий заново во временную папку — новый
 > клон, не тот, что был в прошлый раз, — поставь зависимости с нуля и **пройди
 > основной сценарий один раз**. Не поднимается — это расхождение, даже если его
