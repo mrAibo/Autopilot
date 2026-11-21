@@ -23,7 +23,7 @@
 
 ## Подводные камни
 
-- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1329<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
+- Полный прогон тестов идёт около 10 минут (<!-- tests:count -->1352<!-- /tests:count --> тестов, 5 пропущены; число подставляет `skills/autopilot/tools/test_count.py --write`); один файл: `python -m unittest discover -s tests -p test_x.py`.
 - `ticket MM start` пускает таск, чья зависимость в `review` (код закоммичен); `done` и `land` ждут `done` зависимости. `ap.py schedule` тоже пускает такой таск (не в изолированном прогоне); `commit_paths` подхватывает старый путь переименования из индекса, и при каталоге в `paths` тоже; `ensure_key` над целым ключом не падает из-за занятой заявки; ключ `gate.key` при пустом файле занимается жёсткой ссылкой `gate.key.claim` (брошенную заявку удалить руками, `docs/adr/0029`).
 - Параллельный прогон: `python tools/run-tests.py [-j N] [--list]` (итог в формате unittest; классы с `serial = True` или из `SERIAL` в запускателе идут после параллельных); CI запускает именно его. Замер 2026-11-17, Windows, 32 процесса: последовательно 632 с, параллельно 77–90 с (1047 тестов, 5 пропущено, числа те же).
 - `state.js` читается и пишется только через `skills/autopilot/tools/state_io.py` (BOM, префикс, повтор `os.replace` на Windows).
