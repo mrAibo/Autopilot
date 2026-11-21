@@ -66,7 +66,7 @@ This file is the orchestrator: order, gates, the rules that never lose. Each pha
 
 **Digests first (context cost).** For nine heavy phases the working text is the one-page digest in `phases/short/<same name>.md` (`0-modes`, `0-preflight`, `1-manifest`, `3-spec`, `4-plan`, `5-subagents`, `5-host-claude`, `6-review`, `8-final`): order, commands, gates, what is forbidden. **Read the digest by default; read the full phase file only when the digest says so or when something you need is not in it** (the digests name what they leave out: prompts to copy verbatim, templates, tables). The digest never overrides the full text: on any difference the full file wins. The table above names the full files; read `short/` in their place.
 
-**After a compaction, re-read the state, not the phases:** `state.js` (it holds `dir` and `skillDir`), `manifest.md`, `interfaces.md`, `carried.md` if the run has one, the file of the phase you are in, and `phases/5-repair.md` (its limits and the `reset --by-user` / `fail` rules decide what you may do next). Nothing else.
+**After a compaction, re-read the state, not the phases:** `state.js` (it holds `dir` and `skillDir`), `manifest.md`, `interfaces.md`, `carried.md` if the run has one, the digest `phases/short/<phase>.md` of the phase you are in (the full file only if the digest sends you there), and `phases/5-repair.md` (its limits and the `reset --by-user` / `fail` rules decide what you may do next). Nothing else.
 
 ## The words the user sees
 

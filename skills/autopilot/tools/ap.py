@@ -3281,19 +3281,31 @@ def cmd_handoff(state, opt):
     потеряло бы данные (нет `baseCommit`, плана, коммита плана в истории или `.autopilot/` не закоммичен)."""
     tickets = state.get("tickets") or []
     problems = []
+    if opt.get("tokens") is not None and not (isinstance(opt["tokens"], str) and re.fullmatch(r"[0-9]+", opt["tokens"])):
+        die("handoff: --tokens — число")
     if not state.get("baseCommit"):
         problems.append("baseCommit не записан — сначала коммит плана")
-    elif subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", str(state["baseCommit"]), "HEAD"],
-                        capture_output=True).returncode:
-        problems.append("baseCommit %s не предок HEAD" % state["baseCommit"])
+    else:
+        try:
+            if subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", str(state["baseCommit"]), "HEAD"],
+                              capture_output=True).returncode:
+                problems.append("baseCommit %s не предок HEAD" % state["baseCommit"])
+        except OSError:
+            problems.append("git не запускается")
     if not tickets:
         problems.append("в state.js нет тасков")
     if any(t.get("status") not in ("pending", None) for t in tickets):
         return _handoff_say(0, "сборка уже началась — новый чат не нужен, продолжаем здесь")
-    dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "--", ".autopilot"],
-                           capture_output=True, text=True).stdout.splitlines()
-    dirty = [x for x in dirty if not x[3:].strip().endswith(("state.js", "dashboard.html", "state.json", "serve.log"))
-             and "serve." not in x and "run-log" not in x and "history-cache" not in x]
+    try:
+        dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "--", ".autopilot"],
+                               capture_output=True, text=True).stdout.splitlines()
+    except OSError:
+        dirty = []
+        problems.append("git не запускается")
+    # служебные файлы, которые ap.py переписывает сам: сравниваем имя файла целиком
+    own = {"state.js", "dashboard.html", "state.json", "serve.log", "serve.pid", "serve.token", "serve.answer.json",
+           "run-log.jsonl", "history-cache.json"}
+    dirty = [x for x in dirty if os.path.basename(x[3:].strip().strip('"').replace("\\", "/")) not in own]
     if dirty:
         problems.append("не закоммичено в .autopilot/: %s" % dirty[0][3:].strip())
     if problems:
@@ -3303,13 +3315,14 @@ def cmd_handoff(state, opt):
     raw = os.environ.get("AUTOPILOT_CONTEXT_HINT", "").strip()
     limit = int(raw) if re.fullmatch(r"[0-9]+", raw) else CONTEXT_HINT
     try:
-        n = int(opt["tokens"]) if opt.get("tokens") else last_context_tokens()
+        n = int(opt["tokens"]) if opt.get("tokens") is not None else last_context_tokens()
     except ValueError:
         die("handoff: --tokens — число")
     if limit <= 0 or n is None or n <= limit:
         return _handoff_say(0, "контекст в норме или не измерен — продолжаем здесь")
     return _handoff_say(3, "СТОП: контекст %d тыс. токенов. Скажи пользователю одной строкой: «План готов и сохранён. "
                         "Открой новый чат в этой папке и напиши `/autopilot` — сборка продолжится с этого места.» "
+                        "Если новый чат спросит, в каком окне идёт сборка, ответь: продолжает новое окно (этот чат больше не пишет). "
                         "`stage build` здесь не запускай" % round(n / 1000))
 
 

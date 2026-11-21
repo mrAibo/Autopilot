@@ -11,7 +11,7 @@ npx skills update autopilot -g
 Orchestrator tokens (ADR 0034).
 
 - **`ap.py handoff [--tokens N]`:** read-only step after the plan commit (`phases/4-plan.md`): exit 3 when the main chat is over `AUTOPILOT_CONTEXT_HINT` and a resume loses nothing (stop, one line, continue in a new chat); 0 go on; 1 the resume would lose data (no `baseCommit`, uncommitted `.autopilot/`). Strict runs and T0 are unchanged. Tests: `tests/test_handoff.py`.
-- **Phase digests:** `skills/autopilot/phases/short/` holds one-page digests of nine heavy phases; `SKILL.md` reads them by default. 101,133 characters of full text become 36,245 (about 65 % less per re-read, roughly 25k → 9k tokens by the chars/4 estimate). `tests/test_text_split.py` checks size, the pointer to the full text and that digest commands exist.
+- **Phase digests:** `skills/autopilot/phases/short/` holds one-page digests of nine heavy phases; `SKILL.md` reads them by default (strict-run files such as `5-strict.md` are not digested). Full text 90,647 characters → 35,423 (−61 %; bytes 100,759 → 37,964; about 22.7k → 8.9k tokens by the chars/4 estimate). The gain is context size, not a per-phase re-read: the `8-final` digest still sends you to the full file for the verbatim prompts. In `full` mode the stop at the threshold is a hard stop. `tests/test_text_split.py` checks size, the pointer to the full text, prohibition markers and that digest commands exist.
 
 Tails of the last build and R28 (ADR 0030-0033).
 

@@ -86,10 +86,6 @@ class DashboardAnswers(unittest.TestCase):
         self.assertIn("manual only", final)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class Digests(unittest.TestCase):
     """Выжимки тяжёлых фаз (ADR 0034): короче полного текста, называют его, не выдумывают команд."""
     NAMES = ("0-modes", "0-preflight", "1-manifest", "3-spec", "4-plan", "5-subagents", "5-host-claude", "6-review", "8-final")
@@ -112,3 +108,24 @@ class Digests(unittest.TestCase):
         s = read("SKILL.md").decode("utf-8")
         self.assertIn("phases/short/", s)
         self.assertIn("full file wins", s)
+
+    MARKERS = {"0-modes": ["ap.py ask action", "audit"], "1-manifest": ["[REDACTED", "dropped", "--by-user", "sk_test_", "github_pat_", "ya29.", "доступ"],
+               "3-spec": ["Fable"], "6-review": ["Fable", "You never widen"], "8-final": ["BLIND_ROUNDS", "G4", "--by-user", "Fable"],
+               "5-subagents": ["Fable", "5-host-codex.md", "Luna", "5-repair.md"], "4-plan": ["Fable", "handoff", "Sonnet"]}
+
+    def test_prohibition_markers_survive_in_digests(self):
+        for n, marks in self.MARKERS.items():
+            d = read("phases", "short", n + ".md").decode("utf-8")
+            for m in marks:
+                self.assertIn(m, d, "%s: в выжимке пропал «%s»" % (n, m))
+
+    def test_skill_md_does_not_send_strict_stages_to_digests(self):
+        s = read("SKILL.md").decode("utf-8")
+        line = next(x for x in s.splitlines() if x.startswith("**Digests first"))
+        for n in ("5-strict", "4-plan-strict", "4-plan-opus", "5-sequential-host", "audit"):
+            self.assertNotIn(n, line)
+            self.assertFalse(os.path.exists(os.path.join(SKILL, "phases", "short", n + ".md")), n)
+
+
+if __name__ == "__main__":
+    unittest.main()
