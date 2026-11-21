@@ -8,6 +8,16 @@ npx skills update autopilot -g
 
 ## Unreleased
 
+Quality and spend of landing (ADR 0035).
+
+- **`land`, failed tests:** a red `land NN` prints the failed test names (`FAIL:`/`ERROR:` lines of unittest, up to 20, `failed_tests` in `ap.py`) and the last 15 lines of the output; exit code 2 and no commit as before.
+- **`Целевая проверка`:** a ticket file may carry the line ``Целевая проверка: `<command>` ``; `ticket NN land` runs it instead of the full check and records the id in `state["targetedLands"]`. No such line: the full check as before.
+- **Full check once:** `stage review` runs the full check (the `Полная проверка` line of `interfaces.md`) when `targetedLands` is not empty, a red one refuses the transition with the failed names; `finish` does the same for lands after the review. Without that line nothing runs and a warning is printed.
+- **Acceptance:** the acceptance report lists what is already known, so the checker does not raise it again (`phases/8-final.md`, `prompts/`); the scout gets narrow questions (`phases/3-spec.md`).
+- **`ap.py doc-check`:** compares the `ap.py <command>` and `--flag` names in backticks of this section and of the ADR files changed by the run with `ap.py`; exit 1 on a mismatch. `finish` adds the line `! doc-check: N расхождений` to its notes and does not block. Module `skills/autopilot/tools/doc_check.py`.
+- **Browser check:** `tools/check-dashboard-browser.py --plan` checks the line «план: N из M» in all six designs at 1440 and 400 px (skipped without Chrome).
+- **Flaky test search:** five full `tools/run-tests.py` runs were planned; no flaky test is recorded in the run notes, so none was fixed.
+
 Orchestrator tokens (ADR 0034).
 
 - **`ap.py handoff [--tokens N]`:** read-only step after the plan commit (`phases/4-plan.md`): exit 3 when the main chat is over `AUTOPILOT_CONTEXT_HINT` and a resume loses nothing (stop, one line, continue in a new chat); 0 go on; 1 the resume would lose data (no `baseCommit`, uncommitted `.autopilot/`). Strict runs and T0 are unchanged. Tests: `tests/test_handoff.py`.
